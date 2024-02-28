@@ -53,4 +53,4 @@ BField_t buildLUXEBField() {
     return bField;
 }
 
-} // namespace LUXEMagneticField
+} // namespace LUXEPipeline
