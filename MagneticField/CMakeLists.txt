@@ -23,6 +23,5 @@ target_link_libraries(
     ActsLUXEPipelineCore
     PUBLIC
     ActsCore
-    ActsPluginGeant4
 )
       

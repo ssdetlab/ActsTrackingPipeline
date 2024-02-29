@@ -7,6 +7,8 @@
 
 
 #include <iostream>
+#include <vector>
+#include <functional>
 
 namespace LUXEMagneticField {
 
@@ -22,6 +24,19 @@ using Grid_t =
                 , Acts::detail::EquidistantAxis>;
 using BField_t = Acts::InterpolatedBFieldMap<Grid_t>;
 
-BField_t buildLUXEBField();
+using transformationPos_t = std::function
+        <Acts::Vector3(const Acts::Vector3)>;
+
+using transformationBField_t = std::function
+        <Acts::Vector3(const Acts::Vector3,
+                       const Acts::Vector3)>;
+
+using bFieldValue_t = std::function
+        <Acts::Vector3(const std::array<double, 3>)>;
+
+BField_t buildLUXEBField(const transformationPos_t& transformPos,
+                         const transformationBField_t& transformBField,
+                         const bFieldValue_t& bFieldValue,
+                         const std::vector<unsigned int> bins);
 
 } // namespace LUXEGeometry

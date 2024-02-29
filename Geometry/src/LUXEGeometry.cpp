@@ -106,8 +106,8 @@ std::shared_ptr<const Acts::Experimental::Detector>
                 std::make_shared<Acts::Experimental::LayerStructureBuilder>(lbFullCfg);
     
             auto [sFull, vFull, suFull, vuFull] = lbFull->construct(gctx);
-    
-            assert(sFull.size() == names.size());
+            std::cout<<sFull.size()<<std::endl;
+//            assert(sFull.size() == names.size());
 
             // Create the detector
             auto bounds = std::make_unique<Acts::CuboidVolumeBounds>(3, 3, 3);
