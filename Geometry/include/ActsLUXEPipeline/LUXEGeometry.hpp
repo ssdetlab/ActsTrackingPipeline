@@ -14,16 +14,6 @@
 
 namespace LUXEGeometry {
 
-/// @brief Construct the test Geant4 world
-/// of thwo arms telescope with 5 layers of 5 chips
-///
-/// @return a tuple of the world volume, 
-/// the chips names and the gdml file path
-std::tuple<G4VPhysicalVolume*, 
-std::vector<std::string>, 
-std::string>
-MockupGeant4World();
-
 /// @brief Build the LUXE detector
 ///
 /// @param gdmlPath path to the gdml file
