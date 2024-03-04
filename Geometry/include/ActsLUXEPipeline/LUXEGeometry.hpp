@@ -2,6 +2,7 @@
 
 #include "Acts/Detector/Detector.hpp"
 #include "Acts/Geometry/GeometryContext.hpp"
+#include "Acts/Detector/DetectorComponents.hpp"
 
 #include "G4VPhysicalVolume.hh"
 #include "G4NistManager.hh"
@@ -14,15 +15,17 @@
 
 namespace LUXEGeometry {
 
-/// @brief Construct the test Geant4 world
-/// of thwo arms telescope with 5 layers of 5 chips
+/// @brief Select detectors with zMin < z < zMax
 ///
-/// @return a tuple of the world volume, 
-/// the chips names and the gdml file path
-std::tuple<G4VPhysicalVolume*, 
-std::vector<std::string>, 
-std::string>
-MockupGeant4World();
+/// @param gdmlPath path to the gdml file
+/// @param names the names of the volumes to be converted
+///
+/// @return InternalStructure object for the selected surfaces
+Acts::Experimental::InternalStructure selectSurfaces(std::string gdmlPath,
+                                                     std::vector<std::string> names,
+                                                     Acts::GeometryContext gctx,
+                                                     Acts::ActsScalar zMin,
+                                                     Acts::ActsScalar zMax);
 
 /// @brief Build the LUXE detector
 ///
