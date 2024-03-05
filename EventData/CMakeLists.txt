@@ -11,10 +11,10 @@ target_include_directories(
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
 
 # Sources
-target_sources(
-    ActsLUXEPipelineCore
-    PRIVATE
-    src/ROOTDataReader.cpp)
+# Note: No sources for now
+# target_sources(
+    # ActsLUXEPipelineCore
+    # PRIVATE)
 
 # Dictionary for the sim data
 add_library(LUXESimEventDict SHARED)
