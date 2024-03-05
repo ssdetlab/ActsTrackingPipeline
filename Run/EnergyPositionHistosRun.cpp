@@ -34,7 +34,7 @@ int main() {
         double z = v.at(2);
         double r = std::sqrt(std::pow(x,2) + std::pow(y,2) + std::pow(z,2));
         double r5 = std::pow(r,5);
-        // linear in r and z so interpolation should be exact
+
         return Acts::Vector3(3 * x * z / r5, 3 * y * z / r5,
                              (3 * std::pow(z, 2) - std::pow(r, 2)) / r5);
     };

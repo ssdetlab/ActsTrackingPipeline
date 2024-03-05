@@ -9,6 +9,7 @@ BField_t buildLUXEBField(const transformationPos_t& transformPos,
     Acts::MagneticFieldContext mfContext = Acts::MagneticFieldContext();
 
     // magnetic field known on grid in (x,y,z)
+    // TODO: make non-equidistant binning an option
     Acts::detail::EquidistantAxis x(0.0, 5.0, bins[0]);
     Acts::detail::EquidistantAxis y(0.0, 5.0, bins[1]);
     Acts::detail::EquidistantAxis z(0.0, 5.0, bins[2]);

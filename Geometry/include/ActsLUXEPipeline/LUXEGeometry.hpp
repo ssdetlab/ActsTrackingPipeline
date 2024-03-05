@@ -3,6 +3,8 @@
 #include "Acts/Detector/Detector.hpp"
 #include "Acts/Geometry/GeometryContext.hpp"
 #include "Acts/Detector/DetectorComponents.hpp"
+#include "Acts/Detector/LayerStructureBuilder.hpp"
+
 
 #include "G4VPhysicalVolume.hh"
 #include "G4NistManager.hh"
@@ -21,11 +23,12 @@ namespace LUXEGeometry {
 /// @param names the names of the volumes to be converted
 ///
 /// @return InternalStructure object for the selected surfaces
-Acts::Experimental::InternalStructure selectSurfaces(std::string gdmlPath,
-                                                     std::vector<std::string> names,
-                                                     Acts::GeometryContext gctx,
-                                                     Acts::ActsScalar zMin,
-                                                     Acts::ActsScalar zMax);
+std::shared_ptr<Acts::Experimental::LayerStructureBuilder> makeLayerBuilder(
+        std::string gdmlPath,
+        std::vector<std::string> names,
+        Acts::GeometryContext gctx,
+        Acts::ActsScalar zMin,
+        Acts::ActsScalar zMax);
 
 /// @brief Build the LUXE detector
 ///
