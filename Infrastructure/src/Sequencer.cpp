@@ -161,7 +161,7 @@ void Sequencer::addElement(const std::shared_ptr<SequenceElement>& element) {
         std::size_t pos = 0;
         while (pos + 80 < s.size()) {
         ACTS_INFO("   " + s.substr(pos, pos + 80));
-        pos += 80;
+            pos += 80;
         }
         ACTS_INFO("   " + s.substr(pos));
     };
@@ -204,6 +204,7 @@ void Sequencer::addElement(const std::shared_ptr<SequenceElement>& element) {
         }
     }
 
+    ACTS_VERBOSE("Check write handles");
     if (valid) {  // only record outputs this if we're valid until here
         for (const auto* handle : element->writeHandles()) {
             if (!handle->isInitialized()) {
