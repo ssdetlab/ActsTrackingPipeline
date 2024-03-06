@@ -15,6 +15,7 @@ target_sources(
     ActsLUXEPipelineCore
     PRIVATE
     src/LUXEGeometry.cpp
+    src/LUXEGeometryIdGenerator.cpp
 )
 
 # For now we assume that the pipeline 

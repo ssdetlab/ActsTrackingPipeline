@@ -1,4 +1,5 @@
 #include "ActsLUXEPipeline/LUXEGeometry.hpp"
+#include "ActsLUXEPipeline/LUXEGeometryIdGenerator.hpp"
 
 #include "Acts/Geometry/CuboidVolumeBounds.hpp"
 #include "Acts/Detector/LayerStructureBuilder.hpp"
@@ -83,8 +84,8 @@ std::shared_ptr<const Acts::Experimental::Detector>
             positronArmBpr->add(std::move(layer4Node));
 
             positronArmBpr->geoIdGenerator =
-                    std::make_shared<Acts::Experimental::GeometryIdGenerator>(
-                            Acts::Experimental::GeometryIdGenerator::Config{},
+                    std::make_shared<Acts::Experimental::LUXEGeometryIdGenerator>(
+                            Acts::Experimental::LUXEGeometryIdGenerator::Config{},
                             Acts::getDefaultLogger("RecursiveIdGenerator",
                                                    Acts::Logging::VERBOSE));
 
@@ -105,8 +106,6 @@ std::shared_ptr<const Acts::Experimental::Detector>
             dCfg.geoIdGenerator = positronArmBpr->geoIdGenerator;
 
             auto detector = Acts::Experimental::DetectorBuilder(dCfg).construct(gctx);
-
-
 
             return detector;
 }
