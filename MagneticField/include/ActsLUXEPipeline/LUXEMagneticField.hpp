@@ -36,7 +36,6 @@ using bFieldValue_t = std::function
 
 BField_t buildLUXEBField(const transformationPos_t& transformPos,
                          const transformationBField_t& transformBField,
-                         const bFieldValue_t& bFieldValue,
                          const std::vector<unsigned int> bins);
 
 } // namespace LUXEGeometry
