@@ -14,7 +14,9 @@ target_include_directories(
 target_sources(
     ActsLUXEPipelineCore
     PRIVATE
-    src/LUXEGeometry.cpp)
+    src/LUXEGeometry.cpp
+    src/LUXEGeometryIdGenerator.cpp
+)
 
 # For now we assume that the pipeline 
 # always uses the Geant4 plugin
@@ -22,5 +24,6 @@ target_link_libraries(
     ActsLUXEPipelineCore
     PUBLIC
     ActsCore
-    ActsPluginGeant4)
+    ActsPluginGeant4
+)
       

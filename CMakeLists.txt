@@ -22,11 +22,11 @@ find_package(TBB REQUIRED)
 find_package(ROOT REQUIRED)
 find_package(Geant4 REQUIRED)
 find_package(
-    Acts 
-    COMPONENTS 
-    Core 
-    PluginGeant4 
-    PluginFpeMonitoring 
+    Acts
+    COMPONENTS
+    Core
+    PluginGeant4
+    PluginFpeMonitoring
     REQUIRED)
 
 message(STATUS "Acts_FOUND: ${Acts_INCLUDE_DIR}")
@@ -37,10 +37,10 @@ add_library(
 
 # collect the library dependencies
 add_subdirectory(Geometry)
-add_subdirectory(EventData)
+#add_subdirectory(EventData)
 add_subdirectory(Infrastructure)
 
-# macro to add run executables
+# macro to add a run executables
 macro(add_run _name _source)
     # automatically prefix the target name
     set(_target "Run${_name}")

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Acts/Definitions/Algebra.hpp"
 #include "Acts/Definitions/Units.hpp"
 
 #include <map>
@@ -38,5 +39,18 @@ namespace LUXEGeometry {
         {8, 539.33_mm - chipSizeX/2.0}
     };
 
+    struct GeometryOptions {
+
+        std::vector<Acts::ActsScalar> layerZPositions = {3962_mm,
+                                                         4062_mm,
+                                                         4162_mm,
+                                                         4262_mm};
+        // Can be set to zero if there are no IN and OUT staves for a single layer
+        Acts::ActsScalar deltaZ = 12_mm;
+
+        const std::vector<Acts::ActsScalar> detectorBounds = {100_mm,100_mm,5000_mm};
+
+        const std::vector<Acts::ActsScalar> layerBounds = {100_mm, 100_mm, 14_mm};
+    };
 
 } // namespace LUXEGeometry
