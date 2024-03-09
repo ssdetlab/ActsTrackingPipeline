@@ -62,6 +62,7 @@ if (LUXEPipeline_BUILD_EVENTDATA)
     add_subdirectory(EventData)
 endif()
 add_subdirectory(Infrastructure)
+add_subdirectory(TrackFinding)
 
 # macro to add a run executables
 macro(add_run _name _source)

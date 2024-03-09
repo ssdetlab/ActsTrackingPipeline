@@ -42,8 +42,6 @@ target_link_libraries(
     ROOT::RIO
     ROOT::Physics)
 
-# For now we assume that the pipeline 
-# always uses the Geant4 plugin
 target_link_libraries(
     ActsLUXEPipelineCore
     PUBLIC
