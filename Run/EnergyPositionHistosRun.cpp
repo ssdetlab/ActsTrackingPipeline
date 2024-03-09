@@ -44,6 +44,7 @@ int main() {
     auto BField = LUXEMagneticField::buildLUXEBField(transformPos, transformBField, bFieldValue, bins);
 
     for (auto& vol : detector->rootVolumes()) {
+        std::cout<<"Surfaces size: "<<vol->surfaces().size()<<std::endl;
         for (auto& surf : vol->surfaces()) {
             std::cout<<"Surface ID: "<<surf->geometryId()<<std::endl;
             std::cout<<"Surface z transform: "<<surf->center(gctx)[2]<<std::endl;

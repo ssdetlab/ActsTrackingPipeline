@@ -18,18 +18,17 @@ std::shared_ptr<Acts::Experimental::LayerStructureBuilder> makeLayerBuilder(std:
                                                                             Acts::GeometryContext gctx,
                                                                             Acts::ActsScalar zMin,
                                                                             Acts::ActsScalar zMax) {
-    auto spCfg = Acts::Experimental::Geant4SurfaceProvider<3>::Config();
+    auto spCfg = Acts::Experimental::Geant4SurfaceProvider<1>::Config();
     spCfg.gdmlPath = gdmlPath;
     spCfg.surfacePreselector =
             std::make_shared<Acts::Geant4PhysicalVolumeSelectors::NameSelector>(names,
                                                                                 true);
 
-    auto kdtDOpt = Acts::Experimental::Geant4SurfaceProvider<3>::kdtOptions();
-    kdtDOpt.range = Acts::RangeXD<3, Acts::ActsScalar>();
+    auto kdtDOpt = Acts::Experimental::Geant4SurfaceProvider<1>::kdtOptions();
     kdtDOpt.range[0].set(zMin, zMax);
     kdtDOpt.binningValues = {Acts::BinningValue::binZ};
 
-    auto SP = std::make_shared<Acts::Experimental::Geant4SurfaceProvider<3>>(
+    auto SP = std::make_shared<Acts::Experimental::Geant4SurfaceProvider<1>>(
             spCfg, kdtDOpt, false);
 
     auto lbCfg = Acts::Experimental::LayerStructureBuilder::Config();

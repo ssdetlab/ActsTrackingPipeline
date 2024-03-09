@@ -37,7 +37,7 @@ add_library(
 
 # collect the library dependencies
 add_subdirectory(Geometry)
-add_subdirectory(EventData)
+#add_subdirectory(EventData)
 add_subdirectory(Infrastructure)
 add_subdirectory(MagneticField)
 
