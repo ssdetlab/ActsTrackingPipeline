@@ -72,8 +72,10 @@ void Acts::Experimental::LUXEGeometryIdGenerator::assignGeometryId(
         return;
     } else if ((rGeoID.sensitive() == 0 && rGeoID.passive() == 0) ||
                m_cfg.overrideExistingIds) {
-        ACTS_VERBOSE("Assigning sensitive id " << (ccache.volumeCount+std::floor(ccache.sensitiveCount/9)-2)*10+ccache.sensitiveCount%9);
-        geoID.setSensitive((ccache.volumeCount+std::floor(ccache.sensitiveCount/9)-2)*10+ccache.sensitiveCount%9+1);
+        ACTS_VERBOSE("Assigning sensitive id " <<
+            (ccache.volumeCount+std::floor(ccache.sensitiveCount/9)-2)*10+ccache.sensitiveCount%9+1);
+        geoID.setSensitive(
+            (ccache.volumeCount+std::floor(ccache.sensitiveCount/9)-2)*10+ccache.sensitiveCount%9+1);
         ccache.sensitiveCount++;
 
         surface.assignGeometryId(geoID);

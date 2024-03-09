@@ -39,7 +39,6 @@ add_library(
 add_subdirectory(Geometry)
 #add_subdirectory(EventData)
 add_subdirectory(Infrastructure)
-add_subdirectory(MagneticField)
 
 # macro to add a run executables
 macro(add_run _name _source)
