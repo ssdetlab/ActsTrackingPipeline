@@ -17,7 +17,7 @@ int main() {
     auto positronArmBpr = LUXEGeometry::makeBlueprint(gdmlPath, names, gctx, gOpt);
 
     auto detector =
-        LUXEGeometry::buildLUXEDetector(positronArmBpr, gctx, gOpt);
+        LUXEGeometry::buildLUXEDetector(std::move(positronArmBpr), gctx, gOpt);
     for (auto& vol : detector->rootVolumes()) {
         std::cout<<"Surfaces size: "<<vol->surfaces().size()<<std::endl;
         for (auto& surf : vol->surfaces()) {
