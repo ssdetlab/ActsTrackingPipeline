@@ -41,5 +41,4 @@ BField_t buildLUXEBField(const transformationPos_t& transformPos,
 
     return bField;
 }
-
 } // namespace LUXEPipeline

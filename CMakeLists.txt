@@ -18,12 +18,16 @@ set(CMAKE_INSTALL_LIBDIR lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/${CMAKE_INSTALL_BINDIR}")
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/${CMAKE_INSTALL_LIBDIR}")
 
-message(STATUS "CMAKE_INSTALL_BINDIR: ${CMAKE_INSTALL_BINDIR}")
-message(STATUS "CMAKE_RUNTIME_OUTPUT_DIRECTORY: ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}")
-message(STATUS "CMAKE_LIBRARY_OUTPUT_DIRECTORY: ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}")
-
+find_package(TBB REQUIRED)
+find_package(ROOT REQUIRED)
 find_package(Geant4 REQUIRED)
-find_package(Acts COMPONENTS Core PluginGeant4 REQUIRED)
+find_package(
+    Acts
+    COMPONENTS
+    Core
+    PluginGeant4
+    PluginFpeMonitoring
+    REQUIRED)
 
 message(STATUS "Acts_FOUND: ${Acts_INCLUDE_DIR}")
 
@@ -33,6 +37,8 @@ add_library(
 
 # collect the library dependencies
 add_subdirectory(Geometry)
+add_subdirectory(EventData)
+add_subdirectory(Infrastructure)
 add_subdirectory(MagneticField)
 
 # macro to add a run executables

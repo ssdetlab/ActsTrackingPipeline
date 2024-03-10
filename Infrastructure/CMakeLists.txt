@@ -1,5 +1,5 @@
 #
-# Include the geometry component
+# Include the infrastructure component
 # to the pipeline core
 #
 
@@ -14,13 +14,17 @@ target_include_directories(
 target_sources(
     ActsLUXEPipelineCore
     PRIVATE
-    src/LUXEGeometry.cpp)
+    src/IAlgorithm.cpp
+    src/Sequencer.cpp
+    src/WhiteBoard.cpp
+    src/SequenceElement.cpp)
 
 # For now we assume that the pipeline 
 # always uses the Geant4 plugin
 target_link_libraries(
     ActsLUXEPipelineCore
     PUBLIC
+    TBB::tbb
+    ROOT::Core
     ActsCore
-    ActsPluginGeant4)
-      
+    ActsPluginFpeMonitoring)
