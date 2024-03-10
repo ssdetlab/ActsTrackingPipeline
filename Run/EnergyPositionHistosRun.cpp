@@ -8,8 +8,11 @@
 /// energy vs position histograms for each layer
 int main() {
 
-    std::string gdmlPath2 = "lxgeomdump_staves.gdml";
-    std::vector<std::string> names2{"OPPPSensitive"};
+    Acts::GeometryContext gctx;
+    std::string gdmlPath = "lxgeomdump_stave_positron.gdml";
+    std::vector<std::string> names{"OPPPSensitive"};
+
+    LUXEGeometry::GeometryOptions gOpt;
 
     // map (x,y,z) -> (x,y,z)
     auto transformPos = [](const Acts::Vector3& pos) {
@@ -25,6 +28,19 @@ int main() {
 
     auto BField = LUXEMagneticField::buildLUXEBField(transformPos, transformBField, bins);
     std::cout<<BField.getField(Acts::Vector3{3,1,1}).value()<<std::endl;
+
+    // Build the LUXE detector
+    auto positronArmBpr = LUXEGeometry::makeBlueprint(gdmlPath, names, gctx, gOpt);
+
+    auto detector =
+        LUXEGeometry::buildLUXEDetector(std::move(positronArmBpr), gctx, gOpt);
+    for (auto& vol : detector->rootVolumes()) {
+        std::cout<<"Surfaces size: "<<vol->surfaces().size()<<std::endl;
+        for (auto& surf : vol->surfaces()) {
+            std::cout<<"Surface ID: "<<surf->geometryId()<<std::endl;
+            std::cout<<"Surface z transform: "<<surf->center(gctx)[2]<<std::endl;
+        }
+    }
 
     return 0;
 }

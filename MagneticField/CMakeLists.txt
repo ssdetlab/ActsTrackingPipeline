@@ -14,7 +14,7 @@ target_include_directories(
 target_sources(
     ActsLUXEPipelineCore
     PRIVATE
-        src/LUXEMagneticField.cpp
+    src/LUXEMagneticField.cpp
 )
 
 # For now we assume that the pipeline 
