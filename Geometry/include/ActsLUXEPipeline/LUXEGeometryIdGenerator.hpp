@@ -1,44 +1,20 @@
-// This file is part of the Acts project.
-//
-// Copyright (C) 2023 CERN for the benefit of the Acts project
-//
-// This Source Code Form is subject to the terms of the Mozilla Public
-// License, v. 2.0. If a copy of the MPL was not distributed with this
-// file, You can obtain one at http://mozilla.org/MPL/2.0/.
-
 #pragma once
 
 #include "Acts/Detector/interface/IGeometryIdGenerator.hpp"
+#include "Acts/Detector/DetectorVolume.hpp"
+#include "Acts/Detector/Portal.hpp"
+#include "Acts/Surfaces/Surface.hpp"
 #include "Acts/Geometry/GeometryIdentifier.hpp"
 #include "Acts/Utilities/Logger.hpp"
 
 #include <any>
 
-namespace Acts {
+namespace LUXEGeometry {
 
-    class Surface;
-
-    namespace Experimental {
-
-        class Portal;
-        class DetectorVolume;
-
-/// @brief This is the default implementation of the geometry id generator
-///
-/// It is a simple counter based generator that assigns ids to the geometry
-/// and increments the counter for each object type.
-///
-/// Sub counters, i.e. for the sensitive surfaces, are reset after the volume
-/// call, such that a new volume or layer volume would start from counter 0
-/// again.
-///
-/// If the generator is configured to override existing ids, it will do so
-/// and not respect previously assigned ids.
-///
-/// If the generator is configured in container mode, it will increase the
-/// layer id for each layer volume with confined surfaces.
-///
-        class LUXEGeometryIdGenerator final : public IGeometryIdGenerator {
+/// @brief The geometry id generator
+/// working as per internal LUXE conventions
+class LUXEGeometryIdGenerator final : 
+    public Acts::Experimental::IGeometryIdGenerator {
         public:
             /// @brief  Nested config struct
             struct Config {
@@ -71,10 +47,11 @@ namespace Acts {
             /// @param cfg is the geometry configuration object
             /// @param mlogger is the logging instance
             LUXEGeometryIdGenerator(const Config& cfg,
-                                std::unique_ptr<const Logger> mlogger = getDefaultLogger(
-                                        "LUXEGeometryIdGenerator", Logging::INFO))
-                    : m_cfg(cfg), m_logger(std::move(mlogger)) {}
-
+                std::unique_ptr<const Acts::Logger> mlogger = 
+                    Acts::getDefaultLogger("LUXEGeometryIdGenerator", 
+                        Acts::Logging::INFO))
+                : m_cfg(cfg), m_logger(std::move(mlogger)) {}
+        
             ~LUXEGeometryIdGenerator() override = default;
 
             /// @brief Interface method to generate a geometry id cache
@@ -85,22 +62,25 @@ namespace Acts {
             ///
             /// @param cache is the cache object for e.g. object counting
             /// @param dVolume the detector volume to assign the geometry id to
-            void assignGeometryId(IGeometryIdGenerator::GeoIdCache& cache,
-                                  DetectorVolume& dVolume) const final;
+            void assignGeometryId(
+                Acts::Experimental::IGeometryIdGenerator::GeoIdCache& cache,
+                Acts::Experimental::DetectorVolume& dVolume) const final;
 
             /// @brief Method for assigning a geometry id to a portal
             ///
             /// @param cache is the cache object for e.g. object counting
             /// @param portal the portal to assign the geometry id to
-            void assignGeometryId(IGeometryIdGenerator::GeoIdCache& cache,
-                                  Portal& portal) const final;
+            void assignGeometryId(
+                Acts::Experimental::IGeometryIdGenerator::GeoIdCache& cache,
+                Acts::Experimental::Portal& portal) const final;
 
             /// @brief Method for assigning a geometry id to a surface
             ///
             /// @param cache is the cache object for e.g. object counting
             /// @param surface the surface to assign the geometry id to
-            void assignGeometryId(IGeometryIdGenerator::GeoIdCache& cache,
-                                  Surface& surface) const final;
+            void assignGeometryId(
+                Acts::Experimental::IGeometryIdGenerator::GeoIdCache& cache,
+                Acts::Surface& surface) const final;
 
         private:
             /// @brief Helper method to get the volume id from the cache
@@ -109,16 +89,17 @@ namespace Acts {
             /// @param incrementLayer if true, the layer counter is incremented
             ///
             /// @return a valid geometry identifier
-            GeometryIdentifier volumeId(Cache& cache, bool incrementLayer = true) const;
-
+            Acts::GeometryIdentifier volumeId(
+                Cache& cache, bool incrementLayer = true) const;
+        
             /// Configuration object
             Config m_cfg;
-
+        
             /// Private access method to the logger
-            const Logger& logger() const { return *m_logger; }
-
+            const Acts::Logger& logger() const { return *m_logger; }
+        
             /// logging instance
-            std::unique_ptr<const Logger> m_logger;
-        };
-    }  // namespace Experimental
-}  // namespace Acts
+            std::unique_ptr<const Acts::Logger> m_logger;
+};
+
+}  // namespace LUXEGeometry
