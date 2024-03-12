@@ -18,11 +18,14 @@
 #include <iosfwd>
 #include <stdexcept>
 
-/// A minimal source link implementation
+/// @brief A minimal source link implementation
+/// that is easy to convert to the Measurement
+/// 
+/// @note Stores the geometry identifier,
+/// local hit coordinates, and the covariance
 struct SimpleSourceLink final {
     Acts::GeometryIdentifier m_geometryId{};
     std::int32_t eventId = 0u;
-    // use eBoundSize to indicate unused indices
     std::array<Acts::BoundIndices, 2> indices = 
         {Acts::eBoundLoc0, Acts::eBoundLoc1};
     Acts::ActsVector<2> parameters;

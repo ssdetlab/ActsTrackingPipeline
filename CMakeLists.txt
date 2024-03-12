@@ -29,15 +29,13 @@ find_package(
     PluginFpeMonitoring
     REQUIRED)
 
-message(STATUS "Acts_FOUND: ${Acts_INCLUDE_DIR}")
-
 # source files will be added later
 add_library(
     ActsLUXEPipelineCore SHARED "")
 
 # collect the library dependencies
 add_subdirectory(Geometry)
-#add_subdirectory(EventData)
+add_subdirectory(EventData)
 add_subdirectory(Infrastructure)
 
 # macro to add a run executables

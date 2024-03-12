@@ -11,20 +11,20 @@ namespace LUXEROOTReader {
 /// for the LUXE geometry
 Acts::Vector2 convertToLoc(
     const Acts::Vector3& glob, 
-    const Acts::GeometryIdentifier geoId) {
-        // TODO: geoIds for the electrone arm
-        // TODO: agree on geoId format
-        int nStave = geoId.value()/10;
-        int nChip = geoId.value()%10;
+    const Acts::GeometryIdentifier geoId,
+    const LUXEGeometry::GeometryOptions& gOpt) {
+        // TODO: geoIds for the electron arm
+        int nStave = geoId.sensitive()/10;
+        int nChip = geoId.sensitive()%10;
         if (nStave % 2 == 0) {
             return Acts::Vector2(
-                (glob.x() - LUXEGeometry::chipTranslationXEven.at(nChip)),
-                (glob.y() - LUXEGeometry::chipTranslationY));
+                (glob.x() - gOpt.chipTranslationXEven.at(nChip)),
+                (glob.y() - gOpt.chipTranslationY));
         }
         else {
             return Acts::Vector2(
-                (glob.x() - LUXEGeometry::chipTranslationXOdd.at(nChip)),
-                (glob.y() - LUXEGeometry::chipTranslationY));
+                (glob.x() - gOpt.chipTranslationXOdd.at(nChip)),
+                (glob.y() - gOpt.chipTranslationY));
         }
 }
 
@@ -47,12 +47,19 @@ struct SimMeasurements {
 /// of ALPIDE intrinsic resolutions
 class LUXEROOTSimDataReader : public ROOTDataReader<SimMeasurements> {
     public:
+        struct Config 
+            : public ROOTDataReader<SimMeasurements>::Config{
+                LUXEGeometry::GeometryOptions gOpt;
+        };
+
         LUXEROOTSimDataReader(const Config &config, Acts::Logging::Level level) 
-            : ROOTDataReader(config, level) {}
+            : ROOTDataReader(config, level), m_cfg(config) {}
 
         std::string name() const override { return "LUXEROOTSimDataReader"; }
 
     private:
+        Config m_cfg;
+
         inline void prepareMeasurements(
             const AlgorithmContext &context, 
             SimMeasurements* measurements) const override {
@@ -61,18 +68,21 @@ class LUXEROOTSimDataReader : public ROOTDataReader<SimMeasurements> {
                     return;
                 }
 
-                std::int32_t geoId; 
+                std::int32_t geoIdval; 
                 std::vector<std::int32_t>* trackId;
                 std::vector<TVector3>* hits;
                 std::vector<TLorentzVector>* dirs;
                 try {
-                    geoId = m_intColumns.at("geoId");
+                    geoIdval = m_intColumns.at("geoId");
                     trackId = m_vectorIntColumns.at("tru_trackId");
                     hits = m_vector3Columns.at("tru_hit");
                     dirs = m_lorentzColumns.at("tru_p");
                 } catch (const std::out_of_range& e) {
                     throw std::runtime_error("Missing columns in the ROOT file");
                 }
+
+                Acts::GeometryIdentifier geoId;
+                geoId.setSensitive(geoIdval);
 
                 for (int idx = 0; idx < hits->size(); idx++) {
                     const Acts::Vector3 trueHitGlob = 
@@ -81,7 +91,7 @@ class LUXEROOTSimDataReader : public ROOTDataReader<SimMeasurements> {
                          hits->at(idx).Z() * Acts::UnitConstants::mm};
     
                     const Acts::Vector2 trueHitLoc = 
-                        convertToLoc(trueHitGlob, geoId);
+                        convertToLoc(trueHitGlob, geoId, m_cfg.gOpt);
     
                     Acts::BoundVector parameters = Acts::BoundVector::Zero();
                     parameters[Acts::eBoundLoc0] = trueHitLoc[Acts::eBoundLoc0];
@@ -113,7 +123,7 @@ class LUXEROOTSimDataReader : public ROOTDataReader<SimMeasurements> {
 };
 
 auto defaultSimConfig() {
-    ROOTDataReader<SimMeasurements>::Config config;
+    LUXEROOTSimDataReader::Config config;
     config.treeName = "clusters";
     config.vector3Keys = {"tru_hit"};
     config.lorentzKeys = {"tru_p"};
