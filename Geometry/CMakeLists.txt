@@ -3,6 +3,14 @@
 # to the pipeline core
 #
 
+# Geant4 Plugin is required
+# for the geometry
+find_package(
+    Acts
+    COMPONENTS
+    PluginGeant4
+    REQUIRED)
+
 # Includes for Acts are propagated
 # through the library linking
 target_include_directories(
