@@ -3,6 +3,17 @@
 # to the pipeline core
 #
 
+# ROOT components for the 
+# dictionary generation
+# and event data reading
+find_package(
+    ROOT 
+    COMPONENTS 
+    RIO 
+    Tree
+    Physics
+    REQUIRED)
+
 # Includes for Acts are propagated
 # through the library linking
 target_include_directories(
