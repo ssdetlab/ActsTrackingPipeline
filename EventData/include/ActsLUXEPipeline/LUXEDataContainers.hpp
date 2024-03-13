@@ -5,7 +5,7 @@
 
 #include <vector>
 
-namespace LUXEMeasurement {
+namespace LUXEDataContainer {
 
 /// @brief Measurement for the LUXE simulation
 /// storing the source link and the truth parameters
@@ -21,5 +21,15 @@ struct SimMeasurement {
 
 /// @brief A collection of SimMeasurements
 using SimMeasurements = std::vector<SimMeasurement>;
+
+struct Seed {
+    /// Source links related
+    /// to the seed measurements
+    std::vector< Acts::SourceLink> sourceLinks;
+    /// IP parameters
+    Acts::Vector3 ipParameters;
+};
+
+using Seeds = std::vector<Seed>;
 
 } // namespace LUXEMeasurement

@@ -60,7 +60,7 @@ void LUXEGeometryIdGenerator::assignGeometryId(
         auto& ccache = std::any_cast<Cache&>(cache);
 
         auto rGeoID = surface.geometryId();
-        auto geoID = volumeId(ccache, false);
+        auto geoID = Acts::GeometryIdentifier(0u);
         if (!m_cfg.overrideExistingIds && rGeoID.value() != 0) {
             return;
         } else if (
@@ -68,7 +68,7 @@ void LUXEGeometryIdGenerator::assignGeometryId(
             m_cfg.overrideExistingIds) {
                 Acts::ActsScalar id = 
                     (ccache.volumeCount + std::floor(ccache.sensitiveCount/9) - 2) * 10 + 
-                        ccache.sensitiveCount % 9 + 1;
+                        ccache.sensitiveCount % 9 + 11;
                 ACTS_VERBOSE("Assigning sensitive id " << id);
                 geoID.setSensitive(id);
                 ccache.sensitiveCount++;

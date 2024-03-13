@@ -4,7 +4,7 @@
 #include "ActsLUXEPipeline/ROOTDataReader.hpp"
 #include "ActsLUXEPipeline/LUXEGeometryConstraints.hpp"
 #include "ActsLUXEPipeline/LUXESimpleSourceLink.hpp"
-#include "ActsLUXEPipeline/LUXEMeasurement.hpp"
+#include "ActsLUXEPipeline/LUXEDataContainers.hpp"
 
 namespace LUXEROOTReader {
 
@@ -15,8 +15,8 @@ Acts::Vector2 convertToLoc(
     const Acts::GeometryIdentifier geoId,
     const LUXEGeometry::GeometryOptions& gOpt) {
         // TODO: geoIds for the electron arm
-        int nStave = geoId.sensitive()/10;
-        int nChip = geoId.sensitive()%10;
+        int nStave = geoId.sensitive()/10 - 1;
+        int nChip = geoId.sensitive()%10 - 1;
         if (nStave % 2 == 0) {
             return Acts::Vector2(
                 (glob.x() - gOpt.chipTranslationXEven.at(nChip)),
@@ -35,10 +35,10 @@ Acts::Vector2 convertToLoc(
 /// @note Covariance is implemented as a diagonal matrix
 /// of ALPIDE intrinsic resolutions
 class LUXEROOTSimDataReader : 
-    public ROOTDataReader<LUXEMeasurement::SimMeasurements> {
+    public ROOTDataReader<LUXEDataContainer::SimMeasurements> {
         public:
             struct Config 
-                : public ROOTDataReader<LUXEMeasurement::SimMeasurements>::Config{
+                : public ROOTDataReader<LUXEDataContainer::SimMeasurements>::Config{
                     LUXEGeometry::GeometryOptions gOpt;
             };
 
@@ -52,7 +52,7 @@ class LUXEROOTSimDataReader :
 
             inline void prepareMeasurements(
                 const AlgorithmContext &context, 
-                LUXEMeasurement::SimMeasurements* measurements) const override {
+                LUXEDataContainer::SimMeasurements* measurements) const override {
                     auto eventId = m_intColumns.at("eventId");
                     if (eventId != context.eventNumber) {
                         return;
@@ -72,7 +72,7 @@ class LUXEROOTSimDataReader :
                     }
 
                     Acts::GeometryIdentifier geoId;
-                    geoId.setSensitive(geoIdval);
+                    geoId.setSensitive(geoIdval + 11);
     
                     for (int idx = 0; idx < hits->size(); idx++) {
                         const Acts::Vector3 trueHitGlob = 
@@ -105,7 +105,7 @@ class LUXEROOTSimDataReader :
                         SimpleSourceLink ssl(trueHitLoc, cov, geoId, eventId);
                         Acts::SourceLink sl{ssl};
     
-                        LUXEMeasurement::SimMeasurement measurement{
+                        LUXEDataContainer::SimMeasurement measurement{
                             .sourceLink = sl,
                             .truthParameters = parameters,
                             .trackId = trackId->at(idx)
