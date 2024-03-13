@@ -6,6 +6,9 @@
 #include "Acts/EventData/Measurement.hpp"
 #include "Acts/EventData/MultiTrajectory.hpp"
 #include "Acts/EventData/SourceLink.hpp"
+
+#include "Acts/EventData/detail/TestSourceLink.hpp"
+
 #include "Acts/Geometry/GeometryContext.hpp"
 #include "Acts/Geometry/GeometryIdentifier.hpp"
 #include "Acts/Geometry/TrackingGeometry.hpp"
@@ -64,10 +67,10 @@ struct SimpleSourceLink final {
     struct SurfaceAccessor {
         const Acts::Experimental::Detector& detector;
     
-        const Acts::Surface* operator()(const Acts::SourceLink& sourceLink) const {
-            const auto& sl = sourceLink.get<SimpleSourceLink>();
+        const Acts::Surface* operator()(const Acts::detail::Test::TestSourceLink& sourceLink) const {
+//            const auto& sl = sourceLink.get<SimpleSourceLink>();
             return *detector.sensitiveHierarchyMap().find(
-                sl.m_geometryId);
+                    sourceLink.m_geometryId);
         }
     };
 

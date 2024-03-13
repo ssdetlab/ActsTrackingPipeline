@@ -2,6 +2,7 @@
 
 #include "Acts/Definitions/Units.hpp"
 #include "Acts/EventData/Measurement.hpp"
+#include "ActsLUXEPipeline/LUXESimpleSourceLink.hpp"
 #include "Acts/EventData/detail/TestSourceLink.hpp"
 #include "Acts/Geometry/GeometryContext.hpp"
 #include "Acts/Geometry/GeometryHierarchyMap.hpp"
@@ -35,7 +36,6 @@ using MeasurementResolutionMap =
 /// Result struct for generated measurements and outliers.
 struct Measurements {
     std::vector<Acts::detail::Test::TestSourceLink> sourceLinks;
-    std::vector<Acts::detail::Test::TestSourceLink> outlierSourceLinks;
     std::vector<Acts::BoundVector> truthParameters;
 };
 struct MeasurementsCreator {
@@ -80,9 +80,9 @@ struct MeasurementsCreator {
         const MeasurementResolution &resolution = *found;
         std::cout<<"check4"<<std::endl;
         // Apply global to local
-        Acts::Vector2 loc = {0,0};
-//                surface.globalToLocal(state.geoContext, stepper.position(state.stepping),
-//                                       stepper.direction(state.stepping)).value();
+        Acts::Vector2 loc =
+                surface.globalToLocal(state.geoContext, stepper.position(state.stepping),
+                                       stepper.direction(state.stepping)).value();
 
         // The truth info
         Acts::BoundVector parameters = Acts::BoundVector::Zero();
@@ -97,11 +97,11 @@ struct MeasurementsCreator {
 
         Acts::SquareMatrix2 cov = Acts::SquareMatrix2::Identity();
 
-
-
         Acts::Vector2 val = loc;
+
         result.sourceLinks.emplace_back(Acts::eBoundLoc0, Acts::eBoundLoc1, val, cov, geoId,
                                         sourceId);
+        result.truthParameters.push_back(parameters);
     }
 };
 /// Propagate the track create smeared measurements from local coordinates.

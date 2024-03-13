@@ -9,8 +9,12 @@ auto exampleDipole = [](const std::array<double, 3> &v) {
     double r = std::sqrt(std::pow(x,2) + std::pow(y,2) + std::pow(z,2));
     double r5 = std::pow(r,5);
     // linear in r and z so interpolation should be exact
-    return Acts::Vector3(300 * x * z / r5, 300 * y * z / r5,
-                         (300 * std::pow(z, 2) - std::pow(r, 2)) / r5);
+    if (z<3962) {
+        return Acts::Vector3(0,0,0);
+    } else {
+        return Acts::Vector3(0 * x * z / r5, -0.001 ,
+                             (0 * std::pow(z, 2) - std::pow(r, 2)) / r5);
+    }
 };
 
 BField_t buildLUXEBField(const transformationPos_t& transformPos,

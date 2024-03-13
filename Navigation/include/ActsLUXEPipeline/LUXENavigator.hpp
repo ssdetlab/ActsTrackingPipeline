@@ -36,8 +36,8 @@ Acts::Propagator<stepper_t, Acts::Experimental::DetectorNavigator> makePropagato
 Acts::CurvilinearTrackParameters makeParameters() {
     Acts::BoundSquareMatrix cov = Acts::BoundSquareMatrix::Identity();
     // define a track in the transverse plane along x
-    Acts::Vector4 mPos4(100., 0., 0._m, 1_ns);
-    return Acts::CurvilinearTrackParameters(mPos4, 0_degree, 0_degree,
+    Acts::Vector4 mPos4(0., 0., 0._m, 1_ns);
+    return Acts::CurvilinearTrackParameters(mPos4, 0_degree, 90_degree,
                                             1_e / 1_GeV, cov, Acts::ParticleHypothesis::electron());
 }
 

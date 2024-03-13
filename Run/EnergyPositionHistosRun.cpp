@@ -11,6 +11,7 @@
 #include "ActsLUXEPipeline/LUXEMeasurementsCreator.hpp"
 #include "Acts/Visualization/ObjVisualization3D.hpp"
 #include "Acts/Visualization/GeometryView3D.hpp"
+
 #include <string>
 #include <iostream>
 /// @brief Run the propagation through
@@ -97,9 +98,9 @@ int main() {
 
     for (auto& vol : detector->rootVolumes()) {
         std::cout<<"Surfaces size: "<<vol->surfaces().size()<<std::endl;
-        Acts::GeometryView3D::drawDetectorVolume(
-                volumeObj, *(vol), gctx,
-                Acts::Transform3::Identity(), pConfig);
+//        Acts::GeometryView3D::drawDetectorVolume(
+//                volumeObj, *(vol), gctx,
+//                Acts::Transform3::Identity(), pConfig);
         for (auto& surf : vol->surfaces()) {
             std::cout<<"Assigning resolution to surface ID: "<<surf->geometryId()<<std::endl;
             Acts::GeometryView3D::drawSurface(
@@ -123,8 +124,16 @@ int main() {
 //    Acts::GeometryView3D::drawSegment(
 //            volumeObj, *(surf), gctx,
 //            Acts::Transform3::Identity(), pConfig);
+
+    SimpleSourceLink::SurfaceAccessor SA{*detector};
+    std::vector<Acts::Vector3> globals;
     for (auto& sl:test.sourceLinks) {
-        std::cout<<sl.parameters<<std::endl;
+        globals.push_back(SA(sl)->localToGlobal(gctx, sl.parameters, Acts::Vector3{1,1,1}));
+    }
+    for (size_t j=0; j<globals.size()-1;j++) {
+        Acts::GeometryView3D::drawArrowForward(
+            volumeObj, globals[j], globals[j+1],100 , 20, pConfig);
+        std::cout<<globals[j]<<std::endl;
     }
     volumeObj.write("volumes.obj");
 
