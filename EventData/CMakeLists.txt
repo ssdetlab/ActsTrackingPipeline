@@ -3,6 +3,17 @@
 # to the pipeline core
 #
 
+# ROOT components for the 
+# dictionary generation
+# and event data reading
+find_package(
+    ROOT 
+    COMPONENTS 
+    RIO 
+    Tree
+    Physics
+    REQUIRED)
+
 # Includes for Acts are propagated
 # through the library linking
 target_include_directories(
@@ -31,8 +42,6 @@ target_link_libraries(
     ROOT::RIO
     ROOT::Physics)
 
-# For now we assume that the pipeline 
-# always uses the Geant4 plugin
 target_link_libraries(
     ActsLUXEPipelineCore
     PUBLIC

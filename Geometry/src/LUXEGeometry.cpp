@@ -14,103 +14,106 @@
 #include <vector>
 
 namespace LUXEGeometry {
-using namespace Acts::UnitLiterals;
-using layerBuilderVector = std::vector<std::shared_ptr<Acts::Experimental::LayerStructureBuilder>>;
-using layerNodeVector = std::vector<std::unique_ptr<Acts::Experimental::Blueprint::Node>>;
 
-std::shared_ptr<Acts::Experimental::LayerStructureBuilder> makeLayerBuilder(std::string gdmlPath,
-                                                                            std::vector<std::string> names,
-                                                                            Acts::GeometryContext gctx,
-                                                                            Acts::ActsScalar zMin,
-                                                                            Acts::ActsScalar zMax) {
-    auto spCfg = Acts::Experimental::Geant4SurfaceProvider<1>::Config();
-    spCfg.gdmlPath = gdmlPath;
-    spCfg.surfacePreselector =
-            std::make_shared<Acts::Geant4PhysicalVolumeSelectors::NameSelector>(names,
-                                                                                true);
+std::unique_ptr<Acts::Experimental::Blueprint::Node>
+makeBlueprintPositron(
+    const std::string& gdmlPath,
+    const std::vector<std::string>& names,
+    const LUXEGeometry::GeometryOptions& gOpt) {
+        // Read the gdml file and get the world volume
+        G4GDMLParser parser;
+        parser.Read(gdmlPath, false);
+        auto world = parser.GetWorldVolume();
 
-    auto kdtDOpt = Acts::Experimental::Geant4SurfaceProvider<1>::kdtOptions();
-    kdtDOpt.range[0].set(zMin, zMax);
-    kdtDOpt.binningValues = {Acts::BinningValue::binZ};
+        // Transformation has to be applied to the world
+        // because the z-spacing of the detector
+        // and the Acts track parametrization
+        // do not work together
+        G4Transform3D toWorld(gOpt.g4WorldRotation,
+            G4ThreeVector(0, 0, 0));
 
-    auto SP = std::make_shared<Acts::Experimental::Geant4SurfaceProvider<1>>(
-            spCfg, kdtDOpt, false);
-
-    auto lbCfg = Acts::Experimental::LayerStructureBuilder::Config();
-    lbCfg.surfacesProvider = SP;
-    auto LB =
-            std::make_shared<Acts::Experimental::LayerStructureBuilder>(lbCfg);
-    return LB;
-}
-
-blueprintPtr makeBlueprint(std::string gdmlPath,
-              std::vector<std::string> names,
-              Acts::GeometryContext gctx,
-              LUXEGeometry::GeometryOptions gOpt) {
-        size_t numLayers = gOpt.layerZPositions.size();
-
-        layerBuilderVector layerBuilders(numLayers);
-
+        std::size_t numLayers = gOpt.layerZPositions.size();
         std::vector<Acts::BinningValue> detectorBins = {Acts::binZ};
 
-        auto positronArmBpr = std::make_unique<Acts::Experimental::Blueprint::Node>(
-                "positron_arm", Acts::Transform3::Identity(), Acts::VolumeBounds::eCuboid,
-                gOpt.detectorBounds, detectorBins);
+        // We adopt the convention of first
+        // rotating and then translating
+        // (order matters here)
+        Acts::Transform3 positronArmTransform = Acts::Transform3::Identity();
+        positronArmTransform.rotate(gOpt.actsWorldRotation);
+        positronArmTransform.translate(gOpt.postironArmTranslation);
 
-        std::vector<Acts::Transform3> layerTransforms(numLayers);
-        layerNodeVector layerNodes(numLayers);
+        // Create the root node of the blueprint
+        auto positronArmBpr =
+            std::make_unique<Acts::Experimental::Blueprint::Node>(
+            "positronArm", positronArmTransform,
+            Acts::VolumeBounds::eCuboid,
+            gOpt.postironArmBounds, detectorBins);
 
-        for (int i = 0; i<static_cast<int>(numLayers);i++) {
-            std::cout<<"BOUNDS: "<< gOpt.layerZPositions[i] - gOpt.deltaZ- 1_mm<<" "
-                                <<gOpt.layerZPositions[i] + 1_mm<<std::endl;
+        // Iterate over the layers and create
+        // the child nodes
+        for (std::size_t i = 0; i < numLayers; i++) {
+            auto zBounds = std::make_tuple(
+                gOpt.layerZPositions[i] - gOpt.deltaZ,
+                gOpt.layerZPositions[i] + gOpt.deltaZ);
 
-            layerBuilders[i] = makeLayerBuilder(gdmlPath, names, gctx,
-                                                gOpt.layerZPositions[i] - gOpt.deltaZ- 1_mm,
-                                                gOpt.layerZPositions[i] + 1_mm);
-            layerTransforms[i] = Acts::Transform3::Identity() *
-                                 Acts::Translation3(0., 0., gOpt.layerZPositions[i]);
+            // As the volumes are already rotated,
+            // the selection has to happen along the y-axis
+            auto layerBuilder = makeLayerBuilder(
+                world, toWorld, names, {zBounds}, {Acts::binY});
 
+            // Convention is that the transformations
+            // are with respect to the global frame
+            Acts::Vector3 layerTranslation =
+                Acts::Vector3(
+                    gOpt.postironArmTranslation.x(),
+                    gOpt.postironArmTranslation.y(),
+                    gOpt.layerZPositions[i]);
 
-            layerNodes[i] = std::make_unique<Acts::Experimental::Blueprint::Node>(
-                    "layer"+std::to_string(i), layerTransforms[i], Acts::VolumeBounds::eCuboid,
-                    gOpt.layerBounds, layerBuilders[i]);
+            Acts::Transform3 layerTransform = Acts::Transform3::Identity();
+            layerTransform.rotate(gOpt.actsWorldRotation);
+            layerTransform.translate(layerTranslation);
 
-            positronArmBpr->add(std::move(layerNodes[i]));
+            auto layerNode = std::make_unique<Acts::Experimental::Blueprint::Node>(
+                "layer" + std::to_string(i), layerTransform,
+                Acts::VolumeBounds::eCuboid, gOpt.layerBounds,
+                layerBuilder);
+
+            positronArmBpr->add(std::move(layerNode));
         }
+
         return positronArmBpr;
 }
 
 
 std::shared_ptr<const Acts::Experimental::Detector>
-    buildLUXEDetector(const blueprintPtr detectorBpr,
-        Acts::GeometryContext gctx,
-        LUXEGeometry::GeometryOptions gOpt) {
-
+    buildLUXEDetector(
+        const std::unique_ptr<Acts::Experimental::Blueprint::Node>
+            detectorBpr,
+        const Acts::GeometryContext& gctx,
+        const LUXEGeometry::GeometryOptions& gOpt) {
             detectorBpr->geoIdGenerator =
-                    std::make_shared<Acts::Experimental::LUXEGeometryIdGenerator>(
-                            Acts::Experimental::LUXEGeometryIdGenerator::Config{},
-                            Acts::getDefaultLogger("RecursiveIdGenerator",
-                                                   Acts::Logging::VERBOSE));
+                std::make_shared<LUXEGeometryIdGenerator>(
+                    LUXEGeometryIdGenerator::Config{},
+                    Acts::getDefaultLogger("GeoIdGenerator",
+                        Acts::Logging::VERBOSE));
 
-            std::cout << "Fill gaps ..." << std::endl;
-            // Complete and fill gaps
-            Acts::Experimental::detail::BlueprintHelper::fillGaps(*detectorBpr);
-            std::cout << "Filled gaps ..." << std::endl;
+        // Complete and fill gaps
+        Acts::Experimental::detail::BlueprintHelper::fillGaps(*detectorBpr, false);
 
-            auto detectorBuilder =
-                    std::make_shared<Acts::Experimental::CuboidalContainerBuilder>(
-                            *detectorBpr, Acts::Logging::VERBOSE);
+        auto detectorBuilder =
+            std::make_shared<Acts::Experimental::CuboidalContainerBuilder>(
+                *detectorBpr, Acts::Logging::VERBOSE);
 
-            // Detector builder
-            Acts::Experimental::DetectorBuilder::Config dCfg;
-            dCfg.auxiliary = "*** Test : LUXE detector builder  ***";
-            dCfg.name = "LUXE detector from blueprint";
-            dCfg.builder = detectorBuilder;
-            dCfg.geoIdGenerator = detectorBpr->geoIdGenerator;
+        // Detector builder
+        Acts::Experimental::DetectorBuilder::Config dCfg;
+        dCfg.auxiliary = "LUXE detector builder";
+        dCfg.name = "LUXE detector from blueprint";
+        dCfg.builder = detectorBuilder;
+        dCfg.geoIdGenerator = detectorBpr->geoIdGenerator;
 
-            auto detector = Acts::Experimental::DetectorBuilder(dCfg).construct(gctx);
+        auto detector = Acts::Experimental::DetectorBuilder(dCfg).construct(gctx);
 
-            return detector;
+        return detector;
 }
 
 } // namespace LUXEGeometry
