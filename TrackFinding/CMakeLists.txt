@@ -1,5 +1,5 @@
 #
-# Include the infrastructure component
+# Include the track finding component
 # to the pipeline core
 #
 
@@ -11,18 +11,13 @@ target_include_directories(
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
 
 # Sources
-target_sources(
-    ActsLUXEPipelineCore
-    PRIVATE
-    src/IAlgorithm.cpp
-    src/Sequencer.cpp
-    src/WhiteBoard.cpp
-    src/SequenceElement.cpp)
+# Note: No sources for now
+# target_sources(
+    # ActsLUXEPipelineCore
+    # PRIVATE)
 
 target_link_libraries(
     ActsLUXEPipelineCore
     PUBLIC
-    TBB::tbb
-    ROOT::Core
-    ActsCore
-    ActsPluginFpeMonitoring)
+    ActsCore)
+      
