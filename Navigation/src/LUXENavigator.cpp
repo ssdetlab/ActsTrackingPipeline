@@ -9,8 +9,8 @@ auto exampleDipole = [](const std::array<double, 3> &v) {
     double r = std::sqrt(std::pow(x,2) + std::pow(y,2) + std::pow(z,2));
     double r5 = std::pow(r,5);
     // linear in r and z so interpolation should be exact
-    return Acts::Vector3(300 * x * z / r5, 300 * y * z / r5,
-                         (300 * std::pow(z, 2) - std::pow(r, 2)) / r5);
+    return Acts::Vector3(3 * x * z / r5, 3 * y * z / r5,
+                         (3 * std::pow(z, 2) - std::pow(r, 2)) / r5);
 };
 
 BField_t buildLUXEBField(const transformationPos_t& transformPos,
@@ -19,9 +19,9 @@ BField_t buildLUXEBField(const transformationPos_t& transformPos,
     Acts::MagneticFieldContext mfContext = Acts::MagneticFieldContext();
 
     // magnetic field known on grid in (x,y,z)
-    Acts::detail::EquidistantAxis x(-3000.0, 10000.0, bins[0]);
-    Acts::detail::EquidistantAxis y(-3000.0, 10000.0, bins[1]);
-    Acts::detail::EquidistantAxis z(-3000.0, 10000.0, bins[2]);
+    Acts::detail::EquidistantAxis x(0.0, 5.0, bins[0]);
+    Acts::detail::EquidistantAxis y(0.0, 5.0, bins[1]);
+    Acts::detail::EquidistantAxis z(0.0, 5.0, bins[2]);
 
     Grid_t g(std::make_tuple(std::move(x), std::move(y), std::move(z)));
 

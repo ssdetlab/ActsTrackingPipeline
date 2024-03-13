@@ -37,9 +37,12 @@ add_library(
 
 # collect the library dependencies
 add_subdirectory(Geometry)
-#add_subdirectory(EventData)
+add_subdirectory(TempEventData)
 add_subdirectory(Infrastructure)
 add_subdirectory(MagneticField)
+add_subdirectory(Navigation)
+add_subdirectory(Utilities)
+
 
 # macro to add run executables
 macro(add_run _name _source)

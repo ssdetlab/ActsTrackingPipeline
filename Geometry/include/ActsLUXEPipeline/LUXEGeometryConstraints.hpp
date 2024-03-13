@@ -48,9 +48,9 @@ namespace LUXEGeometry {
         // Can be set to zero if there are no IN and OUT staves for a single layer
         Acts::ActsScalar deltaZ = 12_mm;
 
-        const std::vector<Acts::ActsScalar> detectorBounds = {100_mm,100_mm,5000_mm};
+        const std::vector<Acts::ActsScalar> detectorBounds = {chipSizeX*20, chipSizeY,5000_mm};
 
-        const std::vector<Acts::ActsScalar> layerBounds = {100_mm, 100_mm, 14_mm};
+        const std::vector<Acts::ActsScalar> layerBounds = {chipSizeX*20, chipSizeY, 14_mm};
     };
 
 } // namespace LUXEGeometry
