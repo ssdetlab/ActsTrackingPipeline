@@ -21,7 +21,7 @@ int main() {
     LUXEROOTReader::LUXEROOTSimDataReader::Config readerCfg
         = LUXEROOTReader::defaultSimConfig();
     readerCfg.dataCollection = "SourceLink";
-    std::string pathToDir = "/home/romanurmanov/lab/LUXE/acts_LUXE_tracking/ActsLUXEPipeline_dataInRootFormat/SignalNextTrial_e1gpc_10.0_1";
+//    std::string pathToDir = "/home/romanurmanov/lab/LUXE/acts_LUXE_tracking/ActsLUXEPipeline_dataInRootFormat/SignalNextTrial_e1gpc_10.0_1";
     // map (x,y,z) -> (x,y,z)
     auto transformPos = [](const Acts::Vector3& pos) {
         return pos;
