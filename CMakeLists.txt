@@ -18,30 +18,54 @@ set(CMAKE_INSTALL_LIBDIR lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/${CMAKE_INSTALL_BINDIR}")
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/${CMAKE_INSTALL_LIBDIR}")
 
-find_package(TBB REQUIRED)
-find_package(ROOT REQUIRED)
-find_package(Geant4 REQUIRED)
+# build options
+option(LUXEPipeline_BUILD_EVERYTHING
+    "Build with all options enabled" OFF)
+option(LUXEPipeline_BUILD_GEOMETRY
+    "Build the Geometry component" ON)
+option(LUXEPipeline_BUILD_EVENTDATA
+    "Build the EventData component" OFF)
+
+# TBB, ROOT::Core are required for the
+# algorithm execution
+find_package(TBB COMPONENTS tbb REQUIRED)
+find_package(ROOT COMPONENTS Core REQUIRED)
+
+# Geant4 is required for the geometry
+if (LUXEPipeline_BUILD_GEOMETRY)
+    find_package(Geant4 REQUIRED)
+endif()
+
+# The core components and the Algo
+# infrastructure are required
 find_package(
     Acts
     COMPONENTS
     Core
-    PluginGeant4
     PluginFpeMonitoring
     REQUIRED)
-
-message(STATUS "Acts_FOUND: ${Acts_INCLUDE_DIR}")
 
 # source files will be added later
 add_library(
     ActsLUXEPipelineCore SHARED "")
 
+if (LUXEPipeline_BUILD_EVERYTHING)
+    set(LUXEPipeline_BUILD_GEOMETRY ON)
+    set(LUXEPipeline_BUILD_EVENTDATA ON)
+endif()
+
 # collect the library dependencies
-add_subdirectory(Geometry)
-#add_subdirectory(EventData)
+if (LUXEPipeline_BUILD_GEOMETRY)
+    add_subdirectory(Geometry)
+endif()
+if (LUXEPipeline_BUILD_EVENTDATA)
+    add_subdirectory(EventData)
+endif()
 add_subdirectory(Infrastructure)
+add_subdirectory(TrackFinding)
 add_subdirectory(MagneticField)
 
-# macro to add run executables
+# macro to add a run executables
 macro(add_run _name _source)
     # automatically prefix the target name
     set(_target "Run${_name}")
