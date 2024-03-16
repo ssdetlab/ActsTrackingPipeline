@@ -3,17 +3,6 @@
 # to the pipeline core
 #
 
-# ROOT components for the 
-# dictionary generation
-# and event data reading
-find_package(
-    ROOT 
-    COMPONENTS 
-    RIO 
-    Tree
-    Physics
-    REQUIRED)
-
 # Includes for Acts are propagated
 # through the library linking
 target_include_directories(
@@ -21,32 +10,8 @@ target_include_directories(
     PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
 
-# Sources
-# Note: No sources for now
-# target_sources(
-    # ActsLUXEPipelineCore
-    # PRIVATE)
-
-# Dictionary for the sim data
-add_library(LUXESimEventDict SHARED)
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
-ROOT_GENERATE_DICTIONARY(
-    G__LUXESimEventDict
-        ROOTDictDefs.h
-    MODULE 
-    LUXESimEventDict 
-    LINKDEF LinkDef.h)
-target_link_libraries(
-    G__LUXESimEventDict 
-    PRIVATE 
-    ROOT::RIO
-    ROOT::Physics)
-
 target_link_libraries(
     ActsLUXEPipelineCore
     PUBLIC
-    ActsCore
-    ROOT::Tree
-    ROOT::Physics
-    G__LUXESimEventDict)
+    ActsCore)
       

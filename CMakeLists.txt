@@ -23,8 +23,8 @@ option(LUXEPipeline_BUILD_EVERYTHING
     "Build with all options enabled" OFF)
 option(LUXEPipeline_BUILD_GEOMETRY
     "Build the Geometry component" ON)
-option(LUXEPipeline_BUILD_EVENTDATA
-    "Build the EventData component" OFF)
+option(LUXEPipeline_BUILD_LUXE_READOUT
+    "Build the LUXE-specific readout component" OFF)
 
 # TBB, ROOT::Core are required for the
 # algorithm execution
@@ -51,19 +51,20 @@ add_library(
 
 if (LUXEPipeline_BUILD_EVERYTHING)
     set(LUXEPipeline_BUILD_GEOMETRY ON)
-    set(LUXEPipeline_BUILD_EVENTDATA ON)
+    set(LUXEPipeline_BUILD_LUXE_READOUT ON)
 endif()
 
 # collect the library dependencies
-if (LUXEPipeline_BUILD_GEOMETRY)
-    add_subdirectory(Geometry)
-endif()
-if (LUXEPipeline_BUILD_EVENTDATA)
-    add_subdirectory(EventData)
-endif()
 add_subdirectory(Infrastructure)
 add_subdirectory(TrackFinding)
 add_subdirectory(MagneticField)
+add_subdirectory(EventData)
+if (LUXEPipeline_BUILD_GEOMETRY)
+    add_subdirectory(Geometry)
+endif()
+if (LUXEPipeline_BUILD_LUXE_READOUT)
+    add_subdirectory(Readout)
+endif()
 
 # macro to add a run executables
 macro(add_run _name _source)
