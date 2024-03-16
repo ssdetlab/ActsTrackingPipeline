@@ -70,7 +70,7 @@ struct SimpleSourceLink final {
         const Acts::Surface* operator()(const Acts::SourceLink& sourceLink) const {
             const auto& sl = sourceLink.get<SimpleSourceLink>();
             return *detector.sensitiveHierarchyMap().find(
-                sl.m_geometryId);
+                sl.geometryId());
         }
     };
 
