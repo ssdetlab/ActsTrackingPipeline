@@ -1,6 +1,8 @@
 #include "ActsLUXEPipeline/LUXEROOTDataReader.hpp"
 #include "ActsLUXEPipeline/LUXESeeder.hpp"
 #include "ActsLUXEPipeline/Sequencer.hpp"
+#include "ActsLUXEPipeline/LUXEGeometry.hpp"
+#include "ActsLUXEPipeline/LUXEMagneticField.hpp"
 
 #include <filesystem>
 
@@ -16,10 +18,27 @@ int main() {
     seqCfg.numThreads = -1;
     Sequencer sequencer(seqCfg);
 
-    LUXEROOTReader::LUXEROOTSimDataReader::Config readerCfg 
+    LUXEROOTReader::LUXEROOTSimDataReader::Config readerCfg
         = LUXEROOTReader::defaultSimConfig();
     readerCfg.dataCollection = "SourceLink";
-    std::string pathToDir = "/home/romanurmanov/lab/LUXE/acts_LUXE_tracking/ActsLUXEPipeline_dataInRootFormat/SignalNextTrial_e1gpc_10.0_1";
+//    std::string pathToDir = "/home/romanurmanov/lab/LUXE/acts_LUXE_tracking/ActsLUXEPipeline_dataInRootFormat/SignalNextTrial_e1gpc_10.0_1";
+    // map (x,y,z) -> (x,y,z)
+    auto transformPos = [](const Acts::Vector3& pos) {
+        return pos;
+    };
+
+    // map (Bx,By,Bz) -> (Bx,By,Bz)
+    auto transformBField = [](const Acts::Vector3& field, const Acts::Vector3&) {
+        return field;
+    };
+
+    const std::vector<unsigned int> bins{5u, 5u, 5u};
+
+    auto BField = LUXEMagneticField::buildLUXEBField(transformPos, transformBField, bins);
+    std::cout<<BField.getField(Acts::Vector3{3,1,1}).value()<<std::endl;
+
+    // Build the LUXE detector
+    auto positronArmBpr = LUXEGeometry::makeBlueprint(gdmlPath, names, gctx, gOpt);
 
     for (const auto & entry : std::filesystem::directory_iterator(pathToDir)) {
         std::string pathToFile = entry.path();
@@ -33,7 +52,7 @@ int main() {
             std::size_t idxRootA = a.find_last_of('.');
             std::size_t idxEventA = a.find_last_of('t', idxRootA);
             std::string eventSubstrA = a.substr(idxEventA + 1, idxRootA - idxEventA);
-            
+
             std::size_t idxRootB = b.find_last_of('.');
             std::size_t idxEventB = b.find_last_of('t', idxRootB);
             std::string eventSubstrB = b.substr(idxEventB + 1, idxRootB - idxEventB);
@@ -43,7 +62,7 @@ int main() {
     );
 
     readerCfg.filePaths = std::vector<std::string>(
-        readerCfg.filePaths.begin(), readerCfg.filePaths.begin() + 72); 
+        readerCfg.filePaths.begin(), readerCfg.filePaths.begin() + 72);
 
     // readerCfg.filePaths = {"/home/romanurmanov/lab/LUXE/acts_LUXE_tracking/ActsLUXEPipeline_dataInRootFormat/SignalNextTrial_e1gpc_10.0_1/dataFile_Signal_e1gpc_10.0_EFieldV10p7p1pyN17Vpercm_Processed_Stave25_Event83.root"};
 

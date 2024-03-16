@@ -31,11 +31,11 @@ target_include_directories(
 add_library(LUXESimEventDict SHARED)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 ROOT_GENERATE_DICTIONARY(
-    G__LUXESimEventDict 
-    ${CMAKE_CURRENT_SOURCE_DIR}/include/ActsLUXEPipeline/ROOTDictDefs.h
+    G__LUXESimEventDict
+        ROOTDictDefs.h
     MODULE 
     LUXESimEventDict 
-    LINKDEF ${CMAKE_CURRENT_SOURCE_DIR}/include/ActsLUXEPipeline/LinkDef.h)
+    LINKDEF LinkDef.h)
 target_link_libraries(
     G__LUXESimEventDict 
     PRIVATE 
