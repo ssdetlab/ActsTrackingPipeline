@@ -7,6 +7,8 @@
 #include "Acts/Geometry/GeometryIdentifier.hpp"
 #include "Acts/Utilities/Logger.hpp"
 
+#include "ActsLUXEPipeline/LUXEGeometryConstraints.hpp"
+
 #include <any>
 
 namespace LUXEGeometry {
@@ -26,6 +28,8 @@ class LUXEGeometryIdGenerator final :
                 bool resetSubCounters = true;
                 /// Force override existing ids
                 bool overrideExistingIds = false;
+                /// Geometry options to extract Ids
+                const LUXEGeometry::GeometryOptions& gOpt;
             };
 
             /// @brief Nested cache struct
