@@ -12,6 +12,10 @@
 
 namespace LUXEMagneticField {
 
+struct GridOptions {
+    std::vector<unsigned int> bins;
+    std::vector<std::pair<float,float>> limits;
+};
 /// 3D equidistant binning
 using Grid_t =
         Acts::Grid<Acts::Vector3, Acts::detail::EquidistantAxis
@@ -39,6 +43,6 @@ using bFieldValue_t = std::function
 /// calculated on a grid
 BField_t buildLUXEBField(const transformationPos_t& transformPos,
                          const transformationBField_t& transformBField,
-                         const std::vector<unsigned int> bins);
+                         const GridOptions gridOpt);
 
 } // namespace LUXEGeometry

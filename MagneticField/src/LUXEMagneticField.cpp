@@ -15,13 +15,13 @@ auto exampleDipole = [](const std::array<double, 3> &v) {
 
 BField_t buildLUXEBField(const transformationPos_t& transformPos,
                          const transformationBField_t& transformBField,
-                         const std::vector<unsigned int> bins) {
+                         const GridOptions gridOpt) {
     Acts::MagneticFieldContext mfContext = Acts::MagneticFieldContext();
 
     // magnetic field known on grid in (x,y,z)
-    Acts::detail::EquidistantAxis x(0.0, 5.0, bins[0]);
-    Acts::detail::EquidistantAxis y(0.0, 5.0, bins[1]);
-    Acts::detail::EquidistantAxis z(0.0, 5.0, bins[2]);
+    Acts::detail::EquidistantAxis x(gridOpt.limits[0].first, gridOpt.limits[0].second, gridOpt.bins[0]);
+    Acts::detail::EquidistantAxis y(gridOpt.limits[1].first, gridOpt.limits[1].second, gridOpt.bins[1]);
+    Acts::detail::EquidistantAxis z(gridOpt.limits[2].first, gridOpt.limits[2].second, gridOpt.bins[2]);
 
     Grid_t g(std::make_tuple(std::move(x), std::move(y), std::move(z)));
 
