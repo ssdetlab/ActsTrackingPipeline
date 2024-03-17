@@ -70,6 +70,28 @@ int main() {
     auto positronArmBpr = LUXEGeometry::makeBlueprintPositron(gdmlPath, names, gOpt);
     auto detector = LUXEGeometry::buildLUXEDetector(std::move(positronArmBpr), gctx, gOpt);
 
+    MeasurementResolution resPixel = {MeasurementType::eLoc01,
+                                      {gOpt.chipSizeX,
+                                       gOpt.chipSizeY}};
+    std::vector<std::pair<Acts::GeometryIdentifier,MeasurementResolution>> m;
+    for (auto& vol : detector->rootVolumes()) {
+        std::cout<<"Surfaces size: "<<vol->surfaces().size()<<std::endl;
+//        Acts::GeometryView3D::drawDetectorVolume(
+//                volumeObj, *(vol), gctx,
+//                Acts::Transform3::Identity(), pConfig);
+        for (auto& surf : vol->surfaces()) {
+            std::cout<<"Assigning resolution to surface ID: "<<surf->geometryId()<<std::endl;
+            Acts::GeometryView3D::drawSurface(
+                    volumeObj, *(surf), gctx,
+                    Acts::Transform3::Identity(), pConfig);
+            m.push_back(std::make_pair(surf->geometryId(),resPixel));
+            std::cout<<"Surface x transform: "<<surf->center(gctx)[0]<<std::endl;
+            std::cout<<"Surface y transform: "<<surf->center(gctx)[1]<<std::endl;
+            std::cout<<"Surface z transform: "<<surf->center(gctx)[2]<<std::endl;
+            std::cout<<"Surface bounds: "<<surf->normal(gctx,surf->center(gctx),Acts::Vector3{0,1,0})<<std::endl;
+        }
+    }
+
 //    for (const auto & entry : std::filesystem::directory_iterator(pathToDir)) {
 //        std::string pathToFile = entry.path();
 //        readerCfg.filePaths.push_back(pathToFile);
@@ -98,11 +120,6 @@ int main() {
 
 //    sequencer.addReader(
 //        std::make_shared<LUXEROOTReader::LUXEROOTSimDataReader>(readerCfg, logLevel));
-
-
-    MeasurementResolution resPixel = {MeasurementType::eLoc01,
-                                      {gOpt.chipSizeX,
-                                       gOpt.chipSizeY}};
 
 //    for (const auto & entry : std::filesystem::directory_iterator(pathToDir)) {
 //        std::string pathToFile = entry.path();
