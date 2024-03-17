@@ -66,6 +66,7 @@ int main() {
     std::string gdmlPath = "lxgeomdump_stave_positron.gdml";
     std::vector<std::string> names = {"OPPPSensitive"};
     Acts::GeometryContext gctx;
+    Acts::MagneticFieldContext magCtx;
     LUXEGeometry::GeometryOptions gOpt;
     auto positronArmBpr = LUXEGeometry::makeBlueprintPositron(gdmlPath, names, gOpt);
     auto detector = LUXEGeometry::buildLUXEDetector(std::move(positronArmBpr), gctx, gOpt);
@@ -163,7 +164,7 @@ int main() {
 
 //    Acts::GeometryView3D::drawArrowForward(
 //            volumeObj, Acts::Vector3{0,0,0}, Acts::Vector3{0,0.1,0},100 , 20, pConfig);
-
+    Acts::ObjVisualization3D volumeObj;
     SimpleSourceLink::SurfaceAccessor SA{*detector};
     std::vector<Acts::Vector3> globals;
     for (auto& sl:test.sourceLinks) {
