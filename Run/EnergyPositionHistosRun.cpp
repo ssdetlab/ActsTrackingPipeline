@@ -75,6 +75,8 @@ int main() {
                                       {gOpt.chipSizeX,
                                        gOpt.chipSizeY}};
     std::vector<std::pair<Acts::GeometryIdentifier,MeasurementResolution>> m;
+    Acts::ViewConfig pConfig = Acts::s_viewSensitive;
+    Acts::ObjVisualization3D volumeObj;
     for (auto& vol : detector->rootVolumes()) {
         std::cout<<"Surfaces size: "<<vol->surfaces().size()<<std::endl;
 //        Acts::GeometryView3D::drawDetectorVolume(
@@ -164,7 +166,6 @@ int main() {
 
 //    Acts::GeometryView3D::drawArrowForward(
 //            volumeObj, Acts::Vector3{0,0,0}, Acts::Vector3{0,0.1,0},100 , 20, pConfig);
-    Acts::ObjVisualization3D volumeObj;
     SimpleSourceLink::SurfaceAccessor SA{*detector};
     std::vector<Acts::Vector3> globals;
     for (auto& sl:test.sourceLinks) {
