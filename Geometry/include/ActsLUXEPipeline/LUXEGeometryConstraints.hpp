@@ -60,16 +60,15 @@ namespace LUXEGeometry {
         const std::vector<Acts::ActsScalar> layerBounds =
             {255_mm, 10_mm, deltaZ};
 
+        const std::vector<std::pair<Acts::ActsScalar,Acts::ActsScalar>> MagneticFieldBounds =
+                {std::make_pair(-255_mm,255_mm),
+                 std::make_pair(-255_mm,255_mm),
+                 std::make_pair(-255_mm,255_mm)};
         /// Global rotation of the world volume
         /// in the Acts format for volumes
         const Acts::RotationMatrix3 actsWorldRotation =
             Acts::AngleAxis3(-M_PI_2,
                 Acts::Vector3(1., 0., 0.)).toRotationMatrix();
-
-        const std::vector<std::pair<Acts::ActsScalar,Acts::ActsScalar>> MagneticFieldBounds =
-                {std::make_pair(-255_mm,255_mm),
-                 std::make_pair(-255_mm,255_mm),
-                 std::make_pair(-255_mm,255_mm)};
         /// Global rotation of the world volume
         /// in the Geant4 format for surfaces
         const CLHEP::HepRotationX g4WorldRotation =
