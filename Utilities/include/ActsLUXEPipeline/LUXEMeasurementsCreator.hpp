@@ -2,8 +2,8 @@
 
 #include "Acts/Definitions/Units.hpp"
 #include "Acts/EventData/Measurement.hpp"
-#include "ActsLUXEPipeline/LUXESimpleSourceLink.hpp"
 #include "Acts/EventData/detail/TestSourceLink.hpp"
+#include "ActsLUXEPipeline/LUXESimpleSourceLink.hpp"
 #include "Acts/Geometry/GeometryContext.hpp"
 #include "Acts/Geometry/GeometryHierarchyMap.hpp"
 #include "Acts/MagneticField/MagneticFieldContext.hpp"
@@ -122,7 +122,6 @@ Measurements createMeasurements(const propagator_t& propagator,
     auto& creator = options.actionList.get<LUXENavigator::MeasurementsCreator>();
     creator.resolutions = resolutions;
     creator.sourceId = sourceId;
-    options.pathLimit = 6_m;
 
     // Launch and collect the measurements
     auto result = propagator.propagate(trackParameters, options).value();

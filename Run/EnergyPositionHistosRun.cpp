@@ -1,5 +1,4 @@
-#include "ActsLUXEPipeline/LUXEROOTDataReader.hpp"
-#include "ActsLUXEPipeline/LUXESeeder.hpp"
+
 #include "ActsLUXEPipeline/Sequencer.hpp"
 
 #include <filesystem>
@@ -18,6 +17,9 @@
 /// a uniform energy spectrum and record the
 /// energy vs position histograms for each layer
 int main() {
+    using namespace LUXENavigator;
+    using namespace LUXEGeometry;
+
     Acts::Logging::Level logLevel = Acts::Logging::VERBOSE;
 
     // setup the sequencer first w/ config derived from options
@@ -25,16 +27,16 @@ int main() {
     seqCfg.events = 10;
     seqCfg.numThreads = -1;
     Sequencer sequencer(seqCfg);
-    using namespace LUXENavigator;
+
     Acts::GeometryContext gctx;
     std::string gdmlPath = "lxgeomdump_stave_positron.gdml";
     std::vector<std::string> names{"OPPPSensitive"};
-    LUXEGeometry::GeometryOptions gOpt;
+    GeometryOptions gOpt;
 
-    LUXEROOTReader::LUXEROOTSimDataReader::Config readerCfg
-        = LUXEROOTReader::defaultSimConfig();
-    readerCfg.dataCollection = "SourceLink";
-    std::string pathToDir = "/home/romanurmanov/lab/LUXE/acts_LUXE_tracking/ActsLUXEPipeline_dataInRootFormat/SignalNextTrial_e1gpc_10.0_1";
+//    LUXEROOTReader::LUXEROOTSimDataReader::Config readerCfg
+//        = LUXEROOTReader::defaultSimConfig();
+//    readerCfg.dataCollection = "SourceLink";
+//    std::string pathToDir = "/home/romanurmanov/lab/LUXE/acts_LUXE_tracking/ActsLUXEPipeline_dataInRootFormat/SignalNextTrial_e1gpc_10.0_1";
     Acts::MagneticFieldContext magCtx;
     // map (x,y,z) -> (x,y,z)
     auto transformPos = [](const Acts::Vector3& pos) {
@@ -53,41 +55,41 @@ int main() {
     auto BFieldPtr = std::make_shared<LUXEMagneticField::BField_t>(BField);
 
     // Build the LUXE detector
-    auto positronArmBpr = LUXEGeometry::makeBlueprint(gdmlPath, names, gctx, gOpt);
+    auto positronArmBpr = LUXEGeometry::makeBlueprintPositron(gdmlPath, names, gOpt);
 
-    for (const auto & entry : std::filesystem::directory_iterator(pathToDir)) {
-        std::string pathToFile = entry.path();
-        readerCfg.filePaths.push_back(pathToFile);
-    }
+//    for (const auto & entry : std::filesystem::directory_iterator(pathToDir)) {
+//        std::string pathToFile = entry.path();
+//        readerCfg.filePaths.push_back(pathToFile);
+//    }
 
     // The events are not sorted in the directory
     // but we need to process them in order
-    std::sort(readerCfg.filePaths.begin(), readerCfg.filePaths.end(),
-        [] (const std::string& a, const std::string& b) {
-            std::size_t idxRootA = a.find_last_of('.');
-            std::size_t idxEventA = a.find_last_of('t', idxRootA);
-            std::string eventSubstrA = a.substr(idxEventA + 1, idxRootA - idxEventA);
+//    std::sort(readerCfg.filePaths.begin(), readerCfg.filePaths.end(),
+//        [] (const std::string& a, const std::string& b) {
+//            std::size_t idxRootA = a.find_last_of('.');
+//            std::size_t idxEventA = a.find_last_of('t', idxRootA);
+//            std::string eventSubstrA = a.substr(idxEventA + 1, idxRootA - idxEventA);
+//
+//            std::size_t idxRootB = b.find_last_of('.');
+//            std::size_t idxEventB = b.find_last_of('t', idxRootB);
+//            std::string eventSubstrB = b.substr(idxEventB + 1, idxRootB - idxEventB);
+//
+//            return std::stoul(eventSubstrA) < std::stoul(eventSubstrB);
+//        }
+//    );
 
-            std::size_t idxRootB = b.find_last_of('.');
-            std::size_t idxEventB = b.find_last_of('t', idxRootB);
-            std::string eventSubstrB = b.substr(idxEventB + 1, idxRootB - idxEventB);
-
-            return std::stoul(eventSubstrA) < std::stoul(eventSubstrB);
-        }
-    );
-
-    readerCfg.filePaths = std::vector<std::string>(
-        readerCfg.filePaths.begin(), readerCfg.filePaths.begin() + 72);
+//    readerCfg.filePaths = std::vector<std::string>(
+//        readerCfg.filePaths.begin(), readerCfg.filePaths.begin() + 72);
 
     // readerCfg.filePaths = {"/home/romanurmanov/lab/LUXE/acts_LUXE_tracking/ActsLUXEPipeline_dataInRootFormat/SignalNextTrial_e1gpc_10.0_1/dataFile_Signal_e1gpc_10.0_EFieldV10p7p1pyN17Vpercm_Processed_Stave25_Event83.root"};
 
-    sequencer.addReader(
-        std::make_shared<LUXEROOTReader::LUXEROOTSimDataReader>(readerCfg, logLevel));
-    auto testParams = LUXENavigator::makeParameters();
+//    sequencer.addReader(
+//        std::make_shared<LUXEROOTReader::LUXEROOTSimDataReader>(readerCfg, logLevel));
+
 
     MeasurementResolution resPixel = {MeasurementType::eLoc01,
-                                      {LUXEGeometry::chipSizeX,
-                                       LUXEGeometry::chipSizeY}};
+                                      {gOpt.chipSizeX,
+                                       gOpt.chipSizeY}};
 
     Acts::ViewConfig pConfig = Acts::s_viewSensitive;
 
@@ -95,7 +97,7 @@ int main() {
     std::vector<std::pair<Acts::GeometryIdentifier,MeasurementResolution>> m;
     auto detector =
             LUXEGeometry::buildLUXEDetector(std::move(positronArmBpr), gctx, gOpt);
-
+    auto testParams = LUXENavigator::makeParameters();
     for (auto& vol : detector->rootVolumes()) {
         std::cout<<"Surfaces size: "<<vol->surfaces().size()<<std::endl;
 //        Acts::GeometryView3D::drawDetectorVolume(
@@ -109,11 +111,10 @@ int main() {
             m.push_back(std::make_pair(surf->geometryId(),resPixel));
             std::cout<<"Surface x transform: "<<surf->center(gctx)[0]<<std::endl;
             std::cout<<"Surface y transform: "<<surf->center(gctx)[1]<<std::endl;
-            std::cout<<"Surface bounds: "<<surf->bounds()<<std::endl;
+            std::cout<<"Surface z transform: "<<surf->center(gctx)[2]<<std::endl;
+            std::cout<<"Surface bounds: "<<surf->normal(gctx,surf->center(gctx),Acts::Vector3{0,1,0})<<std::endl;
         }
     }
-
-
 
     MeasurementResolutionMap resolutions = m;
 
@@ -121,9 +122,8 @@ int main() {
 
     auto test = LUXENavigator::createMeasurements(propagator, gctx, magCtx, testParams, resolutions);
 
-//    Acts::GeometryView3D::drawSegment(
-//            volumeObj, *(surf), gctx,
-//            Acts::Transform3::Identity(), pConfig);
+//    Acts::GeometryView3D::drawArrowForward(
+//            volumeObj, Acts::Vector3{0,0,0}, Acts::Vector3{0,0.1,0},100 , 20, pConfig);
 
     SimpleSourceLink::SurfaceAccessor SA{*detector};
     std::vector<Acts::Vector3> globals;
@@ -137,12 +137,13 @@ int main() {
     }
     volumeObj.write("volumes.obj");
 
-    IdealSeeder::Config seederCfg;
+//    IdealSeeder::Config seederCfg;
     // seederCfg.roadWidth = 200;
-    seederCfg.inputSourceLinks = "SourceLink";
-    sequencer.addAlgorithm(
-        std::make_shared<IdealSeeder>(seederCfg, logLevel));
+//    seederCfg.inputSourceLinks = "SourceLink";
+//    sequencer.addAlgorithm(
+//        std::make_shared<IdealSeeder>(seederCfg, logLevel));
 
     // Run all configured algorithms and return the appropriate status.
-    return sequencer.run();
+//    return sequencer.run();
+        return 0;
 }
