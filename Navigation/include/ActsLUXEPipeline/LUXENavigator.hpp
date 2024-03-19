@@ -33,12 +33,12 @@ Acts::Propagator<stepper_t, Acts::Experimental::DetectorNavigator> makePropagato
             std::move(stepper), std::move(navigator));
 }
 
-Acts::CurvilinearTrackParameters makeParameters() {
+Acts::CurvilinearTrackParameters makeParameters(Acts::ActsScalar E) {
     Acts::BoundSquareMatrix cov = Acts::BoundSquareMatrix::Identity();
     // define a track in the transverse plane along x
-    Acts::Vector4 mPos4(400., 3950., -0.618, 1_ns);
+    Acts::Vector4 mPos4(0., 0. , -0.618, 1_ns);
     return Acts::CurvilinearTrackParameters(mPos4, 90_degree, 90_degree,
-                                            1_e / 0.05_GeV, cov, Acts::ParticleHypothesis::electron());
+                                            1_e / (E*1_GeV), cov, Acts::ParticleHypothesis::electron());
 }
 
 } // namespace LUXENavigator

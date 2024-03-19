@@ -12,6 +12,7 @@
 #include <filesystem>
 #include <string>
 #include <iostream>
+#include <random>
 
 /// @brief Run the propagation through
 /// a uniform energy spectrum and record the
@@ -37,7 +38,7 @@ int main() {
         for (int i=0;i<3;i++) {
             if (pos[i]<gOpt.MagneticFieldBounds[i].first ||
                 pos[i]>gOpt.MagneticFieldBounds[i].second) {
-                return Acts::Vector3{0,0,0};
+                return Acts::Vector3{0,-1,0};
             }
         }
         return pos;
@@ -48,27 +49,26 @@ int main() {
         return field;
     };
 
-    const std::vector<unsigned int> bins{5u, 5u, 5u};
-    const std::vector<std::pair<float,float>> limits{std::make_pair(0,100),
-                                                     std::make_pair(0,100),
-                                                     std::make_pair(0,100)};
     LUXEMagneticField::GridOptions gridOpt;
     gridOpt.bins = {5u, 5u, 5u};
-    gridOpt.limits = {std::make_pair(0,100),
-                      std::make_pair(0,100),
-                      std::make_pair(0,100)};
+    gridOpt.limits = {std::make_pair(-5,2000),
+                      std::make_pair(-5,2000),
+                      std::make_pair(-5,2000)};
 
     auto BField = LUXEMagneticField::buildLUXEBField(transformPos, transformBField, gridOpt);
     std::cout<<BField.getField(Acts::Vector3{3,1,1}).value()<<std::endl;
     auto BFieldPtr = std::make_shared<LUXEMagneticField::BField_t>(BField);
 
     // Build the LUXE detector
-    std::string gdmlPath = "lxgeomdump_stave_positron.gdml";
-    std::vector<std::string> names = {"OPPPSensitive"};
+    std::string gdmlPath = "lxgeomdump_ip_tracker_positron.gdml";
+    std::vector<std::string> staves = {"OPPPSensitive"};
+    std::vector<std::string> chamber = {"IPMagnetField","VCWindowPanel"};
     Acts::GeometryContext gctx;
     Acts::MagneticFieldContext magCtx;
     LUXEGeometry::GeometryOptions gOpt;
-    auto positronArmBpr = LUXEGeometry::makeBlueprintPositron(gdmlPath, names, gOpt);
+    auto positronArmBpr = LUXEGeometry::makeBlueprintPositron(gdmlPath, staves, gOpt);
+    auto magneticChamberBpr = LUXEGeometry::makeBlueprintMagneticChamber(gdmlPath, chamber, gOpt);
+    positronArmBpr->add(std::move(magneticChamberBpr));
     auto detector = LUXEGeometry::buildLUXEDetector(std::move(positronArmBpr), gctx, gOpt);
 
     MeasurementResolution resPixel = {MeasurementType::eLoc01,
@@ -79,14 +79,18 @@ int main() {
     Acts::ObjVisualization3D volumeObj;
     for (auto& vol : detector->rootVolumes()) {
         std::cout<<"Surfaces size: "<<vol->surfaces().size()<<std::endl;
+        std::cout<<"Volume Bounds: "<<vol->volumeBounds()<<std::endl;
+        std::cout<<"Volume Transformation: "<<vol->transform().translation()<<std::endl;
 //        Acts::GeometryView3D::drawDetectorVolume(
 //                volumeObj, *(vol), gctx,
 //                Acts::Transform3::Identity(), pConfig);
         for (auto& surf : vol->surfaces()) {
             std::cout<<"Assigning resolution to surface ID: "<<surf->geometryId()<<std::endl;
-            Acts::GeometryView3D::drawSurface(
-                    volumeObj, *(surf), gctx,
-                    Acts::Transform3::Identity(), pConfig);
+            if (vol->geometryId().volume()!=1) {
+                Acts::GeometryView3D::drawSurface(
+                        volumeObj, *(surf), gctx,
+                        Acts::Transform3::Identity(), pConfig);
+            }
             m.push_back(std::make_pair(surf->geometryId(),resPixel));
             std::cout<<"Surface x transform: "<<surf->center(gctx)[0]<<std::endl;
             std::cout<<"Surface y transform: "<<surf->center(gctx)[1]<<std::endl;
@@ -94,96 +98,40 @@ int main() {
             std::cout<<"Surface bounds: "<<surf->normal(gctx,surf->center(gctx),Acts::Vector3{0,1,0})<<std::endl;
         }
     }
-
-//    for (const auto & entry : std::filesystem::directory_iterator(pathToDir)) {
-//        std::string pathToFile = entry.path();
-//        readerCfg.filePaths.push_back(pathToFile);
-//    }
-
-    // The events are not sorted in the directory
-    // but we need to process them in order
-//    std::sort(readerCfg.filePaths.begin(), readerCfg.filePaths.end(),
-//        [] (const std::string& a, const std::string& b) {
-//            std::size_t idxRootA = a.find_last_of('.');
-//            std::size_t idxEventA = a.find_last_of('t', idxRootA);
-//            std::string eventSubstrA = a.substr(idxEventA + 1, idxRootA - idxEventA);
-//
-//            std::size_t idxRootB = b.find_last_of('.');
-//            std::size_t idxEventB = b.find_last_of('t', idxRootB);
-//            std::string eventSubstrB = b.substr(idxEventB + 1, idxRootB - idxEventB);
-//
-//            return std::stoul(eventSubstrA) < std::stoul(eventSubstrB);
-//        }
-//    );
-
-//    readerCfg.filePaths = std::vector<std::string>(
-//        readerCfg.filePaths.begin(), readerCfg.filePaths.begin() + 72);
-
-    // readerCfg.filePaths = {"/home/romanurmanov/lab/LUXE/acts_LUXE_tracking/ActsLUXEPipeline_dataInRootFormat/SignalNextTrial_e1gpc_10.0_1/dataFile_Signal_e1gpc_10.0_EFieldV10p7p1pyN17Vpercm_Processed_Stave25_Event83.root"};
-
-//    sequencer.addReader(
-//        std::make_shared<LUXEROOTReader::LUXEROOTSimDataReader>(readerCfg, logLevel));
-
-//    for (const auto & entry : std::filesystem::directory_iterator(pathToDir)) {
-//        std::string pathToFile = entry.path();
-//        readerCfg.filePaths.push_back(pathToFile);
-//    }
-
-    // The events are not sorted in the directory
-    // but we need to process them in order
-//    std::sort(readerCfg.filePaths.begin(), readerCfg.filePaths.end(),
-//        [] (const std::string& a, const std::string& b) {
-//            std::size_t idxRootA = a.find_last_of('.');
-//            std::size_t idxEventA = a.find_last_of('t', idxRootA);
-//            std::string eventSubstrA = a.substr(idxEventA + 1, idxRootA - idxEventA);
-//
-//            std::size_t idxRootB = b.find_last_of('.');
-//            std::size_t idxEventB = b.find_last_of('t', idxRootB);
-//            std::string eventSubstrB = b.substr(idxEventB + 1, idxRootB - idxEventB);
-//
-//            return std::stoul(eventSubstrA) < std::stoul(eventSubstrB);
-//        }
-//    );
-//
-//    readerCfg.filePaths = std::vector<std::string>(
-//        readerCfg.filePaths.begin(), readerCfg.filePaths.begin() + 72);
-//
-//    // readerCfg.filePaths = {"/home/romanurmanov/lab/LUXE/acts_LUXE_tracking/ActsLUXEPipeline_dataInRootFormat/SignalNextTrial_e1gpc_10.0_1/dataFile_Signal_e1gpc_10.0_EFieldV10p7p1pyN17Vpercm_Processed_Stave25_Event83.root"};
-//
-//    sequencer.addReader(
-//        std::make_shared<LUXEROOTReader::LUXEROOTSimDataReader>(readerCfg, logLevel));
-//
-//    IdealSeeder::Config seederCfg;
-//    // seederCfg.roadWidth = 200;
-//    seederCfg.inputSourceLinks = "SourceLink";
-//    sequencer.addAlgorithm(
-//        std::make_shared<IdealSeeder>(seederCfg, logLevel));
     MeasurementResolutionMap resolutions = m;
 
     auto propagator = LUXENavigator::makePropagator<Acts::EigenStepper<>>(detector, BFieldPtr);
 
-    auto test = LUXENavigator::createMeasurements(propagator, gctx, magCtx, testParams, resolutions);
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_real_distribution<> dis(.32, 3.4);
+// lower limit 0.32 GeV upper limit 3.4 GeV
+    std::vector<LUXENavigator::Measurements> results;
 
-//    Acts::GeometryView3D::drawArrowForward(
-//            volumeObj, Acts::Vector3{0,0,0}, Acts::Vector3{0,0.1,0},100 , 20, pConfig);
+    for (int i=0;i<10;i++) {
+        Acts::ActsScalar E = dis(gen);
+        results.push_back(LUXENavigator::createMeasurements(propagator, gctx, magCtx,
+                                                            LUXENavigator::makeParameters(E),
+                                                            resolutions));
+        std::cout<<"Initial Energy : "<<E<<std::endl;
+    }
+
     SimpleSourceLink::SurfaceAccessor SA{*detector};
     std::vector<Acts::Vector3> globals;
-    for (auto& sl:test.sourceLinks) {
-        globals.push_back(SA(sl)->localToGlobal(gctx, sl.parameters, Acts::Vector3{1,1,1}));
-    }
-    for (size_t j=0; j<globals.size()-1;j++) {
-        Acts::GeometryView3D::drawArrowForward(
-            volumeObj, globals[j], globals[j+1],100 , 20, pConfig);
-        std::cout<<globals[j]<<std::endl;
+
+    for (auto& result:results) {
+        std::cout<<"globals size in results loop"<<result.globalPosition.size()<<std::endl;
+        if (result.globalPosition.size()) {
+            for (size_t j=0; j<result.globalPosition.size()-1;j++) {
+                Acts::GeometryView3D::drawArrowForward(
+                        volumeObj, result.globalPosition[j], result.globalPosition[j+1], 100, 20, pConfig);
+            }
+        }
     }
     volumeObj.write("volumes.obj");
 
-//    IdealSeeder::Config seederCfg;
-    // seederCfg.roadWidth = 200;
-//    seederCfg.inputSourceLinks = "SourceLink";
-//    sequencer.addAlgorithm(
-//        std::make_shared<IdealSeeder>(seederCfg, logLevel));
 
     // Run all configured algorithms and return the appropriate status.
-    return sequencer.run();
+//    return sequencer.run();
+      return 0;
 }

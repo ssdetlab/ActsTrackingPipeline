@@ -84,6 +84,44 @@ makeBlueprintPositron(
         return positronArmBpr;
 }
 
+    std::unique_ptr<Acts::Experimental::Blueprint::Node>
+    makeBlueprintMagneticChamber(
+            const std::string& gdmlPath,
+            const std::vector<std::string>& names,
+            const LUXEGeometry::GeometryOptions& gOpt) {
+        // Read the gdml file and get the world volume
+        G4GDMLParser parser;
+        parser.Read(gdmlPath, false);
+        auto world = parser.GetWorldVolume();
+
+        // Transformation has to be applied to the world
+        // because the z-spacing of the detector
+        // and the Acts track parametrization
+        // do not work together
+        G4Transform3D toWorld(gOpt.g4WorldRotation,
+                              G4ThreeVector(0, 0, 0));
+
+        std::vector<Acts::BinningValue> detectorBins = {Acts::binZ};
+
+        // As the volumes are already rotated,
+        // the selection has to happen along the y-axis
+        auto magneticChamberBuilder = makeLayerBuilder(
+                world, toWorld, names, {std::make_tuple(1,-1)} , {Acts::binY});
+
+        Acts::Transform3 magneticChamberTransform = Acts::Transform3::Identity();
+        magneticChamberTransform.rotate(gOpt.actsWorldRotation);
+        Acts::Vector3 magTranslation =
+                Acts::Vector3(305,0,0);
+        magneticChamberTransform.translate(magTranslation);
+
+        auto magneticChamberBpr = std::make_unique<Acts::Experimental::Blueprint::Node>(
+                "magneticChamber", magneticChamberTransform,
+                Acts::VolumeBounds::eCuboid, gOpt.magBounds,
+                magneticChamberBuilder);
+
+        return magneticChamberBpr;
+    }
+
 
 std::shared_ptr<const Acts::Experimental::Detector>
     buildLUXEDetector(

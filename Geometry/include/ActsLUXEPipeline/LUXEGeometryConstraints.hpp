@@ -50,15 +50,20 @@ namespace LUXEGeometry {
             305_mm, 0_mm, std::accumulate(layerZPositions.begin(),
                 layerZPositions.end(), 0_mm)/layerZPositions.size()};
 
+
+
         /// Can be set to zero if there are
         /// no IN and OUT staves for a single layer
         const Acts::ActsScalar deltaZ = 7_mm;
 
         const std::vector<Acts::ActsScalar> postironArmBounds =
-            {255_mm, 10_mm, 160_mm};
+            {560_mm, 10_mm, 160_mm};
+
+        const std::vector<Acts::ActsScalar> magBounds =
+                {560_mm, 10_mm, 1200_mm};
 
         const std::vector<Acts::ActsScalar> layerBounds =
-            {255_mm, 10_mm, deltaZ};
+            {305_mm, 10_mm, deltaZ};
 
         const std::vector<std::pair<Acts::ActsScalar,Acts::ActsScalar>> MagneticFieldBounds =
                 {std::make_pair(-255_mm,255_mm),

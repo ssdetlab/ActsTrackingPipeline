@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Acts/Definitions/Units.hpp"
+#include "Acts/Definitions/Algebra.hpp"
 #include "Acts/EventData/Measurement.hpp"
 #include "Acts/EventData/detail/TestSourceLink.hpp"
 #include "ActsLUXEPipeline/LUXESimpleSourceLink.hpp"
@@ -15,6 +16,7 @@
 #include <memory>
 #include <random>
 #include <vector>
+#include <iostream>
 
 /// Propagator action to create measurements.
 namespace LUXENavigator {
@@ -37,6 +39,7 @@ using MeasurementResolutionMap =
 struct Measurements {
     std::vector<Acts::detail::Test::TestSourceLink> sourceLinks;
     std::vector<Acts::BoundVector> truthParameters;
+    std::vector<Acts::Vector3> globalPosition;
 };
 struct MeasurementsCreator {
     using result_type = Measurements;
@@ -78,7 +81,6 @@ struct MeasurementsCreator {
             return;
         }
         const MeasurementResolution &resolution = *found;
-        std::cout<<"check4"<<std::endl;
         // Apply global to local
         Acts::Vector2 loc =
                 surface.globalToLocal(state.geoContext, stepper.position(state.stepping),
@@ -94,6 +96,8 @@ struct MeasurementsCreator {
         parameters[Acts::eBoundQOverP] = state.stepping.pars[Acts::eFreeQOverP];
         parameters[Acts::eBoundTime] = state.stepping.pars[Acts::eFreeTime];
         result.truthParameters.push_back(std::move(parameters));
+        result.globalPosition.push_back(std::move(stepper.position(state.stepping)));
+        std::cout<<"In measurement Creator: pushed back: "<<stepper.position(state.stepping)<<std::endl;
 
         Acts::SquareMatrix2 cov = Acts::SquareMatrix2::Identity();
 

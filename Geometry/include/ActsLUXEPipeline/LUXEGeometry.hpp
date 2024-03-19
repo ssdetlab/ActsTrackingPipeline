@@ -73,6 +73,12 @@ makeBlueprintPositron(
     const std::vector<std::string>& names,
     const GeometryOptions& gOpt);
 
+std::unique_ptr<Acts::Experimental::Blueprint::Node>
+makeBlueprintMagneticChamber(
+        const std::string& gdmlPath,
+        const std::vector<std::string>& names,
+        const GeometryOptions& gOpt);
+
 /// @brief Build the LUXE detector
 ///
 /// @param gdmlPath path to the gdml file
