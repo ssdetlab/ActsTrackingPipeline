@@ -13,12 +13,14 @@
 #include <string>
 #include <iostream>
 #include <random>
+#include <TFile.h>
+#include <TTree.h>
+
 
 /// @brief Run the propagation through
 /// a uniform energy spectrum and record the
 /// energy vs position histograms for each layer
 int main() {
-
     using namespace LUXENavigator;
     Acts::Logging::Level logLevel = Acts::Logging::VERBOSE;
 
@@ -33,6 +35,7 @@ int main() {
 //    readerCfg.dataCollection = "SourceLink";
 //    std::string pathToDir = "/home/romanurmanov/lab/LUXE/acts_LUXE_tracking/ActsLUXEPipeline_dataInRootFormat/SignalNextTrial_e1gpc_10.0_1";
     // map (x,y,z) -> (x,y,z)
+
     auto transformPos = [](const Acts::Vector3& pos) {
         LUXEGeometry::GeometryOptions gOpt;
         for (int i=0;i<3;i++) {
@@ -107,29 +110,60 @@ int main() {
     std::uniform_real_distribution<> dis(.32, 3.4);
 // lower limit 0.32 GeV upper limit 3.4 GeV
     std::vector<LUXENavigator::Measurements> results;
+    std::size_t sourceId = 1;
 
-    for (int i=0;i<10;i++) {
+    for (int i=0;i<100;i++) {
         Acts::ActsScalar E = dis(gen);
         results.push_back(LUXENavigator::createMeasurements(propagator, gctx, magCtx,
                                                             LUXENavigator::makeParameters(E),
-                                                            resolutions));
+                                                            resolutions,sourceId));
+        sourceId++;
         std::cout<<"Initial Energy : "<<E<<std::endl;
-    }
+    };
 
-    SimpleSourceLink::SurfaceAccessor SA{*detector};
-    std::vector<Acts::Vector3> globals;
+    TFile *file = new TFile("HistogramData.root","RECREATE");
+    TTree *tree = new TTree("tree", "TruthParameters");
+    struct ROOTMeasurement {
+        unsigned int id;
+        unsigned int layer;
+        float local_x;
+        float local_y;
+        float phi;
+        float theta;
+        float QOverP;
+        float time;
+    };
+    ROOTMeasurement s;
+
+    tree->Branch("id", &s.id, "id/I");
+    tree->Branch("layer", &s.layer, "id/I");
+    tree->Branch("local_x", &s.local_x);
+    tree->Branch("local_y", &s.local_y);
+    tree->Branch("phi", &s.phi);
+    tree->Branch("theta", &s.theta);
+    tree->Branch("QOverP", &s.QOverP);
+    tree->Branch("time", &s.time);
 
     for (auto& result:results) {
         std::cout<<"globals size in results loop"<<result.globalPosition.size()<<std::endl;
-        if (result.globalPosition.size()) {
-            for (size_t j=0; j<result.globalPosition.size()-1;j++) {
-                Acts::GeometryView3D::drawArrowForward(
-                        volumeObj, result.globalPosition[j], result.globalPosition[j+1], 100, 20, pConfig);
-            }
-        }
+        s.id = result.id;
+        for (unsigned int l=0;l<result.globalPosition.size();l++) {
+            s.layer = l;
+            s.local_x = result.truthParameters[l][0];
+            s.local_y = result.truthParameters[l][1];
+            s.phi = result.truthParameters[l][2];
+            s.theta = result.truthParameters[l][3];
+            s.QOverP = result.truthParameters[l][4];
+            s.time = result.truthParameters[l][5];
+            if (l!=result.globalPosition.size()-1)
+            Acts::GeometryView3D::drawSurface(
+                    volumeObj,result.globalPosition[l],result.globalPosition[l+1],20 , 20);
+        } //static_cast<float>
     }
+    file->Write();
+    file->Close();
+    delete file;
     volumeObj.write("volumes.obj");
-
 
     // Run all configured algorithms and return the appropriate status.
 //    return sequencer.run();

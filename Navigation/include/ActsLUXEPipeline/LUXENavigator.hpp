@@ -17,7 +17,9 @@ namespace LUXENavigator {
 using namespace Acts::UnitLiterals;
 template <typename stepper_t>
 Acts::Propagator<stepper_t, Acts::Experimental::DetectorNavigator> makePropagator(
-        std::shared_ptr<const Acts::Experimental::Detector> detector, std::shared_ptr<LUXEMagneticField::BField_t> BFieldPtr) {
+        std::shared_ptr<const Acts::Experimental::Detector> detector,
+        std::shared_ptr<LUXEMagneticField::BField_t> BFieldPtr) {
+
     Acts::Experimental::DetectorNavigator::Config cfg{&(*detector)};
     cfg.resolvePassive = false;
     cfg.resolveMaterial = true;
@@ -27,8 +29,6 @@ Acts::Propagator<stepper_t, Acts::Experimental::DetectorNavigator> makePropagato
 
     stepper_t stepper(std::move(BFieldPtr));
 
-    std::cout<<"Created stepper"<<std::endl;
-
     return Acts::Propagator<decltype(stepper), Acts::Experimental::DetectorNavigator>(
             std::move(stepper), std::move(navigator));
 }
@@ -36,7 +36,7 @@ Acts::Propagator<stepper_t, Acts::Experimental::DetectorNavigator> makePropagato
 Acts::CurvilinearTrackParameters makeParameters(Acts::ActsScalar E) {
     Acts::BoundSquareMatrix cov = Acts::BoundSquareMatrix::Identity();
     // define a track in the transverse plane along x
-    Acts::Vector4 mPos4(0., 0. , -0.618, 1_ns);
+    Acts::Vector4 mPos4(0., 0., 0., 0_ns);
     return Acts::CurvilinearTrackParameters(mPos4, 90_degree, 90_degree,
                                             1_e / (E*1_GeV), cov, Acts::ParticleHypothesis::electron());
 }

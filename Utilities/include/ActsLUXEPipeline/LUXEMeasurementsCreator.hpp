@@ -37,10 +37,12 @@ using MeasurementResolutionMap =
 
 /// Result struct for generated measurements and outliers.
 struct Measurements {
+    unsigned int id;
     std::vector<Acts::detail::Test::TestSourceLink> sourceLinks;
     std::vector<Acts::BoundVector> truthParameters;
     std::vector<Acts::Vector3> globalPosition;
 };
+
 struct MeasurementsCreator {
     using result_type = Measurements;
 
@@ -95,17 +97,15 @@ struct MeasurementsCreator {
         parameters[Acts::eBoundTheta] = Acts::VectorHelpers::theta(direction);
         parameters[Acts::eBoundQOverP] = state.stepping.pars[Acts::eFreeQOverP];
         parameters[Acts::eBoundTime] = state.stepping.pars[Acts::eFreeTime];
-        result.truthParameters.push_back(std::move(parameters));
-        result.globalPosition.push_back(std::move(stepper.position(state.stepping)));
-        std::cout<<"In measurement Creator: pushed back: "<<stepper.position(state.stepping)<<std::endl;
 
         Acts::SquareMatrix2 cov = Acts::SquareMatrix2::Identity();
-
         Acts::Vector2 val = loc;
 
+        result.id = sourceId;
         result.sourceLinks.emplace_back(Acts::eBoundLoc0, Acts::eBoundLoc1, val, cov, geoId,
                                         sourceId);
-        result.truthParameters.push_back(parameters);
+        result.truthParameters.push_back(std::move(parameters));
+        result.globalPosition.push_back(std::move(stepper.position(state.stepping)));
     }
 };
 /// Propagate the track create smeared measurements from local coordinates.
