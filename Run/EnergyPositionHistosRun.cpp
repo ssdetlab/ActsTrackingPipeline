@@ -53,13 +53,12 @@ int main() {
     };
 
     LUXEMagneticField::GridOptions gridOpt;
-    gridOpt.bins = {5u, 5u, 5u};
-    gridOpt.limits = {std::make_pair(-5,2000),
-                      std::make_pair(-5,2000),
-                      std::make_pair(-5,2000)};
+    gridOpt.bins = {14u, 1400u, 2u};
+    gridOpt.limits = {std::make_pair(-1,1300),
+                      std::make_pair(-1,1300),
+                      std::make_pair(-1,1300)};
 
     auto BField = LUXEMagneticField::buildLUXEBField(transformPos, transformBField, gridOpt);
-    std::cout<<BField.getField(Acts::Vector3{3,1,1}).value()<<std::endl;
     auto BFieldPtr = std::make_shared<LUXEMagneticField::BField_t>(BField);
 
     // Build the LUXE detector
@@ -107,12 +106,11 @@ int main() {
 
     std::random_device rd;
     std::mt19937 gen(rd());
-    std::uniform_real_distribution<> dis(.32, 3.4);
+    std::uniform_real_distribution<> dis(2.65, 16.5);
 // lower limit 0.32 GeV upper limit 3.4 GeV
     std::vector<LUXENavigator::Measurements> results;
     std::size_t sourceId = 1;
-
-    for (int i=0;i<100;i++) {
+    for (int i=0;i<10;i++) {
         Acts::ActsScalar E = dis(gen);
         results.push_back(LUXENavigator::createMeasurements(propagator, gctx, magCtx,
                                                             LUXENavigator::makeParameters(E),
@@ -133,6 +131,7 @@ int main() {
         float QOverP;
         float time;
     };
+
     ROOTMeasurement s;
 
     tree->Branch("id", &s.id, "id/I");
@@ -146,20 +145,42 @@ int main() {
 
     for (auto& result:results) {
         std::cout<<"globals size in results loop"<<result.globalPosition.size()<<std::endl;
-        s.id = result.id;
-        for (unsigned int l=0;l<result.globalPosition.size();l++) {
-            s.layer = l;
+        std::cout<<"geo IDs : "<<result.sourceLinks[0].m_geometryId<<std::endl;
+        for (unsigned int l=0;l<result.truthParameters.size();l++) {
+            s.id = result.eventId;
+            s.layer = l+1;
             s.local_x = result.truthParameters[l][0];
             s.local_y = result.truthParameters[l][1];
             s.phi = result.truthParameters[l][2];
             s.theta = result.truthParameters[l][3];
             s.QOverP = result.truthParameters[l][4];
             s.time = result.truthParameters[l][5];
-            if (l!=result.globalPosition.size()-1)
-            Acts::GeometryView3D::drawSurface(
-                    volumeObj,result.globalPosition[l],result.globalPosition[l+1],20 , 20);
+            tree->Fill();
+//            if (l!=result.globalPosition.size()-1) {
+//            Acts::GeometryView3D::drawArrowForward(
+//                    volumeObj,result.globalPosition[l],
+//                    result.globalPosition[l+1], 20, 20, pConfig);
+//            }
         } //static_cast<float>
+//        for (unsigned int l=1;l<result.fullTrack.size()-3;l++) {
+//            if (result.fullTrack[l][1]<5000) {
+//                Acts::GeometryView3D::drawSegment(
+//                        volumeObj,result.fullTrack[l],
+//                        result.fullTrack[l+1], pConfig);
+//            }
+//        }
     }
+
+//    Acts::GeometryView3D::drawArrowForward(
+//            volumeObj,Acts::Vector3{0,0,0},
+//            Acts::Vector3{0,1200,0},1000,100, pConfig);
+//    Acts::GeometryView3D::drawArrowForward(
+//            volumeObj,Acts::Vector3{0,0,0},
+//            Acts::Vector3{1200,0,0},1000,100, pConfig);
+//    Acts::GeometryView3D::drawArrowForward(
+//            volumeObj,Acts::Vector3{0,0,0},
+//            Acts::Vector3{0,0,1200},1000,100, pConfig);
+
     file->Write();
     file->Close();
     delete file;
@@ -168,4 +189,4 @@ int main() {
     // Run all configured algorithms and return the appropriate status.
 //    return sequencer.run();
       return 0;
-}
+} // main

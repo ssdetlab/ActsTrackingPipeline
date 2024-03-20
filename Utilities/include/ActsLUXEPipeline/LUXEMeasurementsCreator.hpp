@@ -37,8 +37,9 @@ using MeasurementResolutionMap =
 
 /// Result struct for generated measurements and outliers.
 struct Measurements {
-    unsigned int id;
+    unsigned int eventId;
     std::vector<Acts::detail::Test::TestSourceLink> sourceLinks;
+//    std::vector<Acts::Vector3> fullTrack;
     std::vector<Acts::BoundVector> truthParameters;
     std::vector<Acts::Vector3> globalPosition;
 };
@@ -67,6 +68,7 @@ struct MeasurementsCreator {
 
         // only generate measurements on surfaces
         if (!navigator.currentSurface(state.navigation)) {
+//            result.fullTrack.push_back(stepper.position(state.stepping));
             return;
         }
         const Acts::Surface &surface = *navigator.currentSurface(state.navigation);
@@ -101,7 +103,7 @@ struct MeasurementsCreator {
         Acts::SquareMatrix2 cov = Acts::SquareMatrix2::Identity();
         Acts::Vector2 val = loc;
 
-        result.id = sourceId;
+        result.eventId = sourceId;
         result.sourceLinks.emplace_back(Acts::eBoundLoc0, Acts::eBoundLoc1, val, cov, geoId,
                                         sourceId);
         result.truthParameters.push_back(std::move(parameters));

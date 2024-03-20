@@ -66,9 +66,9 @@ namespace LUXEGeometry {
             {305_mm, 10_mm, deltaZ};
 
         const std::vector<std::pair<Acts::ActsScalar,Acts::ActsScalar>> MagneticFieldBounds =
-                {std::make_pair(-255_mm,255_mm),
-                 std::make_pair(-255_mm,255_mm),
-                 std::make_pair(-255_mm,255_mm)};
+                {std::make_pair(-1000_mm,1000_mm),
+                 std::make_pair(0_mm,1200_mm),
+                 std::make_pair(-1000_mm,1000_mm)};
         /// Global rotation of the world volume
         /// in the Acts format for volumes
         const Acts::RotationMatrix3 actsWorldRotation =
