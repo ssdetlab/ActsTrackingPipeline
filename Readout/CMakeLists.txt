@@ -29,7 +29,6 @@ target_include_directories(
 
 # Dictionary for the sim data
 add_library(LUXESimEventDict SHARED)
-message(STATUS "ROOT_INCLUDE_DIRS: ${CMAKE_CURRENT_SOURCE_DIR}")
 include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}/include/ActsLUXEPipeline/detail)
 ROOT_GENERATE_DICTIONARY(
