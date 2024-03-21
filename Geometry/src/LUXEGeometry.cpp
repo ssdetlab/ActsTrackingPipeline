@@ -66,7 +66,7 @@ makeBlueprintLUXE(
                 gOpt.layerZPositions, gOpt.layerBounds);
 
         trackerBP->add(std::move(positronArmBP));
-        // trackerBP->add(std::move(electronArmBP));
+        trackerBP->add(std::move(electronArmBP));
 
         return trackerBP;
 };
@@ -139,32 +139,29 @@ std::shared_ptr<const Acts::Experimental::Detector>
             detectorBpr,
         const Acts::GeometryContext& gctx,
         const LUXEGeometry::GeometryOptions& gOpt) {
-            // detectorBpr->geoIdGenerator =
-
-        // Complete and fill gaps
-        Acts::Experimental::detail::BlueprintHelper::fillGaps(*detectorBpr, false);
-
-        auto detectorBuilder =
-            std::make_shared<Acts::Experimental::CuboidalContainerBuilder>(
-                *detectorBpr, Acts::Logging::VERBOSE);
-
-        auto idGenCfg = LUXEGeometryIdGenerator::Config{
-            false, 0u, true, false, gOpt};
-
-        // Detector builder
-        Acts::Experimental::DetectorBuilder::Config dCfg;
-        dCfg.auxiliary = "LUXE detector builder";
-        dCfg.name = "LUXE detector from blueprint";
-        dCfg.builder = detectorBuilder;
-        dCfg.geoIdGenerator = std::make_shared<LUXEGeometryIdGenerator>(
-            idGenCfg,
-            Acts::getDefaultLogger("GeoIdGenerator",
-                Acts::Logging::VERBOSE));
-
-
-        auto detector = Acts::Experimental::DetectorBuilder(dCfg).construct(gctx);
-
-        return detector;
+            // Complete and fill gaps
+            Acts::Experimental::detail::BlueprintHelper::fillGaps(*detectorBpr, false);
+    
+            auto detectorBuilder =
+                std::make_shared<Acts::Experimental::CuboidalContainerBuilder>(
+                    *detectorBpr, Acts::Logging::VERBOSE);
+    
+            auto idGenCfg = LUXEGeometryIdGenerator::Config{
+                false, 0u, true, false, gOpt};
+    
+            // Detector builder
+            Acts::Experimental::DetectorBuilder::Config dCfg;
+            dCfg.auxiliary = "LUXE detector builder";
+            dCfg.name = "LUXE detector from blueprint";
+            dCfg.builder = detectorBuilder;
+            dCfg.geoIdGenerator = std::make_shared<LUXEGeometryIdGenerator>(
+                idGenCfg,
+                Acts::getDefaultLogger("GeoIdGenerator",
+                    Acts::Logging::VERBOSE));
+    
+            auto detector = Acts::Experimental::DetectorBuilder(dCfg).construct(gctx);
+    
+            return detector;
 }
 
 } // namespace LUXEGeometry

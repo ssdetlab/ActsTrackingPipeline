@@ -59,29 +59,29 @@ namespace LUXEGeometry {
 
         Acts::ActsScalar chipY = 0.61872_mm;
 
-        const float chipTranslationY = chipY - chipSizeY/2.0;
+        const float chipTranslationY = chipY;
         const std::map<int, float> chipTranslationXEven {
-            {0, chipXEven.at(0) - chipSizeX/2.0},
-            {1, chipXEven.at(1) - chipSizeX/2.0},
-            {2, chipXEven.at(2) - chipSizeX/2.0},
-            {3, chipXEven.at(3) - chipSizeX/2.0},
-            {4, chipXEven.at(4) - chipSizeX/2.0},
-            {5, chipXEven.at(5) - chipSizeX/2.0},
-            {6, chipXEven.at(6) - chipSizeX/2.0},
-            {7, chipXEven.at(7) - chipSizeX/2.0},
-            {8, chipXEven.at(8) - chipSizeX/2.0}
+            {0, chipXEven.at(0)},
+            {1, chipXEven.at(1)},
+            {2, chipXEven.at(2)},
+            {3, chipXEven.at(3)},
+            {4, chipXEven.at(4)},
+            {5, chipXEven.at(5)},
+            {6, chipXEven.at(6)},
+            {7, chipXEven.at(7)},
+            {8, chipXEven.at(8)}
         };
 
         const std::map<int, float> chipTranslationXOdd {
-            {0, chipXOdd.at(0) - chipSizeX/2.0},
-            {1, chipXOdd.at(1) - chipSizeX/2.0},
-            {2, chipXOdd.at(2) - chipSizeX/2.0},
-            {3, chipXOdd.at(3) - chipSizeX/2.0},
-            {4, chipXOdd.at(4) - chipSizeX/2.0},
-            {5, chipXOdd.at(5) - chipSizeX/2.0},
-            {6, chipXOdd.at(6) - chipSizeX/2.0},
-            {7, chipXOdd.at(7) - chipSizeX/2.0},
-            {8, chipXOdd.at(8) - chipSizeX/2.0}
+            {0, chipXOdd.at(0)},
+            {1, chipXOdd.at(1)},
+            {2, chipXOdd.at(2)},
+            {3, chipXOdd.at(3)},
+            {4, chipXOdd.at(4)},
+            {5, chipXOdd.at(5)},
+            {6, chipXOdd.at(6)},
+            {7, chipXOdd.at(7)},
+            {8, chipXOdd.at(8)}
         };
 
         const std::vector<Acts::ActsScalar> layerZPositions{
@@ -91,10 +91,11 @@ namespace LUXEGeometry {
             (layerZ.at(6) + layerZ.at(7))/2
         };
 
+        const Acts::Vector3 dipoleTranslation{
+            0_mm, 0_mm, 2050_mm};
+
         const Acts::Vector3 postironArmTranslation{
-            (chipXOdd.at(8) + chipXEven.at(0))/2, 
-            0_mm, 
-            2575_mm};
+            (chipXOdd.at(8) + chipXEven.at(0))/2, 0_mm, 2575_mm};
 
         const Acts::Vector3 electronArmTranslation{
             -(chipXOdd.at(8) + chipXEven.at(0))/2, 0_mm, 2575_mm};
@@ -108,7 +109,7 @@ namespace LUXEGeometry {
             (layerZ.at(0) - layerZ.at(1))/2 + 1_mm;
 
         const std::vector<Acts::ActsScalar> trackerBounds = 
-            {(chipXOdd.at(8) - chipXEven.at(0))/2 + chipSizeX/2 + 1_mm, 
+            {chipXOdd.at(8) + chipSizeX/2 + 1_mm, 
                 chipSizeY/2 + 1_mm, 1725_mm};
 
         const std::vector<Acts::ActsScalar> armBounds = 
@@ -116,7 +117,7 @@ namespace LUXEGeometry {
                 chipSizeY/2 + 1_mm, 1725_mm};
 
         const std::vector<Acts::ActsScalar> layerBounds = 
-            {(chipXOdd.at(8) - chipXEven.at(0))/2 + 1_mm, 
+            {(chipXOdd.at(8) - chipXEven.at(0))/2 + chipSizeX/2 + 1_mm, 
                 chipSizeY/2 + 1_mm, deltaZ};
 
         /// Global rotation of the world volume

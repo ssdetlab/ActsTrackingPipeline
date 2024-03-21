@@ -10,6 +10,8 @@ namespace LUXEROOTReader {
 
 /// @brief Global to local conversion
 /// for the LUXE geometry
+// TODO: check if the Arka's local 
+// corresponds to the Acts local
 Acts::Vector2 convertToLoc(
     const Acts::Vector3& glob, 
     const Acts::GeometryIdentifier geoId,
@@ -18,14 +20,16 @@ Acts::Vector2 convertToLoc(
         int nStave = geoId.sensitive()/10 - 1;
         int nChip = geoId.sensitive()%10 - 1;
         if (nStave % 2 == 0) {
-            return Acts::Vector2(
+            Acts::Vector2 loc = Acts::Vector2(
                 (glob.x() - gOpt.chipTranslationXEven.at(nChip)),
                 (glob.y() - gOpt.chipTranslationY));
+            return loc;
         }
         else {
-            return Acts::Vector2(
+            Acts::Vector2 loc = Acts::Vector2(
                 (glob.x() - gOpt.chipTranslationXOdd.at(nChip)),
                 (glob.y() - gOpt.chipTranslationY));
+            return loc;
         }
 }
 
@@ -73,27 +77,36 @@ class LUXEROOTSimDataReader :
 
                     Acts::GeometryIdentifier geoId;
                     geoId.setSensitive(geoIdval + 11);
-    
+                    
                     for (int idx = 0; idx < hits->size(); idx++) {
-                        const Acts::Vector3 trueHitGlob = 
+                        if (dirs->at(idx).E()  < 8) {
+                            continue;
+                        }
+                        Acts::Vector3 trueHitGlob = 
                             {hits->at(idx).X() * Acts::UnitConstants::mm, 
                             hits->at(idx).Y() * Acts::UnitConstants::mm, 
                             hits->at(idx).Z() * Acts::UnitConstants::mm};
-        
+
+                        if (geoId.sensitive() == 72 || geoId.sensitive() == 32 || geoId.sensitive() == 12 || geoId.sensitive() == 52) {
+                            std::cout << geoId << " True hit " << trueHitGlob.transpose() << std::endl;
+                        }
+
                         const Acts::Vector2 trueHitLoc = 
                             convertToLoc(trueHitGlob, geoId, m_cfg.gOpt);
-        
+
                         Acts::BoundVector parameters = Acts::BoundVector::Zero();
                         parameters[Acts::eBoundLoc0] = trueHitLoc[Acts::eBoundLoc0];
                         parameters[Acts::eBoundLoc1] = trueHitLoc[Acts::eBoundLoc1];
         
-                        const Acts::Vector3 trueP = 
+                        Acts::Vector3 trueP = 
                             {dirs->at(idx).Px(), dirs->at(idx).Py(), dirs->at(idx).Pz()};
         
-                        const Acts::Vector3 direction = trueP.normalized();
+                        Acts::Vector3 direction = trueP.normalized();
+
+                        Acts::Vector3 directionRotated = m_cfg.gOpt.actsWorldRotation * direction;
         
-                        parameters[Acts::eBoundPhi] = Acts::VectorHelpers::phi(direction);
-                        parameters[Acts::eBoundTheta] = Acts::VectorHelpers::theta(direction);
+                        parameters[Acts::eBoundPhi] = Acts::VectorHelpers::phi(directionRotated);
+                        parameters[Acts::eBoundTheta] = Acts::VectorHelpers::theta(directionRotated);
                         parameters[Acts::eBoundQOverP] = 
                             1/(dirs->at(idx).E() * Acts::UnitConstants::GeV);
                         parameters[Acts::eBoundTime] = dirs->at(idx).T();
