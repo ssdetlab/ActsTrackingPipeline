@@ -1,6 +1,5 @@
 #include "ActsLUXEPipeline/Sequencer.hpp"
 
-
 #include "ActsLUXEPipeline/LUXEGeometry.hpp"
 #include "ActsLUXEPipeline/LUXEGeometryConstraints.hpp"
 #include "ActsLUXEPipeline/LUXEMagneticField.hpp"
@@ -13,9 +12,8 @@
 #include <string>
 #include <iostream>
 #include <random>
-#include <TFile.h>
-#include <TTree.h>
 
+#include "ActsLUXEPipeline/Utils.hpp"
 
 /// @brief Run the propagation through
 /// a uniform energy spectrum and record the
@@ -97,7 +95,7 @@ int main() {
             std::cout<<"Surface x transform: "<<surf->center(gctx)[0]<<std::endl;
             std::cout<<"Surface y transform: "<<surf->center(gctx)[1]<<std::endl;
             std::cout<<"Surface z transform: "<<surf->center(gctx)[2]<<std::endl;
-            std::cout<<"Surface bounds: "<<surf->normal(gctx,surf->center(gctx),Acts::Vector3{0,1,0})<<std::endl;
+            std::cout<<"Surface bounds: "<<surf->bounds()<<std::endl;
         }
     }
     MeasurementResolutionMap resolutions = m;
@@ -106,64 +104,32 @@ int main() {
 
     std::random_device rd;
     std::mt19937 gen(rd());
-    std::uniform_real_distribution<> dis(2.65, 16.5);
+    std::uniform_real_distribution<> dis(0.5, 16.5);
 // lower limit 0.32 GeV upper limit 3.4 GeV
+
+//    std::vector<Acts::ActsScalar> test_E{0.1,0.3,0.4,0.5,0.6};
+
     std::vector<LUXENavigator::Measurements> results;
     std::size_t sourceId = 1;
-    for (int i=0;i<10;i++) {
+    for (int i=0;i<100000;i++) {
         Acts::ActsScalar E = dis(gen);
+        std::cout<<"Initial Energy : "<<E<<std::endl;
         results.push_back(LUXENavigator::createMeasurements(propagator, gctx, magCtx,
                                                             LUXENavigator::makeParameters(E),
                                                             resolutions,sourceId));
         sourceId++;
-        std::cout<<"Initial Energy : "<<E<<std::endl;
     };
-
-    TFile *file = new TFile("HistogramData.root","RECREATE");
-    TTree *tree = new TTree("tree", "TruthParameters");
-    struct ROOTMeasurement {
-        unsigned int id;
-        unsigned int layer;
-        float local_x;
-        float local_y;
-        float phi;
-        float theta;
-        float QOverP;
-        float time;
-    };
-
-    ROOTMeasurement s;
-
-    tree->Branch("id", &s.id, "id/I");
-    tree->Branch("layer", &s.layer, "id/I");
-    tree->Branch("local_x", &s.local_x);
-    tree->Branch("local_y", &s.local_y);
-    tree->Branch("phi", &s.phi);
-    tree->Branch("theta", &s.theta);
-    tree->Branch("QOverP", &s.QOverP);
-    tree->Branch("time", &s.time);
 
     for (auto& result:results) {
-        std::cout<<"globals size in results loop"<<result.globalPosition.size()<<std::endl;
-        std::cout<<"geo IDs : "<<result.sourceLinks[0].m_geometryId<<std::endl;
         for (unsigned int l=0;l<result.truthParameters.size();l++) {
-            s.id = result.eventId;
-            s.layer = l+1;
-            s.local_x = result.truthParameters[l][0];
-            s.local_y = result.truthParameters[l][1];
-            s.phi = result.truthParameters[l][2];
-            s.theta = result.truthParameters[l][3];
-            s.QOverP = result.truthParameters[l][4];
-            s.time = result.truthParameters[l][5];
-            tree->Fill();
-//            if (l!=result.globalPosition.size()-1) {
-//            Acts::GeometryView3D::drawArrowForward(
-//                    volumeObj,result.globalPosition[l],
-//                    result.globalPosition[l+1], 20, 20, pConfig);
-//            }
+            if (l!=result.globalPosition.size()-1) {
+            Acts::GeometryView3D::drawArrowForward(
+                    volumeObj,result.globalPosition[l],
+                    result.globalPosition[l+1], 20, 20, pConfig);
+            }
         } //static_cast<float>
 //        for (unsigned int l=1;l<result.fullTrack.size()-3;l++) {
-//            if (result.fullTrack[l][1]<5000) {
+//            if (result.fullTrack[l][1]<6000) {
 //                Acts::GeometryView3D::drawSegment(
 //                        volumeObj,result.fullTrack[l],
 //                        result.fullTrack[l+1], pConfig);
@@ -171,20 +137,11 @@ int main() {
 //        }
     }
 
-//    Acts::GeometryView3D::drawArrowForward(
-//            volumeObj,Acts::Vector3{0,0,0},
-//            Acts::Vector3{0,1200,0},1000,100, pConfig);
-//    Acts::GeometryView3D::drawArrowForward(
-//            volumeObj,Acts::Vector3{0,0,0},
-//            Acts::Vector3{1200,0,0},1000,100, pConfig);
-//    Acts::GeometryView3D::drawArrowForward(
-//            volumeObj,Acts::Vector3{0,0,0},
-//            Acts::Vector3{0,0,1200},1000,100, pConfig);
-
-    file->Write();
-    file->Close();
-    delete file;
+    std::string filename = "hist_data.root";
+    HistogramDatawriter(results,filename);
     volumeObj.write("volumes.obj");
+
+
 
     // Run all configured algorithms and return the appropriate status.
 //    return sequencer.run();

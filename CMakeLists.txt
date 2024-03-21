@@ -29,7 +29,7 @@ option(LUXEPipeline_BUILD_EVENTDATA
 # TBB, ROOT::Core are required for the
 # algorithm execution
 find_package(TBB COMPONENTS tbb REQUIRED)
-find_package(ROOT COMPONENTS Core Tree REQUIRED)
+find_package(ROOT COMPONENTS Core REQUIRED)
 
 # Geant4 is required for the geometry
 if (LUXEPipeline_BUILD_GEOMETRY)
@@ -67,6 +67,7 @@ add_subdirectory(Navigation)
 add_subdirectory(Utilities)
 add_subdirectory(TrackFinding)
 add_subdirectory(TempEventData)
+add_subdirectory(Zcode)
 
 # macro to add a run executables
 macro(add_run _name _source)
@@ -78,9 +79,7 @@ macro(add_run _name _source)
     target_link_libraries(
         ${_target}
         PRIVATE
-        ActsLUXEPipelineCore
-        PUBLIC
-        ROOT::Core ROOT::Tree)
+        ActsLUXEPipelineCore)
 endmacro()
 
 # run has to be last, so that it can be

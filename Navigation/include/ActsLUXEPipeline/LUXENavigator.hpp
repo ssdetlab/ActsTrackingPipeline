@@ -3,6 +3,7 @@
 #include "Acts/Definitions/Algebra.hpp"
 #include "Acts/Detector/Detector.hpp"
 #include "Acts/EventData/GenericCurvilinearTrackParameters.hpp"
+#include "Acts/EventData/detail/CorrectedTransformationFreeToBound.hpp"
 #include "Acts/Navigation/DetectorNavigator.hpp"
 #include "Acts/Propagator/EigenStepper.hpp"
 #include "Acts/Utilities/detail/Axis.hpp"

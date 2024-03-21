@@ -13,6 +13,15 @@
 #include "Acts/Propagator/StandardAborters.hpp"
 #include "Acts/Utilities/Logger.hpp"
 
+#include "ActsFatras/EventData/Barcode.hpp"
+#include "ActsFatras/EventData/Particle.hpp"
+#include "ActsFatras/Physics/ElectroMagnetic/Scattering.hpp"
+#include "ActsFatras/Physics/ElectroMagnetic/BetheBloch.hpp"
+#include "ActsFatras/Physics/ElectroMagnetic/BetheHeitler.hpp"
+
+#include "Acts/Material/Material.hpp"
+
+
 #include <memory>
 #include <random>
 #include <vector>
@@ -20,6 +29,23 @@
 
 /// Propagator action to create measurements.
 namespace LUXENavigator {
+
+// utility function to build a particle from the dataset parameters
+ActsFatras::Particle makeParticle(Acts::PdgParticle pdg, Acts::Vector3 dir, double p, Acts::Vector4 pos4) {
+    const auto id = ActsFatras::Barcode().setVertexPrimary(1).setParticle(1);
+    return ActsFatras::Particle(id, pdg)
+            .setPosition4(pos4)
+            .setDirection(dir)
+            .setAbsoluteMomentum(p);
+}
+//    .setDirection(std::sin(theta) * std::cos(phi),
+//            std::sin(theta) * std::sin(phi), std::cos(theta))
+Acts::MaterialSlab makeSiliconSlab() {
+    using namespace Acts::UnitLiterals;
+    return {Acts::Material::fromMolarDensity(9.370_cm, 46.52_cm, 28.0855, 14,
+                                      (2.329 / 28.0855) * 1_mol / 1_cm3), 100_um};
+}
+
 enum class MeasurementType {
     eLoc0,
     eLoc1,
@@ -28,7 +54,7 @@ enum class MeasurementType {
 struct MeasurementResolution {
     MeasurementType type = MeasurementType::eLoc0;
     // Depending on the type, only the first value is used.
-    std::array<double, 2> stddev = {50 * Acts::UnitConstants::um, 0};
+    std::array<double, 2> stddev = {15 * Acts::UnitConstants::um, 15 * Acts::UnitConstants::um};
 };
 
 /// Measurement resolution configuration for a full detector geometry.
@@ -39,7 +65,7 @@ using MeasurementResolutionMap =
 struct Measurements {
     unsigned int eventId;
     std::vector<Acts::detail::Test::TestSourceLink> sourceLinks;
-//    std::vector<Acts::Vector3> fullTrack;
+    std::vector<Acts::Vector3> fullTrack;
     std::vector<Acts::BoundVector> truthParameters;
     std::vector<Acts::Vector3> globalPosition;
 };
@@ -68,7 +94,7 @@ struct MeasurementsCreator {
 
         // only generate measurements on surfaces
         if (!navigator.currentSurface(state.navigation)) {
-//            result.fullTrack.push_back(stepper.position(state.stepping));
+            result.fullTrack.push_back(stepper.position(state.stepping));
             return;
         }
         const Acts::Surface &surface = *navigator.currentSurface(state.navigation);
@@ -86,8 +112,9 @@ struct MeasurementsCreator {
         }
         const MeasurementResolution &resolution = *found;
         // Apply global to local
+        Acts::Vector3 pos3 = stepper.position(state.stepping);
         Acts::Vector2 loc =
-                surface.globalToLocal(state.geoContext, stepper.position(state.stepping),
+                surface.globalToLocal(state.geoContext, pos3,
                                        stepper.direction(state.stepping)).value();
 
         // The truth info
@@ -99,15 +126,42 @@ struct MeasurementsCreator {
         parameters[Acts::eBoundTheta] = Acts::VectorHelpers::theta(direction);
         parameters[Acts::eBoundQOverP] = state.stepping.pars[Acts::eFreeQOverP];
         parameters[Acts::eBoundTime] = state.stepping.pars[Acts::eFreeTime];
+        std::cout<<"check eneg: "<<stepper.charge(state.stepping)/parameters[Acts::eBoundQOverP]<<std::endl;
+        // Construct a particle object
+        Acts::Vector4 particlePos = {pos3[0],pos3[1],pos3[2],parameters[Acts::eBoundTime]};
+        ActsFatras::Particle tempParticle =
+                makeParticle(
+                        stepper.particleHypothesis(state.stepping).absolutePdg(),stepper.direction(state.stepping),
+                        stepper.charge(state.stepping)/parameters[Acts::eBoundQOverP],
+                        particlePos);
+        std::vector<Acts::MaterialSlab> layerMaterials = {makeSiliconSlab()};
+        std::random_device rd;
+        std::mt19937 gen(rd());
+        auto scattering = ActsFatras::GaussianMixtureScattering();
+        ActsFatras::BetheBloch BBProcess;
+        ActsFatras::BetheHeitler BHProcess;
+
+        for (auto material:layerMaterials) {
+            std::cout<<tempParticle.energy()<<" ENEG1"<<std::endl;
+            auto scatter = scattering(gen, material, tempParticle);
+            auto BBLoss = BBProcess(gen, material, tempParticle);
+            auto BHLoss = BHProcess(gen, material, tempParticle);
+            std::cout<<tempParticle.energy()<<" ENEG2"<<std::endl;
+        }
 
         Acts::SquareMatrix2 cov = Acts::SquareMatrix2::Identity();
-        Acts::Vector2 val = loc;
+        Acts::BoundSquareMatrix resetCov = Acts::BoundSquareMatrix::Identity();
+        Acts::BoundVector scatteredParameters = parameters;
+        scatteredParameters[Acts::eBoundPhi] = tempParticle.phi();
+        scatteredParameters[Acts::eBoundTheta] = tempParticle.theta();
+        scatteredParameters[Acts::eBoundQOverP] = tempParticle.charge()/tempParticle.absoluteMomentum();
+        stepper.resetState(state.stepping, scatteredParameters, resetCov, surface);
 
         result.eventId = sourceId;
-        result.sourceLinks.emplace_back(Acts::eBoundLoc0, Acts::eBoundLoc1, val, cov, geoId,
+        result.sourceLinks.emplace_back(Acts::eBoundLoc0, Acts::eBoundLoc1, loc, cov, geoId,
                                         sourceId);
-        result.truthParameters.push_back(std::move(parameters));
-        result.globalPosition.push_back(std::move(stepper.position(state.stepping)));
+        result.truthParameters.push_back(std::move(scatteredParameters));
+        result.globalPosition.push_back(std::move(pos3));
     }
 };
 /// Propagate the track create smeared measurements from local coordinates.
@@ -133,4 +187,19 @@ Measurements createMeasurements(const propagator_t& propagator,
     auto result = propagator.propagate(trackParameters, options).value();
     return std::move(result.template get<Measurements>());
 }
+
 } // LUXENavigator
+
+// COVARIANCE AVE
+
+//stepper.transportCovarianceToBound(state.stepping, surface,
+//Acts::FreeToBoundCorrection(true));
+//std::random_device rd;
+//std::mt19937 rng(rd());
+//std::normal_distribution<double> normalDist(0., 1.);
+//
+//Acts::Vector2 stddev(resolution.stddev[0], resolution.stddev[1]);
+//Acts::SquareMatrix2 cov = stddev.cwiseProduct(stddev).asDiagonal();
+//std::cout<<state.stepping.cov<<std::endl;
+//Acts::Vector2 val = loc + stddev.cwiseProduct(
+//        Acts::Vector2(normalDist(rng), normalDist(rng)));
