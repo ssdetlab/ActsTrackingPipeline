@@ -8,10 +8,10 @@ auto exampleDipole = [](const std::array<double, 3> &v) {
     double z = v.at(2);
     double r = std::sqrt(std::pow(x,2) + std::pow(y,2) + std::pow(z,2));
     double r5 = std::pow(r,5);
-    if (y<0 || y>1200) {
+    if (y<1450 || y>2650) {
         return Acts::Vector3(0, 0, 0);
     }
-    return Acts::Vector3(0, 0, 1_T);
+    return Acts::Vector3(0, 0, 1.5_T);
 };
 
 BField_t buildLUXEBField(const transformationPos_t& transformPos,

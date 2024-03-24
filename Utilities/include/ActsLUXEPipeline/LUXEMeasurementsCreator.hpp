@@ -64,7 +64,7 @@ using MeasurementResolutionMap =
 /// Result struct for generated measurements and outliers.
 struct Measurements {
     unsigned int eventId;
-    std::vector<Acts::detail::Test::TestSourceLink> sourceLinks;
+    std::vector<SimpleSourceLink> sourceLinks;
     std::vector<Acts::Vector3> fullTrack;
     std::vector<Acts::BoundVector> truthParameters;
     std::vector<Acts::Vector3> globalPosition;
@@ -126,7 +126,6 @@ struct MeasurementsCreator {
         parameters[Acts::eBoundTheta] = Acts::VectorHelpers::theta(direction);
         parameters[Acts::eBoundQOverP] = state.stepping.pars[Acts::eFreeQOverP];
         parameters[Acts::eBoundTime] = state.stepping.pars[Acts::eFreeTime];
-        std::cout<<"check eneg: "<<stepper.charge(state.stepping)/parameters[Acts::eBoundQOverP]<<std::endl;
         // Construct a particle object
         Acts::Vector4 particlePos = {pos3[0],pos3[1],pos3[2],parameters[Acts::eBoundTime]};
         ActsFatras::Particle tempParticle =
@@ -141,25 +140,32 @@ struct MeasurementsCreator {
         ActsFatras::BetheBloch BBProcess;
         ActsFatras::BetheHeitler BHProcess;
 
+        Acts::BoundVector scatteredParameters = parameters;
+        ActsFatras::Particle beforeParticle = tempParticle;
         for (auto material:layerMaterials) {
-            std::cout<<tempParticle.energy()<<" ENEG1"<<std::endl;
+            float p1 = tempParticle.absoluteMomentum();
             auto scatter = scattering(gen, material, tempParticle);
             auto BBLoss = BBProcess(gen, material, tempParticle);
             auto BHLoss = BHProcess(gen, material, tempParticle);
-            std::cout<<tempParticle.energy()<<" ENEG2"<<std::endl;
+            float p2 = tempParticle.absoluteMomentum();
+            if (p2 < p1/2) {
+                scatteredParameters[Acts::eBoundQOverP] =
+                        beforeParticle.charge()/(0.999*beforeParticle.absoluteMomentum());
+            } else {
+                scatteredParameters[Acts::eBoundQOverP] =
+                        tempParticle.charge()/tempParticle.absoluteMomentum();
+            }
         }
 
         Acts::SquareMatrix2 cov = Acts::SquareMatrix2::Identity();
         Acts::BoundSquareMatrix resetCov = Acts::BoundSquareMatrix::Identity();
-        Acts::BoundVector scatteredParameters = parameters;
         scatteredParameters[Acts::eBoundPhi] = tempParticle.phi();
         scatteredParameters[Acts::eBoundTheta] = tempParticle.theta();
-        scatteredParameters[Acts::eBoundQOverP] = tempParticle.charge()/tempParticle.absoluteMomentum();
+
         stepper.resetState(state.stepping, scatteredParameters, resetCov, surface);
 
         result.eventId = sourceId;
-        result.sourceLinks.emplace_back(Acts::eBoundLoc0, Acts::eBoundLoc1, loc, cov, geoId,
-                                        sourceId);
+        result.sourceLinks.emplace_back(loc, cov, geoId, sourceId);
         result.truthParameters.push_back(std::move(scatteredParameters));
         result.globalPosition.push_back(std::move(pos3));
     }

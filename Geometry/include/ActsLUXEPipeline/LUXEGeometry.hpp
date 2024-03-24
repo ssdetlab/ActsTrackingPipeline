@@ -39,7 +39,7 @@ makeLayerBuilder(
         spCfg.worldTransform = transform;
         spCfg.surfacePreselector =
             std::make_shared<
-                Acts::Geant4PhysicalVolumeSelectors::NameSelector>(names, true);
+                Acts::Geant4PhysicalVolumeSelectors::NameSelector>(names, false);
 
         auto kdtDOpt = 
             typename Acts::Experimental::Geant4SurfaceProvider<kDim>::kdtOptions();
@@ -48,7 +48,6 @@ makeLayerBuilder(
                 std::get<0>(ranges[i]), std::get<1>(ranges[i]));
             kdtDOpt.binningValues[i] = binningValues[i];
         }
-
         auto sp = std::make_shared<
             Acts::Experimental::Geant4SurfaceProvider<kDim>>(spCfg, kdtDOpt);
 
