@@ -55,6 +55,12 @@ makeLayerBuilder(
         lbCfg.surfacesProvider = sp;
         auto lb =
             std::make_shared<Acts::Experimental::LayerStructureBuilder>(lbCfg);
+
+        Acts::GeometryContext test;
+        for (auto& surf:sp->surfaces(test)) {
+            std::cout<<"Check Center"<<std::endl;
+            std::cout<<surf->center(test)<<std::endl;
+        }
         return lb;
 }
 

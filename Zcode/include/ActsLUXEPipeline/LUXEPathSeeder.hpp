@@ -6,8 +6,11 @@
 #include "ActsLUXEPipeline/IAlgorithm.hpp"
 #include "ActsLUXEPipeline/DataHandle.hpp"
 #include "ActsLUXEPipeline/LUXEGeometry.hpp"
+
 #include "ActsLUXEPipeline/LUXESimpleSourceLink.hpp"
 //#include "ActsLUXEPipeline/LUXEDataContainers.hpp"
+
+//#include "ActsLUXEPipeline/LUXENavigator.hpp"
 
 #include <fstream>
 #include <unordered_map>
@@ -20,6 +23,8 @@ namespace LUXETrackFinding {
     using Scalar = Acts::ActsScalar;
     struct Seed {
         SimpleSourceLink originSourceLink;
+        Acts::ActsScalar energy;
+        std::vector<Acts::ActsScalar> distances;
         /// Source links related
         /// to the seed measurements
         std::vector<SimpleSourceLink> sourceLinks;
@@ -58,6 +63,9 @@ namespace LUXETrackFinding {
                 closestValue = entry.second;
             }
         }
+        if (closestValue>40) {
+            std::cout<<"Closest value was: "<<closestKey<<std::endl;
+        }
         return closestValue;
     }
 
@@ -71,61 +79,115 @@ namespace LUXETrackFinding {
         std::unordered_map <Scalar, Scalar> Z1Z4LookUp = readLookup(lookupDir + "/Z1Z4_lookup_table.txt");
 
         SimpleSourceLink::SurfaceAccessor SA{*detector};
+//        std::vector<std::pair<std::int32_t, Acts::Vector3>> posIdPairs;
+//        for (size_t i=0; i<sourceLinks.size(); i++) {
+//            posIdPairs.push_back(std::make_pair(sourceLinks[i].eventId, SA(sourceLinks[i])->
+//                    localToGlobal(gctx, sourceLinks[i].parameters, Acts::Vector3{0,1,0})));
+//        }
+//
+//        std::sort(posIdPairs.begin(), posIdPairs.end(), [](std::pair<std::int32_t, Acts::Vector3> a,
+//                                                       std::pair<std::int32_t, Acts::Vector3> b) {
+//            return a.second[1] < b.second[1];
+//        });
+
+//        for (const auto& pair : posIdPairs) {
+//            std::cout << pair.first << ": ";
+//            for (int num : pair.second) {
+//                std::cout << num << " ";
+//            }
+//            std::cout << std::endl;
+//        }
+
         Seeds seeds;
         Acts::Vector4 ipParams;
-        Scalar delta = 500_um;
+        Acts::Vector3 roadWidth{100_um,200_um,300_um};
         for (size_t i=0; i<sourceLinks.size(); i++) {
             Acts::Vector3 globalPos = SA(sourceLinks[i])->
                 localToGlobal(gctx, sourceLinks[i].parameters, Acts::Vector3{0,1,0});
             // TODO: look for an elegant way to realise if the sourceLink is in L1
             if (globalPos[1] <= gOpt.layerZPositions[1]-gOpt.deltaZ) {
                 Scalar x1 = globalPos[0];
+                std::cout<<"For x1 value: "<<x1<<std::endl;
                 Scalar y1 = globalPos[1];
-                Scalar z1 = 1e13*globalPos[2]; //
+                Scalar z1 = globalPos[2];
                 Scalar E = LUXETrackFinding::findClosestValue(EX1LookUp,x1);
                 Scalar x4 = LUXETrackFinding::findClosestValue(X1X4LookUp,x1);
-                Scalar y4 = gOpt.layerZPositions[3]-gOpt.deltaZ;
+                std::cout<<"And yielded x4 value: "<<x4<<std::endl;
+                std::vector<Scalar> y4IO;
+                if (x4>gOpt.chipTranslationXEven.at(8)+gOpt.chipSizeX) {
+                    y4IO = {gOpt.layerZPositions[3]-gOpt.deltaZ};
+                } else if (x4<gOpt.chipTranslationXOdd.at(0)-gOpt.chipSizeX) {
+                    y4IO = {gOpt.layerZPositions[3]+gOpt.deltaZ};
+                } else {
+                    y4IO = {gOpt.layerZPositions[3]-gOpt.deltaZ,
+                            gOpt.layerZPositions[3]+gOpt.deltaZ};
+                }
+
+
                 Scalar z4 = LUXETrackFinding::findClosestValue(Z1Z4LookUp,z1);
                 Scalar electron_mass = 0.000511;
-                z1 = 1e-13*z1;
                 Scalar pMagnitude = std::sqrt(std::pow(E,2)-
                                               std::pow(electron_mass,2));
-                Scalar vMagnitude = pMagnitude/std::sqrt(std::pow((x4-x1),2)+
-                                             std::pow((y4-y1),2)+
-                                             std::pow((z4-z1),2));
-                ipParams = {E,
-                          vMagnitude*(x4-x1),
-                          vMagnitude*(y4-y1),
-                          vMagnitude*(z4-z1)};
+                Acts::Vector3 yHat{0,1,0};
 
-                std::cout<<ipParams<<std::endl;
-                std::vector<SimpleSourceLink> seedSourceLinks;
+                for (auto y4 : y4IO) {
+                    std::vector<SimpleSourceLink> seedSourceLinks;
+                    std::vector<Acts::ActsScalar> seedDistances;
 
-                for (size_t j=0; j<sourceLinks.size(); j++) {
-                    //TODO: EFFICIENCY
-                    Acts::Vector3 seedCandidatePos = SA(sourceLinks[j])->
-                            localToGlobal(gctx, sourceLinks[j].parameters, Acts::Vector3{0,1,0});
-                    if (seedCandidatePos[1] > gOpt.layerZPositions[1]-gOpt.deltaZ) {
-                        Acts::Vector3 diff = seedCandidatePos-globalPos;
-                        // distance between point P and line defined by vector d and point A is
-                        // magnitude(AP x d) / magnitude(d)
-                        Acts::Vector3 d{ipParams[1],ipParams[2],ipParams[3]};
-                        Acts::Vector3 APxd{d.cross(diff)};
+                    Scalar vMagnitude = pMagnitude/std::sqrt(std::pow((x4-x1),2)+
+                                                             std::pow((y4-y1),2)+
+                                                             std::pow((z4-z1),2));
+                    ipParams = {E,
+                                vMagnitude*(x4-x1),
+                                vMagnitude*(y4-y1),
+                                vMagnitude*(z4-z1)};
+
+                    for (size_t j = 0; j < sourceLinks.size(); j++) {
+                        //TODO: EFFICIENCY
+
+                        Acts::Vector3 seedCandidatePos = SA(sourceLinks[j])->
+                                localToGlobal(gctx, sourceLinks[j].parameters, yHat);
+                        if (seedCandidatePos[1] > gOpt.layerZPositions[1] - gOpt.deltaZ) {
+                            Acts::Vector3 d{ipParams[1], ipParams[2], ipParams[3]};
+                            Acts::Vector3 dHat = d/std::sqrt(d.dot(d));
+                            Acts::Vector3 diff = std::sqrt(1+std::pow((x4-x1)/(y4-y1),2))*
+                                    (seedCandidatePos[1]-y1)*dHat;
+                            Acts::Vector3 AP = seedCandidatePos - globalPos - diff;
+                            // distance between point P and line defined by vector d and point A is
+                            // magnitude(AP x d) / magnitude(d)
+                            // project onto y axis
+                            Acts::Vector3 v = d.dot(yHat)*yHat;
+                            Acts::Vector3 APxv{v.cross(AP)};
+                            Acts::ActsScalar APdotV = AP.dot(v);
 //                            ipParams[2]*diff[0]-ipParams[1]*diff[1],
 //                                                   ipParams[1]*diff[2]-ipParams[3]*diff[0],
 //                                                   ipParams[3]*diff[1]-ipParams[2]*diff[2]};
-                        Scalar distance = std::sqrt(std::pow(APxd[0],2)+
-                                                    std::pow(APxd[1],2)+
-                                                    std::pow(APxd[2],2))/pMagnitude;
-                        std::cout<<"comparing distance in "<<i<<","<<j
-                        <<" position "<<distance<<" "<<delta<<std::endl;
-                        if (distance<delta) {
-                            seedSourceLinks.push_back(sourceLinks[j]);
+                            Scalar distance =  std::sqrt(APxv.dot(APxv))/ pMagnitude;
+//                            std::sqrt(std::pow(APxv[0], 2) +
+//                                      std::pow(APxv[1], 2) +
+//                                      std::pow(APxv[2], 2))
+//                            std::cout<<"Shortest vector: "<<diff-(APdotV/v.dot(v))*v<<std::endl;
+//                            std::cout<<"global position: "<<SA(sourceLinks[j])->
+//                                    localToGlobal(gctx, sourceLinks[j].parameters, Acts::Vector3{0,1,0})<<std::endl;
+                            auto index = static_cast<int>((seedCandidatePos[1] - gOpt.layerZPositions[0] + gOpt.deltaZ)/100-1);
+                            Scalar delta = roadWidth[index];
+                            if (sourceLinks[j].eventId == sourceLinks[i].eventId) {
+                                std::cout << "comparing distance in " << i << "," << j
+                                          << " position " << distance << " " << delta << std::endl;
+                                std::cout<<"with y: "<<seedCandidatePos[1]<<std::endl;
+                            }
+
+                            if (distance < delta) {
+                                seedSourceLinks.push_back(sourceLinks[j]);
+                                seedDistances.push_back(distance);
+                            }
                         }
                     }
+                    if (seedSourceLinks.size()>1) {
+                        Seed addSeed{sourceLinks[i], E, seedDistances, seedSourceLinks, ipParams};
+                        seeds.push_back(addSeed);
+                    }
                 }
-                Seed addSeed{sourceLinks[i],seedSourceLinks,ipParams};
-                seeds.push_back(addSeed);
             }
         }
         return seeds;

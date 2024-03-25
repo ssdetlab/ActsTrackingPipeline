@@ -107,22 +107,26 @@ int main() {
 
     std::random_device rd;
     std::mt19937 gen(rd());
-    std::uniform_real_distribution<> dis1(1.9,4);
-    std::uniform_real_distribution<> dis2(1.9,16);
     std::normal_distribution<> pDisP(0.002,0.0018);
     std::normal_distribution<> pDisM(-0.002,0.0018);
+    std::gamma_distribution<double> pzDis(3, 1.2);
+    std::uniform_real_distribution<> uni(8,12);
+// lower limit 0.32 GeV upper limit 3.4 GeV
 
+//    std::vector<Acts::ActsScalar> test_E{0.1,0.3,0.4,0.5,0.6};
 
-    std::vector<LUXENavigator::Measurements> results;
     Acts::ActsScalar m_e = 0.000511;
+    std::vector<LUXENavigator::Measurements> results;
     std::size_t sourceId = 1;
-    for (int i=0;i<20000;i++) {
+
+    for (int i=0;i<5000;i++) {
         Acts::ActsScalar px = (pDisP(gen)+pDisM(gen))/2;
         Acts::ActsScalar pz = (pDisP(gen)+pDisM(gen))/2;
-        Acts::ActsScalar E = dis1(gen);
-        Acts::ActsScalar py = std::sqrt(std::pow(E,2)-std::pow(m_e,2)-std::pow(px,2)-std::pow(pz,2));
+        Acts::ActsScalar py = pzDis(gen)+1;
+//        Acts::ActsScalar py = uni(gen);
         Acts::ActsScalar p = std::sqrt(std::pow(px,2)+std::pow(py,2)+std::pow(pz,2));
-        std::cout<<"Initial 4p : "<<px<<" "<<py<<" "<<pz<<std::endl;
+        Acts::ActsScalar E = std::hypot(p,m_e);
+        std::cout<<"Initial 4p : "<<px<<" "<<py<<" "<<pz<<" "<<E<<std::endl;
         Acts::ActsScalar theta = std::acos(pz / p);
         Acts::ActsScalar phi = std::atan2(py, px);
         std::cout<<"Initial dir : "<<phi<<" "<<theta<<std::endl;
@@ -131,27 +135,86 @@ int main() {
                                                             resolutions,sourceId));
         sourceId++;
     };
-    for (int i=0;i<30000;i++) {
-        Acts::ActsScalar px = (pDisP(gen)+pDisM(gen))/2;
-        Acts::ActsScalar pz = (pDisP(gen)+pDisM(gen))/2;
-        Acts::ActsScalar E = dis2(gen);
-        Acts::ActsScalar py = std::sqrt(std::pow(E,2)-std::pow(m_e,2)-std::pow(px,2)-std::pow(pz,2));
-        Acts::ActsScalar p = std::sqrt(std::pow(px,2)+std::pow(py,2)+std::pow(pz,2));
-        Acts::ActsScalar theta = std::acos(pz / p);
-        Acts::ActsScalar phi = std::atan2(py, px);
 
-        std::cout<<"Initial 4p : "<<px<<" "<<py<<" "<<pz<<std::endl;
-        std::cout<<"Initial dir : "<<phi<<" "<<theta<<std::endl;
-        results.push_back(LUXENavigator::createMeasurements(propagator, gctx, magCtx,
-                                                            LUXENavigator::makeParameters(p,phi,theta),
-                                                            resolutions,sourceId));
-        sourceId++;
-    };
+    SimpleSourceLink::SurfaceAccessor SA{*detector};
+    std::vector<SimpleSourceLink> sl4Seeding;
+    for (auto& result:results) {
+        for (unsigned int l=0;l<result.truthParameters.size();l++) {
+            sl4Seeding.push_back(result.sourceLinks[l]);
+        } //static_cast<float>
+//        for (unsigned int l=1;l<result.fullTrack.size()-3;l++) {
+//            if (result.fullTrack[l][1]<6000) {
+//                Acts::GeometryView3D::drawSegment(
+//                        volumeObj,result.fullTrack[l],
+//                        result.fullTrack[l+1], pConfig);
+//            }
+//        }
+    }
+    std::vector<LUXETrackFinding::Seed> trueSeeds;
+    std::vector<SimpleSourceLink> seedSLs;
+
+    for (size_t s=0 ; s < sl4Seeding.size(); s++) {
+        seedSLs = {sl4Seeding[s]};
+        size_t i=0;
+        if (s+1 == sl4Seeding.size()) {
+            LUXETrackFinding::Seed seed{sl4Seeding[s],0,{0},seedSLs,Acts::Vector4{0,0,0,0}};
+            trueSeeds.push_back(seed);
+            continue;
+        }
+        while (sl4Seeding[s].eventId==sl4Seeding[s+1+i].eventId && s+i < sl4Seeding.size()-1) {
+            seedSLs.push_back(sl4Seeding[s+1+i]);
+            i++;
+        }
+        s+=i;
+        LUXETrackFinding::Seed seed{sl4Seeding[s],0,{0},seedSLs,Acts::Vector4{0,0,0,0}};
+        trueSeeds.push_back(seed);
+        if (sl4Seeding[s].eventId+1<sl4Seeding[s+1].eventId) {
+            LUXETrackFinding::Seed seed{sl4Seeding[s],0,{0},{},Acts::Vector4{0,0,0,0}};
+            trueSeeds.push_back(seed);
+        }
+    }
+
+    std::vector<LUXETrackFinding::Seed> seeds =
+            LUXETrackFinding::LUXEPathSeeder(gctx, gOpt, detector, sl4Seeding,
+                                             "/Users/alonlevi/CLionProjects/LUXEPipeline/build");
+
+    std::cout<<"Seeds Produced : "<<seeds.size()<<std::endl;
+
+    SimpleSourceLink::SurfaceAccessor SAseed{*detector};
+    int count = 1;
+    pConfig.color = {0,250,0};
+    for (auto& seed : seeds) {
+        std::cout<<"source links in seed "<<count<<": "<<seed.sourceLinks.size()<<std::endl;
+        count++;
+        std::vector<Acts::Vector3> seedPos;
+        for (auto& sl : seed.sourceLinks) {
+            seedPos.push_back(SAseed(sl)->
+                    localToGlobal(gctx, sl.parameters, Acts::Vector3{0,1,0}));
+        }
+    }
+//    for (auto sl:sl4Seeding) {
+//        std::cout<<"sl4seeding event "<<sl.eventId<<std::endl;
+//    }
+//    int trueSeedCount = 0;
+//    for (auto seed : trueSeeds) {
+//        trueSeedCount++;
+//        std::cout<<"True Seed #: "<<trueSeedCount<<std::endl;
+//        for (auto sl : seed.sourceLinks) {
+//            std::cout<<sl.eventId<<std::endl;
+//        }
+//    }
+//    int seedCount = 0;
+//    for (auto seed : seeds) {
+//        seedCount++;
+//        std::cout<<"Seed #: "<<seedCount<<std::endl;
+//        for (auto sl : seed.sourceLinks) {
+//            std::cout<<sl.eventId<<std::endl;
+//        }
+//    }
 
 
-    std::string filename = "hist_data.root";
-    HistogramDatawriter(results,filename);
-
+    std::string filename = "seed_data.root";
+    analyzeSeeds(seeds,filename);
     volumeObj.write("volumes.obj");
 
     // Run all configured algorithms and return the appropriate status.

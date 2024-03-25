@@ -13,6 +13,7 @@
 #include <iostream>
 #include <vector>
 #include <functional>
+#include <math.h>
 
 namespace LUXENavigator {
 using namespace Acts::UnitLiterals;
@@ -34,12 +35,12 @@ Acts::Propagator<stepper_t, Acts::Experimental::DetectorNavigator> makePropagato
             std::move(stepper), std::move(navigator));
 }
 
-Acts::CurvilinearTrackParameters makeParameters(Acts::ActsScalar E) {
+Acts::CurvilinearTrackParameters makeParameters(Acts::ActsScalar P,Acts::ActsScalar phi, Acts::ActsScalar theta) {
     Acts::BoundSquareMatrix cov = Acts::BoundSquareMatrix::Identity();
     // define a track in the transverse plane along x
     Acts::Vector4 mPos4(0., 0., 0., 0_ns);
-    return Acts::CurvilinearTrackParameters(mPos4, 90_degree, 90_degree,
-                                            1_e / (E*1_GeV), cov, Acts::ParticleHypothesis::electron());
+    return Acts::CurvilinearTrackParameters(mPos4, phi*180/M_PI*1_degree, theta*180/M_PI*1_degree,
+                                            1_e / (P*1_GeV), cov, Acts::ParticleHypothesis::electron());
 }
 
 } // namespace LUXENavigator

@@ -108,6 +108,7 @@ makeBlueprintPositron(
         auto magneticChamberBuilder = makeLayerBuilder(
                 world, toWorld, names, {std::make_tuple(1,-1)} , {Acts::binY});
 
+
         Acts::Transform3 magneticChamberTransform = Acts::Transform3::Identity();
         magneticChamberTransform.rotate(gOpt.actsWorldRotation);
         Acts::Vector3 magTranslation =
