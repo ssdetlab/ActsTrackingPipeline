@@ -119,7 +119,7 @@ int main() {
     std::vector<LUXENavigator::Measurements> results;
     std::size_t sourceId = 1;
 
-    for (int i=0;i<5000;i++) {
+    for (int i=0;i<1000;i++) {
         Acts::ActsScalar px = (pDisP(gen)+pDisM(gen))/2;
         Acts::ActsScalar pz = (pDisP(gen)+pDisM(gen))/2;
         Acts::ActsScalar py = pzDis(gen)+1;
@@ -157,7 +157,7 @@ int main() {
         seedSLs = {sl4Seeding[s]};
         size_t i=0;
         if (s+1 == sl4Seeding.size()) {
-            LUXETrackFinding::Seed seed{sl4Seeding[s],0,{0},seedSLs,Acts::Vector4{0,0,0,0}};
+            LUXETrackFinding::Seed seed{{sl4Seeding[s]},0,{0},seedSLs,Acts::Vector4{0,0,0,0}};
             trueSeeds.push_back(seed);
             continue;
         }
@@ -166,10 +166,10 @@ int main() {
             i++;
         }
         s+=i;
-        LUXETrackFinding::Seed seed{sl4Seeding[s],0,{0},seedSLs,Acts::Vector4{0,0,0,0}};
+        LUXETrackFinding::Seed seed{{sl4Seeding[s]},0,{0},seedSLs,Acts::Vector4{0,0,0,0}};
         trueSeeds.push_back(seed);
         if (sl4Seeding[s].eventId+1<sl4Seeding[s+1].eventId) {
-            LUXETrackFinding::Seed seed{sl4Seeding[s],0,{0},{},Acts::Vector4{0,0,0,0}};
+            LUXETrackFinding::Seed seed{{sl4Seeding[s]},0,{0},{},Acts::Vector4{0,0,0,0}};
             trueSeeds.push_back(seed);
         }
     }
@@ -196,21 +196,18 @@ int main() {
 //        std::cout<<"sl4seeding event "<<sl.eventId<<std::endl;
 //    }
 //    int trueSeedCount = 0;
-//    for (auto seed : trueSeeds) {
-//        trueSeedCount++;
-//        std::cout<<"True Seed #: "<<trueSeedCount<<std::endl;
-//        for (auto sl : seed.sourceLinks) {
-//            std::cout<<sl.eventId<<std::endl;
-//        }
-//    }
-//    int seedCount = 0;
-//    for (auto seed : seeds) {
-//        seedCount++;
-//        std::cout<<"Seed #: "<<seedCount<<std::endl;
-//        for (auto sl : seed.sourceLinks) {
-//            std::cout<<sl.eventId<<std::endl;
-//        }
-//    }
+    int seedCount = 0;
+    for (auto seed : seeds) {
+        seedCount++;
+        std::cout<<"Seed #: "<<seedCount<<std::endl;
+        for (auto sl : seed.sourceLinks) {
+            std::cout<<sl.eventId<<std::endl;
+        }
+        for (auto OGsl : seed.originSourceLinks) {
+            std::cout<<"OG"<<std::endl;
+            std::cout<<OGsl.eventId<<std::endl;
+        }
+    }
 
 
     std::string filename = "seed_data.root";

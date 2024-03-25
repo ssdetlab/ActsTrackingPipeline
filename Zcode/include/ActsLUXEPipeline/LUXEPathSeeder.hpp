@@ -22,7 +22,7 @@ namespace LUXETrackFinding {
     using namespace Acts::UnitLiterals;
     using Scalar = Acts::ActsScalar;
     struct Seed {
-        SimpleSourceLink originSourceLink;
+        std::vector<SimpleSourceLink> originSourceLinks;
         Acts::ActsScalar energy;
         std::vector<Acts::ActsScalar> distances;
         /// Source links related
@@ -79,28 +79,9 @@ namespace LUXETrackFinding {
         std::unordered_map <Scalar, Scalar> Z1Z4LookUp = readLookup(lookupDir + "/Z1Z4_lookup_table.txt");
 
         SimpleSourceLink::SurfaceAccessor SA{*detector};
-//        std::vector<std::pair<std::int32_t, Acts::Vector3>> posIdPairs;
-//        for (size_t i=0; i<sourceLinks.size(); i++) {
-//            posIdPairs.push_back(std::make_pair(sourceLinks[i].eventId, SA(sourceLinks[i])->
-//                    localToGlobal(gctx, sourceLinks[i].parameters, Acts::Vector3{0,1,0})));
-//        }
-//
-//        std::sort(posIdPairs.begin(), posIdPairs.end(), [](std::pair<std::int32_t, Acts::Vector3> a,
-//                                                       std::pair<std::int32_t, Acts::Vector3> b) {
-//            return a.second[1] < b.second[1];
-//        });
-
-//        for (const auto& pair : posIdPairs) {
-//            std::cout << pair.first << ": ";
-//            for (int num : pair.second) {
-//                std::cout << num << " ";
-//            }
-//            std::cout << std::endl;
-//        }
-
         Seeds seeds;
         Acts::Vector4 ipParams;
-        Acts::Vector3 roadWidth{100_um,200_um,300_um};
+        Acts::Vector3 roadWidth{300_um,600_um,900_um};
         for (size_t i=0; i<sourceLinks.size(); i++) {
             Acts::Vector3 globalPos = SA(sourceLinks[i])->
                 localToGlobal(gctx, sourceLinks[i].parameters, Acts::Vector3{0,1,0});
@@ -133,6 +114,7 @@ namespace LUXETrackFinding {
                 for (auto y4 : y4IO) {
                     std::vector<SimpleSourceLink> seedSourceLinks;
                     std::vector<Acts::ActsScalar> seedDistances;
+                    std::vector<SimpleSourceLink> originSourceLinks;
 
                     Scalar vMagnitude = pMagnitude/std::sqrt(std::pow((x4-x1),2)+
                                                              std::pow((y4-y1),2)+
@@ -159,13 +141,7 @@ namespace LUXETrackFinding {
                             Acts::Vector3 v = d.dot(yHat)*yHat;
                             Acts::Vector3 APxv{v.cross(AP)};
                             Acts::ActsScalar APdotV = AP.dot(v);
-//                            ipParams[2]*diff[0]-ipParams[1]*diff[1],
-//                                                   ipParams[1]*diff[2]-ipParams[3]*diff[0],
-//                                                   ipParams[3]*diff[1]-ipParams[2]*diff[2]};
                             Scalar distance =  std::sqrt(APxv.dot(APxv))/ pMagnitude;
-//                            std::sqrt(std::pow(APxv[0], 2) +
-//                                      std::pow(APxv[1], 2) +
-//                                      std::pow(APxv[2], 2))
 //                            std::cout<<"Shortest vector: "<<diff-(APdotV/v.dot(v))*v<<std::endl;
 //                            std::cout<<"global position: "<<SA(sourceLinks[j])->
 //                                    localToGlobal(gctx, sourceLinks[j].parameters, Acts::Vector3{0,1,0})<<std::endl;
@@ -175,16 +151,17 @@ namespace LUXETrackFinding {
                                 std::cout << "comparing distance in " << i << "," << j
                                           << " position " << distance << " " << delta << std::endl;
                                 std::cout<<"with y: "<<seedCandidatePos[1]<<std::endl;
+                                originSourceLinks.push_back(sourceLinks[j]);
+                                seedDistances.push_back(distance);
                             }
 
                             if (distance < delta) {
                                 seedSourceLinks.push_back(sourceLinks[j]);
-                                seedDistances.push_back(distance);
                             }
                         }
                     }
                     if (seedSourceLinks.size()>1) {
-                        Seed addSeed{sourceLinks[i], E, seedDistances, seedSourceLinks, ipParams};
+                        Seed addSeed{originSourceLinks, E, seedDistances, seedSourceLinks, ipParams};
                         seeds.push_back(addSeed);
                     }
                 }
