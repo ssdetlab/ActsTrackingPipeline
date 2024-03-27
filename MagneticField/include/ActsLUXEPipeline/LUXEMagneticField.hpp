@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Acts/Definitions/Algebra.hpp"
+#include "Acts/Definitions/Units.hpp"
 #include "Acts/MagneticField/InterpolatedBFieldMap.hpp"
 #include "Acts/Utilities/detail/Axis.hpp"
 #include "Acts/Utilities/Grid.hpp"
@@ -10,6 +11,7 @@
 #include <functional>
 
 namespace LUXEMagneticField {
+using namespace Acts::UnitLiterals;
 
 struct GridOptions {
     std::vector<unsigned int> bins;
