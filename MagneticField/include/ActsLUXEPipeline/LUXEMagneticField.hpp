@@ -5,7 +5,6 @@
 #include "Acts/Utilities/detail/Axis.hpp"
 #include "Acts/Utilities/Grid.hpp"
 
-
 #include <iostream>
 #include <vector>
 #include <functional>
@@ -15,7 +14,12 @@ namespace LUXEMagneticField {
 struct GridOptions {
     std::vector<unsigned int> bins;
     std::vector<std::pair<float,float>> limits;
+    bool isVariable = false;
 };
+using Axis = std::variant<Acts::detail::EquidistantAxis,Acts::detail::VariableAxis>;
+
+std::tuple<Axis, Axis, Axis> makeAxes(GridOptions gridOpt);
+
 /// 3D equidistant binning
 using Grid_t =
         Acts::Grid<Acts::Vector3, Acts::detail::EquidistantAxis
