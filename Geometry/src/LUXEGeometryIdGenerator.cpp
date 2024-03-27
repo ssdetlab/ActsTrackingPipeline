@@ -67,12 +67,8 @@ void LUXEGeometryIdGenerator::assignGeometryId(
             (rGeoID.sensitive() == 0 && rGeoID.passive() == 0) ||
             m_cfg.overrideExistingIds) {
 
-                Acts::ActsScalar id =
-                        (ccache.sensitiveCount%18 < 9) ?
-                        (ccache.volumeCount + std::floor(ccache.sensitiveCount/9) - 4) * 10 +
-                        ccache.sensitiveCount % 9 + 11 :
-                        (ccache.volumeCount + std::floor(ccache.sensitiveCount/9) - 4) * 10 +
-                        ccache.sensitiveCount % 9 - 9;
+                Acts::ActsScalar id =(ccache.volumeCount + std::floor(ccache.sensitiveCount/9) - 4) * 10 +
+                                     ccache.sensitiveCount % 9 + 1;
 
                 ACTS_VERBOSE("Assigning sensitive id " << id);
                 geoID.setSensitive(id);

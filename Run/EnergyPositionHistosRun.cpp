@@ -107,8 +107,8 @@ int main() {
 
     std::random_device rd;
     std::mt19937 gen(rd());
-    std::uniform_real_distribution<> dis1(1.9,4);
-    std::uniform_real_distribution<> dis2(1.9,16);
+    std::uniform_real_distribution<> dis1(1,4);
+    std::uniform_real_distribution<> dis2(4,13);
     std::normal_distribution<> pDisP(0.002,0.0018);
     std::normal_distribution<> pDisM(-0.002,0.0018);
 
@@ -116,7 +116,7 @@ int main() {
     std::vector<LUXENavigator::Measurements> results;
     Acts::ActsScalar m_e = 0.000511;
     std::size_t sourceId = 1;
-    for (int i=0;i<20000;i++) {
+    for (int i=0;i<200;i++) {
         Acts::ActsScalar px = (pDisP(gen)+pDisM(gen))/2;
         Acts::ActsScalar pz = (pDisP(gen)+pDisM(gen))/2;
         Acts::ActsScalar E = dis1(gen);
@@ -131,7 +131,7 @@ int main() {
                                                             resolutions,sourceId));
         sourceId++;
     };
-    for (int i=0;i<30000;i++) {
+    for (int i=0;i<300;i++) {
         Acts::ActsScalar px = (pDisP(gen)+pDisM(gen))/2;
         Acts::ActsScalar pz = (pDisP(gen)+pDisM(gen))/2;
         Acts::ActsScalar E = dis2(gen);
@@ -148,9 +148,18 @@ int main() {
         sourceId++;
     };
 
+//    for (auto result : results) {
+//        for (unsigned int l=1;l<result.fullTrack.size()-3;l++) {
+//            if (result.fullTrack[l][1]<6000) {
+//                Acts::GeometryView3D::drawSegment(
+//                        volumeObj,result.fullTrack[l],
+//                        result.fullTrack[l+1], pConfig);
+//            }
+//        }
+//    }
 
-    std::string filename = "hist_data.root";
-    HistogramDatawriter(results,filename);
+//    std::string filename = "hist_data.root";
+//    HistogramDatawriter(results,filename);
 
     volumeObj.write("volumes.obj");
 

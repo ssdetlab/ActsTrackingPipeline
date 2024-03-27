@@ -11,8 +11,9 @@ auto exampleDipole = [](const std::array<double, 3> &v) {
     if (y<1450 || y>2650) {
         return Acts::Vector3(0, 0, 0);
     }
-    return Acts::Vector3(0, 0, 1.5_T);
+    return Acts::Vector3(0, 0, .95_T);
 };
+
 
 BField_t buildLUXEBField(const transformationPos_t& transformPos,
                          const transformationBField_t& transformBField,

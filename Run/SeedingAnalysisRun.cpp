@@ -119,10 +119,10 @@ int main() {
     std::vector<LUXENavigator::Measurements> results;
     std::size_t sourceId = 1;
 
-    for (int i=0;i<1000;i++) {
+    for (int i=0;i<5;i++) {
         Acts::ActsScalar px = (pDisP(gen)+pDisM(gen))/2;
         Acts::ActsScalar pz = (pDisP(gen)+pDisM(gen))/2;
-        Acts::ActsScalar py = pzDis(gen)+1;
+        Acts::ActsScalar py = pzDis(gen)+1.5;
 //        Acts::ActsScalar py = uni(gen);
         Acts::ActsScalar p = std::sqrt(std::pow(px,2)+std::pow(py,2)+std::pow(pz,2));
         Acts::ActsScalar E = std::hypot(p,m_e);
@@ -142,6 +142,13 @@ int main() {
         for (unsigned int l=0;l<result.truthParameters.size();l++) {
             sl4Seeding.push_back(result.sourceLinks[l]);
         } //static_cast<float>
+        for (unsigned int l=1;l<result.fullTrack.size()-3;l++) {
+            if (result.fullTrack[l][1]<6000) {
+                Acts::GeometryView3D::drawSegment(
+                        volumeObj,result.fullTrack[l],
+                        result.fullTrack[l+1], pConfig);
+            }
+        }
 //        for (unsigned int l=1;l<result.fullTrack.size()-3;l++) {
 //            if (result.fullTrack[l][1]<6000) {
 //                Acts::GeometryView3D::drawSegment(
@@ -195,23 +202,30 @@ int main() {
 //    for (auto sl:sl4Seeding) {
 //        std::cout<<"sl4seeding event "<<sl.eventId<<std::endl;
 //    }
-//    int trueSeedCount = 0;
-    int seedCount = 0;
+    double efficiency = 0.;
+    double fakeEfficiency = 0.;
+    size_t counter;
+    std::vector<int> Lcounter;
     for (auto seed : seeds) {
-        seedCount++;
-        std::cout<<"Seed #: "<<seedCount<<std::endl;
-        for (auto sl : seed.sourceLinks) {
-            std::cout<<sl.eventId<<std::endl;
+        counter = 0;
+        for (auto sl : seed.originSourceLinks) {
+            std::cout<<sl.geometryId()<<std::endl;
+            if (std::count(seed.sourceLinks.begin(), seed.sourceLinks.end(), sl)) {
+                counter++;
+            } else {
+                break;
+            }
         }
-        for (auto OGsl : seed.originSourceLinks) {
-            std::cout<<"OG"<<std::endl;
-            std::cout<<OGsl.eventId<<std::endl;
+
+        if (counter == seed.originSourceLinks.size()) {
+            efficiency++;
         }
     }
+    efficiency = efficiency/seeds.size()*100;
+    std::cout<<"Seed efficiency: "<<efficiency<<"%"<<std::endl;
 
-
-    std::string filename = "seed_data.root";
-    analyzeSeeds(seeds,filename);
+//    std::string filename = "seed_data.root";
+//    analyzeSeeds(seeds,filename);
     volumeObj.write("volumes.obj");
 
     // Run all configured algorithms and return the appropriate status.
