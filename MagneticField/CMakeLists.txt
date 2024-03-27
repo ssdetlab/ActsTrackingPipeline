@@ -15,6 +15,7 @@ target_sources(
     ActsLUXEPipelineCore
     PRIVATE
     src/LUXEMagneticField.cpp
+#    src/IMagneticField.cpp
 )
 
 # For now we assume that the pipeline 

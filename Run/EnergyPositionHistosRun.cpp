@@ -1,7 +1,8 @@
 #include "ActsLUXEPipeline/Sequencer.hpp"
 #include "ActsLUXEPipeline/LUXEGeometry.hpp"
 #include "ActsLUXEPipeline/LUXEMagneticField.hpp"
-
+#include "ActsLUXEPipeline/MagneticFields.hpp"
+#include "Acts/Utilities/Logger.hpp"
 #include <filesystem>
 
 /// @brief Run the propagation through 
@@ -26,7 +27,7 @@ int main() {
         for (int i=0;i<3;i++) {
             if (pos[i]<gOpt.MagneticFieldBounds[i].first ||
                 pos[i]>gOpt.MagneticFieldBounds[i].second) {
-                return Acts::Vector3{0,0,0};
+                return Acts::Vector3{0,1350,0};
             }
         }
         return pos;
@@ -37,17 +38,14 @@ int main() {
         return field;
     };
 
-    const std::vector<unsigned int> bins{5u, 5u, 5u};
-    const std::vector<std::pair<float,float>> limits{std::make_pair(0,100),
-                                                     std::make_pair(0,100),
-                                                     std::make_pair(0,100)};
     LUXEMagneticField::GridOptions gridOpt;
-    gridOpt.bins = {5u, 5u, 5u};
-    gridOpt.limits = {std::make_pair(0,100),
-                      std::make_pair(0,100),
-                      std::make_pair(0,100)};
+    gridOpt.xBins = {-1000, 0.,200, 1000.};
+    gridOpt.yBins = {1300,1400,1450,1451, 2050.,2649,2650.,2651};
+    gridOpt.zBins = {-100,-99, 0., 100.};
 
-    auto BField = LUXEMagneticField::buildLUXEBField(transformPos, transformBField, gridOpt);
+    auto BField = LUXEMagneticField::buildLUXEBField(
+            transformPos, transformBField, gridOpt,
+            LUXEMagneticField::MagneticFields::ExampleDipole());
 
     // Build the LUXE detector
     std::string gdmlPath = "lxgeomdump_stave_positron.gdml";
