@@ -27,7 +27,7 @@ Acts::Propagator<stepper_t, Acts::Experimental::DetectorNavigator> makePropagato
     cfg.resolveMaterial = true;
     cfg.resolveSensitive = true;
     Acts::Experimental::DetectorNavigator navigator(
-            cfg, Acts::getDefaultLogger("Detector Navigation", Acts::Logging::VERBOSE));
+            cfg, Acts::getDefaultLogger("Detector Navigation", Acts::Logging::INFO));
 
     stepper_t stepper(std::move(BFieldPtr));
 

@@ -110,30 +110,32 @@ int main() {
     std::normal_distribution<> pDisP(0.002,0.0018);
     std::normal_distribution<> pDisM(-0.002,0.0018);
     std::gamma_distribution<double> pzDis(3, 1.2);
-    std::uniform_real_distribution<> uni(8,12);
-// lower limit 0.32 GeV upper limit 3.4 GeV
+    std::uniform_real_distribution<> uni(2.2,2.3);
 
 //    std::vector<Acts::ActsScalar> test_E{0.1,0.3,0.4,0.5,0.6};
 
     Acts::ActsScalar m_e = 0.000511;
     std::vector<LUXENavigator::Measurements> results;
     std::size_t sourceId = 1;
-
-    for (int i=0;i<5;i++) {
+    int N_events = 200;
+    for (int i=0;i<N_events;i++) {
         Acts::ActsScalar px = (pDisP(gen)+pDisM(gen))/2;
         Acts::ActsScalar pz = (pDisP(gen)+pDisM(gen))/2;
-        Acts::ActsScalar py = pzDis(gen)+1.5;
+        Acts::ActsScalar py = pzDis(gen)+1;
 //        Acts::ActsScalar py = uni(gen);
         Acts::ActsScalar p = std::sqrt(std::pow(px,2)+std::pow(py,2)+std::pow(pz,2));
         Acts::ActsScalar E = std::hypot(p,m_e);
-        std::cout<<"Initial 4p : "<<px<<" "<<py<<" "<<pz<<" "<<E<<std::endl;
         Acts::ActsScalar theta = std::acos(pz / p);
         Acts::ActsScalar phi = std::atan2(py, px);
-        std::cout<<"Initial dir : "<<phi<<" "<<theta<<std::endl;
         results.push_back(LUXENavigator::createMeasurements(propagator, gctx, magCtx,
                                                             LUXENavigator::makeParameters(p,phi,theta),
                                                             resolutions,sourceId));
         sourceId++;
+        if (i%500==0) {
+            std::cout<<"Completed: "<<(i*100)/N_events<<"%"<<std::endl;
+//            std::cout<<"Initial dir : "<<phi<<" "<<theta<<std::endl;
+//            std::cout<<"Initial 4p : "<<px<<" "<<py<<" "<<pz<<" "<<E<<std::endl;
+        }
     };
 
     SimpleSourceLink::SurfaceAccessor SA{*detector};
@@ -142,44 +144,16 @@ int main() {
         for (unsigned int l=0;l<result.truthParameters.size();l++) {
             sl4Seeding.push_back(result.sourceLinks[l]);
         } //static_cast<float>
-        for (unsigned int l=1;l<result.fullTrack.size()-3;l++) {
-            if (result.fullTrack[l][1]<6000) {
-                Acts::GeometryView3D::drawSegment(
-                        volumeObj,result.fullTrack[l],
-                        result.fullTrack[l+1], pConfig);
-            }
-        }
-//        for (unsigned int l=1;l<result.fullTrack.size()-3;l++) {
-//            if (result.fullTrack[l][1]<6000) {
+//        if (result.globalPosition.size()>1) {
+//            for (unsigned int l=0;l<result.globalPosition.size()-1;l++) {
 //                Acts::GeometryView3D::drawSegment(
-//                        volumeObj,result.fullTrack[l],
-//                        result.fullTrack[l+1], pConfig);
+//                        volumeObj,result.globalPosition[l],
+//                        result.globalPosition[l+1], pConfig);
 //            }
 //        }
     }
-    std::vector<LUXETrackFinding::Seed> trueSeeds;
-    std::vector<SimpleSourceLink> seedSLs;
 
-    for (size_t s=0 ; s < sl4Seeding.size(); s++) {
-        seedSLs = {sl4Seeding[s]};
-        size_t i=0;
-        if (s+1 == sl4Seeding.size()) {
-            LUXETrackFinding::Seed seed{{sl4Seeding[s]},0,{0},seedSLs,Acts::Vector4{0,0,0,0}};
-            trueSeeds.push_back(seed);
-            continue;
-        }
-        while (sl4Seeding[s].eventId==sl4Seeding[s+1+i].eventId && s+i < sl4Seeding.size()-1) {
-            seedSLs.push_back(sl4Seeding[s+1+i]);
-            i++;
-        }
-        s+=i;
-        LUXETrackFinding::Seed seed{{sl4Seeding[s]},0,{0},seedSLs,Acts::Vector4{0,0,0,0}};
-        trueSeeds.push_back(seed);
-        if (sl4Seeding[s].eventId+1<sl4Seeding[s+1].eventId) {
-            LUXETrackFinding::Seed seed{{sl4Seeding[s]},0,{0},{},Acts::Vector4{0,0,0,0}};
-            trueSeeds.push_back(seed);
-        }
-    }
+    std::cout<<sl4Seeding.size()<<std::endl;
 
     std::vector<LUXETrackFinding::Seed> seeds =
             LUXETrackFinding::LUXEPathSeeder(gctx, gOpt, detector, sl4Seeding,
@@ -190,42 +164,69 @@ int main() {
     SimpleSourceLink::SurfaceAccessor SAseed{*detector};
     int count = 1;
     pConfig.color = {0,250,0};
-    for (auto& seed : seeds) {
-        std::cout<<"source links in seed "<<count<<": "<<seed.sourceLinks.size()<<std::endl;
-        count++;
-        std::vector<Acts::Vector3> seedPos;
-        for (auto& sl : seed.sourceLinks) {
-            seedPos.push_back(SAseed(sl)->
-                    localToGlobal(gctx, sl.parameters, Acts::Vector3{0,1,0}));
-        }
-    }
-//    for (auto sl:sl4Seeding) {
-//        std::cout<<"sl4seeding event "<<sl.eventId<<std::endl;
-//    }
+
     double efficiency = 0.;
     double fakeEfficiency = 0.;
+    double logFakeEfficiency = 0.;
     size_t counter;
-    std::vector<int> Lcounter;
+    std::vector<int> fakeCounter;
+    double totalCombinations;
+    bool L0;
+    int index;
+    int OGindex;
     for (auto seed : seeds) {
         counter = 0;
-        for (auto sl : seed.originSourceLinks) {
-            std::cout<<sl.geometryId()<<std::endl;
-            if (std::count(seed.sourceLinks.begin(), seed.sourceLinks.end(), sl)) {
+        totalCombinations = 1.;
+        fakeCounter = {0,0,0,0,0,0,0};
+        std::cout<<"Seed#: "<<seed.originSourceLinks[0].eventId<<std::endl;
+        L0 = (seed.originSourceLinks[0].geometryId().sensitive()/10==1);
+
+//        for (size_t i=0;i<std::min(seed.sourceLinks.size(),seed.originSourceLinks.size());i++) {
+//            index = seed.sourceLinks[i].geometryId().sensitive()/10;
+//            OGindex = seed.originSourceLinks[i].geometryId().sensitive()/10;
+//            std::cout<<"Predicted: "<<seed.sourceLinks[i].eventId<<" "<<index
+//                     <<" OG: "<<seed.originSourceLinks[i].eventId<<" "<<OGindex<<std::endl;
+//        }
+//        for (size_t i=std::min(seed.sourceLinks.size(),seed.originSourceLinks.size());i<std::max(seed.sourceLinks.size(),seed.originSourceLinks.size());i++) {
+//            if (i<seed.originSourceLinks.size()) {
+//                OGindex = seed.originSourceLinks[i].geometryId().sensitive()/10;
+//                std::cout<<"Predicted:   "<<" OG: "<<seed.originSourceLinks[i].eventId
+//                <<" "<<OGindex<<std::endl;
+//            } else if (i<seed.sourceLinks.size()) {
+//                index = seed.sourceLinks[i].geometryId().sensitive()/10;
+//                std::cout<<"Predicted: "<<seed.sourceLinks[i].eventId<<" "<<index<<" OG:  "<<std::endl;
+//            }
+//        }
+        for (auto sl : seed.sourceLinks) {
+            index = sl.geometryId().sensitive()/10;
+            if (L0 || index!=0) {
+                fakeCounter[index]++;
+            }
+            if (std::count(seed.originSourceLinks.begin(), seed.originSourceLinks.end(), sl)) {
                 counter++;
-            } else {
-                break;
             }
         }
-
         if (counter == seed.originSourceLinks.size()) {
             efficiency++;
+            for (auto a : fakeCounter) {
+                if (a!=0) totalCombinations = totalCombinations*static_cast<double>(a);
+            }
+//            std::cout<<"Total combinations: "<<totalCombinations<<std::endl;
+            fakeEfficiency+=1/totalCombinations;
+            logFakeEfficiency+=1/(std::log(std::exp(1)-1+totalCombinations));
+//            std::cout<<"Seed fake efficiency: "<<1/(totalCombinations)<<std::endl;
+//            std::cout<<"Seed logFake efficiency: "<<1/(std::log(std::exp(1)-1+totalCombinations))<<std::endl;
         }
+//        std::cout<<"Seed efficiency: "<<(counter == seed.originSourceLinks.size())<<std::endl;
     }
+    fakeEfficiency = fakeEfficiency/efficiency*100;
+    logFakeEfficiency = logFakeEfficiency/efficiency*100;
     efficiency = efficiency/seeds.size()*100;
-    std::cout<<"Seed efficiency: "<<efficiency<<"%"<<std::endl;
-
-//    std::string filename = "seed_data.root";
-//    analyzeSeeds(seeds,filename);
+    std::cout<<"Avg. efficiency: "<<efficiency<<"%"<<std::endl;
+    std::cout<<"Avg. fakeEff: "<<fakeEfficiency<<"%"<<std::endl;
+    std::cout<<"Avg. logFakeEff: "<<logFakeEfficiency<<"%"<<std::endl;
+    std::string filename = "seed_data.root";
+    analyzeSeeds(seeds,filename);
     volumeObj.write("volumes.obj");
 
     // Run all configured algorithms and return the appropriate status.

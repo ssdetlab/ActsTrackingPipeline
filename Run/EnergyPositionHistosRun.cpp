@@ -107,8 +107,11 @@ int main() {
 
     std::random_device rd;
     std::mt19937 gen(rd());
-    std::uniform_real_distribution<> dis1(1,4);
-    std::uniform_real_distribution<> dis2(4,13);
+    std::uniform_real_distribution<> dis1(1,3);
+    std::uniform_real_distribution<> dis2(3,8);
+    std::uniform_real_distribution<> dis3(7,13);
+
+//    std::gamma_distribution<double> EDis(3, 1.2);
     std::normal_distribution<> pDisP(0.002,0.0018);
     std::normal_distribution<> pDisM(-0.002,0.0018);
 
@@ -116,7 +119,7 @@ int main() {
     std::vector<LUXENavigator::Measurements> results;
     Acts::ActsScalar m_e = 0.000511;
     std::size_t sourceId = 1;
-    for (int i=0;i<200;i++) {
+    for (int i=0;i<50000;i++) {
         Acts::ActsScalar px = (pDisP(gen)+pDisM(gen))/2;
         Acts::ActsScalar pz = (pDisP(gen)+pDisM(gen))/2;
         Acts::ActsScalar E = dis1(gen);
@@ -131,7 +134,7 @@ int main() {
                                                             resolutions,sourceId));
         sourceId++;
     };
-    for (int i=0;i<300;i++) {
+    for (int i=0;i<25000;i++) {
         Acts::ActsScalar px = (pDisP(gen)+pDisM(gen))/2;
         Acts::ActsScalar pz = (pDisP(gen)+pDisM(gen))/2;
         Acts::ActsScalar E = dis2(gen);
@@ -139,7 +142,21 @@ int main() {
         Acts::ActsScalar p = std::sqrt(std::pow(px,2)+std::pow(py,2)+std::pow(pz,2));
         Acts::ActsScalar theta = std::acos(pz / p);
         Acts::ActsScalar phi = std::atan2(py, px);
-
+        std::cout<<"Initial 4p : "<<px<<" "<<py<<" "<<pz<<std::endl;
+        std::cout<<"Initial dir : "<<phi<<" "<<theta<<std::endl;
+        results.push_back(LUXENavigator::createMeasurements(propagator, gctx, magCtx,
+                                                            LUXENavigator::makeParameters(p,phi,theta),
+                                                            resolutions,sourceId));
+        sourceId++;
+    };
+    for (int i=0;i<5000;i++) {
+        Acts::ActsScalar px = (pDisP(gen)+pDisM(gen))/2;
+        Acts::ActsScalar pz = (pDisP(gen)+pDisM(gen))/2;
+        Acts::ActsScalar E = dis3(gen);
+        Acts::ActsScalar py = std::sqrt(std::pow(E,2)-std::pow(m_e,2)-std::pow(px,2)-std::pow(pz,2));
+        Acts::ActsScalar p = std::sqrt(std::pow(px,2)+std::pow(py,2)+std::pow(pz,2));
+        Acts::ActsScalar theta = std::acos(pz / p);
+        Acts::ActsScalar phi = std::atan2(py, px);
         std::cout<<"Initial 4p : "<<px<<" "<<py<<" "<<pz<<std::endl;
         std::cout<<"Initial dir : "<<phi<<" "<<theta<<std::endl;
         results.push_back(LUXENavigator::createMeasurements(propagator, gctx, magCtx,
@@ -149,17 +166,18 @@ int main() {
     };
 
 //    for (auto result : results) {
-//        for (unsigned int l=1;l<result.fullTrack.size()-3;l++) {
-//            if (result.fullTrack[l][1]<6000) {
+//        std::cout<<result.globalPosition.size()<<std::endl;
+//        if (result.globalPosition.size()>1) {
+//            for (unsigned int l=0;l<result.globalPosition.size()-1;l++) {
 //                Acts::GeometryView3D::drawSegment(
-//                        volumeObj,result.fullTrack[l],
-//                        result.fullTrack[l+1], pConfig);
+//                        volumeObj,result.globalPosition[l],
+//                        result.globalPosition[l+1], pConfig);
 //            }
 //        }
 //    }
 
-//    std::string filename = "hist_data.root";
-//    HistogramDatawriter(results,filename);
+    std::string filename = "hist_data.root";
+    HistogramDatawriter(results,filename);
 
     volumeObj.write("volumes.obj");
 
