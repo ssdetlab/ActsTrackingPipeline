@@ -4,4 +4,4 @@
 #
 
 add_run(EnergyPositionHistos EnergyPositionHistosRun.cpp)
-#add_run(TruthTracking TruthTrackingRun.cpp)
+add_run(TruthTracking TruthTrackingRun.cpp)
