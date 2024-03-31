@@ -141,8 +141,8 @@ namespace LUXETrackFinding {
 
         Seeds seeds;
         Acts::Vector4 ipParams;
-        Acts::Vector4 roadWidthX{250_um,350_um,450_um,100_um};
-        Acts::Vector4 roadWidthZ{50_um,100_um,150_um,50_um};
+        Acts::Vector4 roadWidthX{100_um,250_um,350_um,450_um};
+        Acts::Vector4 roadWidthZ{50_um,50_um,100_um,150_um};
 
         for (size_t i=0; i<sourceLinks.size(); i++) {
             Acts::Vector3 globalPos = SA(sourceLinks[i])->
@@ -191,25 +191,23 @@ namespace LUXETrackFinding {
                     std::vector<double> factor{0, 2};
                     Scalar layerGap = gOpt.layerZPositions[1] - gOpt.layerZPositions[0];
                     std::vector<Acts::Vector3> layerPointers;
-                    for (int il = 1; il < gOpt.layerZPositions.size(); il++) {
-                        for (auto f: factor) {
-                            Acts::Vector3 Lpos = (y1 < gOpt.layerZPositions[0]) ?
-                                                 std::sqrt(1 + std::pow((x4 - x1) / (y4 - y1), 2) +
+                    for (int il = 0; il < gOpt.layerZ.size(); il++) {
+                            Acts::Vector3 Lpos = std::sqrt(1 + std::pow((x4 - x1) / (y4 - y1), 2) +
                                                            std::pow((z4 - z1) / (y4 - y1), 2)) *
-                                                 (il * layerGap + (2 - f) * (gOpt.deltaZ-1)) * dHat  :
-                                                 std::sqrt(1 + std::pow((x4 - x1) / (y4 - y1), 2) +
-                                                           std::pow((z4 - z1) / (y4 - y1), 2)) *
-                                                 (il * layerGap - f * gOpt.deltaZ) * dHat;
+                                                 (gOpt.layerZ[il]-y1) * dHat;
                             layerPointers.push_back(Lpos);
-                        }
                     }
-                    if (x1 > gOpt.chipTranslationXOdd.at(0) &&
-                        x1 <= gOpt.chipTranslationXEven.at(8)+gOpt.chipSizeX) {
-                        layerPointers.push_back(std::sqrt(1 + std::pow((x4 - x1) / (y4 - y1), 2) + std::pow((z4 - z1) / (y4 - y1), 2)) *
-                                                (2 * (gOpt.deltaZ-1)) * dHat);
-                    }
+//                    if (x1 > gOpt.chipTranslationXOdd.at(0) &&
+//                        x1 <= gOpt.chipTranslationXEven.at(8)+gOpt.chipSizeX) {
+//                        layerPointers.push_back(std::sqrt(1 + std::pow((x4 - x1) / (y4 - y1), 2) + std::pow((z4 - z1) / (y4 - y1), 2)) *
+//                                                (2 * (gOpt.deltaZ-1)) * dHat);
+//                    }
                     std::cout<<"Layer Pointers size: "<<layerPointers.size()<<std::endl;
                     for (int k = 0; k < layerPointers.size(); k++) {
+                        if (k==1) continue;
+                        if (k==0 && (x1> gOpt.chipTranslationXEven.at(8)+gOpt.chipSizeX ||
+                                     x1<=gOpt.chipTranslationXOdd.at(0))) continue;
+
                         std::cout<<"Layer Pointer: "<<layerPointers[k]<<std::endl;
                         Acts::Vector3 refPoint = globalPos + layerPointers[k];
 
@@ -233,7 +231,7 @@ namespace LUXETrackFinding {
 //                        if (botX >= topX || botZ >= topZ) {
 //                            std::cout << "path doesn't contain detector layer at pointer " << i << std::endl;
 //                        }
-                        std::string lName = (k<6) ? "layer_" + std::to_string(k + 2) : "layer_" + std::to_string(0);
+                        std::string lName = "layer_" + std::to_string(k)
 
                         //========FOR TESTING======== TODO: Fix indexing
                         for (auto og : originSourceLinks) {
@@ -241,9 +239,8 @@ namespace LUXETrackFinding {
                             if (gId == 1) {
                                 continue;
                             }
-                            unsigned int index = (gId>0) ? gId-2 : layerPointers.size()-1;
-                            std::cout<<"k: "<<k<<" index: "<<index<<"gId: "<<gId<<std::endl;
-                            if (k==index) {
+                            std::cout<<"k: "<<k<<"gId: "<<gId<<std::endl;
+                            if (k==gId) {
                                 Acts::Vector3 ogPos = SA(og) -> localToGlobal(gctx, og.parameters, Acts::Vector3{0,1,0});
                                 seedDistances.push_back(ogPos-refPoint);
                             }

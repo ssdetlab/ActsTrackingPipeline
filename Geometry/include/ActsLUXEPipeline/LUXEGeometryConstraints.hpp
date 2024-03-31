@@ -42,6 +42,9 @@ namespace LUXEGeometry {
             {7, 509.23_mm - chipSizeX/2.0},
             {8, 539.33_mm - chipSizeX/2.0}
         };
+        const std::vector<Acts::ActsScalar> layerZ =
+                {3962.0125_mm, 3950.0125_mm, 4062.0125_mm, 4050.0125_mm,
+                 4162.0125_mm, 4150.0125_mm, 4262.0125_mm, 4250.0125_mm};
 
         const std::vector<Acts::ActsScalar> layerZPositions =
             {3956.0125_mm, 4056.0125_mm, 4156.0125_mm, 4256.0125_mm};
