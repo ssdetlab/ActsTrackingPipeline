@@ -64,6 +64,7 @@ namespace LUXEGeometry {
                 {std::make_pair(-1000_mm,1000_mm),
                  std::make_pair(1450_mm,2650_mm),
                  std::make_pair(-100_mm,100_mm)};
+
         /// Global rotation of the world volume
         /// in the Acts format for volumes
         const Acts::RotationMatrix3 actsWorldRotation = 

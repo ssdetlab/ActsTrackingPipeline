@@ -27,7 +27,7 @@ int main() {
         for (int i=0;i<3;i++) {
             if (pos[i]<gOpt.MagneticFieldBounds[i].first ||
                 pos[i]>gOpt.MagneticFieldBounds[i].second) {
-                return Acts::Vector3{0,1350,0};
+                return Acts::Vector3{0,1400,0};
             }
         }
         return pos;
@@ -39,19 +39,22 @@ int main() {
     };
 
     LUXEMagneticField::GridOptions gridOpt;
-    gridOpt.xBins = {-1000, 0.,200, 1000.};
+    gridOpt.xBins = {-1000,-1, 0.,200, 1000.};
     gridOpt.yBins = {1300,1400,1450,1451, 2050.,2649,2650.,2651};
-    gridOpt.zBins = {-100,-99, 0., 100.};
+    gridOpt.zBins = {-100,-99, 0.,1, 100.};
 
-    auto BField = LUXEMagneticField::buildLUXEBField(
-            transformPos, transformBField, gridOpt,
-            LUXEMagneticField::MagneticFields::ExampleDipole());
 
     // Build the LUXE detector
     std::string gdmlPath = "lxgeomdump_stave_positron.gdml";
     std::vector<std::string> names = {"OPPPSensitive"};
     Acts::GeometryContext gctx;
     LUXEGeometry::GeometryOptions gOpt;
+    double B_z = .95;
+
+    auto BField = LUXEMagneticField::buildLUXEBField(
+            transformPos, transformBField, gridOpt,
+            LUXEMagneticField::MagneticFields::ExampleDipole(gOpt.MagneticFieldBounds[1], B_z));
+
     auto positronArmBpr = LUXEGeometry::makeBlueprintPositron(gdmlPath, names, gOpt);
     auto detector = LUXEGeometry::buildLUXEDetector(std::move(positronArmBpr), gctx, gOpt);
 
@@ -91,5 +94,6 @@ int main() {
 //        std::make_shared<IdealSeeder>(seederCfg, logLevel));
 
     // Run all configured algorithms and return the appropriate status.
-    return sequencer.run();
+//    return sequencer.run();
+    return 0;
 }
