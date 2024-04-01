@@ -26,6 +26,10 @@
 #include <random>
 #include <vector>
 #include <iostream>
+#include <fstream>
+
+#include <boost/archive/binary_oarchive.hpp>
+#include <boost/archive/binary_iarchive.hpp>
 
 /// Propagator action to create measurements.
 namespace LUXENavigator {
@@ -62,17 +66,99 @@ using MeasurementResolutionMap =
         Acts::GeometryHierarchyMap<MeasurementResolution>;
 
 /// Result struct for generated measurements and outliers.
-struct Measurements {
+struct Measurement {
     unsigned int eventId;
     std::vector<SimpleSourceLink> sourceLinks;
     std::vector<Acts::Vector3> fullTrack;
     std::vector<Acts::BoundVector> truthParameters;
     std::vector<Acts::Vector3> globalPosition;
+
+    template<class Archive>
+    void serialize(Archive& os) const {
+        // Write the measurement data to the output stream
+        os << eventId << "\n";
+        // Serialize sourceLinks
+        os << sourceLinks.size() << "\n";
+        for (const auto& sourceLink : sourceLinks) {
+            os << sourceLink.eventId << " " << sourceLink.geometryId().sensitive() << " " <<
+                  sourceLink.parameters[0] << " " << sourceLink.parameters[1];
+        }
+        os << "\n";
+        // Serialize globalPosition
+        os << globalPosition.size() << "\n";
+        for (const auto& globalPos : globalPosition) {
+            os << globalPos[0] << " " << globalPos[1] << " " << globalPos[2] << "\n";
+        }
+    }
+
+    // Deserialize the Measurements object
+    template<class Archive>
+    void deserialize(Archive& is) {
+        // Read the measurement data from the input stream
+        is >> eventId;
+        // Deserialize sourceLinks
+        int numSourceLinks;
+        is >> numSourceLinks;
+        Acts::SquareMatrix2 covariance = Acts::SquareMatrix2::Identity();
+        sourceLinks.resize(numSourceLinks);
+        for (auto& sourceLink : sourceLinks) {
+            Acts::GeometryIdentifier geoId;
+            int sensId;
+            int eId;
+            Acts::Vector2 params;
+            is >> eId >> sensId >> params[0] >> params[1];
+            geoId.setSensitive(sensId);
+            sourceLink = SimpleSourceLink(params, covariance, geoId, eId);
+        }
+
+        // Deserialize globalPosition
+        int numGlobalPositions;
+        is >> numGlobalPositions;
+        globalPosition.resize(numGlobalPositions);
+        for (auto& globalPos : globalPosition) {
+            float x,y,z;
+            is >> x >> y >> z;
+            globalPos = {x,y,z};
+        }
+    }
 };
 
-struct MeasurementsCreator {
-    using result_type = Measurements;
+void saveMeasurementsToFile(const std::vector<Measurement>& measurements, const std::string& filename) {
+    std::ofstream ofs(filename, std::ios::binary);
+    if (!ofs) {
+        std::cerr << "Error opening file for writing: " << filename << std::endl;
+        return;
+    }
+    boost::archive::binary_oarchive oa(ofs);
+    oa << measurements.size(); // Write the size of the vector
+    for (const auto& measurement : measurements) {
+        measurement.serialize(oa); // Serialize each Measurements object
+    }
+}
 
+// Function to load vector of Measurements from a file
+std::vector<Measurement> loadMeasurementsFromFile(const std::string& filename) {
+    std::vector<Measurement> measurements;
+    std::ifstream ifs(filename, std::ios::binary);
+    if (!ifs) {
+        std::cerr << "Error opening file for reading: " << filename << std::endl;
+        return measurements;
+    }
+    boost::archive::binary_iarchive ia(ifs);
+    size_t vectorSize;
+    ia >> vectorSize; // Read the size of the vector
+    measurements.reserve(vectorSize);
+    for (size_t i = 0; i < vectorSize; ++i) {
+        Measurement m;
+        m.deserialize(ia); // Deserialize each Measurements object
+        measurements.push_back(m);
+    }
+    return measurements;
+}
+
+struct MeasurementsCreator {
+
+    using result_type = Measurement;
     MeasurementResolutionMap resolutions;
     std::size_t sourceId = 0;
 
@@ -172,7 +258,7 @@ struct MeasurementsCreator {
 };
 /// Propagate the track create smeared measurements from local coordinates.
 template <typename propagator_t, typename track_parameters_t>
-Measurements createMeasurements(const propagator_t& propagator,
+Measurement createMeasurements(const propagator_t& propagator,
                                 const Acts::GeometryContext& geoCtx,
                                 const Acts::MagneticFieldContext& magCtx,
                                 const track_parameters_t& trackParameters,
@@ -191,21 +277,7 @@ Measurements createMeasurements(const propagator_t& propagator,
 
     // Launch and collect the measurements
     auto result = propagator.propagate(trackParameters, options).value();
-    return std::move(result.template get<Measurements>());
+    return std::move(result.template get<>());
 }
 
 } // LUXENavigator
-
-// COVARIANCE AVE
-
-//stepper.transportCovarianceToBound(state.stepping, surface,
-//Acts::FreeToBoundCorrection(true));
-//std::random_device rd;
-//std::mt19937 rng(rd());
-//std::normal_distribution<double> normalDist(0., 1.);
-//
-//Acts::Vector2 stddev(resolution.stddev[0], resolution.stddev[1]);
-//Acts::SquareMatrix2 cov = stddev.cwiseProduct(stddev).asDiagonal();
-//std::cout<<state.stepping.cov<<std::endl;
-//Acts::Vector2 val = loc + stddev.cwiseProduct(
-//        Acts::Vector2(normalDist(rng), normalDist(rng)));

@@ -3,12 +3,16 @@
 # to the pipeline core
 #
 
+# FOR TESTING
+find_package(Boost REQUIRED COMPONENTS serialization)
+
 # Includes for Acts are propagated
 # through the library linking
 target_include_directories(
     ActsLUXEPipelineCore
     PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
+
 
 # Sources
 target_sources(
@@ -20,5 +24,6 @@ target_link_libraries(
     ActsLUXEPipelineCore
     PUBLIC
     ActsCore
+    Boost::serialization
 )
       

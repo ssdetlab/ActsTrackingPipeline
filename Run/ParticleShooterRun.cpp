@@ -22,19 +22,6 @@
 /// energy vs position histograms for each layer
 int main() {
     using namespace LUXENavigator;
-    Acts::Logging::Level logLevel = Acts::Logging::VERBOSE;
-
-    // setup the sequencer first w/ config derived from options
-    Sequencer::Config seqCfg;
-    seqCfg.events = 10;
-    seqCfg.numThreads = -1;
-    Sequencer sequencer(seqCfg);
-
-//    LUXEROOTReader::LUXEROOTSimDataReader::Config readerCfg
-//        = LUXEROOTReader::defaultSimConfig();
-//    readerCfg.dataCollection = "SourceLink";
-//    std::string pathToDir = "/home/romanurmanov/lab/LUXE/acts_LUXE_tracking/ActsLUXEPipeline_dataInRootFormat/SignalNextTrial_e1gpc_10.0_1";
-    // map (x,y,z) -> (x,y,z)
 
     auto transformPos = [](const Acts::Vector3& pos) {
         LUXEGeometry::GeometryOptions gOpt;
@@ -90,9 +77,9 @@ int main() {
         for (auto& surf : vol->surfaces()) {
             std::cout<<"Assigning resolution to surface ID: "<<surf->geometryId()<<std::endl;
 //            if (vol->geometryId().volume()!=1) {
-                Acts::GeometryView3D::drawSurface(
-                        volumeObj, *(surf), gctx,
-                        Acts::Transform3::Identity(), pConfig);
+            Acts::GeometryView3D::drawSurface(
+                    volumeObj, *(surf), gctx,
+                    Acts::Transform3::Identity(), pConfig);
 //            }
             m.push_back(std::make_pair(surf->geometryId(),resPixel));
             std::cout<<"Surface x transform: "<<surf->center(gctx)[0]<<std::endl;
@@ -107,81 +94,38 @@ int main() {
 
     std::random_device rd;
     std::mt19937 gen(rd());
-    std::uniform_real_distribution<> dis1(1,3);
-    std::uniform_real_distribution<> dis2(3,8);
-    std::uniform_real_distribution<> dis3(7,13);
-
-//    std::gamma_distribution<double> EDis(3, 1.2);
     std::normal_distribution<> pDisP(0.002,0.0018);
     std::normal_distribution<> pDisM(-0.002,0.0018);
+    std::gamma_distribution<double> pzDis(3, 1.2);
+    std::uniform_real_distribution<> uni(2.2,2.3);
 
+//    std::vector<Acts::ActsScalar> test_E{0.1,0.3,0.4,0.5,0.6};
 
-    std::vector<LUXENavigator::Measurement> results;
     Acts::ActsScalar m_e = 0.000511;
+    std::vector<LUXENavigator::Measurements> results;
     std::size_t sourceId = 1;
-    for (int i=0;i<500;i++) {
+    int N_events = 100000;
+    for (int i=0;i<N_events;i++) {
         Acts::ActsScalar px = (pDisP(gen)+pDisM(gen))/2;
         Acts::ActsScalar pz = (pDisP(gen)+pDisM(gen))/2;
-        Acts::ActsScalar E = dis1(gen);
-        Acts::ActsScalar py = std::sqrt(std::pow(E,2)-std::pow(m_e,2)-std::pow(px,2)-std::pow(pz,2));
+//        Acts::ActsScalar py = pzDis(gen)+1;
+        Acts::ActsScalar py = uni(gen);
         Acts::ActsScalar p = std::sqrt(std::pow(px,2)+std::pow(py,2)+std::pow(pz,2));
-        std::cout<<"Initial 4p : "<<px<<" "<<py<<" "<<pz<<std::endl;
+        Acts::ActsScalar E = std::hypot(p,m_e);
         Acts::ActsScalar theta = std::acos(pz / p);
         Acts::ActsScalar phi = std::atan2(py, px);
-        std::cout<<"Initial dir : "<<phi<<" "<<theta<<std::endl;
         results.push_back(LUXENavigator::createMeasurements(propagator, gctx, magCtx,
                                                             LUXENavigator::makeParameters(p,phi,theta),
                                                             resolutions,sourceId));
         sourceId++;
-    };
-    for (int i=0;i<250;i++) {
-        Acts::ActsScalar px = (pDisP(gen)+pDisM(gen))/2;
-        Acts::ActsScalar pz = (pDisP(gen)+pDisM(gen))/2;
-        Acts::ActsScalar E = dis2(gen);
-        Acts::ActsScalar py = std::sqrt(std::pow(E,2)-std::pow(m_e,2)-std::pow(px,2)-std::pow(pz,2));
-        Acts::ActsScalar p = std::sqrt(std::pow(px,2)+std::pow(py,2)+std::pow(pz,2));
-        Acts::ActsScalar theta = std::acos(pz / p);
-        Acts::ActsScalar phi = std::atan2(py, px);
-        std::cout<<"Initial 4p : "<<px<<" "<<py<<" "<<pz<<std::endl;
-        std::cout<<"Initial dir : "<<phi<<" "<<theta<<std::endl;
-        results.push_back(LUXENavigator::createMeasurements(propagator, gctx, magCtx,
-                                                            LUXENavigator::makeParameters(p,phi,theta),
-                                                            resolutions,sourceId));
-        sourceId++;
-    };
-    for (int i=0;i<50;i++) {
-        Acts::ActsScalar px = (pDisP(gen)+pDisM(gen))/2;
-        Acts::ActsScalar pz = (pDisP(gen)+pDisM(gen))/2;
-        Acts::ActsScalar E = dis3(gen);
-        Acts::ActsScalar py = std::sqrt(std::pow(E,2)-std::pow(m_e,2)-std::pow(px,2)-std::pow(pz,2));
-        Acts::ActsScalar p = std::sqrt(std::pow(px,2)+std::pow(py,2)+std::pow(pz,2));
-        Acts::ActsScalar theta = std::acos(pz / p);
-        Acts::ActsScalar phi = std::atan2(py, px);
-        std::cout<<"Initial 4p : "<<px<<" "<<py<<" "<<pz<<std::endl;
-        std::cout<<"Initial dir : "<<phi<<" "<<theta<<std::endl;
-        results.push_back(LUXENavigator::createMeasurements(propagator, gctx, magCtx,
-                                                            LUXENavigator::makeParameters(p,phi,theta),
-                                                            resolutions,sourceId));
-        sourceId++;
+        if (i%(N_events/10)==0) {
+            std::cout<<"Completed: "<<(i*100)/N_events<<"%"<<std::endl;
+        }
     };
 
-//    for (auto result : results) {
-//        std::cout<<result.globalPosition.size()<<std::endl;
-//        if (result.globalPosition.size()>1) {
-//            for (unsigned int l=0;l<result.globalPosition.size()-1;l++) {
-//                Acts::GeometryView3D::drawSegment(
-//                        volumeObj,result.globalPosition[l],
-//                        result.globalPosition[l+1], pConfig);
-//            }
-//        }
-//    }
+    saveMeasurementsVectorToFile(results, "measurements.dat");
 
-    std::string filename = "hist_data_o.root";
-    HistogramDatawriter(results,filename,gOpt);
 
-    volumeObj.write("volumes.obj");
 
-    // Run all configured algorithms and return the appropriate status.
-//    return sequencer.run();
-      return 0;
+    return 0;
 } // main

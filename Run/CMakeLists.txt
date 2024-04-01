@@ -5,4 +5,5 @@
 
 add_run(EnergyPositionHistos EnergyPositionHistosRun.cpp)
 add_run(SeedingAnalysis SeedingAnalysisRun.cpp)
+#add_run(ParticleShooter ParticleShooterRun.cpp)
 #add_run(TruthTracking TruthTrackingRun.cpp)

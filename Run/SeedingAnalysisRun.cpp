@@ -15,6 +15,7 @@
 #include <iostream>
 #include <random>
 
+
 #include "ActsLUXEPipeline/Utils.hpp"
 
 /// @brief Run the propagation through
@@ -115,14 +116,14 @@ int main() {
 //    std::vector<Acts::ActsScalar> test_E{0.1,0.3,0.4,0.5,0.6};
 
     Acts::ActsScalar m_e = 0.000511;
-    std::vector<LUXENavigator::Measurements> results;
+    std::vector<LUXENavigator::Measurement> results;
     std::size_t sourceId = 1;
-    int N_events = 200;
+    int N_events = 1000;
     for (int i=0;i<N_events;i++) {
         Acts::ActsScalar px = (pDisP(gen)+pDisM(gen))/2;
         Acts::ActsScalar pz = (pDisP(gen)+pDisM(gen))/2;
-        Acts::ActsScalar py = pzDis(gen)+1;
-//        Acts::ActsScalar py = uni(gen);
+//        Acts::ActsScalar py = pzDis(gen)+1;
+        Acts::ActsScalar py = uni(gen);
         Acts::ActsScalar p = std::sqrt(std::pow(px,2)+std::pow(py,2)+std::pow(pz,2));
         Acts::ActsScalar E = std::hypot(p,m_e);
         Acts::ActsScalar theta = std::acos(pz / p);
@@ -131,10 +132,8 @@ int main() {
                                                             LUXENavigator::makeParameters(p,phi,theta),
                                                             resolutions,sourceId));
         sourceId++;
-        if (i%500==0) {
+        if (i%(N_events/10)==0) {
             std::cout<<"Completed: "<<(i*100)/N_events<<"%"<<std::endl;
-//            std::cout<<"Initial dir : "<<phi<<" "<<theta<<std::endl;
-//            std::cout<<"Initial 4p : "<<px<<" "<<py<<" "<<pz<<" "<<E<<std::endl;
         }
     };
 
@@ -153,33 +152,42 @@ int main() {
 //        }
     }
 
-    std::cout<<sl4Seeding.size()<<std::endl;
+//    std::cout<<sl4Seeding.size()<<std::endl;
 
-    std::vector<LUXETrackFinding::Seed> seeds =
-            LUXETrackFinding::LUXEPathSeeder(gctx, gOpt, detector, sl4Seeding,
-                                             "/Users/alonlevi/CLionProjects/LUXEPipeline/build");
+    std::vector<int> multiplicities{1000};//10,100,,10000
+    std::vector<bool> ft{false, true};
+    auto start = sl4Seeding.begin();
+    auto end = sl4Seeding.begin();
+    std::vector<LUXETrackFinding::Seed> seeds;
+    for (int m : multiplicities) {
+        end = start + m;
+        std::vector<SimpleSourceLink> slBatch(start,end);
+        for (bool f : ft) {
+            std::cout<<"Multiplicity : "<<m<<std::endl;
+            std::cout<<"Variable width : "<<f<<std::endl;
+            seeds = LUXETrackFinding::LUXEPathSeeder(gctx, gOpt, detector, slBatch,
+                                                     "/Users/alonlevi/CLionProjects/LUXEPipeline/build",f);
 
-    std::cout<<"Seeds Produced : "<<seeds.size()<<std::endl;
+//    std::cout<<"Seeds Produced : "<<seeds.size()<<std::endl;
 
-    SimpleSourceLink::SurfaceAccessor SAseed{*detector};
-    int count = 1;
-    pConfig.color = {0,250,0};
+            SimpleSourceLink::SurfaceAccessor SAseed{*detector};
+            int count = 1;
+            pConfig.color = {0, 250, 0};
 
-    double efficiency = 0.;
-    double fakeEfficiency = 0.;
-    double logFakeEfficiency = 0.;
-    size_t counter;
-    std::vector<int> fakeCounter;
-    double totalCombinations;
-    bool L0;
-    int index;
-    int OGindex;
-    for (auto seed : seeds) {
-        counter = 0;
-        totalCombinations = 1.;
-        fakeCounter = {0,0,0,0,0,0,0};
-        std::cout<<"Seed#: "<<seed.originSourceLinks[0].eventId<<std::endl;
-        L0 = (seed.originSourceLinks[0].geometryId().sensitive()/10==1);
+            double efficiency = 0.;
+            double fakeEfficiency = 0.;
+            double logFakeEfficiency = 0.;
+            size_t counter;
+            std::vector<int> fakeCounter;
+            double totalCombinations;
+            bool L0;
+            int index;
+            int OGindex;
+            for (auto seed: seeds) {
+                counter = 0;
+                totalCombinations = 1.;
+                fakeCounter = {0, 0, 0, 0, 0, 0, 0};
+                L0 = (seed.originSourceLinks[0].geometryId().sensitive() / 10 == 1);
 
 //        for (size_t i=0;i<std::min(seed.sourceLinks.size(),seed.originSourceLinks.size());i++) {
 //            index = seed.sourceLinks[i].geometryId().sensitive()/10;
@@ -197,34 +205,32 @@ int main() {
 //                std::cout<<"Predicted: "<<seed.sourceLinks[i].eventId<<" "<<index<<" OG:  "<<std::endl;
 //            }
 //        }
-        for (auto sl : seed.sourceLinks) {
-            index = sl.geometryId().sensitive()/10;
-            if (L0 || index!=0) {
-                fakeCounter[index]++;
+                for (auto sl: seed.sourceLinks) {
+                    index = sl.geometryId().sensitive() / 10;
+                    if (L0 || index != 0) {
+                        fakeCounter[index]++;
+                    }
+                    if (std::count(seed.originSourceLinks.begin(), seed.originSourceLinks.end(), sl)) {
+                        counter++;
+                    }
+                }
+                if (counter == seed.originSourceLinks.size()) {
+                    efficiency++;
+                    for (auto a: fakeCounter) {
+                        if (a != 0) totalCombinations = totalCombinations * static_cast<double>(a);
+                    }
+                    fakeEfficiency += 1 / totalCombinations;
+                    logFakeEfficiency += 1 / (std::log(std::exp(1) - 1 + totalCombinations));
+                }
             }
-            if (std::count(seed.originSourceLinks.begin(), seed.originSourceLinks.end(), sl)) {
-                counter++;
-            }
+            fakeEfficiency = fakeEfficiency / efficiency * 100;
+            logFakeEfficiency = logFakeEfficiency / efficiency * 100;
+            efficiency = efficiency / seeds.size() * 100;
+            std::cout << "Avg. efficiency: " << efficiency << "%" << std::endl;
+            std::cout << "Avg. fakeEff: " << fakeEfficiency << "%" << std::endl;
+            std::cout << "Avg. logFakeEff: " << logFakeEfficiency << "%" << std::endl;
         }
-        if (counter == seed.originSourceLinks.size()) {
-            efficiency++;
-            for (auto a : fakeCounter) {
-                if (a!=0) totalCombinations = totalCombinations*static_cast<double>(a);
-            }
-//            std::cout<<"Total combinations: "<<totalCombinations<<std::endl;
-            fakeEfficiency+=1/totalCombinations;
-            logFakeEfficiency+=1/(std::log(std::exp(1)-1+totalCombinations));
-//            std::cout<<"Seed fake efficiency: "<<1/(totalCombinations)<<std::endl;
-//            std::cout<<"Seed logFake efficiency: "<<1/(std::log(std::exp(1)-1+totalCombinations))<<std::endl;
-        }
-//        std::cout<<"Seed efficiency: "<<(counter == seed.originSourceLinks.size())<<std::endl;
     }
-    fakeEfficiency = fakeEfficiency/efficiency*100;
-    logFakeEfficiency = logFakeEfficiency/efficiency*100;
-    efficiency = efficiency/seeds.size()*100;
-    std::cout<<"Avg. efficiency: "<<efficiency<<"%"<<std::endl;
-    std::cout<<"Avg. fakeEff: "<<fakeEfficiency<<"%"<<std::endl;
-    std::cout<<"Avg. logFakeEff: "<<logFakeEfficiency<<"%"<<std::endl;
     std::string filename = "seed_data.root";
     analyzeSeeds(seeds,filename);
     volumeObj.write("volumes.obj");
