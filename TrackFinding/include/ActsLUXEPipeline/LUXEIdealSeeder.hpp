@@ -65,12 +65,6 @@ class IdealSeeder : public IAlgorithm {
             Acts::BoundSquareMatrix ipCov = 
                 ipStdDev.cwiseProduct(ipStdDev).asDiagonal();
 
-            // Assume same IP position for all seeds
-            Acts::Vector4 ipPos(
-                m_cfg.gOpt.dipoleTranslation.x(),
-                m_cfg.gOpt.dipoleTranslation.z(),
-                m_cfg.gOpt.dipoleTranslation.y(), 0);
-
             // Create the seeds
             LUXEDataContainer::Seeds seeds;
             std::vector<Acts::SourceLink> sourceLinks;
@@ -88,13 +82,14 @@ class IdealSeeder : public IAlgorithm {
                             sourceLinks.clear();
                             continue;
                     }
+
                     // Ip parameter is the same for all hits
                     // with the same track id
                     Acts::CurvilinearTrackParameters ipParameters(
-                        ipPos, 
-                        input.at(0).truthParameters[Acts::eBoundPhi],
-                        input.at(0).truthParameters[Acts::eBoundTheta], 
-                        -input.at(0).truthParameters[Acts::eBoundQOverP], 
+                        it->trueVertex, 
+                        it->truthParameters[Acts::eBoundPhi],
+                        it->truthParameters[Acts::eBoundTheta], 
+                        -it->truthParameters[Acts::eBoundQOverP], 
                         ipCov,
                         Acts::ParticleHypothesis::electron());
 
@@ -103,23 +98,16 @@ class IdealSeeder : public IAlgorithm {
                     seeds.push_back(LUXEDataContainer::Seed
                         {sourceLinks, ipParameters});
                     sourceLinks.clear();
-
-                    for (auto sl : seeds.back().sourceLinks) {
-                        auto ssl = sl.get<SimpleSourceLink>();
-                        std::cout << "Hit at " << ssl.geometryId() << std::endl;
-                    }
-
-                    break;
                 }
             }
             
             // Ip parameter is the same for all hits
             // with the same track id
             Acts::CurvilinearTrackParameters ipParameters(
-                ipPos, 
-                input.at(0).truthParameters[Acts::eBoundPhi],
-                input.at(0).truthParameters[Acts::eBoundTheta], 
-                -input.at(0).truthParameters[Acts::eBoundQOverP], 
+                input.back().trueVertex, 
+                input.back().truthParameters[Acts::eBoundPhi],
+                input.back().truthParameters[Acts::eBoundTheta], 
+                -input.back().truthParameters[Acts::eBoundQOverP], 
                 ipCov,
                 Acts::ParticleHypothesis::electron());
 
