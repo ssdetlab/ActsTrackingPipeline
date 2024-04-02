@@ -72,7 +72,7 @@ void LUXEGeometryIdGenerator::assignGeometryId(
 
                 // Determine the layer
                 std::int32_t layerId;
-                for (auto [id, z] : m_cfg.gOpt.layerZ) {
+                for (auto [id, z] : m_cfg.gOpt.staveZ) {
                     // These are already rotated surfaces
                     if (std::abs(center.y() - z) < 1e-3) {
                         layerId = id;
@@ -101,7 +101,7 @@ void LUXEGeometryIdGenerator::assignGeometryId(
                 surface.assignGeometryId(geoID);
         } else if (rGeoID.sensitive() != 0 || rGeoID.passive() != 0) {
             ACTS_VERBOSE(
-                    "Surface already has a geometry id, only setting volume and layer id.");
+                "Surface already has a geometry id, only setting volume and layer id.");
             rGeoID.setVolume(geoID.volume());
             rGeoID.setLayer(geoID.layer());
             surface.assignGeometryId(rGeoID);
