@@ -14,8 +14,7 @@ target_include_directories(
 target_sources(
     ActsLUXEPipelineCore
     PRIVATE
-    src/LUXEMagneticField.cpp
-#    src/IMagneticField.cpp
+    src/LUXEBinnedMagneticField.cpp
 )
 
 # For now we assume that the pipeline 

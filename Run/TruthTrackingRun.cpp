@@ -2,18 +2,31 @@
 #include "ActsLUXEPipeline/LUXEGeometry.hpp"
 #include "ActsLUXEPipeline/LUXEIdealSeeder.hpp"
 #include "ActsLUXEPipeline/LUXETrackFitter.hpp"
+#include "ActsLUXEPipeline/ConstantBoundedField.hpp"
 #include "ActsLUXEPipeline/Sequencer.hpp"
 #include "ActsLUXEPipeline/EventVisualizer.hpp" 
-#include "ActsLUXEPipeline/LUXEMagneticField.hpp"
 
 #include "Acts/Navigation/DetectorNavigator.hpp"
 #include "Acts/Propagator/EigenStepper.hpp"
-#include "Acts/MagneticField/ConstantBField.hpp"
+
 
 #include <filesystem>
 
 #include "Acts/Surfaces/RectangleBounds.hpp"
 #include "Acts/Surfaces/PlaneSurface.hpp"
+
+using ActionList = Acts::ActionList<>;
+using AbortList = Acts::AbortList<Acts::EndOfWorldReached>;
+
+using Propagator = Acts::Propagator<
+    Acts::EigenStepper<>, 
+    Acts::Experimental::DetectorNavigator>;
+
+using Trajectory = Acts::VectorMultiTrajectory;
+using TrackContainer = Acts::VectorTrackContainer;
+using KF = Acts::KalmanFitter<Propagator, Trajectory>;
+
+using namespace Acts::UnitLiterals;
 
 int main() {
     // Set the log level
@@ -24,6 +37,10 @@ int main() {
     Acts::MagneticFieldContext mctx;
     Acts::CalibrationContext cctx;
     LUXEGeometry::GeometryOptions gOpt;
+
+    // --------------------------------------------------------------
+    // LUXE detector setup
+
 
     // Set the path to the gdml file
     // and the names of the volumes to be converted
@@ -38,10 +55,34 @@ int main() {
         LUXEGeometry::buildLUXEDetector(std::move(trackerBP), gctx, gOpt);
 
     for (auto& vol : detector->rootVolumes()) {
-        for (auto surf : vol->surfaces()) {
-            std::cout << "Surface " << surf->geometryId() << " " << surf->center(gctx).transpose() << std::endl;
-        }
+        std::cout << "Volume: " << vol->name() << " = " << vol->surfaces().size() << std::endl;
     }
+
+
+    // --------------------------------------------------------------
+    // The magnetic field setup
+
+    // Extent in already rotated frame
+    Acts::Extent dipoleExtent;
+    dipoleExtent.set(
+        Acts::binX, 
+        gOpt.dipoleTranslation[0] - gOpt.dipoleBounds[0] + gOpt.constantFieldDelta[0],
+        gOpt.dipoleTranslation[0] + gOpt.dipoleBounds[0] - gOpt.constantFieldDelta[0]);
+    dipoleExtent.set(
+        Acts::binZ,
+        gOpt.dipoleTranslation[1] - gOpt.dipoleBounds[1] + gOpt.constantFieldDelta[1],
+        gOpt.dipoleTranslation[1] + gOpt.dipoleBounds[1] - gOpt.constantFieldDelta[1]);
+    dipoleExtent.set(
+        Acts::binY,
+        gOpt.dipoleTranslation[2] - gOpt.dipoleBounds[2] + gOpt.constantFieldDelta[2],
+        gOpt.dipoleTranslation[2] + gOpt.dipoleBounds[2] - gOpt.constantFieldDelta[2]);
+
+    auto field = std::make_shared<LUXEMagneticField::ConstantBoundedField>(
+        Acts::Vector3(0., 0., -1.2_T),
+        dipoleExtent);
+
+    // --------------------------------------------------------------
+    // Event reading 
 
     // Setup the sequencer
     Sequencer::Config seqCfg;
@@ -86,6 +127,11 @@ int main() {
     sequencer.addReader(
         std::make_shared<LUXEROOTReader::LUXEROOTSimDataReader>(readerCfg, logLevel));
 
+
+    // --------------------------------------------------------------
+    // Seed finding 
+
+
     // Add the ideal seeder to the sequencer
     IdealSeeder::Config seederCfg{
         .inputCollection = "SimMeasurements",
@@ -97,119 +143,93 @@ int main() {
     sequencer.addAlgorithm(
         std::make_shared<IdealSeeder>(seederCfg, logLevel));
 
-    // // Add the event visualizer to the sequencer
-    // EventVisualizer::Config visCfg{
-        // .inputCollection = "SimSeeds",
-        // .outputPath = "hits.obj",
-        // .nTracks = 1,
-        // .detector = detector.get(),
-        // .visualizeVolumes = false,
-        // .visualizeHits = true,
-        // .visualizeTracks = false
-    // };
 
-    // sequencer.addAlgorithm(
-        // std::make_shared<EventVisualizer>(visCfg, logLevel));
+    // --------------------------------------------------------------
+    // Track fitting
+
+    SimpleSourceLink::SurfaceAccessor surfaceAccessor{*detector};
 
     Acts::GainMatrixUpdater kfUpdater;
     Acts::GainMatrixSmoother kfSmoother;
 
-    SimpleSourceLink::SurfaceAccessor surfaceAccessor{*detector};
-
     // Initialize track fitter options
-    Acts::KalmanFitterExtensions<
-        Acts::VectorMultiTrajectory> extensions;
+    Acts::KalmanFitterExtensions<Trajectory> extensions;
     // Add calibrator
-    extensions.calibrator.connect<&simpleSourceLinkCalibrator<
-        Acts::VectorMultiTrajectory>>();
+    extensions.calibrator.connect<&simpleSourceLinkCalibrator<Trajectory>>();
     // Add the updater
-    extensions.updater.connect<&Acts::GainMatrixUpdater::operator()<
-            Acts::VectorMultiTrajectory>>(&kfUpdater);
+    extensions.updater.connect<
+        &Acts::GainMatrixUpdater::operator()<Trajectory>>(&kfUpdater);
     // Add the smoother
-    extensions.smoother.connect<&Acts::GainMatrixSmoother::operator()<
-        Acts::VectorMultiTrajectory>>(&kfSmoother);
+    extensions.smoother.connect<
+        &Acts::GainMatrixSmoother::operator()<Trajectory>>(&kfSmoother);
     // Add the surface accessor
     extensions.surfaceAccessor.connect<
         &SimpleSourceLink::SurfaceAccessor::operator()>(
         &surfaceAccessor);
 
-    using ActionList = Acts::ActionList<>;
-    using AbortList = Acts::AbortList<Acts::EndOfWorldReached>;
-
-    using Propagator = Acts::Propagator<Acts::EigenStepper<>, 
-        Acts::Experimental::DetectorNavigator>;
-
-    using KF = Acts::KalmanFitter<Propagator, Acts::VectorMultiTrajectory>;
-
     auto propOptions = 
         Acts::PropagatorOptions<ActionList,AbortList>(gctx, mctx);
 
-    propOptions.maxSteps = 20;
+    propOptions.maxSteps = 200;
 
     auto options = Acts::KalmanFitterOptions(gctx, mctx, cctx, extensions,
         propOptions);
 
-    using namespace Acts::UnitLiterals;
     Acts::Experimental::DetectorNavigator::Config cfg;
     cfg.detector = detector.get();
     cfg.resolvePassive = false;
     cfg.resolveMaterial = true;
     cfg.resolveSensitive = true;
     Acts::Experimental::DetectorNavigator navigator(
-        cfg, Acts::getDefaultLogger("DetectorNavigator", Acts::Logging::VERBOSE));
-
-    // const std::vector<std::pair<
-        // Acts::ActsScalar,Acts::ActsScalar>> MagneticFieldBounds =
-            // {std::make_pair(-255_mm,255_mm),
-            // std::make_pair(-255_mm,255_mm),
-            // std::make_pair(-255_mm,255_mm)};
-
-    // auto transformPos = [&](const Acts::Vector3& pos) {
-        // for (int i=0;i<3;i++) {
-            // if (pos[i] < MagneticFieldBounds[i].first ||
-                // pos[i] > MagneticFieldBounds[i].second) {
-                // return Acts::Vector3{0,0,0};
-            // }
-        // }
-        // return pos;
-    // };
-
-    // auto transformBField = [](const Acts::Vector3& field, const Acts::Vector3&) {
-        // return field;
-    // };
-
-    // const std::vector<unsigned int> bins{5u, 5u, 5u};
-
-    // auto bFieldVal = LUXEMagneticField::SimpleDipole3(); 
-    // bFieldVal.m_magnitude = 1.2_T;
-    // auto BField = 
-        // LUXEMagneticField::buildBFieldMapEq3(
-            // bFieldVal, 
-            // transformPos, transformBField, bins);
-
-    // auto BFieldPtr = std::make_shared<decltype(BField)>(BField);
-
-    auto field =
-        std::make_shared<Acts::ConstantBField>(Acts::Vector3(0.0, 0.0, 0.0));
+        cfg, Acts::getDefaultLogger("DetectorNavigator", logLevel));
 
     Acts::EigenStepper<> stepper(std::move(field));
     auto propagator = Propagator(
         std::move(stepper), std::move(navigator),
-        Acts::getDefaultLogger("Propagator", Acts::Logging::VERBOSE));
+        Acts::getDefaultLogger("Propagator", logLevel));
 
-    auto dkfLogger = Acts::getDefaultLogger("DetectorKalmanFilter", Acts::Logging::VERBOSE);
-    const auto fitter = KF(propagator, std::move(dkfLogger));
+    const auto fitter = 
+        KF(propagator, 
+            Acts::getDefaultLogger("DetectorKalmanFilter", logLevel));
 
     // Add the track fitting algorithm to the sequencer
-    TrackFitter<Propagator>::Config fitterCfg{
-        .inputCollection = "SimSeeds",
-        .outputCollection = "SimTracks",
-        .fitter = fitter,
-        .kfOptions = options};
+    TrackFitter<
+        Propagator, 
+        Trajectory, 
+        TrackContainer>::Config fitterCfg{
+            .inputCollection = "SimSeeds",
+            .outputCollection = "SimTracks",
+            .fitter = fitter,
+            .kfOptions = options};
 
     sequencer.addAlgorithm(
-        std::make_shared<TrackFitter<Propagator>>(fitterCfg, logLevel));
+        std::make_shared<
+            TrackFitter<
+            Propagator, 
+            Trajectory, 
+            TrackContainer>>(fitterCfg, logLevel));
 
+    // --------------------------------------------------------------
+    // Event visualization
+
+    // Add the event visualizer to the sequencer
+    EventVisualizer::Config visCfg{
+        .inputCollectionSeeds = "SimSeeds",
+        .inputCollectionTracks = "SimTracks",
+        .outputPath = "Tracks.obj",
+        .nTracks = 1,
+        .detector = detector.get(),
+        .visualizeVolumes = false,
+        .visualizeHits = true,
+        .visualizeTracks = true
+    };
+
+    sequencer.addAlgorithm(
+        std::make_shared<EventVisualizer>(visCfg, logLevel));
+
+
+    // --------------------------------------------------------------
     // Run all configured algorithms and return the appropriate status.
+
     return sequencer.run();
 }
