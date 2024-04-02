@@ -24,6 +24,5 @@ target_link_libraries(
     ActsLUXEPipelineCore
     PUBLIC
     ActsCore
-    Boost::serialization
 )
       

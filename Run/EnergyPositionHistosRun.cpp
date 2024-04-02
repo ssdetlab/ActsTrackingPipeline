@@ -104,12 +104,11 @@ int main() {
     MeasurementResolutionMap resolutions = m;
 
     auto propagator = LUXENavigator::makePropagator<Acts::EigenStepper<>>(detector, BFieldPtr);
-
     std::random_device rd;
     std::mt19937 gen(rd());
-    std::uniform_real_distribution<> dis1(1,3);
-    std::uniform_real_distribution<> dis2(3,8);
-    std::uniform_real_distribution<> dis3(7,13);
+    std::uniform_real_distribution<> dis1(1.39,2.4);
+    std::uniform_real_distribution<> dis2(2.2,5);
+    std::uniform_real_distribution<> dis3(5,13);
 
 //    std::gamma_distribution<double> EDis(3, 1.2);
     std::normal_distribution<> pDisP(0.002,0.0018);
@@ -119,22 +118,23 @@ int main() {
     std::vector<LUXENavigator::Measurement> results;
     Acts::ActsScalar m_e = 0.000511;
     std::size_t sourceId = 1;
-    for (int i=0;i<500;i++) {
+    for (int i=0;i<200000;i++) {
         Acts::ActsScalar px = (pDisP(gen)+pDisM(gen))/2;
         Acts::ActsScalar pz = (pDisP(gen)+pDisM(gen))/2;
         Acts::ActsScalar E = dis1(gen);
         Acts::ActsScalar py = std::sqrt(std::pow(E,2)-std::pow(m_e,2)-std::pow(px,2)-std::pow(pz,2));
         Acts::ActsScalar p = std::sqrt(std::pow(px,2)+std::pow(py,2)+std::pow(pz,2));
-        std::cout<<"Initial 4p : "<<px<<" "<<py<<" "<<pz<<std::endl;
         Acts::ActsScalar theta = std::acos(pz / p);
         Acts::ActsScalar phi = std::atan2(py, px);
-        std::cout<<"Initial dir : "<<phi<<" "<<theta<<std::endl;
         results.push_back(LUXENavigator::createMeasurements(propagator, gctx, magCtx,
                                                             LUXENavigator::makeParameters(p,phi,theta),
                                                             resolutions,sourceId));
         sourceId++;
+        if (i%20000==0) std::cout<<"Low E: "<<(i*100)/200000<<"%"<<std::endl;
     };
-    for (int i=0;i<250;i++) {
+    saveMeasurementsToFile(results, "low_E_measurements.dat");
+    std::vector<LUXENavigator::Measurement> mid_results;
+    for (int i=0;i<100000;i++) {
         Acts::ActsScalar px = (pDisP(gen)+pDisM(gen))/2;
         Acts::ActsScalar pz = (pDisP(gen)+pDisM(gen))/2;
         Acts::ActsScalar E = dis2(gen);
@@ -142,14 +142,20 @@ int main() {
         Acts::ActsScalar p = std::sqrt(std::pow(px,2)+std::pow(py,2)+std::pow(pz,2));
         Acts::ActsScalar theta = std::acos(pz / p);
         Acts::ActsScalar phi = std::atan2(py, px);
-        std::cout<<"Initial 4p : "<<px<<" "<<py<<" "<<pz<<std::endl;
-        std::cout<<"Initial dir : "<<phi<<" "<<theta<<std::endl;
-        results.push_back(LUXENavigator::createMeasurements(propagator, gctx, magCtx,
-                                                            LUXENavigator::makeParameters(p,phi,theta),
-                                                            resolutions,sourceId));
+//        std::cout<<"Initial 4p : "<<px<<" "<<py<<" "<<pz<<std::endl;
+//        std::cout<<"Initial dir : "<<phi<<" "<<theta<<std::endl;
+        auto mid_res = LUXENavigator::createMeasurements(propagator, gctx, magCtx,
+                                                     LUXENavigator::makeParameters(p,phi,theta),
+                                                     resolutions,sourceId);
+        results.push_back(mid_res);
+        mid_results.push_back(mid_res);
         sourceId++;
+        if (i%10000==0) std::cout<<"Mid E: "<<(i*100)/100000<<"%"<<std::endl;
     };
-    for (int i=0;i<50;i++) {
+    saveMeasurementsToFile(mid_results, "mid_E_measurements.dat");
+
+    std::vector<LUXENavigator::Measurement> high_results;
+    for (int i=0;i<20000;i++) {
         Acts::ActsScalar px = (pDisP(gen)+pDisM(gen))/2;
         Acts::ActsScalar pz = (pDisP(gen)+pDisM(gen))/2;
         Acts::ActsScalar E = dis3(gen);
@@ -157,14 +163,17 @@ int main() {
         Acts::ActsScalar p = std::sqrt(std::pow(px,2)+std::pow(py,2)+std::pow(pz,2));
         Acts::ActsScalar theta = std::acos(pz / p);
         Acts::ActsScalar phi = std::atan2(py, px);
-        std::cout<<"Initial 4p : "<<px<<" "<<py<<" "<<pz<<std::endl;
-        std::cout<<"Initial dir : "<<phi<<" "<<theta<<std::endl;
-        results.push_back(LUXENavigator::createMeasurements(propagator, gctx, magCtx,
-                                                            LUXENavigator::makeParameters(p,phi,theta),
-                                                            resolutions,sourceId));
+//        std::cout<<"Initial 4p : "<<px<<" "<<py<<" "<<pz<<std::endl;
+//        std::cout<<"Initial dir : "<<phi<<" "<<theta<<std::endl;
+        auto high_res = LUXENavigator::createMeasurements(propagator, gctx, magCtx,
+                                                         LUXENavigator::makeParameters(p,phi,theta),
+                                                         resolutions,sourceId);
+        results.push_back(high_res);
+        high_results.push_back(high_res);
         sourceId++;
+        if (i%2000==0) std::cout<<"High E: "<<(i*100)/20000<<"%"<<std::endl;
     };
-
+    saveMeasurementsToFile(high_results, "high_E_measurements.dat");
 //    for (auto result : results) {
 //        std::cout<<result.globalPosition.size()<<std::endl;
 //        if (result.globalPosition.size()>1) {

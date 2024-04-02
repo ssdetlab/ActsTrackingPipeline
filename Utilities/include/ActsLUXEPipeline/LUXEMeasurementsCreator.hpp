@@ -5,6 +5,8 @@
 #include "Acts/EventData/Measurement.hpp"
 #include "Acts/EventData/detail/TestSourceLink.hpp"
 #include "ActsLUXEPipeline/LUXESimpleSourceLink.hpp"
+#include "ActsLUXEPipeline/LUXEEffectiveMaterial.hpp"
+#include "ActsLUXEPipeline/LUXEMeasurement.hpp"
 #include "Acts/Geometry/GeometryContext.hpp"
 #include "Acts/Geometry/GeometryHierarchyMap.hpp"
 #include "Acts/MagneticField/MagneticFieldContext.hpp"
@@ -13,13 +15,9 @@
 #include "Acts/Propagator/StandardAborters.hpp"
 #include "Acts/Utilities/Logger.hpp"
 
-#include "ActsFatras/EventData/Barcode.hpp"
-#include "ActsFatras/EventData/Particle.hpp"
 #include "ActsFatras/Physics/ElectroMagnetic/Scattering.hpp"
 #include "ActsFatras/Physics/ElectroMagnetic/BetheBloch.hpp"
 #include "ActsFatras/Physics/ElectroMagnetic/BetheHeitler.hpp"
-
-#include "Acts/Material/Material.hpp"
 
 
 #include <memory>
@@ -33,128 +31,6 @@
 
 /// Propagator action to create measurements.
 namespace LUXENavigator {
-
-// utility function to build a particle from the dataset parameters
-ActsFatras::Particle makeParticle(Acts::PdgParticle pdg, Acts::Vector3 dir, double p, Acts::Vector4 pos4) {
-    const auto id = ActsFatras::Barcode().setVertexPrimary(1).setParticle(1);
-    return ActsFatras::Particle(id, pdg)
-            .setPosition4(pos4)
-            .setDirection(dir)
-            .setAbsoluteMomentum(p);
-}
-//    .setDirection(std::sin(theta) * std::cos(phi),
-//            std::sin(theta) * std::sin(phi), std::cos(theta))
-Acts::MaterialSlab makeSiliconSlab() {
-    using namespace Acts::UnitLiterals;
-    return {Acts::Material::fromMolarDensity(9.370_cm, 46.52_cm, 28.0855, 14,
-                                      (2.329 / 28.0855) * 1_mol / 1_cm3), 100_um};
-}
-
-enum class MeasurementType {
-    eLoc0,
-    eLoc1,
-    eLoc01,
-};
-struct MeasurementResolution {
-    MeasurementType type = MeasurementType::eLoc0;
-    // Depending on the type, only the first value is used.
-    std::array<double, 2> stddev = {15 * Acts::UnitConstants::um, 15 * Acts::UnitConstants::um};
-};
-
-/// Measurement resolution configuration for a full detector geometry.
-using MeasurementResolutionMap =
-        Acts::GeometryHierarchyMap<MeasurementResolution>;
-
-/// Result struct for generated measurements and outliers.
-struct Measurement {
-    unsigned int eventId;
-    std::vector<SimpleSourceLink> sourceLinks;
-    std::vector<Acts::Vector3> fullTrack;
-    std::vector<Acts::BoundVector> truthParameters;
-    std::vector<Acts::Vector3> globalPosition;
-
-    template<class Archive>
-    void serialize(Archive& os) const {
-        // Write the measurement data to the output stream
-        os << eventId << "\n";
-        // Serialize sourceLinks
-        os << sourceLinks.size() << "\n";
-        for (const auto& sourceLink : sourceLinks) {
-            os << sourceLink.eventId << " " << sourceLink.geometryId().sensitive() << " " <<
-                  sourceLink.parameters[0] << " " << sourceLink.parameters[1];
-        }
-        os << "\n";
-        // Serialize globalPosition
-        os << globalPosition.size() << "\n";
-        for (const auto& globalPos : globalPosition) {
-            os << globalPos[0] << " " << globalPos[1] << " " << globalPos[2] << "\n";
-        }
-    }
-
-    // Deserialize the Measurements object
-    template<class Archive>
-    void deserialize(Archive& is) {
-        // Read the measurement data from the input stream
-        is >> eventId;
-        // Deserialize sourceLinks
-        int numSourceLinks;
-        is >> numSourceLinks;
-        Acts::SquareMatrix2 covariance = Acts::SquareMatrix2::Identity();
-        sourceLinks.resize(numSourceLinks);
-        for (auto& sourceLink : sourceLinks) {
-            Acts::GeometryIdentifier geoId;
-            int sensId;
-            int eId;
-            Acts::Vector2 params;
-            is >> eId >> sensId >> params[0] >> params[1];
-            geoId.setSensitive(sensId);
-            sourceLink = SimpleSourceLink(params, covariance, geoId, eId);
-        }
-
-        // Deserialize globalPosition
-        int numGlobalPositions;
-        is >> numGlobalPositions;
-        globalPosition.resize(numGlobalPositions);
-        for (auto& globalPos : globalPosition) {
-            float x,y,z;
-            is >> x >> y >> z;
-            globalPos = {x,y,z};
-        }
-    }
-};
-
-void saveMeasurementsToFile(const std::vector<Measurement>& measurements, const std::string& filename) {
-    std::ofstream ofs(filename, std::ios::binary);
-    if (!ofs) {
-        std::cerr << "Error opening file for writing: " << filename << std::endl;
-        return;
-    }
-    boost::archive::binary_oarchive oa(ofs);
-    oa << measurements.size(); // Write the size of the vector
-    for (const auto& measurement : measurements) {
-        measurement.serialize(oa); // Serialize each Measurements object
-    }
-}
-
-// Function to load vector of Measurements from a file
-std::vector<Measurement> loadMeasurementsFromFile(const std::string& filename) {
-    std::vector<Measurement> measurements;
-    std::ifstream ifs(filename, std::ios::binary);
-    if (!ifs) {
-        std::cerr << "Error opening file for reading: " << filename << std::endl;
-        return measurements;
-    }
-    boost::archive::binary_iarchive ia(ifs);
-    size_t vectorSize;
-    ia >> vectorSize; // Read the size of the vector
-    measurements.reserve(vectorSize);
-    for (size_t i = 0; i < vectorSize; ++i) {
-        Measurement m;
-        m.deserialize(ia); // Deserialize each Measurements object
-        measurements.push_back(m);
-    }
-    return measurements;
-}
 
 struct MeasurementsCreator {
 
@@ -178,9 +54,15 @@ struct MeasurementsCreator {
                     const Acts::Logger &logger) const {
         using namespace Acts::UnitLiterals;
 
+        if (state.steps > 100) {
+            std::cout<<"Was here"<<std::endl;
+            stepper.update(state.stepping, Acts::Vector3{0,0,0}, Acts::Vector3{0,1,0},
+                           .01, 0);
+            return;
+        }
         // only generate measurements on surfaces
         if (!navigator.currentSurface(state.navigation)) {
-            result.fullTrack.push_back(stepper.position(state.stepping));
+//            result.fullTrack.push_back(stepper.position(state.stepping));
             return;
         }
         const Acts::Surface &surface = *navigator.currentSurface(state.navigation);
@@ -202,7 +84,6 @@ struct MeasurementsCreator {
         Acts::Vector2 loc =
                 surface.globalToLocal(state.geoContext, pos3,
                                        stepper.direction(state.stepping)).value();
-
         // The truth info
         Acts::BoundVector parameters = Acts::BoundVector::Zero();
         parameters[Acts::eBoundLoc0] = loc[Acts::eBoundLoc0];
@@ -277,7 +158,7 @@ Measurement createMeasurements(const propagator_t& propagator,
 
     // Launch and collect the measurements
     auto result = propagator.propagate(trackParameters, options).value();
-    return std::move(result.template get<>());
+    return std::move(result.template get<Measurement>());
 }
 
 } // LUXENavigator

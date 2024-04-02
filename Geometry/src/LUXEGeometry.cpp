@@ -134,7 +134,7 @@ std::shared_ptr<const Acts::Experimental::Detector>
                 std::make_shared<LUXEGeometryIdGenerator>(
                     LUXEGeometryIdGenerator::Config{},
                     Acts::getDefaultLogger("GeoIdGenerator",
-                        Acts::Logging::VERBOSE));
+                        Acts::Logging::INFO));
 
         // Complete and fill gaps
         Acts::Experimental::detail::BlueprintHelper::fillGaps(*detectorBpr, false);

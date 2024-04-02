@@ -102,14 +102,14 @@ int main() {
 //    std::vector<Acts::ActsScalar> test_E{0.1,0.3,0.4,0.5,0.6};
 
     Acts::ActsScalar m_e = 0.000511;
-    std::vector<LUXENavigator::Measurements> results;
+    std::vector<LUXENavigator::Measurement> results;
     std::size_t sourceId = 1;
     int N_events = 100000;
     for (int i=0;i<N_events;i++) {
         Acts::ActsScalar px = (pDisP(gen)+pDisM(gen))/2;
         Acts::ActsScalar pz = (pDisP(gen)+pDisM(gen))/2;
-//        Acts::ActsScalar py = pzDis(gen)+1;
-        Acts::ActsScalar py = uni(gen);
+        Acts::ActsScalar py = pzDis(gen)+1;
+//        Acts::ActsScalar py = uni(gen);
         Acts::ActsScalar p = std::sqrt(std::pow(px,2)+std::pow(py,2)+std::pow(pz,2));
         Acts::ActsScalar E = std::hypot(p,m_e);
         Acts::ActsScalar theta = std::acos(pz / p);
@@ -123,7 +123,7 @@ int main() {
         }
     };
 
-    saveMeasurementsVectorToFile(results, "measurements.dat");
+    saveMeasurementsToFile(results, "100k_measurements.dat");
 
 
 

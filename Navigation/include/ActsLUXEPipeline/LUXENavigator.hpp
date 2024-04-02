@@ -26,6 +26,7 @@ Acts::Propagator<stepper_t, Acts::Experimental::DetectorNavigator> makePropagato
     cfg.resolvePassive = false;
     cfg.resolveMaterial = true;
     cfg.resolveSensitive = true;
+
     Acts::Experimental::DetectorNavigator navigator(
             cfg, Acts::getDefaultLogger("Detector Navigation", Acts::Logging::INFO));
 

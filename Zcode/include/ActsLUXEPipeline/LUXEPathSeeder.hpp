@@ -6,16 +6,14 @@
 #include "ActsLUXEPipeline/IAlgorithm.hpp"
 #include "ActsLUXEPipeline/DataHandle.hpp"
 #include "ActsLUXEPipeline/LUXEGeometry.hpp"
-
+#include "ActsLUXEPipeline/LUXEMeasurement.hpp"
 #include "ActsLUXEPipeline/LUXESimpleSourceLink.hpp"
-//#include "ActsLUXEPipeline/LUXEDataContainers.hpp"
-
-//#include "ActsLUXEPipeline/LUXENavigator.hpp"
 
 #include <fstream>
 #include <unordered_map>
 #include <vector>
 #include <TH2F.h>
+#include <chrono>
 
 /// @brief The ideal seeder for the LUXE simulation
 /// takes the the SimMeasurements and converts them 
@@ -137,32 +135,47 @@ namespace LUXETrackFinding {
                          const LUXEGeometry::GeometryOptions gOpt,
                          std::shared_ptr<const Acts::Experimental::Detector> detector,
                          std::vector<SimpleSourceLink> sourceLinks,
-                         std::string lookupDir , bool f) {
+                         std::string lookupDir) {
+
+        std::cout<<"Preparing Look Up tables"<<std::endl;
+        auto start = std::chrono::steady_clock::now();
         std::unordered_map <Scalar, Scalar> EX1LookUp = readLookup(lookupDir + "/EX1_lookup_table.txt");
         std::unordered_map <Scalar, Scalar> X1X4LookUp = readLookup(lookupDir + "/X1X4_lookup_table.txt");
-        std::unordered_map <Scalar, std::vector<Scalar>> X1X4Y4LookUp = read3DLookup(lookupDir + "/X1X4Y4_lookup_table.txt");
         std::unordered_map <Scalar, Scalar> X1Y4LookUp = readLookup(lookupDir + "/X1Y4_lookup_table.txt");
         std::unordered_map <Scalar, Scalar> Z1Z4LookUp = readLookup(lookupDir + "/Z1Z4_lookup_table.txt");
+        auto lookupEnd = std::chrono::steady_clock::now();
+        auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(lookupEnd - start);
+        std::cout << "Time taken: " << duration.count() << "ms" << std::endl;
 
         SimpleSourceLink::SurfaceAccessor SA{*detector};
 
-        std::pair<int, int> bins = std::make_pair(5000,300);
+        std::pair<int, int> bins = std::make_pair(3500,200);
         str2histMap slMap;
+        std::cout << "Preparing bins"<< std::endl;
         auto lookupTable = binSourceLinks(gctx, gOpt, sourceLinks, SA, bins, slMap);
-
+        auto binningEnd = std::chrono::steady_clock::now();
+        duration = std::chrono::duration_cast<std::chrono::milliseconds>(binningEnd - lookupEnd);
+        std::cout << "Time taken: " << duration.count() << "ms" << std::endl;
         Seeds seeds;
         Acts::Vector4 ipParams;
 
 //        Acts::Vector4 roadWidthX{100_um,250_um,350_um,450_um};
 //        Acts::Vector4 roadWidthZ{50_um,80_um,120_um,150_um};
 
-        Acts::Vector4 roadWidthX{10000_um,10000_um,10000_um,10000_um};
-        Acts::Vector4 roadWidthZ{10000_um,10000_um,10000_um,10000_um};
+        Acts::Vector4 roadWidthX{1200_um,2000_um,2000_um,2000_um};
+        Acts::Vector4 roadWidthZ{1200_um,2000_um,2000_um,2000_um};
 
+        start = std::chrono::steady_clock::now();
+        auto end = std::chrono::steady_clock::now();
         for (size_t i=0; i<sourceLinks.size(); i++) {
             Acts::Vector3 globalPos = SA(sourceLinks[i])->
                 localToGlobal(gctx, sourceLinks[i].parameters, Acts::Vector3{0,1,0});
-
+            if (i%(sourceLinks.size()/10)==0) {
+                end = std::chrono::steady_clock::now();
+                duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+                std::cout << "Completed "<<(i*100)/sourceLinks.size()<<"%"<< std::endl;
+                std::cout << "Total time elapsed: " << duration.count()/1000 << "s" << std::endl;
+            }
             if (globalPos[1] <= gOpt.layerZPositions[0] ||
                     (globalPos[1] <= gOpt.layerZPositions[1]-gOpt.deltaZ &&
                      globalPos[0] <= gOpt.chipTranslationXOdd.at(0))) {
@@ -176,19 +189,15 @@ namespace LUXETrackFinding {
                         originSourceLinks.push_back(sourceLinks[j]);
                     }
                 }
-                if (originSourceLinks.size() >= 3) {
+                if (originSourceLinks.size() > 3) {
 
                     Scalar x1 = globalPos[0];
                     Scalar y1 = globalPos[1];
                     Scalar z1 = globalPos[2];
                     Scalar E = LUXETrackFinding::findClosestValue(EX1LookUp, x1);
-                    std::vector<Scalar> v = LUXETrackFinding::findClosestValue(X1X4Y4LookUp, x1);
-                    Scalar x4 = v[0]; // LUXETrackFinding::findClosestValue(X1X4LookUp, x1);
-                    Scalar y4 = v[1]; //LUXETrackFinding::findClosestValue(X1Y4LookUp, x1);
-//                            (x4 > gOpt.chipTranslationXEven.at(8) + gOpt.chipSizeX) ?
-//                                gOpt.layerZPositions[3] - gOpt.deltaZ+1 :
-//                                gOpt.layerZPositions[3] + gOpt.deltaZ-1;
-
+                    Scalar x4 = LUXETrackFinding::findClosestValue(X1X4LookUp, x1);
+                    Scalar y4 = LUXETrackFinding::findClosestValue(X1Y4LookUp, x1);
+                    y4 = (y4<(gOpt.layerZ.at(7)+gOpt.layerZ.at(6))/2) ? gOpt.layerZ.at(7) : gOpt.layerZ.at(6); // get rid of lookup binning errors
                     Scalar z4 = LUXETrackFinding::findClosestValue(Z1Z4LookUp, z1);
                     Scalar electron_mass = 0.000511;
                     Scalar pMagnitude = std::sqrt(std::pow(E, 2) -
@@ -203,11 +212,9 @@ namespace LUXETrackFinding {
                     Acts::Vector3 d{ipParams[1], ipParams[2], ipParams[3]};
                     Acts::Vector3 dHat = d / std::sqrt(d.dot(d));
 
-                    if (f) {
-                        roadWidthX[1] = (0.3*x1+185) * 1_um;
-                        roadWidthX[2] = (0.8*x1+240) * 1_um;
-                        roadWidthX[3] = (0.9*x1+295) * 1_um;
-                    }
+//                    roadWidthX[1] = (0.3*x1+85) * 1_um;
+//                    roadWidthX[2] = (0.8*x1+140) * 1_um;
+//                    roadWidthX[3] = (0.9*x1+195) * 1_um;
 
                     std::vector<Acts::Vector3> layerPointers;
                     for (int il = 0; il < gOpt.layerZ.size(); il++) {
@@ -226,9 +233,9 @@ namespace LUXETrackFinding {
 
                         std::pair<float, float> Xlim = (k % 2 == 0) ?
                                                        std::make_pair(gOpt.chipTranslationXEven.at(0),
-                                                                      gOpt.chipTranslationXEven.at(8) + gOpt.chipSizeX) :
+                                                                      gOpt.chipTranslationXEven.at(8) + gOpt.chipSizeX+1) :
                                                        std::make_pair(gOpt.chipTranslationXOdd.at(0),
-                                                                      gOpt.chipTranslationXOdd.at(8) + gOpt.chipSizeX);
+                                                                      gOpt.chipTranslationXOdd.at(8) + gOpt.chipSizeX+1);
                         std::pair<float, float> Zlim = std::make_pair(gOpt.chipTranslationY,
                                                                       gOpt.chipTranslationY + gOpt.chipSizeY);
 
@@ -255,14 +262,14 @@ namespace LUXETrackFinding {
                             }
                         }
                         //===========================
-                        int botLeftBin =  slMap[&lName[0]]->FindBin(botX, botZ);
-                        int rightBin =    slMap[&lName[0]]->FindBin(topX, botZ);
-                        int topRightBin = slMap[&lName[0]]->FindBin(topX, topZ);
+                        int botLeftBin =  slMap[&lName[0]]->FindBin(botX, botZ-0.001);
+                        int rightBin =    slMap[&lName[0]]->FindBin(topX, botZ-0.001);
+                        int topRightBin = slMap[&lName[0]]->FindBin(topX, topZ+0.001);
 
                         int pathWidthInBins = rightBin - botLeftBin;
                         int currentBin = botLeftBin;
-                        while (currentBin <= topRightBin) {
-                            while (currentBin <= rightBin) {
+                        while (currentBin <= topRightBin + 1) {
+                            while (currentBin <= rightBin + 1) {
                                 auto sourceLinksToAdd = lookupTable[&lName[0]][currentBin];
                                 seedSourceLinks.insert(seedSourceLinks.end(),
                                                        sourceLinksToAdd.begin(),

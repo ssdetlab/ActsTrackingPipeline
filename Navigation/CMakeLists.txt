@@ -2,7 +2,7 @@
 # Include the geometry component
 # to the pipeline core
 #
-
+find_package(Boost REQUIRED COMPONENTS serialization)
 # Includes for Acts are propagated
 # through the library linking
 target_include_directories(
@@ -24,5 +24,6 @@ target_link_libraries(
     PUBLIC
     ActsCore
     ActsFatras
+    Boost::serialization
 )
       
