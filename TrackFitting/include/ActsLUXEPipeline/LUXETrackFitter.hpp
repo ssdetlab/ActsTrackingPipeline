@@ -54,8 +54,8 @@ class TrackFitter : public IAlgorithm {
                 auto res = m_cfg.fitter.fit(sourceLinks.begin(), sourceLinks.end(), 
                     start, m_cfg.kfOptions, tracks);
 
-                m_outputTracks(ctx, std::move(tracks));
             }
+            m_outputTracks(ctx, std::move(tracks));
 
             return ProcessCode::SUCCESS;
         }
