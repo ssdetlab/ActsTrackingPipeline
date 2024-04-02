@@ -16,6 +16,8 @@ struct SimMeasurement {
     Acts::SourceLink sourceLink;
     /// The truth parameters 
     Acts::BoundVector truthParameters;
+    /// True vertex 
+    Acts::Vector4 trueVertex;
     /// The true track Ids
     std::int32_t trackId;
 };

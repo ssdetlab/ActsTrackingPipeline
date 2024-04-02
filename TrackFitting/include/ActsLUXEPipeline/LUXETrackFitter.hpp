@@ -12,8 +12,9 @@
 #include "ActsLUXEPipeline/LUXESimpleSourceLink.hpp"
 #include "ActsLUXEPipeline/LUXEDataContainers.hpp"
 
-template <typename propagator_t, 
-typename trajectory_t = Acts::VectorMultiTrajectory>
+template <typename propagator_t,
+typename trajectory_t = Acts::VectorMultiTrajectory,
+typename container_t = Acts::VectorTrackContainer>
 class TrackFitter : public IAlgorithm {
     public:
         /// @brief The nested configuration struct
@@ -43,8 +44,9 @@ class TrackFitter : public IAlgorithm {
             // from the context
             auto input = m_inputSeeds(ctx);
 
-            Acts::TrackContainer tracks{Acts::VectorTrackContainer{},
-                                        trajectory_t{}};
+            auto trackContainer = std::make_shared<container_t>();
+            auto trackStateContainer = std::make_shared<trajectory_t>();
+            Acts::TrackContainer tracks(trackContainer, trackStateContainer);
 
             for (const auto& seed : input) {
                 auto start = seed.ipParameters;
@@ -52,10 +54,10 @@ class TrackFitter : public IAlgorithm {
                 auto res = m_cfg.fitter.fit(sourceLinks.begin(), sourceLinks.end(), 
                     start, m_cfg.kfOptions, tracks);
 
+                m_outputTracks(ctx, std::move(tracks));
+
                 break;
             }
-
-            // m_outputTracks(ctx, std::move(res.value()));
 
             return ProcessCode::SUCCESS;
         }
@@ -68,6 +70,9 @@ class TrackFitter : public IAlgorithm {
         ReadDataHandle<LUXEDataContainer::Seeds> m_inputSeeds
             {this, "InputSeeds"};
 
-        WriteDataHandle<LUXEDataContainer::Seeds> m_outputTracks
-            {this, "OutputTracks"};
+        WriteDataHandle<
+            Acts::TrackContainer<
+                container_t,
+                trajectory_t,
+                std::shared_ptr>> m_outputTracks{this, "OutputTracks"};
 };
