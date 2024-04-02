@@ -1,15 +1,22 @@
 #include "ActsLUXEPipeline/Sequencer.hpp"
 #include "ActsLUXEPipeline/LUXEGeometry.hpp"
-#include "ActsLUXEPipeline/LUXEMagneticField.hpp"
-#include "ActsLUXEPipeline/MagneticFields.hpp"
+#include "ActsLUXEPipeline/LUXEBinnedMagneticField.hpp"
+#include "ActsLUXEPipeline/ConstantBoundedField.hpp"
 #include "Acts/Utilities/Logger.hpp"
 #include <filesystem>
+
+using namespace Acts::UnitLiterals;
 
 /// @brief Run the propagation through 
 /// a uniform energy spectrum and record the
 /// energy vs position histograms for each layer
 int main() {
     Acts::Logging::Level logLevel = Acts::Logging::VERBOSE;
+
+    const std::vector<std::pair<Acts::ActsScalar,Acts::ActsScalar>> MagneticFieldBounds =
+        {std::make_pair(-1000_mm,1000_mm),
+            std::make_pair(1450_mm,2650_mm),
+            std::make_pair(-100_mm,100_mm)};
 
     // setup the sequencer first w/ config derived from options
     Sequencer::Config seqCfg;
@@ -22,11 +29,10 @@ int main() {
 //    readerCfg.dataCollection = "SourceLink";
 //    std::string pathToDir = "/home/romanurmanov/lab/LUXE/acts_LUXE_tracking/ActsLUXEPipeline_dataInRootFormat/SignalNextTrial_e1gpc_10.0_1";
     // map (x,y,z) -> (x,y,z)
-    auto transformPos = [](const Acts::Vector3& pos) {
-        LUXEGeometry::GeometryOptions gOpt;
+    auto transformPos = [&](const Acts::Vector3& pos) {
         for (int i=0;i<3;i++) {
-            if (pos[i]<gOpt.MagneticFieldBounds[i].first ||
-                pos[i]>gOpt.MagneticFieldBounds[i].second) {
+            if (pos[i] < MagneticFieldBounds[i].first ||
+                pos[i] > MagneticFieldBounds[i].second) {
                 return Acts::Vector3{0,1400,0};
             }
         }
@@ -38,7 +44,7 @@ int main() {
         return field;
     };
 
-    LUXEMagneticField::GridOptions gridOpt;
+    LUXEMagneticField::vGridOptions gridOpt;
     gridOpt.xBins = {-1000,-1, 0.,200, 1000.};
     gridOpt.yBins = {1300,1400,1450,1451, 2050.,2649,2650.,2651};
     gridOpt.zBins = {-100,-99, 0.,1, 100.};
@@ -48,15 +54,21 @@ int main() {
     std::string gdmlPath = "lxgeomdump_stave_positron.gdml";
     std::vector<std::string> names = {"OPPPSensitive"};
     Acts::GeometryContext gctx;
+    Acts::MagneticFieldContext mctx;
     LUXEGeometry::GeometryOptions gOpt;
-    double B_z = .95;
+    double B_z = 0.95_T;
 
-    auto BField = LUXEMagneticField::buildLUXEBField(
-            transformPos, transformBField, gridOpt,
-            LUXEMagneticField::MagneticFields::ExampleDipole(gOpt.MagneticFieldBounds[1], B_z));
+    Acts::Extent dipoleExtent;
+    dipoleExtent.set(Acts::binX, -1000_mm, 1000_mm);
+    dipoleExtent.set(Acts::binY, 1450_mm, 2650_mm);
+    dipoleExtent.set(Acts::binZ, -100_mm, 100_mm);
 
-    auto positronArmBpr = LUXEGeometry::makeBlueprintPositron(gdmlPath, names, gOpt);
-    auto detector = LUXEGeometry::buildLUXEDetector(std::move(positronArmBpr), gctx, gOpt);
+    auto BField = LUXEMagneticField::buildBinnedBField(
+        LUXEMagneticField::ConstantBoundedField(Acts::Vector3(0., 0., -B_z), dipoleExtent),
+        transformPos, transformBField, gridOpt, mctx);
+
+    // auto positronArmBpr = LUXEGeometry::makeBlueprintPositron(gdmlPath, names, gOpt);
+    // auto detector = LUXEGeometry::buildLUXEDetector(std::move(positronArmBpr), gctx, gOpt);
 
 //    for (const auto & entry : std::filesystem::directory_iterator(pathToDir)) {
 //        std::string pathToFile = entry.path();
