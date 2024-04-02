@@ -210,25 +210,6 @@ int main() {
             TrackContainer>>(fitterCfg, logLevel));
 
     // --------------------------------------------------------------
-    // Event visualization
-
-    // Add the event visualizer to the sequencer
-    EventVisualizer::Config visCfg{
-        .inputCollectionSeeds = "SimSeeds",
-        .inputCollectionTracks = "SimTracks",
-        .outputPath = "Tracks.obj",
-        .nTracks = 1,
-        .detector = detector.get(),
-        .visualizeVolumes = false,
-        .visualizeHits = true,
-        .visualizeTracks = true
-    };
-
-    sequencer.addAlgorithm(
-        std::make_shared<EventVisualizer>(visCfg, logLevel));
-
-
-    // --------------------------------------------------------------
     // Run all configured algorithms and return the appropriate status.
 
     return sequencer.run();
