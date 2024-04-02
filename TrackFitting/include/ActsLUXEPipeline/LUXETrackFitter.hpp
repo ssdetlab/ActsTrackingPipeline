@@ -55,8 +55,6 @@ class TrackFitter : public IAlgorithm {
                     start, m_cfg.kfOptions, tracks);
 
                 m_outputTracks(ctx, std::move(tracks));
-
-                break;
             }
 
             return ProcessCode::SUCCESS;
