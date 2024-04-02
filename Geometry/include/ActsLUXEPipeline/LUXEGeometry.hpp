@@ -73,29 +73,6 @@ makeBlueprintLUXE(
     const std::vector<std::string>& names,
     const LUXEGeometry::GeometryOptions& gOpt);
 
-/// @brief Make the blueprint for the arm
-///
-/// @param world the G4 world volume
-/// @param toWorld the transformation to apply to the world
-/// @param armName the name of the arm
-/// @param armTransform the transformation to apply to the arm
-/// @param armBounds the bounds of the arm
-/// @param chipNames the names of the chips
-/// @param layerZPositions the z-positions of the layers
-/// @param layerBounds the bounds of the layers
-///
-/// @return the Blueprint for the arm
-std::unique_ptr<Acts::Experimental::Blueprint::Node> 
-makeBlueprintArm(
-    const G4VPhysicalVolume* world,
-    const G4Transform3D& toWorld,
-    const std::string& armName,
-    const Acts::Transform3& armTransform,
-    const std::vector<Acts::ActsScalar>& armBounds,
-    const std::vector<std::string>& chipNames,
-    const std::vector<Acts::ActsScalar>& layerZPositions,
-    const std::vector<Acts::ActsScalar>& layerBounds);
-
 /// @brief Build the LUXE detector
 ///
 /// @param gdmlPath path to the gdml file
