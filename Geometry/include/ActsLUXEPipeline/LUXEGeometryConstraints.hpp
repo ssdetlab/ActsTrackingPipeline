@@ -120,6 +120,11 @@ namespace LUXEGeometry {
             {(chipXOdd.at(8) - chipXEven.at(0))/2 + chipSizeX/2 + 1_mm, 
                 chipSizeY/2 + 1_mm, deltaZ};
 
+        const std::vector<std::pair<Acts::ActsScalar,Acts::ActsScalar>> MagneticFieldBounds =
+                {std::make_pair(-1000_mm,1000_mm),
+                 std::make_pair(1450_mm,2650_mm),
+                 std::make_pair(-100_mm,100_mm)};
+
         /// Global rotation of the world volume
         /// in the Acts format for volumes
         const Acts::RotationMatrix3 actsWorldRotation = 
