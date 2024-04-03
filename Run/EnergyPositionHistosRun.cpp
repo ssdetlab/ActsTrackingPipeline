@@ -1,6 +1,8 @@
 #include "ActsLUXEPipeline/Sequencer.hpp"
-
 #include "ActsLUXEPipeline/LUXEGeometry.hpp"
+#include "ActsLUXEPipeline/LUXEBinnedMagneticField.hpp"
+#include "ActsLUXEPipeline/ConstantBoundedField.hpp"
+#include "Acts/Utilities/Logger.hpp"
 #include "ActsLUXEPipeline/LUXEPathSeeder.hpp"
 #include "ActsLUXEPipeline/LUXEGeometryConstraints.hpp"
 #include "ActsLUXEPipeline/LUXEMagneticField.hpp"
@@ -17,12 +19,19 @@
 
 #include "ActsLUXEPipeline/Utils.hpp"
 
+using namespace Acts::UnitLiterals;
+
 /// @brief Run the propagation through
 /// a uniform energy spectrum and record the
 /// energy vs position histograms for each layer
 int main() {
     using namespace LUXENavigator;
     Acts::Logging::Level logLevel = Acts::Logging::VERBOSE;
+
+    const std::vector<std::pair<Acts::ActsScalar,Acts::ActsScalar>> MagneticFieldBounds =
+        {std::make_pair(-1000_mm,1000_mm),
+            std::make_pair(1450_mm,2650_mm),
+            std::make_pair(-100_mm,100_mm)};
 
     // setup the sequencer first w/ config derived from options
     Sequencer::Config seqCfg;
@@ -35,13 +44,11 @@ int main() {
 //    readerCfg.dataCollection = "SourceLink";
 //    std::string pathToDir = "/home/romanurmanov/lab/LUXE/acts_LUXE_tracking/ActsLUXEPipeline_dataInRootFormat/SignalNextTrial_e1gpc_10.0_1";
     // map (x,y,z) -> (x,y,z)
-
-    auto transformPos = [](const Acts::Vector3& pos) {
-        LUXEGeometry::GeometryOptions gOpt;
+    auto transformPos = [&](const Acts::Vector3& pos) {
         for (int i=0;i<3;i++) {
-            if (pos[i]<=gOpt.MagneticFieldBounds[i].first ||
-                pos[i]>gOpt.MagneticFieldBounds[i].second) {
-                return Acts::Vector3{0,1300,0};
+            if (pos[i] < MagneticFieldBounds[i].first ||
+                pos[i] > MagneticFieldBounds[i].second) {
+                return Acts::Vector3{0,1400,0};
             }
         }
         return pos;
@@ -52,27 +59,32 @@ int main() {
         return field;
     };
 
-    LUXEMagneticField::GridOptions gridOpt;
-    gridOpt.bins = {14u, 1400u, 14u};
-    gridOpt.limits = {std::make_pair(-600,800),
-                      std::make_pair(1250,2850),
-                      std::make_pair(-600,800)};
+    LUXEMagneticField::vGridOptions gridOpt;
+    gridOpt.xBins = {-1000,-1, 0.,200, 1000.};
+    gridOpt.yBins = {1300,1400,1450,1451, 2050.,2649,2650.,2651};
+    gridOpt.zBins = {-100,-99, 0.,1, 100.};
 
-    auto BField = LUXEMagneticField::buildLUXEBField(transformPos, transformBField, gridOpt);
-    auto BFieldPtr = std::make_shared<LUXEMagneticField::BField_t>(BField);
 
     // Build the LUXE detector
-    std::string gdmlPath = "lxgeomdump_ip_tracker_positron.gdml";
-
-    std::vector<std::string> staves = {"OPPPSensitive"};
+    std::string gdmlPath = "lxgeomdump_stave_positron.gdml";
+    std::vector<std::string> names = {"OPPPSensitive"};
     std::vector<std::string> chamber = {"VCWindowPanel"};
     Acts::GeometryContext gctx;
-    Acts::MagneticFieldContext magCtx;
+    Acts::MagneticFieldContext mctx;
     LUXEGeometry::GeometryOptions gOpt;
-    auto magneticChamberBpr = LUXEGeometry::makeBlueprintMagneticChamber(gdmlPath, chamber, gOpt);
-    auto positronArmBpr = LUXEGeometry::makeBlueprintPositron(gdmlPath, staves, gOpt);
-    positronArmBpr->add(std::move(magneticChamberBpr));
-    auto detector = LUXEGeometry::buildLUXEDetector(std::move(positronArmBpr), gctx, gOpt);
+    double B_z = 0.95_T;
+
+    Acts::Extent dipoleExtent;
+    dipoleExtent.set(Acts::binX, -1000_mm, 1000_mm);
+    dipoleExtent.set(Acts::binY, 1450_mm, 2650_mm);
+    dipoleExtent.set(Acts::binZ, -100_mm, 100_mm);
+
+    auto BField = LUXEMagneticField::buildBinnedBField(
+        LUXEMagneticField::ConstantBoundedField(Acts::Vector3(0., 0., -B_z), dipoleExtent),
+        transformPos, transformBField, gridOpt, mctx);
+
+     auto positronArmBpr = LUXEGeometry::makeBlueprintPositron(gdmlPath, names, gOpt);
+     auto detector = LUXEGeometry::buildLUXEDetector(std::move(positronArmBpr), gctx, gOpt);
 
     MeasurementResolution resPixel = {MeasurementType::eLoc01,
                                       {gOpt.chipSizeX,

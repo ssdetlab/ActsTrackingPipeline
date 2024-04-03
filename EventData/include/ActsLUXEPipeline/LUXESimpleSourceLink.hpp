@@ -70,7 +70,7 @@ struct SimpleSourceLink final {
         const Acts::Surface* operator()(const Acts::SourceLink& sourceLink) const {
             const auto& sl = sourceLink.get<SimpleSourceLink>();
             return *detector.sensitiveHierarchyMap().find(
-                sl.m_geometryId);
+                sl.geometryId());
         }
     };
 
@@ -87,7 +87,7 @@ inline std::ostream& operator<<(std::ostream& os,
 /// @param trackState TrackState to calibrated
 /// @return The measurement used
 template <typename trajectory_t>
-Acts::BoundVariantMeasurement SimpleSourceLinkCalibratorReturn(
+Acts::BoundVariantMeasurement simpleSourceLinkCalibratorReturn(
     const Acts::GeometryContext& /*gctx*/, 
     const Acts::CalibrationContext& /*cctx*/,
     const Acts::SourceLink& sourceLink,
@@ -110,11 +110,11 @@ Acts::BoundVariantMeasurement SimpleSourceLinkCalibratorReturn(
 /// @param gctx Unused
 /// @param trackState TrackState to calibrated
 template <typename trajectory_t>
-void SimpleSourceLinkCalibrator(
+void simpleSourceLinkCalibrator(
     const Acts::GeometryContext& gctx, 
     const Acts::CalibrationContext& cctx,
     const Acts::SourceLink& sourceLink,
     typename trajectory_t::TrackStateProxy trackState) {
-        SimpleSourceLinkCalibratorReturn<trajectory_t>(
+        simpleSourceLinkCalibratorReturn<trajectory_t>(
             gctx, cctx, sourceLink, trackState);
 }

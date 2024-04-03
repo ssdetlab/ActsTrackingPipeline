@@ -1,5 +1,5 @@
 #
-# Include the geometry component
+# Include the infrastructure component
 # to the pipeline core
 #
 
@@ -11,17 +11,12 @@ target_include_directories(
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
 
 # Sources
-target_sources(
-    ActsLUXEPipelineCore
-    PRIVATE
-    src/LUXEBinnedMagneticField.cpp
-)
+# target_sources(
+    # ActsLUXEPipelineCore
+    # PRIVATE
+    # src/SequenceElement.cpp)
 
-# For now we assume that the pipeline 
-# always uses the Geant4 plugin
 target_link_libraries(
     ActsLUXEPipelineCore
     PUBLIC
-    ActsCore
-)
-      
+    ActsCore)

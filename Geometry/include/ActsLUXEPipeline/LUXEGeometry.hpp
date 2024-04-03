@@ -65,7 +65,7 @@ makeLayerBuilder(
 }
 
 /// @brief Make the blueprint for the LUXE detector
-/// in the positron arm configuration
+/// in the two arm configuration
 ///
 /// @param gdmlPath path to the gdml file
 /// @param names the names of the volumes to be converted
@@ -73,10 +73,10 @@ makeLayerBuilder(
 ///
 /// @return the Blueprint for the LUXE detector
 std::unique_ptr<Acts::Experimental::Blueprint::Node> 
-makeBlueprintPositron(
+makeBlueprintLUXE(
     const std::string& gdmlPath,
     const std::vector<std::string>& names,
-    const GeometryOptions& gOpt);
+    const LUXEGeometry::GeometryOptions& gOpt);
 
 std::unique_ptr<Acts::Experimental::Blueprint::Node>
 makeBlueprintMagneticChamber(

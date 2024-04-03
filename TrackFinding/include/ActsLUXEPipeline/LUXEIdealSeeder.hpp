@@ -6,6 +6,7 @@
 #include "ActsLUXEPipeline/DataHandle.hpp"
 #include "ActsLUXEPipeline/LUXESimpleSourceLink.hpp"
 #include "ActsLUXEPipeline/LUXEDataContainers.hpp"
+#include "ActsLUXEPipeline/LUXEGeometryConstraints.hpp"
 
 /// @brief The ideal seeder for the LUXE simulation
 /// takes the the SimMeasurements and converts them 
@@ -14,10 +15,18 @@ class IdealSeeder : public IAlgorithm {
     public:
         /// @brief The nested configuration struct
         struct Config {
+            /// The input collection
             std::string inputCollection = "SourceLink";
+            /// The output collection
             std::string outputCollection = "Seed";
+            /// The minimum number of hits
+            /// for a seed to be created
             std::uint32_t minHits = 4;
+            /// The maximum number of hits
+            /// for a seed to be created
             std::uint32_t maxHits = 4;
+            /// Geometry options
+            const LUXEGeometry::GeometryOptions& gOpt;
         };
 
         /// @brief Constructor
@@ -31,6 +40,8 @@ class IdealSeeder : public IAlgorithm {
 
         /// @brief The execute method        
         ProcessCode execute(const AlgorithmContext& ctx) const override {
+            using namespace Acts::UnitLiterals;
+
             // Get the input measurements
             // from the context
             auto input = m_inputMeasurements(ctx);
@@ -42,17 +53,23 @@ class IdealSeeder : public IAlgorithm {
                 }
             );
 
+            // Create IP covariance matrix from 
+            // reasonable standard deviations
+            Acts::BoundVector ipStdDev;
+            ipStdDev[Acts::eBoundLoc0] = 100_um;
+            ipStdDev[Acts::eBoundLoc1] = 100_um;
+            ipStdDev[Acts::eBoundTime] = 25_ns;
+            ipStdDev[Acts::eBoundPhi] = 2_degree;
+            ipStdDev[Acts::eBoundTheta] = 2_degree;
+            ipStdDev[Acts::eBoundQOverP] = 1 / 100_GeV;
+            Acts::BoundSquareMatrix ipCov = 
+                ipStdDev.cwiseProduct(ipStdDev).asDiagonal();
+
             // Create the seeds
             LUXEDataContainer::Seeds seeds;
-            std::vector<Acts::SourceLink> sourceLinks{input.at(0).sourceLink};
-            // Ip parameter is the same for all hits
-            // with the same track id
-            Acts::Vector3 ipParameters{
-                input.at(0).truthParameters[Acts::eBoundQOverP],
-                input.at(0).truthParameters[Acts::eBoundPhi],
-                input.at(0).truthParameters[Acts::eBoundTheta]};
-            for (auto it = input.begin() + 1; it != input.end(); ++it) {
-                if (it->trackId == (it - 1)->trackId) {
+            std::vector<Acts::SourceLink> sourceLinks;
+            for (auto it = input.begin(); it != input.end() - 1; ++it) {
+                if (it->trackId == (it + 1)->trackId) {
                     // Add the source link to the list
                     // if the hit is from the same track
                     sourceLinks.push_back(it->sourceLink);
@@ -63,24 +80,37 @@ class IdealSeeder : public IAlgorithm {
                             // If the seed does not have the right size
                             // skip it
                             sourceLinks.clear();
-                            sourceLinks.push_back(it->sourceLink);
-                            ipParameters.x() = it->truthParameters[Acts::eBoundQOverP],
-                            ipParameters.y() = it->truthParameters[Acts::eBoundPhi],
-                            ipParameters.z() = it->truthParameters[Acts::eBoundTheta];
                             continue;
                     }
+
+                    // Ip parameter is the same for all hits
+                    // with the same track id
+                    Acts::CurvilinearTrackParameters ipParameters(
+                        it->trueVertex, 
+                        it->truthParameters[Acts::eBoundPhi],
+                        it->truthParameters[Acts::eBoundTheta], 
+                        -it->truthParameters[Acts::eBoundQOverP], 
+                        ipCov,
+                        Acts::ParticleHypothesis::electron());
+
                     // Add the seed to the list
                     // and reset the source links
                     seeds.push_back(LUXEDataContainer::Seed
                         {sourceLinks, ipParameters});
                     sourceLinks.clear();
-                    sourceLinks.push_back(it->sourceLink);
-                    ipParameters.x() = it->truthParameters[Acts::eBoundQOverP],
-                    ipParameters.y() = it->truthParameters[Acts::eBoundPhi],
-                    ipParameters.z() = it->truthParameters[Acts::eBoundTheta];
                 }
             }
             
+            // Ip parameter is the same for all hits
+            // with the same track id
+            Acts::CurvilinearTrackParameters ipParameters(
+                input.back().trueVertex, 
+                input.back().truthParameters[Acts::eBoundPhi],
+                input.back().truthParameters[Acts::eBoundTheta], 
+                -input.back().truthParameters[Acts::eBoundQOverP], 
+                ipCov,
+                Acts::ParticleHypothesis::electron());
+
             // Add the last seed
             seeds.push_back(LUXEDataContainer::Seed
                 {sourceLinks, ipParameters});

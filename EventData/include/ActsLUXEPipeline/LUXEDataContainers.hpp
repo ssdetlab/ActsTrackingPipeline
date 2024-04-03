@@ -1,6 +1,7 @@
 #pragma once 
 
 #include "Acts/EventData/SourceLink.hpp"
+#include "Acts/EventData/TrackParameters.hpp"
 #include "Acts/Definitions/TrackParametrization.hpp"
 
 #include <vector>
@@ -15,6 +16,8 @@ struct SimMeasurement {
     Acts::SourceLink sourceLink;
     /// The truth parameters 
     Acts::BoundVector truthParameters;
+    /// True vertex 
+    Acts::Vector4 trueVertex;
     /// The true track Ids
     std::int32_t trackId;
 };
@@ -25,9 +28,9 @@ using SimMeasurements = std::vector<SimMeasurement>;
 struct Seed {
     /// Source links related
     /// to the seed measurements
-    std::vector< Acts::SourceLink> sourceLinks;
+    std::vector<Acts::SourceLink> sourceLinks;
     /// IP parameters
-    Acts::Vector3 ipParameters;
+    Acts::CurvilinearTrackParameters ipParameters;
 };
 
 using Seeds = std::vector<Seed>;
