@@ -106,11 +106,11 @@ int main() {
     auto propagator = LUXENavigator::makePropagator<Acts::EigenStepper<>>(detector, BFieldPtr);
     std::random_device rd;
     std::mt19937 gen(rd());
+
     std::uniform_real_distribution<> dis1(1.39,2.4);
     std::uniform_real_distribution<> dis2(2.2,5);
     std::uniform_real_distribution<> dis3(5,13);
 
-//    std::gamma_distribution<double> EDis(3, 1.2);
     std::normal_distribution<> pDisP(0.002,0.0018);
     std::normal_distribution<> pDisM(-0.002,0.0018);
 
@@ -142,8 +142,6 @@ int main() {
         Acts::ActsScalar p = std::sqrt(std::pow(px,2)+std::pow(py,2)+std::pow(pz,2));
         Acts::ActsScalar theta = std::acos(pz / p);
         Acts::ActsScalar phi = std::atan2(py, px);
-//        std::cout<<"Initial 4p : "<<px<<" "<<py<<" "<<pz<<std::endl;
-//        std::cout<<"Initial dir : "<<phi<<" "<<theta<<std::endl;
         auto mid_res = LUXENavigator::createMeasurements(propagator, gctx, magCtx,
                                                      LUXENavigator::makeParameters(p,phi,theta),
                                                      resolutions,sourceId);
