@@ -1,5 +1,7 @@
 #include "ActsLUXEPipeline/Sequencer.hpp"
 
+#include "ActsLUXEPipeline/LUXEBinnedMagneticField.hpp"
+#include "ActsLUXEPipeline/ConstantBoundedField.hpp"
 #include "ActsLUXEPipeline/LUXEGeometry.hpp"
 #include "ActsLUXEPipeline/LUXEPathSeeder.hpp"
 #include "ActsLUXEPipeline/LUXEGeometryConstraints.hpp"
@@ -32,12 +34,16 @@ int main(int argc, char* argv[]) {
     seqCfg.numThreads = -1;
     Sequencer sequencer(seqCfg);
 
-    auto transformPos = [](const Acts::Vector3& pos) {
-        LUXEGeometry::GeometryOptions gOpt;
+    const std::vector<std::pair<Acts::ActsScalar,Acts::ActsScalar>> MagneticFieldBounds =
+            {std::make_pair(-1000_mm,1000_mm),
+             std::make_pair(1450_mm,2650_mm),
+             std::make_pair(-100_mm,100_mm)};
+
+    auto transformPos = [&](const Acts::Vector3& pos) {
         for (int i=0;i<3;i++) {
-            if (pos[i]<=gOpt.MagneticFieldBounds[i].first ||
-                pos[i]>gOpt.MagneticFieldBounds[i].second) {
-                return Acts::Vector3{0,1300,0};
+            if (pos[i]<= MagneticFieldBounds[i].first ||
+                pos[i]>  MagneticFieldBounds[i].second) {
+                return Acts::Vector3{0,1400,0};
             }
         }
         return pos;
@@ -47,27 +53,32 @@ int main(int argc, char* argv[]) {
     auto transformBField = [](const Acts::Vector3& field, const Acts::Vector3&) {
         return field;
     };
+    LUXEMagneticField::vGridOptions gridOpt;
+    gridOpt.xBins = {-1000,-1, 0.,200, 1000.};
+    gridOpt.yBins = {1300,1400,1450,1451, 2050.,2649,2650.,2651};
+    gridOpt.zBins = {-100,-99, 0.,1, 100.};
 
-    LUXEMagneticField::GridOptions gridOpt;
-    gridOpt.bins = {14u, 1400u, 14u};
-    gridOpt.limits = {std::make_pair(-600,800),
-                      std::make_pair(1250,2850),
-                      std::make_pair(-600,800)};
+    Acts::GeometryContext gctx;
+    Acts::MagneticFieldContext mctx;
+    LUXEGeometry::GeometryOptions gOpt;
+    double B_z = 0.95_T;
 
-    auto BField = LUXEMagneticField::buildLUXEBField(transformPos, transformBField, gridOpt);
-    auto BFieldPtr = std::make_shared<LUXEMagneticField::BField_t>(BField);
+    Acts::Extent dipoleExtent;
+    dipoleExtent.set(Acts::binX, -1000_mm, 1000_mm);
+    dipoleExtent.set(Acts::binY, 1450_mm, 2650_mm);
+    dipoleExtent.set(Acts::binZ, -100_mm, 100_mm);
+
+    auto BField = LUXEMagneticField::buildBinnedBField(
+            LUXEMagneticField::ConstantBoundedField(Acts::Vector3(0., 0., B_z), dipoleExtent),
+            transformPos, transformBField, gridOpt, mctx);
+    auto BFieldPtr = std::make_shared<Acts::InterpolatedBFieldMap<LUXEMagneticField::vGrid>>(BField);
 
     // Build the LUXE detector
     std::string gdmlPath = "lxgeomdump_ip_tracker_positron.gdml";
 
     std::vector<std::string> staves = {"OPPPSensitive"};
     std::vector<std::string> chamber = {"VCWindowPanel"};
-    Acts::GeometryContext gctx;
-    Acts::MagneticFieldContext magCtx;
-    LUXEGeometry::GeometryOptions gOpt;
-    auto magneticChamberBpr = LUXEGeometry::makeBlueprintMagneticChamber(gdmlPath, chamber, gOpt);
-    auto positronArmBpr = LUXEGeometry::makeBlueprintPositron(gdmlPath, staves, gOpt);
-    positronArmBpr->add(std::move(magneticChamberBpr));
+    auto positronArmBpr = LUXEGeometry::makeBlueprintLUXE(gdmlPath, staves, gOpt);
     auto detector = LUXEGeometry::buildLUXEDetector(std::move(positronArmBpr), gctx, gOpt);
 
     MeasurementResolution resPixel = {MeasurementType::eLoc01,

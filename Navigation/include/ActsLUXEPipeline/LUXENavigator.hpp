@@ -20,7 +20,7 @@ using namespace Acts::UnitLiterals;
 template <typename stepper_t>
 Acts::Propagator<stepper_t, Acts::Experimental::DetectorNavigator> makePropagator(
         std::shared_ptr<const Acts::Experimental::Detector> detector,
-        std::shared_ptr<LUXEMagneticField::BField_t> BFieldPtr) {
+        std::shared_ptr<Acts::InterpolatedBFieldMap<LUXEMagneticField::vGrid>> BFieldPtr) {
 
     Acts::Experimental::DetectorNavigator::Config cfg{&(*detector)};
     cfg.resolvePassive = false;

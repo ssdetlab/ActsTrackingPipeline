@@ -82,6 +82,7 @@ class ROOTDataReader : public IReader {
                 }
         
                 m_outputData.initialize(m_cfg.dataCollection);
+
                 // Set the branches
                 setBranches(m_chain, m_cfg.vector3Keys, m_vector3Columns);
                 setBranches(m_chain, m_cfg.lorentzKeys, m_lorentzColumns);

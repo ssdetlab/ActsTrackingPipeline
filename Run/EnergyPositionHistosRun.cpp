@@ -60,15 +60,13 @@ int main() {
     };
 
     LUXEMagneticField::vGridOptions gridOpt;
-    gridOpt.xBins = {-1000,-1, 0.,200, 1000.};
+    gridOpt.xBins = {-1000,-1, 0.,200, 999,1000.};
     gridOpt.yBins = {1300,1400,1450,1451, 2050.,2649,2650.,2651};
-    gridOpt.zBins = {-100,-99, 0.,1, 100.};
-
+    gridOpt.zBins = {-101,-100, 0.,1, 100, 101.};
 
     // Build the LUXE detector
-    std::string gdmlPath = "lxgeomdump_stave_positron.gdml";
+    std::string gdmlPath = "lxgeomdump_ip_tracker_positron.gdml";
     std::vector<std::string> names = {"OPPPSensitive"};
-    std::vector<std::string> chamber = {"VCWindowPanel"};
     Acts::GeometryContext gctx;
     Acts::MagneticFieldContext mctx;
     LUXEGeometry::GeometryOptions gOpt;
@@ -80,10 +78,10 @@ int main() {
     dipoleExtent.set(Acts::binZ, -100_mm, 100_mm);
 
     auto BField = LUXEMagneticField::buildBinnedBField(
-        LUXEMagneticField::ConstantBoundedField(Acts::Vector3(0., 0., -B_z), dipoleExtent),
+        LUXEMagneticField::ConstantBoundedField(Acts::Vector3(0., 0., B_z), dipoleExtent),
         transformPos, transformBField, gridOpt, mctx);
-
-     auto positronArmBpr = LUXEGeometry::makeBlueprintPositron(gdmlPath, names, gOpt);
+    auto BFieldPtr = std::make_shared<Acts::InterpolatedBFieldMap<LUXEMagneticField::vGrid>>(BField);
+     auto positronArmBpr = LUXEGeometry::makeBlueprintLUXE(gdmlPath, names, gOpt);
      auto detector = LUXEGeometry::buildLUXEDetector(std::move(positronArmBpr), gctx, gOpt);
 
     MeasurementResolution resPixel = {MeasurementType::eLoc01,
@@ -96,9 +94,9 @@ int main() {
         std::cout<<"Surfaces size: "<<vol->surfaces().size()<<std::endl;
         std::cout<<"Volume Bounds: "<<vol->volumeBounds()<<std::endl;
         std::cout<<"Volume Transformation: "<<vol->transform().translation()<<std::endl;
-//        Acts::GeometryView3D::drawDetectorVolume(
-//                volumeObj, *(vol), gctx,
-//                Acts::Transform3::Identity(), pConfig);
+        Acts::GeometryView3D::drawDetectorVolume(
+                volumeObj, *(vol), gctx,
+                Acts::Transform3::Identity(), pConfig);
         for (auto& surf : vol->surfaces()) {
             std::cout<<"Assigning resolution to surface ID: "<<surf->geometryId()<<std::endl;
 //            if (vol->geometryId().volume()!=1) {
@@ -113,6 +111,7 @@ int main() {
             std::cout<<"Surface bounds: "<<surf->bounds()<<std::endl;
         }
     }
+
     MeasurementResolutionMap resolutions = m;
 
     auto propagator = LUXENavigator::makePropagator<Acts::EigenStepper<>>(detector, BFieldPtr);
@@ -130,7 +129,7 @@ int main() {
     std::vector<LUXENavigator::Measurement> results;
     Acts::ActsScalar m_e = 0.000511;
     std::size_t sourceId = 1;
-    for (int i=0;i<200000;i++) {
+    for (int i=0;i<2000;i++) {
         Acts::ActsScalar px = (pDisP(gen)+pDisM(gen))/2;
         Acts::ActsScalar pz = (pDisP(gen)+pDisM(gen))/2;
         Acts::ActsScalar E = dis1(gen);
@@ -138,15 +137,15 @@ int main() {
         Acts::ActsScalar p = std::sqrt(std::pow(px,2)+std::pow(py,2)+std::pow(pz,2));
         Acts::ActsScalar theta = std::acos(pz / p);
         Acts::ActsScalar phi = std::atan2(py, px);
-        results.push_back(LUXENavigator::createMeasurements(propagator, gctx, magCtx,
+        results.push_back(LUXENavigator::createMeasurements(propagator, gctx, mctx,
                                                             LUXENavigator::makeParameters(p,phi,theta),
                                                             resolutions,sourceId));
         sourceId++;
         if (i%20000==0) std::cout<<"Low E: "<<(i*100)/200000<<"%"<<std::endl;
     };
-    saveMeasurementsToFile(results, "low_E_measurements.dat");
+//    saveMeasurementsToFile(results, "low_E_measurements.dat");
     std::vector<LUXENavigator::Measurement> mid_results;
-    for (int i=0;i<100000;i++) {
+    for (int i=0;i<1000;i++) {
         Acts::ActsScalar px = (pDisP(gen)+pDisM(gen))/2;
         Acts::ActsScalar pz = (pDisP(gen)+pDisM(gen))/2;
         Acts::ActsScalar E = dis2(gen);
@@ -154,7 +153,7 @@ int main() {
         Acts::ActsScalar p = std::sqrt(std::pow(px,2)+std::pow(py,2)+std::pow(pz,2));
         Acts::ActsScalar theta = std::acos(pz / p);
         Acts::ActsScalar phi = std::atan2(py, px);
-        auto mid_res = LUXENavigator::createMeasurements(propagator, gctx, magCtx,
+        auto mid_res = LUXENavigator::createMeasurements(propagator, gctx, mctx,
                                                      LUXENavigator::makeParameters(p,phi,theta),
                                                      resolutions,sourceId);
         results.push_back(mid_res);
@@ -162,10 +161,10 @@ int main() {
         sourceId++;
         if (i%10000==0) std::cout<<"Mid E: "<<(i*100)/100000<<"%"<<std::endl;
     };
-    saveMeasurementsToFile(mid_results, "mid_E_measurements.dat");
+//    saveMeasurementsToFile(mid_results, "mid_E_measurements.dat");
 
     std::vector<LUXENavigator::Measurement> high_results;
-    for (int i=0;i<20000;i++) {
+    for (int i=0;i<200;i++) {
         Acts::ActsScalar px = (pDisP(gen)+pDisM(gen))/2;
         Acts::ActsScalar pz = (pDisP(gen)+pDisM(gen))/2;
         Acts::ActsScalar E = dis3(gen);
@@ -175,7 +174,7 @@ int main() {
         Acts::ActsScalar phi = std::atan2(py, px);
 //        std::cout<<"Initial 4p : "<<px<<" "<<py<<" "<<pz<<std::endl;
 //        std::cout<<"Initial dir : "<<phi<<" "<<theta<<std::endl;
-        auto high_res = LUXENavigator::createMeasurements(propagator, gctx, magCtx,
+        auto high_res = LUXENavigator::createMeasurements(propagator, gctx, mctx,
                                                          LUXENavigator::makeParameters(p,phi,theta),
                                                          resolutions,sourceId);
         results.push_back(high_res);
@@ -183,7 +182,7 @@ int main() {
         sourceId++;
         if (i%2000==0) std::cout<<"High E: "<<(i*100)/20000<<"%"<<std::endl;
     };
-    saveMeasurementsToFile(high_results, "high_E_measurements.dat");
+//    saveMeasurementsToFile(high_results, "high_E_measurements.dat");
 //    for (auto result : results) {
 //        std::cout<<result.globalPosition.size()<<std::endl;
 //        if (result.globalPosition.size()>1) {

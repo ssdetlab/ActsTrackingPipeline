@@ -48,6 +48,7 @@ makeLayerBuilder(
                 std::get<0>(ranges[i]), std::get<1>(ranges[i]));
             kdtDOpt.binningValues[i] = binningValues[i];
         }
+
         auto sp = std::make_shared<
             Acts::Experimental::Geant4SurfaceProvider<kDim>>(spCfg, kdtDOpt);
 
@@ -55,12 +56,6 @@ makeLayerBuilder(
         lbCfg.surfacesProvider = sp;
         auto lb =
             std::make_shared<Acts::Experimental::LayerStructureBuilder>(lbCfg);
-
-        Acts::GeometryContext test;
-        for (auto& surf:sp->surfaces(test)) {
-            std::cout<<"Check Center"<<std::endl;
-            std::cout<<surf->center(test)<<std::endl;
-        }
         return lb;
 }
 
@@ -78,11 +73,11 @@ makeBlueprintLUXE(
     const std::vector<std::string>& names,
     const LUXEGeometry::GeometryOptions& gOpt);
 
-std::unique_ptr<Acts::Experimental::Blueprint::Node>
-makeBlueprintMagneticChamber(
-        const std::string& gdmlPath,
-        const std::vector<std::string>& names,
-        const GeometryOptions& gOpt);
+//std::unique_ptr<Acts::Experimental::Blueprint::Node>
+//makeBlueprintMagneticChamber(
+//        const std::string& gdmlPath,
+//        const std::vector<std::string>& names,
+//        const GeometryOptions& gOpt);
 
 /// @brief Build the LUXE detector
 ///

@@ -88,8 +88,8 @@ void HistogramDatawriter(std::vector<LUXENavigator::Measurement> results, std::s
         if (result.globalPosition.size()==0) {
             continue;
         }
-        if (result.globalPosition[0][1]>=gOpt.layerZ.at(3) || (result.globalPosition[0][1]>=gOpt.layerZ.at(0) &&
-                                                    result.globalPosition[0][0]>gOpt.chipTranslationXOdd.at(0))) {
+        if (result.globalPosition[0][1]>=gOpt.staveZ.at(3) || (result.globalPosition[0][1]>=gOpt.staveZ.at(0) &&
+                                                    result.globalPosition[0][0]>gOpt.chipXOdd.at(0))) {
             continue;
         }
 

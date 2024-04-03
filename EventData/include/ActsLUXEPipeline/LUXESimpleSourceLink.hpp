@@ -67,8 +67,8 @@ struct SimpleSourceLink final {
     struct SurfaceAccessor {
         const Acts::Experimental::Detector& detector;
     
-        const Acts::Surface* operator()(const Acts::SourceLink& sourceLink) const {
-            const auto& sl = sourceLink.get<SimpleSourceLink>();
+        const Acts::Surface* operator()(const SimpleSourceLink& sl) const {
+//            const auto& sl = sourceLink.get<SimpleSourceLink>();
             return *detector.sensitiveHierarchyMap().find(
                 sl.geometryId());
         }

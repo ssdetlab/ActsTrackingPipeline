@@ -66,18 +66,42 @@ void LUXEGeometryIdGenerator::assignGeometryId(
         } else if (
             (rGeoID.sensitive() == 0 && rGeoID.passive() == 0) ||
             m_cfg.overrideExistingIds) {
+                Acts::Vector3 center = surface.center(Acts::GeometryContext());
+                ACTS_VERBOSE("Processing surface " << center.transpose());
+                std::int32_t geoIDval = 0u;
 
-                Acts::ActsScalar id =(ccache.volumeCount + std::floor(ccache.sensitiveCount/9) - 4) * 10 +
-                                     ccache.sensitiveCount % 9 + 1;
+                // Determine the layer
+                std::int32_t layerId;
+                for (auto [id, z] : m_cfg.gOpt.staveZ) {
+                    // These are already rotated surfaces
+                    if (std::abs(center.y() - z) < 1e-3) {
+                        layerId = id;
+                        break;
+                    }
+                }
+                geoIDval += (layerId + 1) * 10u;
 
-                ACTS_VERBOSE("Assigning sensitive id " << id);
-                geoID.setSensitive(id);
+                // Then determine the chip
+                std::int32_t chipId;
+                auto chipIDs = (layerId % 2 == 0) ? m_cfg.gOpt.chipXEven : m_cfg.gOpt.chipXOdd;
+                int sign = (center.x() > 0) ? 1 : -1;
+                for (auto [id, x] : chipIDs) {
+                    if (std::abs(center.x() - sign*x) < 1e-3) {
+                        chipId = id;
+                        break;
+                    }
+                }
+
+                geoIDval += chipId + 1;
+
+                ACTS_VERBOSE("Assigning sensitive id " << geoIDval);
+                geoID.setSensitive(geoIDval);
                 ccache.sensitiveCount++;
         
                 surface.assignGeometryId(geoID);
         } else if (rGeoID.sensitive() != 0 || rGeoID.passive() != 0) {
             ACTS_VERBOSE(
-                    "Surface already has a geometry id, only setting volume and layer id.");
+                "Surface already has a geometry id, only setting volume and layer id.");
             rGeoID.setVolume(geoID.volume());
             rGeoID.setLayer(geoID.layer());
             surface.assignGeometryId(rGeoID);

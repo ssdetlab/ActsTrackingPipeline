@@ -91,11 +91,11 @@ namespace LUXETrackFinding {
                               std::pair<int,int> bins,
                               str2histMap& slMap) {
         str2mapMap lookupTable;
-        for (int i = 0; i<gOpt.layerZPositions.size()*2; i++) {
-            float xMin = (i%2==0) ? gOpt.chipTranslationXEven.at(0) : gOpt.chipTranslationXOdd.at(0);
-            float xMax = (i%2==0) ? gOpt.chipTranslationXEven.at(8)+gOpt.chipSizeX : gOpt.chipTranslationXOdd.at(8)+gOpt.chipSizeX;
-            float yMin = gOpt.chipTranslationY;
-            float yMax = gOpt.chipTranslationY+gOpt.chipSizeY;
+        for (int i = 0; i<gOpt.staveZ.size()*2; i++) {
+            float xMin = (i%2==0) ? gOpt.chipXEven.at(0)-gOpt.chipSizeX/2 : gOpt.chipXOdd.at(0)-gOpt.chipSizeX/2;
+            float xMax = (i%2==0) ? gOpt.chipXEven.at(7)+gOpt.chipSizeX/2 : gOpt.chipXEven.at(7)+gOpt.chipSizeX/2;
+            float yMin = gOpt.chipY-gOpt.chipSizeY/2;
+            float yMax = gOpt.chipY+gOpt.chipSizeY/2;
             auto nAxisBinsX = bins.first;
             auto nAxisBinsY = bins.second;
             auto lName = "layer_"+std::to_string(i);
@@ -145,6 +145,7 @@ namespace LUXETrackFinding {
         std::unordered_map <Scalar, Scalar> Z1Z4LookUp = readLookup(lookupDir + "/Z1Z4_lookup_table.txt");
         auto lookupEnd = std::chrono::steady_clock::now();
         auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(lookupEnd - start);
+
         std::cout << "Time taken: " << duration.count() << "ms" << std::endl;
 
         SimpleSourceLink::SurfaceAccessor SA{*detector};
@@ -170,15 +171,20 @@ namespace LUXETrackFinding {
         for (size_t i=0; i<sourceLinks.size(); i++) {
             Acts::Vector3 globalPos = SA(sourceLinks[i])->
                 localToGlobal(gctx, sourceLinks[i].parameters, Acts::Vector3{0,1,0});
+
+            Scalar x1 = globalPos[0];
+            Scalar y1 = globalPos[1];
+            Scalar z1 = globalPos[2];
+
             if (i%(sourceLinks.size()/10)==0) {
                 end = std::chrono::steady_clock::now();
                 duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
                 std::cout << "Completed "<<(i*100)/sourceLinks.size()<<"%"<< std::endl;
                 std::cout << "Total time elapsed: " << duration.count()/1000 << "s" << std::endl;
             }
-            if (globalPos[1] <= gOpt.layerZPositions[0] ||
-                    (globalPos[1] <= gOpt.layerZPositions[1]-gOpt.deltaZ &&
-                     globalPos[0] <= gOpt.chipTranslationXOdd.at(0))) {
+            if (y1 <= gOpt.layerZPositions.at(0) ||
+                    (y1 < gOpt.layerZPositions.at(1)-gOpt.deltaZ &&
+                     x1 <= gOpt.chipXOdd.at(0)-gOpt.chipSizeX/2+1.8)) { // I can explain the 1.8
 
                 std::vector<SimpleSourceLink> seedSourceLinks{sourceLinks[i]};
                 std::vector<Acts::Vector3> seedDistances;
@@ -191,13 +197,10 @@ namespace LUXETrackFinding {
                 }
                 if (originSourceLinks.size() > 3) {
 
-                    Scalar x1 = globalPos[0];
-                    Scalar y1 = globalPos[1];
-                    Scalar z1 = globalPos[2];
                     Scalar E = LUXETrackFinding::findClosestValue(EX1LookUp, x1);
                     Scalar x4 = LUXETrackFinding::findClosestValue(X1X4LookUp, x1);
                     Scalar y4 = LUXETrackFinding::findClosestValue(X1Y4LookUp, x1);
-                    y4 = (y4<(gOpt.layerZ.at(7)+gOpt.layerZ.at(6))/2) ? gOpt.layerZ.at(7) : gOpt.layerZ.at(6); // get rid of lookup binning errors
+                    y4 = (y4 < gOpt.layerZPositions.at(3)) ? gOpt.staveZ.at(7) : gOpt.staveZ.at(6); // get rid of lookup binning errors
                     Scalar z4 = LUXETrackFinding::findClosestValue(Z1Z4LookUp, z1);
                     Scalar electron_mass = 0.000511;
                     Scalar pMagnitude = std::sqrt(std::pow(E, 2) -
@@ -209,6 +212,7 @@ namespace LUXETrackFinding {
                                 vMagnitude * (x4 - x1),
                                 vMagnitude * (y4 - y1),
                                 vMagnitude * (z4 - z1)};
+
                     Acts::Vector3 d{ipParams[1], ipParams[2], ipParams[3]};
                     Acts::Vector3 dHat = d / std::sqrt(d.dot(d));
 
@@ -217,27 +221,27 @@ namespace LUXETrackFinding {
 //                    roadWidthX[3] = (0.9*x1+195) * 1_um;
 
                     std::vector<Acts::Vector3> layerPointers;
-                    for (int il = 0; il < gOpt.layerZ.size(); il++) {
+                    for (int il = 0; il < gOpt.staveZ.size(); il++) {
                             Acts::Vector3 Lpos = std::sqrt(1 + std::pow((x4 - x1) / (y4 - y1), 2) +
                                                            std::pow((z4 - z1) / (y4 - y1), 2)) *
-                                                 (gOpt.layerZ[il]-y1) * dHat;
+                                                 (gOpt.staveZ.at(il)-y1) * dHat;
                             layerPointers.push_back(Lpos);
                     }
 
                     for (int k = 0; k < layerPointers.size(); k++) {
                         if (k==1) continue;
-                        if (k==0 && (x1> gOpt.chipTranslationXEven.at(8)+gOpt.chipSizeX ||
-                                     x1<=gOpt.chipTranslationXOdd.at(0))) continue;
+                        if (k==0 && (x1 > gOpt.chipXEven.at(8) + gOpt.chipSizeX/2 ||
+                                     x1<=gOpt.chipXOdd.at(0))-gOpt.chipSizeX/2 + 1.8) continue;
 
                         Acts::Vector3 refPoint = globalPos + layerPointers[k];
 
                         std::pair<float, float> Xlim = (k % 2 == 0) ?
-                                                       std::make_pair(gOpt.chipTranslationXEven.at(0),
-                                                                      gOpt.chipTranslationXEven.at(8) + gOpt.chipSizeX+1) :
-                                                       std::make_pair(gOpt.chipTranslationXOdd.at(0),
-                                                                      gOpt.chipTranslationXOdd.at(8) + gOpt.chipSizeX+1);
-                        std::pair<float, float> Zlim = std::make_pair(gOpt.chipTranslationY,
-                                                                      gOpt.chipTranslationY + gOpt.chipSizeY);
+                                                       std::make_pair(gOpt.chipXEven.at(0) - gOpt.chipSizeX/2,
+                                                                      gOpt.chipXEven.at(8) + gOpt.chipSizeX/2) :
+                                                       std::make_pair(gOpt.chipXOdd.at(0) - gOpt.chipSizeX/2,
+                                                                      gOpt.chipXOdd.at(8) + gOpt.chipSizeX/2);
+                        std::pair<float, float> Zlim = std::make_pair(gOpt.chipY,
+                                                                      gOpt.chipY + gOpt.chipSizeY);
 
                         Scalar topX = std::min(refPoint[0] + roadWidthX[k / 2],
                                                static_cast<double>(Xlim.second));
