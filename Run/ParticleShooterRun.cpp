@@ -46,9 +46,9 @@ int main() {
     };
 
     LUXEMagneticField::vGridOptions gridOpt;
-    gridOpt.xBins = {-1000,-1, 0.,200, 1000.};
+    gridOpt.xBins = {-1000,-1, 0.,200, 999,1000.};
     gridOpt.yBins = {1300,1400,1450,1451, 2050.,2649,2650.,2651};
-    gridOpt.zBins = {-100,-99, 0.,1, 100.};
+    gridOpt.zBins = {-101,-100, 0.,1, 100, 101.};
 
     std::string gdmlPath = "lxgeomdump_ip_tracker_positron.gdml";
 

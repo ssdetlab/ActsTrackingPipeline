@@ -33,7 +33,7 @@ void analyzeSeeds(std::vector<LUXETrackFinding::Seed> seeds, std::string filenam
 
     for (auto &seed: seeds) {
         for (unsigned int l = 0; l < seed.originSourceLinks.size(); l++) {
-            int layer = static_cast<int>(seed.originSourceLinks[l].geometryId().sensitive()/10);
+            int layer = static_cast<int>(seed.originSourceLinks[l].geometryId().sensitive()/10-1);
             if (layer==2 || layer==3) {
                 s.dx = std::abs(seed.distances[l-1][0]);
                 s.dz = std::abs(seed.distances[l-1][2]);
@@ -84,7 +84,6 @@ void HistogramDatawriter(std::vector<LUXENavigator::Measurement> results, std::s
     tree->Branch("E", &s.E);
 
     for (auto& result:results) {
-//        std::cout<<"globals size in results loop"<<result.globalPosition.size()<<std::endl;
         if (result.globalPosition.size()==0) {
             continue;
         }
@@ -110,47 +109,3 @@ void HistogramDatawriter(std::vector<LUXENavigator::Measurement> results, std::s
     file->Close();
     delete file;
 }
-
-//for (size_t j = 0; j < sourceLinks.size(); j++) {
-//
-//Acts::Vector3 seedCandidatePos = SA(sourceLinks[j])->
-//        localToGlobal(gctx, sourceLinks[j].parameters, yHat);
-//if (seedCandidatePos[1] > gOpt.layerZPositions[1] - gOpt.deltaZ) {
-//Acts::Vector3 d{ipParams[1], ipParams[2], ipParams[3]};
-//Acts::Vector3 dHat = d/std::sqrt(d.dot(d));
-//Acts::Vector3 diff = std::sqrt(1+std::pow((x4-x1)/(y4-y1),2)+std::pow((z4-z1)/(y4-y1),2))*
-//                     (seedCandidatePos[1]-y1)*dHat;
-//Acts::Vector3 AP = seedCandidatePos - globalPos - diff;
-//
-//// distance between point P and line defined by vector d and point A is
-//// magnitude(AP x d) / magnitude(d)
-//// project onto y axis
-////                            Acts::Vector3 v = d.dot(yHat)*yHat;
-////                            Acts::Vector3 APxv{v.cross(AP)};
-////                            Acts::ActsScalar APdotV = AP.dot(v);
-////                            Scalar distance =  std::sqrt(APxv.dot(APxv))/ pMagnitude;
-//
-//Scalar distance = std::sqrt(AP.dot(AP));
-//
-////                            std::cout<<"global position: "<<SA(sourceLinks[j])->
-////                                    localToGlobal(gctx, sourceLinks[j].parameters, Acts::Vector3{0,1,0})<<std::endl;
-//auto index = static_cast<int>((seedCandidatePos[1] - gOpt.layerZPositions[0] + gOpt.deltaZ)/100-1);
-//Scalar delta = roadWidth[index];
-//if (sourceLinks[j].eventId == sourceLinks[i].eventId) {
-//std::cout << "comparing distance in " << i << "," << j
-//<< " position " << distance << " " << delta << std::endl;
-//std::cout<<"with y: "<<seedCandidatePos[1]<<std::endl;
-//originSourceLinks.push_back(sourceLinks[j]);
-//seedDistances.push_back(distance);
-//}
-//
-//if (distance < delta) {
-//seedSourceLinks.push_back(sourceLinks[j]);
-//}
-//}
-//}
-////                    if (seedSourceLinks.size()>1) {
-//Seed addSeed{originSourceLinks, x1, seedDistances, seedSourceLinks, ipParams};
-//seeds.push_back(addSeed);
-////                    }
-//}

@@ -91,11 +91,11 @@ namespace LUXETrackFinding {
                               std::pair<int,int> bins,
                               str2histMap& slMap) {
         str2mapMap lookupTable;
-        for (int i = 0; i<gOpt.staveZ.size()*2; i++) {
+        for (int i = 0; i<gOpt.staveZ.size(); i++) {
             float xMin = (i%2==0) ? gOpt.chipXEven.at(0)-gOpt.chipSizeX/2 : gOpt.chipXOdd.at(0)-gOpt.chipSizeX/2;
-            float xMax = (i%2==0) ? gOpt.chipXEven.at(7)+gOpt.chipSizeX/2 : gOpt.chipXEven.at(7)+gOpt.chipSizeX/2;
-            float yMin = gOpt.chipY-gOpt.chipSizeY/2;
-            float yMax = gOpt.chipY+gOpt.chipSizeY/2;
+            float xMax = (i%2==0) ? gOpt.chipXEven.at(8)+gOpt.chipSizeX/2 : gOpt.chipXOdd.at(8)+gOpt.chipSizeX/2;
+            float yMin = gOpt.chipY - gOpt.chipSizeY/2;
+            float yMax = gOpt.chipY + gOpt.chipSizeY/2;
             auto nAxisBinsX = bins.first;
             auto nAxisBinsY = bins.second;
             auto lName = "layer_"+std::to_string(i);
@@ -104,6 +104,7 @@ namespace LUXETrackFinding {
                                                                         nAxisBinsX,xMin,xMax,
                                                                         nAxisBinsY,yMin,yMax)));
             std::vector<SimpleSourceLink> temp;
+            std::cout<<lName<<std::endl;
             for(int bx=1; bx<slMap[lName]->GetNbinsX()+1; ++bx) {
                 for (int by = 1; by < slMap[lName]->GetNbinsY() + 1; ++by) {
                     int bin = slMap[lName]->GetBin(bx, by);
@@ -118,10 +119,10 @@ namespace LUXETrackFinding {
             auto id = sl.geometryId().sensitive();
             Acts::Vector3 globalPos = SA(sl)->
                     localToGlobal(gctx, sl.parameters, Acts::Vector3{0,1,0});
-            int layer = static_cast<int>(id/10);
+            int layer = static_cast<int>(id/10-1);
+
             if (layer!=1) {
                 auto lName = "layer_"+std::to_string(layer);
-//                std::cout<<"Filling Layer: "<<layer<<std::endl;
                 double x = globalPos[0];
                 double z = globalPos[2];
                 int bin = slMap[lName]->FindBin(x, z);
@@ -160,11 +161,9 @@ namespace LUXETrackFinding {
         Seeds seeds;
         Acts::Vector4 ipParams;
 
-//        Acts::Vector4 roadWidthX{100_um,250_um,350_um,450_um};
-//        Acts::Vector4 roadWidthZ{50_um,80_um,120_um,150_um};
 
-        Acts::Vector4 roadWidthX{1200_um,2000_um,2000_um,2000_um};
-        Acts::Vector4 roadWidthZ{1200_um,2000_um,2000_um,2000_um};
+        Acts::Vector4 roadWidthX{500_um,500_um,900_um,1500_um};
+        Acts::Vector4 roadWidthZ{500_um,500_um,900_um,1500_um};
 
         start = std::chrono::steady_clock::now();
         auto end = std::chrono::steady_clock::now();
@@ -182,9 +181,10 @@ namespace LUXETrackFinding {
                 std::cout << "Completed "<<(i*100)/sourceLinks.size()<<"%"<< std::endl;
                 std::cout << "Total time elapsed: " << duration.count()/1000 << "s" << std::endl;
             }
+
             if (y1 <= gOpt.layerZPositions.at(0) ||
                     (y1 < gOpt.layerZPositions.at(1)-gOpt.deltaZ &&
-                     x1 <= gOpt.chipXOdd.at(0)-gOpt.chipSizeX/2+1.8)) { // I can explain the 1.8
+                     x1 <= gOpt.chipXOdd.at(0)-gOpt.chipSizeX/2 + 2)) { //1.8
 
                 std::vector<SimpleSourceLink> seedSourceLinks{sourceLinks[i]};
                 std::vector<Acts::Vector3> seedDistances;
@@ -195,11 +195,14 @@ namespace LUXETrackFinding {
                         originSourceLinks.push_back(sourceLinks[j]);
                     }
                 }
-                if (originSourceLinks.size() > 3) {
 
+                if (originSourceLinks.size() > 3) {
                     Scalar E = LUXETrackFinding::findClosestValue(EX1LookUp, x1);
                     Scalar x4 = LUXETrackFinding::findClosestValue(X1X4LookUp, x1);
                     Scalar y4 = LUXETrackFinding::findClosestValue(X1Y4LookUp, x1);
+
+                    if (y1 < gOpt.layerZPositions.at(1)-gOpt.deltaZ && y1 > gOpt.layerZPositions.at(0) &&
+                     x1 > gOpt.chipXOdd.at(0)-gOpt.chipSizeX/2) x4-=1.5;
                     y4 = (y4 < gOpt.layerZPositions.at(3)) ? gOpt.staveZ.at(7) : gOpt.staveZ.at(6); // get rid of lookup binning errors
                     Scalar z4 = LUXETrackFinding::findClosestValue(Z1Z4LookUp, z1);
                     Scalar electron_mass = 0.000511;
@@ -216,6 +219,7 @@ namespace LUXETrackFinding {
                     Acts::Vector3 d{ipParams[1], ipParams[2], ipParams[3]};
                     Acts::Vector3 dHat = d / std::sqrt(d.dot(d));
 
+                    // TODO: optimize roadWidth w.r.t multiplicity
 //                    roadWidthX[1] = (0.3*x1+85) * 1_um;
 //                    roadWidthX[2] = (0.8*x1+140) * 1_um;
 //                    roadWidthX[3] = (0.9*x1+195) * 1_um;
@@ -231,7 +235,7 @@ namespace LUXETrackFinding {
                     for (int k = 0; k < layerPointers.size(); k++) {
                         if (k==1) continue;
                         if (k==0 && (x1 > gOpt.chipXEven.at(8) + gOpt.chipSizeX/2 ||
-                                     x1<=gOpt.chipXOdd.at(0))-gOpt.chipSizeX/2 + 1.8) continue;
+                                     x1<= gOpt.chipXOdd.at(0) - gOpt.chipSizeX/2)) continue;
 
                         Acts::Vector3 refPoint = globalPos + layerPointers[k];
 
@@ -240,8 +244,8 @@ namespace LUXETrackFinding {
                                                                       gOpt.chipXEven.at(8) + gOpt.chipSizeX/2) :
                                                        std::make_pair(gOpt.chipXOdd.at(0) - gOpt.chipSizeX/2,
                                                                       gOpt.chipXOdd.at(8) + gOpt.chipSizeX/2);
-                        std::pair<float, float> Zlim = std::make_pair(gOpt.chipY,
-                                                                      gOpt.chipY + gOpt.chipSizeY);
+                        std::pair<float, float> Zlim = std::make_pair(gOpt.chipY - gOpt.chipSizeY/2,
+                                                                      gOpt.chipY + gOpt.chipSizeY/2);
 
                         Scalar topX = std::min(refPoint[0] + roadWidthX[k / 2],
                                                static_cast<double>(Xlim.second));
@@ -256,7 +260,7 @@ namespace LUXETrackFinding {
 
                         //========FOR TESTING========
                         for (auto og : originSourceLinks) {
-                            unsigned int gId = og.geometryId().sensitive()/10;
+                            unsigned int gId = og.geometryId().sensitive()/10 - 1;
                             if (gId == 1) {
                                 continue;
                             }
@@ -266,9 +270,12 @@ namespace LUXETrackFinding {
                             }
                         }
                         //===========================
-                        int botLeftBin =  slMap[&lName[0]]->FindBin(botX, botZ-0.001);
-                        int rightBin =    slMap[&lName[0]]->FindBin(topX, botZ-0.001);
-                        int topRightBin = slMap[&lName[0]]->FindBin(topX, topZ+0.001);
+
+                        float binSizeX = gOpt.chipSizeX/bins.first;
+                        float binSizeZ = gOpt.chipSizeY/bins.second;
+                        int botLeftBin =  slMap[&lName[0]]->FindBin(botX-binSizeX, botZ-binSizeZ);
+                        int rightBin =    slMap[&lName[0]]->FindBin(topX, botZ-binSizeZ);
+                        int topRightBin = slMap[&lName[0]]->FindBin(topX, topZ);
 
                         int pathWidthInBins = rightBin - botLeftBin;
                         int currentBin = botLeftBin;

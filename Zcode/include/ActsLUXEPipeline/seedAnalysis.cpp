@@ -91,8 +91,10 @@ void seedAnalysis() {
     l3tree->SetBranchAddress("dz3", &dz3_data);
     l3tree->SetBranchAddress("x1", &x13_data);
 
+
+    float yMax = 3;
     // Create a 2D histogram
-    TH2F *X1DX1histogram = new TH2F("X1DX1histogram", "x1-dx1", 400, 50, 550,200,0,1.5); // Adjust binning and range as needed
+    TH2F *X1DX1histogram = new TH2F("X1DX1histogram", "x1-dx1", 400, 50, 550,200,0,yMax); // Adjust binning and range as needed
 
     // Fill the histogram from the tree
     Long64_t nEntries = l1tree->GetEntries();
@@ -101,7 +103,7 @@ void seedAnalysis() {
         X1DX1histogram->Fill(x11_data, dx1_data);
     }
 
-    TH2F *X1DZ1histogram = new TH2F("X1DZ1histogram", "x1-dz1", 400, 50, 550,200,0,1.5); // Adjust binning and range as needed
+    TH2F *X1DZ1histogram = new TH2F("X1DZ1histogram", "x1-dz1", 400, 50, 550,200,0,yMax); // Adjust binning and range as needed
 
     // Fill the histogram from the tree
     for (Long64_t i = 0; i < nEntries; ++i) {
@@ -109,7 +111,7 @@ void seedAnalysis() {
         X1DZ1histogram->Fill(x11_data, dz1_data);
     }
 
-    TH2F *X1DX2histogram = new TH2F("X1DX2histogram", "x1-dx2", 400, 50, 550,200,0,1.5); // Adjust binning and range as needed
+    TH2F *X1DX2histogram = new TH2F("X1DX2histogram", "x1-dx2", 400, 50, 550,200,0,yMax); // Adjust binning and range as needed
 
     // Fill histogram
     nEntries = l2tree->GetEntries();
@@ -118,7 +120,7 @@ void seedAnalysis() {
         X1DX2histogram->Fill(x12_data, dx2_data);
     }
 
-    TH2F *X1DZ2histogram = new TH2F("X1DZ2histogram", "x1-dz2", 400, 50, 550,200,0,1.5); // Adjust binning and range as needed
+    TH2F *X1DZ2histogram = new TH2F("X1DZ2histogram", "x1-dz2", 400, 50, 550,200,0,yMax); // Adjust binning and range as needed
 
     // Fill histogram
     for (Long64_t i = 0; i < nEntries; ++i) {
@@ -126,7 +128,7 @@ void seedAnalysis() {
         X1DZ2histogram->Fill(x12_data, dz2_data);
     }
 
-    TH2F *X1DX3histogram = new TH2F("X1DX3histogram", "x1-dx3", 400, 50, 550,200,0,1.5); // Adjust binning and range as needed
+    TH2F *X1DX3histogram = new TH2F("X1DX3histogram", "x1-dx3", 400, 50, 550,200,0,yMax); // Adjust binning and range as needed
 
     // Fill histogram
     nEntries = l3tree->GetEntries();
@@ -135,20 +137,20 @@ void seedAnalysis() {
         X1DX3histogram->Fill(x13_data, dx3_data);
     }
 
-    TH2F *X1DZ3histogram = new TH2F("X1DZ3histogram", "x1-dz3", 400, 50, 550,200,0,2); // Adjust binning and range as needed
+    TH2F *X1DZ3histogram = new TH2F("X1DZ3histogram", "x1-dz3", 400, 50, 550,200,0,yMax); // Adjust binning and range as needed
 
     // Fill histogram
     for (Long64_t i = 0; i < nEntries; ++i) {
         l3tree->GetEntry(i);
         X1DZ3histogram->Fill(x13_data, dz3_data);
     }
-
+    float Q = 100;
     TCanvas *l1_x = new TCanvas("l1_x", "x1-dx1", 800, 600);
     X1DX1histogram->Draw("colz");
     l1_x->Update();
     l1_x->Modified();
     l1_x->Draw();
-    TGraph *q95X1DX1Graph = CalculatePercentileCurve(X1DX1histogram, 95.);
+    TGraph *q95X1DX1Graph = CalculatePercentileCurve(X1DX1histogram, Q);
     q95X1DX1Graph->SetLineColor(kRed);
     q95X1DX1Graph->SetLineWidth(2);
     q95X1DX1Graph->Draw("sameL");
@@ -158,7 +160,7 @@ void seedAnalysis() {
     l1_z->Update();
     l1_z->Modified();
     l1_z->Draw();
-    TGraph *q95X1DZ1Graph = CalculatePercentileCurve(X1DZ1histogram, 95.);
+    TGraph *q95X1DZ1Graph = CalculatePercentileCurve(X1DZ1histogram, Q);
     q95X1DZ1Graph->SetLineColor(kRed);
     q95X1DZ1Graph->SetLineWidth(2);
     q95X1DZ1Graph->Draw("sameL");
@@ -168,7 +170,7 @@ void seedAnalysis() {
     l2_x->Update();
     l2_x->Modified();
     l2_x->Draw();
-    TGraph *q95X1DX2Graph = CalculatePercentileCurve(X1DX2histogram, 95.);
+    TGraph *q95X1DX2Graph = CalculatePercentileCurve(X1DX2histogram, Q);
     q95X1DX2Graph->SetLineColor(kRed);
     q95X1DX2Graph->SetLineWidth(2);
     q95X1DX2Graph->Draw("sameL");
@@ -178,7 +180,7 @@ void seedAnalysis() {
     l2_z->Update();
     l2_z->Modified();
     l2_z->Draw();
-    TGraph *q95X1DZ2Graph = CalculatePercentileCurve(X1DZ2histogram, 95.);
+    TGraph *q95X1DZ2Graph = CalculatePercentileCurve(X1DZ2histogram, Q);
     q95X1DZ2Graph->SetLineColor(kRed);
     q95X1DZ2Graph->SetLineWidth(2);
     q95X1DZ2Graph->Draw("sameL");
@@ -188,7 +190,7 @@ void seedAnalysis() {
     l3_x->Update();
     l3_x->Modified();
     l3_x->Draw();
-    TGraph *q95X1DX3Graph = CalculatePercentileCurve(X1DX3histogram, 95);
+    TGraph *q95X1DX3Graph = CalculatePercentileCurve(X1DX3histogram, Q);
     q95X1DX3Graph->SetLineColor(kRed);
     q95X1DX3Graph->SetLineWidth(2);
     q95X1DX3Graph->Draw("sameL");
@@ -198,7 +200,7 @@ void seedAnalysis() {
     l3_z->Update();
     l3_z->Modified();
     l3_z->Draw();
-    TGraph *q95X1DZ3Graph = CalculatePercentileCurve(X1DZ3histogram, 95);
+    TGraph *q95X1DZ3Graph = CalculatePercentileCurve(X1DZ3histogram, Q);
     q95X1DZ3Graph->SetLineColor(kRed);
     q95X1DZ3Graph->SetLineWidth(2);
     q95X1DZ3Graph->Draw("sameL");

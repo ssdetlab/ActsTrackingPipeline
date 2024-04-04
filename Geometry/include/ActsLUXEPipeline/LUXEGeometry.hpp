@@ -44,6 +44,7 @@ makeLayerBuilder(
         auto kdtDOpt = 
             typename Acts::Experimental::Geant4SurfaceProvider<kDim>::kdtOptions();
         for (std::size_t i = 0; i < kDim; i++) {
+            std::cout<<"get0 ranges: "<<std::get<0>(ranges[i])<<" get1 ranges: "<<std::get<1>(ranges[i])<<std::endl;
             kdtDOpt.range[i].set(
                 std::get<0>(ranges[i]), std::get<1>(ranges[i]));
             kdtDOpt.binningValues[i] = binningValues[i];

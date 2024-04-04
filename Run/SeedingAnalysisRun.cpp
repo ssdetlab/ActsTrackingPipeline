@@ -101,7 +101,7 @@ int main(int argc, char* argv[]) {
     }
 
     Acts::ActsScalar m_e = 0.000511;
-    std::vector<LUXENavigator::Measurement> results = LUXENavigator::loadMeasurementsFromFile("Zmeasurements/100k_measurements.dat"); //
+    std::vector<LUXENavigator::Measurement> results = LUXENavigator::loadMeasurementsFromFile("10k_measurements.dat"); //Zmeasurements/ AND EXTRA ZERO
     SimpleSourceLink::SurfaceAccessor SA{*detector};
     std::vector<SimpleSourceLink> sl4Seeding;
 
@@ -147,7 +147,7 @@ int main(int argc, char* argv[]) {
     std::vector<LUXETrackFinding::Seed> badSeeds;
     std::vector<SimpleSourceLink> slBatch(start,end);
     std::vector<LUXETrackFinding::Seed> seeds = LUXETrackFinding::LUXEPathSeeder(gctx, gOpt, detector, slBatch,
-                                                     "/Users/alonlevi/CLionProjects/LUXEPipeline/build"); //Zlookups
+                                                     "/Users/alonlevi/CLionProjects/LUXEPipeline/build/Zlookups/"); //
 
             SimpleSourceLink::SurfaceAccessor SAseed{*detector};
             int count = 1;
@@ -172,13 +172,18 @@ int main(int argc, char* argv[]) {
                 }
                 for (auto sl: seed.sourceLinks) {
                     if (sl.eventId > 0) {
-                        index = sl.geometryId().sensitive() / 10;
+                        index = sl.geometryId().sensitive() / 10 - 1;
                         if (L0 || index != 0) {
                             fakeCounter[index]++;
                         }
-                        if (std::count(seed.originSourceLinks.begin(), seed.originSourceLinks.end(), sl)) {
-                            counter++;
-                        }
+//                        if (std::count(seed.originSourceLinks.begin(), seed.originSourceLinks.end(), sl)) {
+//                            counter++;
+//                        }
+                    }
+                }
+                for (auto sl: seed.originSourceLinks) {
+                    if (std::count(seed.sourceLinks.begin(), seed.sourceLinks.end(), sl)) {
+                        counter++;
                     }
                 }
                 if (counter == seed.originSourceLinks.size()) {
@@ -205,17 +210,17 @@ int main(int argc, char* argv[]) {
 //    }
     std::string filename = "seed_data.root";
     analyzeSeeds(seeds,filename);
-//    for (auto s:badSeeds) {
-//        std::vector<Acts::Vector3> badPos;
-//        for (auto sl : s.originSourceLinks) {
-//            badPos.push_back(SA(sl)->
-//                    localToGlobal(gctx, sl.parameters, Acts::Vector3{0,1,0}));
-//        }
-//        for (int b=0;b<badPos.size()-1;b++)
-//        Acts::GeometryView3D::drawSegment(
-//                volumeObj,badPos[b],
-//                badPos[b+1], pConfig);
-//    }
+    for (auto s:badSeeds) {
+        std::vector<Acts::Vector3> badPos;
+        for (auto sl : s.originSourceLinks) {
+            badPos.push_back(SA(sl)->
+                    localToGlobal(gctx, sl.parameters, Acts::Vector3{0,1,0}));
+        }
+        for (int b=0;b<badPos.size()-1;b++)
+        Acts::GeometryView3D::drawSegment(
+                volumeObj,badPos[b],
+                badPos[b+1], pConfig);
+    }
     volumeObj.write("volumes.obj");
 
     // Run all configured algorithms and return the appropriate status.

@@ -99,11 +99,9 @@ int main() {
                 Acts::Transform3::Identity(), pConfig);
         for (auto& surf : vol->surfaces()) {
             std::cout<<"Assigning resolution to surface ID: "<<surf->geometryId()<<std::endl;
-//            if (vol->geometryId().volume()!=1) {
-                Acts::GeometryView3D::drawSurface(
-                        volumeObj, *(surf), gctx,
-                        Acts::Transform3::Identity(), pConfig);
-//            }
+            Acts::GeometryView3D::drawSurface(
+                    volumeObj, *(surf), gctx,
+                    Acts::Transform3::Identity(), pConfig);
             m.push_back(std::make_pair(surf->geometryId(),resPixel));
             std::cout<<"Surface x transform: "<<surf->center(gctx)[0]<<std::endl;
             std::cout<<"Surface y transform: "<<surf->center(gctx)[1]<<std::endl;

@@ -78,48 +78,8 @@ std::unordered_map<float, float> makeLookUp(TH2F* histogram, std::string filenam
     return lookupTable;
 }
 
-//std::unordered_map<float, std::vector<float>> make3DLookUp(TH3F* histogram, std::string filename) {
-//
-//    std::unordered_map<float, std::vector<float>> lookupTable;
-//    // Loop over bins to build the lookup table
-//    for (int binx = 1; binx <= histogram->GetNbinsX(); ++binx) {
-//        float x = histogram->GetXaxis()->GetBinCenter(binx);
-//        std::vector<float> y_values;
-//        std::vector<float> z_values(static_cast<size_t>(histogram->GetNbinsZ()));
-//        float cumSum=0;
-//        float ZSum;
-//        for (int biny = 1; biny <= histogram->GetNbinsY(); ++biny) {
-//            ZSum=0;
-//            for (int binz = 1; binz <= histogram->GetNbinsZ(); ++binz) {
-//                cumSum += histogram->GetBinContent(binx, biny, binz);
-//                ZSum += histogram->GetBinContent(binx, biny, binz);
-//                z_values[binz-1] = ZSum;
-//            }
-//            y_values.push_back(cumSum);
-//        }
-//        float totalSum = cumSum;
-//        auto y_it = std::lower_bound(y_values.begin(), y_values.end(), totalSum*0.5);
-//        auto z_it = std::lower_bound(z_values.begin(), z_values.end(), totalSum*0.5);
-//
-//        float Y_median = histogram->GetYaxis()->GetBinCenter(std::distance(y_values.begin(), y_it));
-//        float Z_median = histogram->GetZaxis()->GetBinCenter(std::distance(z_values.begin(), z_it));
-//        std::vector<float> v{Y_median,Z_median};
-//        lookupTable[x] = v;
-//    }
-//    FILE *lookupFile = fopen(&filename[0], "w");
-//    if (lookupFile) {
-//        for (const auto &entry : lookupTable) {
-//            fprintf(lookupFile, "%f %f %f\n", entry.first, entry.second[0], entry.second[1]);
-//        }
-//        fclose(lookupFile);
-//    } else {
-//        std::cerr << "Failed to open lookup table file for writing." << std::endl;
-//    }
-//    return lookupTable;
-//}
-
 void createHistogram() {
-    TFile *file = new TFile("Zroot_files/hist_data_o.root");
+    TFile *file = new TFile("Zroot_files/hist_data.root");
 
     // Retrieve the tree from the file
     TTree *tree;
