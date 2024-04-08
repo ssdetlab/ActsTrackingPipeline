@@ -3,10 +3,11 @@
 #include <TFile.h>
 #include <TTree.h>
 #include <TH2F.h>
-
-#include <TH3F.h>
 #include <TCanvas.h>
 #include <TBrowser.h>
+#include <TStyle.h>
+#include <TLatex.h>
+
 #include <vector>
 #include <iostream>
 
@@ -94,7 +95,7 @@ void createHistogram() {
     tree->SetBranchAddress("E", &E_data);
 
     // Create a 2D histogram
-    TH2F *EX1histogram = new TH2F("EX1histogram", "E-x1", 1500, 50, 560, 400, 0.5, 16.5); // Adjust binning and range as needed
+    TH2F *EX1histogram = new TH2F("EX1histogram", "", 1500, 50, 560, 400, 0.5, 16.5); // Adjust binning and range as needed
 
     // Fill the histogram from the tree
     Long64_t nEntries = tree->GetEntries();
@@ -103,7 +104,7 @@ void createHistogram() {
         EX1histogram->Fill(x1_data, E_data);
     }
 
-    TH2F *X1X4histogram = new TH2F("X1X4histogram", "x1-x4", 7000, 50, 480, 10000, 50, 560); // Adjust binning and range as needed
+    TH2F *X1X4histogram = new TH2F("X1X4histogram", "", 3000, 50, 480, 3000, 50, 560); // Adjust binning and range as needed
 
     // Fill histogram
     for (Long64_t i = 0; i < nEntries; ++i) {
@@ -111,7 +112,7 @@ void createHistogram() {
         X1X4histogram->Fill(x1_data, x4_data);
     }
 
-    TH2F *X1Y4histogram = new TH2F("X1Y4histogram", "x1-y4", 2500, 50, 560, 13, 4249.5125, 4262.5125); // Adjust binning and range as needed
+    TH2F *X1Y4histogram = new TH2F("X1Y4histogram", "", 2500, 50, 560, 13, 4249.5125, 4262.5125); // Adjust binning and range as needed
 
     // Fill histogram
     for (Long64_t i = 0; i < nEntries; ++i) {
@@ -119,7 +120,7 @@ void createHistogram() {
         X1Y4histogram->Fill(x1_data, y4_data);
     }
 
-    TH2F *Z1Z4histogram = new TH2F("Z1Z4histogram", "z1-z4", 200, -6, 6, 200, -6, 6); // Adjust binning and range as needed
+    TH2F *Z1Z4histogram = new TH2F("Z1Z4histogram", "", 200, -6, 6, 200, -6, 6); // Adjust binning and range as needed
 
     // Fill histogram
     for (Long64_t i = 0; i < nEntries; ++i) {
@@ -128,22 +129,32 @@ void createHistogram() {
     }
 // remove drawing for merge
 
-    TCanvas *canvas1 = new TCanvas("canvas1", "E-x1", 800, 600);
+    TCanvas *canvas1 = new TCanvas("canvas1", "", 800, 600);
     EX1histogram->Draw("colz");
+    EX1histogram->GetXaxis()->SetTitle("x_{1}[mm]");
+    EX1histogram->GetYaxis()->SetTitle("E[GeV]");
+    EX1histogram->SetTitle("E x_{1}");
+    EX1histogram->GetXaxis()->CenterTitle();
+    EX1histogram->GetYaxis()->CenterTitle();
     canvas1->Update();
     canvas1->Modified();
     canvas1->Draw();
-    TCanvas *canvas2 = new TCanvas("canvas2", "x1-x4", 800, 600);
+    TCanvas *canvas2 = new TCanvas("canvas2", "", 800, 600);
     X1X4histogram->Draw("colz");
+    X1X4histogram->GetXaxis()->SetTitle("x_{1}[mm]");
+    X1X4histogram->GetYaxis()->SetTitle("x_{L}[mm]");
+    X1X4histogram->GetXaxis()->CenterTitle();
+    X1X4histogram->GetYaxis()->CenterTitle();
+    X1X4histogram->SetTitle("x_{1} x_{L}");
     TGraph *q1EX1Graph = CalculatePercentileCurve(X1X4histogram, 5.);
     TGraph *q50EX1Graph = CalculatePercentileCurve(X1X4histogram, 50.);
     TGraph *q99EX1Graph = CalculatePercentileCurve(X1X4histogram, 95.);
     q1EX1Graph->SetLineColor(kRed);
-    q1EX1Graph->SetLineWidth(1);
+    q1EX1Graph->SetLineWidth(3);
     q50EX1Graph->SetLineColor(kBlue);
-    q50EX1Graph->SetLineWidth(2);
+    q50EX1Graph->SetLineWidth(3);
     q99EX1Graph->SetLineColor(kRed);
-    q99EX1Graph->SetLineWidth(1);
+    q99EX1Graph->SetLineWidth(3);
     q1EX1Graph->Draw("sameL");
     q50EX1Graph->Draw("sameL");
     q99EX1Graph->Draw("sameL");
@@ -152,6 +163,9 @@ void createHistogram() {
     canvas2->Draw();
     TCanvas *canvas3 = new TCanvas("canvas3", "x1-y4", 800, 600);
     X1Y4histogram->Draw("colz");
+    X1Y4histogram->GetXaxis()->SetTitle("X Axis [units]");
+    X1Y4histogram->GetYaxis()->SetTitle("Y Axis [units]");
+    X1Y4histogram->SetTitle("Title: $f(x) = e^{-x^{2}}$");
     canvas3->Update();
     canvas3->Modified();
     canvas3->Draw();

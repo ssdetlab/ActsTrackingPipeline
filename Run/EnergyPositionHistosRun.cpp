@@ -94,9 +94,9 @@ int main() {
         std::cout<<"Surfaces size: "<<vol->surfaces().size()<<std::endl;
         std::cout<<"Volume Bounds: "<<vol->volumeBounds()<<std::endl;
         std::cout<<"Volume Transformation: "<<vol->transform().translation()<<std::endl;
-        Acts::GeometryView3D::drawDetectorVolume(
-                volumeObj, *(vol), gctx,
-                Acts::Transform3::Identity(), pConfig);
+//        Acts::GeometryView3D::drawDetectorVolume(
+//                volumeObj, *(vol), gctx,
+//                Acts::Transform3::Identity(), pConfig);
         for (auto& surf : vol->surfaces()) {
             std::cout<<"Assigning resolution to surface ID: "<<surf->geometryId()<<std::endl;
             Acts::GeometryView3D::drawSurface(
@@ -127,7 +127,7 @@ int main() {
     std::vector<LUXENavigator::Measurement> results;
     Acts::ActsScalar m_e = 0.000511;
     std::size_t sourceId = 1;
-    for (int i=0;i<2000;i++) {
+    for (int i=0;i<200;i++) {
         Acts::ActsScalar px = (pDisP(gen)+pDisM(gen))/2;
         Acts::ActsScalar pz = (pDisP(gen)+pDisM(gen))/2;
         Acts::ActsScalar E = dis1(gen);
@@ -143,7 +143,7 @@ int main() {
     };
 //    saveMeasurementsToFile(results, "low_E_measurements.dat");
     std::vector<LUXENavigator::Measurement> mid_results;
-    for (int i=0;i<1000;i++) {
+    for (int i=0;i<100;i++) {
         Acts::ActsScalar px = (pDisP(gen)+pDisM(gen))/2;
         Acts::ActsScalar pz = (pDisP(gen)+pDisM(gen))/2;
         Acts::ActsScalar E = dis2(gen);
@@ -162,7 +162,7 @@ int main() {
 //    saveMeasurementsToFile(mid_results, "mid_E_measurements.dat");
 
     std::vector<LUXENavigator::Measurement> high_results;
-    for (int i=0;i<200;i++) {
+    for (int i=0;i<20;i++) {
         Acts::ActsScalar px = (pDisP(gen)+pDisM(gen))/2;
         Acts::ActsScalar pz = (pDisP(gen)+pDisM(gen))/2;
         Acts::ActsScalar E = dis3(gen);
@@ -180,14 +180,14 @@ int main() {
         sourceId++;
         if (i%2000==0) std::cout<<"High E: "<<(i*100)/20000<<"%"<<std::endl;
     };
+
 //    saveMeasurementsToFile(high_results, "high_E_measurements.dat");
 //    for (auto result : results) {
-//        std::cout<<result.globalPosition.size()<<std::endl;
 //        if (result.globalPosition.size()>1) {
-//            for (unsigned int l=0;l<result.globalPosition.size()-1;l++) {
+//            for (unsigned int l=1;l<result.fullTrack.size()-3;l++) {
 //                Acts::GeometryView3D::drawSegment(
-//                        volumeObj,result.globalPosition[l],
-//                        result.globalPosition[l+1], pConfig);
+//                        volumeObj,result.fullTrack[l],
+//                        result.fullTrack[l+1], pConfig);
 //            }
 //        }
 //    }

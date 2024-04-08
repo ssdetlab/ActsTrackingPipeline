@@ -60,9 +60,10 @@ struct MeasurementsCreator {
                            .01, 0);
             return;
         }
+
         // only generate measurements on surfaces
         if (!navigator.currentSurface(state.navigation)) {
-//            result.fullTrack.push_back(stepper.position(state.stepping));
+            result.fullTrack.push_back(stepper.position(state.stepping));
             return;
         }
         const Acts::Surface &surface = *navigator.currentSurface(state.navigation);
