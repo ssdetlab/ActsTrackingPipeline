@@ -43,18 +43,6 @@ namespace LUXETrackFinding {
         return lookupTable;
     }
 
-    std::unordered_map <Scalar, std::vector<Scalar>> read3DLookup(std::string file) {
-        std::ifstream lookupFile(&file[0]);
-        std::unordered_map <Scalar, std::vector<Scalar>> lookupTable;
-        Scalar x, y, z;
-        while (lookupFile >> x >> y >> z) {
-            std::vector<Scalar> v{y,z};
-            lookupTable[x] = v;
-        }
-        lookupFile.close();
-        return lookupTable;
-    }
-
     using Seeds = std::vector<LUXETrackFinding::Seed>;
 
     template <typename T>
