@@ -74,10 +74,6 @@ int main() {
     auto positronArmBpr = LUXEGeometry::makeBlueprintLUXE(gdmlPath, staves, gOpt);
     auto detector = LUXEGeometry::buildLUXEDetector(std::move(positronArmBpr), gctx, gOpt);
 
-    MeasurementResolution resPixel = {MeasurementType::eLoc01,
-                                      {gOpt.chipSizeX,
-                                       gOpt.chipSizeY}};
-    std::vector<std::pair<Acts::GeometryIdentifier,MeasurementResolution>> m;
     Acts::ViewConfig pConfig = Acts::s_viewSensitive;
     Acts::ObjVisualization3D volumeObj;
     for (auto& vol : detector->rootVolumes()) {
@@ -94,14 +90,12 @@ int main() {
                     volumeObj, *(surf), gctx,
                     Acts::Transform3::Identity(), pConfig);
 //            }
-            m.push_back(std::make_pair(surf->geometryId(),resPixel));
             std::cout<<"Surface x transform: "<<surf->center(gctx)[0]<<std::endl;
             std::cout<<"Surface y transform: "<<surf->center(gctx)[1]<<std::endl;
             std::cout<<"Surface z transform: "<<surf->center(gctx)[2]<<std::endl;
             std::cout<<"Surface bounds: "<<surf->bounds()<<std::endl;
         }
     }
-    MeasurementResolutionMap resolutions = m;
 
     auto propagator = LUXENavigator::makePropagator<Acts::EigenStepper<>>(detector, BFieldPtr);
 
@@ -128,8 +122,7 @@ int main() {
         Acts::ActsScalar theta = std::acos(pz / p);
         Acts::ActsScalar phi = std::atan2(py, px);
         results.push_back(LUXENavigator::createMeasurements(propagator, gctx, mctx,
-                                                            LUXENavigator::makeParameters(p,phi,theta),
-                                                            resolutions,sourceId));
+                                                            LUXENavigator::makeParameters(p,phi,theta),sourceId));
         sourceId++;
         if (i%(N_events/10)==0) {
             std::cout<<"Completed: "<<(i*100)/N_events<<"%"<<std::endl;

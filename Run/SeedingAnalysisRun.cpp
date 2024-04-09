@@ -81,10 +81,6 @@ int main(int argc, char* argv[]) {
     auto positronArmBpr = LUXEGeometry::makeBlueprintLUXE(gdmlPath, staves, gOpt);
     auto detector = LUXEGeometry::buildLUXEDetector(std::move(positronArmBpr), gctx, gOpt);
 
-    MeasurementResolution resPixel = {MeasurementType::eLoc01,
-                                      {gOpt.chipSizeX,
-                                       gOpt.chipSizeY}};
-    std::vector<std::pair<Acts::GeometryIdentifier,MeasurementResolution>> m;
     Acts::ViewConfig pConfig = Acts::s_viewSensitive;
     Acts::ObjVisualization3D volumeObj;
     for (auto& vol : detector->rootVolumes()) {
@@ -92,7 +88,6 @@ int main(int argc, char* argv[]) {
                 Acts::GeometryView3D::drawSurface(
                         volumeObj, *(surf), gctx,
                         Acts::Transform3::Identity(), pConfig);
-            m.push_back(std::make_pair(surf->geometryId(),resPixel));
             std::cout<<"Surface x transform: "<<surf->center(gctx)[0]<<std::endl;
             std::cout<<"Surface y transform: "<<surf->center(gctx)[1]<<std::endl;
             std::cout<<"Surface z transform: "<<surf->center(gctx)[2]<<std::endl;
@@ -109,9 +104,7 @@ int main(int argc, char* argv[]) {
     std::mt19937 gen(rd());
     std::uniform_real_distribution<> fake_x(-gOpt.chipSizeX/2,gOpt.chipSizeX/2);
     std::uniform_real_distribution<> fake_y(-gOpt.chipSizeY/2,gOpt.chipSizeY/2);
-
-
-
+    
     for (auto& result:results) {
         for (unsigned int l=0;l<result.sourceLinks.size();l++) {
             sl4Seeding.push_back(result.sourceLinks[l]);

@@ -35,7 +35,6 @@ namespace LUXENavigator {
 struct MeasurementsCreator {
 
     using result_type = Measurement;
-    MeasurementResolutionMap resolutions;
     std::size_t sourceId = 0;
 
     /// @brief Operator that is callable by an ActionList. The function
@@ -73,13 +72,6 @@ struct MeasurementsCreator {
             ACTS_VERBOSE("Create no measurements on non-sensitive surface " << geoId);
             return;
         }
-        // only generate measurements if a resolution is configured
-        auto found = resolutions.find(geoId);
-        if (found == resolutions.end()) {
-            ACTS_VERBOSE("No resolution configured for sensitive surface " << geoId);
-            return;
-        }
-        const MeasurementResolution &resolution = *found;
         // Apply global to local
         Acts::Vector3 pos3 = stepper.position(state.stepping);
         Acts::Vector2 loc =
@@ -144,7 +136,7 @@ Measurement createMeasurements(const propagator_t& propagator,
                                 const Acts::GeometryContext& geoCtx,
                                 const Acts::MagneticFieldContext& magCtx,
                                 const track_parameters_t& trackParameters,
-                                const MeasurementResolutionMap& resolutions,
+//                                const MeasurementResolutionMap& resolutions,
                                 std::size_t sourceId = 0u) {
     using namespace Acts::UnitLiterals;
     using Actions = Acts::ActionList<LUXENavigator::MeasurementsCreator>;
@@ -154,7 +146,7 @@ Measurement createMeasurements(const propagator_t& propagator,
     Acts::PropagatorOptions<Actions, Aborters> options(geoCtx, magCtx);
 
     auto& creator = options.actionList.get<LUXENavigator::MeasurementsCreator>();
-    creator.resolutions = resolutions;
+//    creator.resolutions = resolutions;
     creator.sourceId = sourceId;
 
     // Launch and collect the measurements

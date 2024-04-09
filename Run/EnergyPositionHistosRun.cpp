@@ -84,10 +84,6 @@ int main() {
      auto positronArmBpr = LUXEGeometry::makeBlueprintLUXE(gdmlPath, names, gOpt);
      auto detector = LUXEGeometry::buildLUXEDetector(std::move(positronArmBpr), gctx, gOpt);
 
-    MeasurementResolution resPixel = {MeasurementType::eLoc01,
-                                      {gOpt.chipSizeX,
-                                       gOpt.chipSizeY}};
-    std::vector<std::pair<Acts::GeometryIdentifier,MeasurementResolution>> m;
     Acts::ViewConfig pConfig = Acts::s_viewSensitive;
     Acts::ObjVisualization3D volumeObj;
     for (auto& vol : detector->rootVolumes()) {
@@ -102,7 +98,6 @@ int main() {
             Acts::GeometryView3D::drawSurface(
                     volumeObj, *(surf), gctx,
                     Acts::Transform3::Identity(), pConfig);
-            m.push_back(std::make_pair(surf->geometryId(),resPixel));
             std::cout<<"Surface x transform: "<<surf->center(gctx)[0]<<std::endl;
             std::cout<<"Surface y transform: "<<surf->center(gctx)[1]<<std::endl;
             std::cout<<"Surface z transform: "<<surf->center(gctx)[2]<<std::endl;
@@ -110,7 +105,6 @@ int main() {
         }
     }
 
-    MeasurementResolutionMap resolutions = m;
 
     auto propagator = LUXENavigator::makePropagator<Acts::EigenStepper<>>(detector, BFieldPtr);
     std::random_device rd;
@@ -136,8 +130,7 @@ int main() {
         Acts::ActsScalar theta = std::acos(pz / p);
         Acts::ActsScalar phi = std::atan2(py, px);
         results.push_back(LUXENavigator::createMeasurements(propagator, gctx, mctx,
-                                                            LUXENavigator::makeParameters(p,phi,theta),
-                                                            resolutions,sourceId));
+                                                            LUXENavigator::makeParameters(p,phi,theta),sourceId));
         sourceId++;
         if (i%20000==0) std::cout<<"Low E: "<<(i*100)/200000<<"%"<<std::endl;
     };
@@ -152,8 +145,7 @@ int main() {
         Acts::ActsScalar theta = std::acos(pz / p);
         Acts::ActsScalar phi = std::atan2(py, px);
         auto mid_res = LUXENavigator::createMeasurements(propagator, gctx, mctx,
-                                                     LUXENavigator::makeParameters(p,phi,theta),
-                                                     resolutions,sourceId);
+                                                     LUXENavigator::makeParameters(p,phi,theta),sourceId);
         results.push_back(mid_res);
         mid_results.push_back(mid_res);
         sourceId++;
@@ -173,8 +165,7 @@ int main() {
 //        std::cout<<"Initial 4p : "<<px<<" "<<py<<" "<<pz<<std::endl;
 //        std::cout<<"Initial dir : "<<phi<<" "<<theta<<std::endl;
         auto high_res = LUXENavigator::createMeasurements(propagator, gctx, mctx,
-                                                         LUXENavigator::makeParameters(p,phi,theta),
-                                                         resolutions,sourceId);
+                                                         LUXENavigator::makeParameters(p,phi,theta),sourceId);
         results.push_back(high_res);
         high_results.push_back(high_res);
         sourceId++;
@@ -182,15 +173,15 @@ int main() {
     };
 
 //    saveMeasurementsToFile(high_results, "high_E_measurements.dat");
-//    for (auto result : results) {
-//        if (result.globalPosition.size()>1) {
-//            for (unsigned int l=1;l<result.fullTrack.size()-3;l++) {
-//                Acts::GeometryView3D::drawSegment(
-//                        volumeObj,result.fullTrack[l],
-//                        result.fullTrack[l+1], pConfig);
-//            }
-//        }
-//    }
+    for (auto result : results) {
+        if (result.globalPosition.size()>1) {
+            for (unsigned int l=1;l<result.fullTrack.size()-3;l++) {
+                Acts::GeometryView3D::drawSegment(
+                        volumeObj,result.fullTrack[l],
+                        result.fullTrack[l+1], pConfig);
+            }
+        }
+    }
 
     std::string filename = "hist_data_o.root";
     HistogramDatawriter(results,filename,gOpt);
