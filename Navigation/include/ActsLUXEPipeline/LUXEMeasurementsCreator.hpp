@@ -136,19 +136,17 @@ namespace LUXENavigator {
             Acts::BoundSquareMatrix resetCov = Acts::BoundSquareMatrix::Identity();
             scatteredParameters[Acts::eBoundPhi] = tempParticle.phi();
             scatteredParameters[Acts::eBoundTheta] = tempParticle.theta();
-
             stepper.resetState(state.stepping, scatteredParameters, resetCov, surface);
-            SimpleSourceLink sl(loc, cov, geoId, sourceId);
+            SimpleSourceLink simpleSL(loc, cov, geoId, sourceId);
+            Acts::SourceLink sl(simpleSL);
             LUXEDataContainer::SimMeasurement SM{sl, scatteredParameters, trueVertex, static_cast<int>(sourceId)};
             result.push_back(SM);
-
         }
     };
 /// Propagate the track create smeared measurements from local coordinates.
 
     class MeasurementsCreator : public IAlgorithm {
     public:
-
         /// @brief The nested configuration struct
         struct Config {
             /// The output collection
@@ -207,14 +205,12 @@ namespace LUXENavigator {
             std::normal_distribution<> pDisP(0.002,0.0018);
             std::normal_distribution<> pDisM(-0.002,0.0018);
             std::gamma_distribution<double> pzDis(3, 1.2);
-            std::uniform_real_distribution<> uni(2.2,2.3);
 
             Acts::ActsScalar m_e = 0.000511;
             LUXEDataContainer::SimMeasurements results;
             Acts::ActsScalar px = (pDisP(gen)+pDisM(gen))/2;
             Acts::ActsScalar pz = (pDisP(gen)+pDisM(gen))/2;
             Acts::ActsScalar py = pzDis(gen)+1;
-//              Acts::ActsScalar py = uni(gen);
             Acts::ActsScalar p = std::sqrt(std::pow(px,2)+std::pow(py,2)+std::pow(pz,2));
             Acts::ActsScalar E = std::hypot(p,m_e);
             Acts::ActsScalar theta = std::acos(pz / p);
@@ -235,9 +231,7 @@ namespace LUXENavigator {
                     propagator, ctx,
                     Acts::CurvilinearTrackParameters(mPos4, phi*180/M_PI*1_degree, theta*180/M_PI*1_degree,
                                                      1_e / (p*1_GeV), ipCov, Acts::ParticleHypothesis::electron()));
-
             m_outputMeasurements(ctx, std::move(results));
-
             return ProcessCode::SUCCESS;
         }
 

@@ -13,7 +13,7 @@ namespace LUXEDataContainer {
 struct SimMeasurement {
     /// Source link to be used in the
     /// subsequent algorithms
-    SimpleSourceLink sourceLink;
+    Acts::SourceLink sourceLink;
     /// The truth parameters 
     Acts::BoundVector truthParameters;
     /// True vertex 
@@ -28,7 +28,7 @@ using SimMeasurements = std::vector<SimMeasurement>;
 struct Seed {
     /// Source links related
     /// to the seed measurements
-    std::vector<SimpleSourceLink> sourceLinks;
+    std::vector<Acts::SourceLink> sourceLinks;
     /// IP parameters
     Acts::CurvilinearTrackParameters ipParameters;
 };

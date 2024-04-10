@@ -60,6 +60,8 @@ add_subdirectory(TrackFinding)
 add_subdirectory(TrackFitting)
 add_subdirectory(MagneticField)
 add_subdirectory(EventData)
+
+add_subdirectory(Navigation)
 add_subdirectory(Visualization)
 if (LUXEPipeline_BUILD_GEOMETRY)
     add_subdirectory(Geometry)
