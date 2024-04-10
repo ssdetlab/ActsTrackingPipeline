@@ -16,21 +16,6 @@
 /// Propagator action to create measurements.
 namespace LUXENavigator {
 
-    enum class MeasurementType {
-        eLoc0,
-        eLoc1,
-        eLoc01,
-    };
-    struct MeasurementResolution {
-        MeasurementType type = MeasurementType::eLoc0;
-        // Depending on the type, only the first value is used.
-        std::array<double, 2> stddev = {15 * Acts::UnitConstants::um, 15 * Acts::UnitConstants::um};
-    };
-
-/// Measurement resolution configuration for a full detector geometry.
-    using MeasurementResolutionMap =
-            Acts::GeometryHierarchyMap<MeasurementResolution>;
-
 /// Result struct for generated measurements and outliers.
     struct Measurement {
         unsigned int eventId;
