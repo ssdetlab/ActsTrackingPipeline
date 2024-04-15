@@ -3,6 +3,8 @@
 #include "ActsLUXEPipeline/LUXEBinnedMagneticField.hpp"
 #include "ActsLUXEPipeline/ConstantBoundedField.hpp"
 #include "ActsLUXEPipeline/LUXEMeasurementsCreator.hpp"
+
+#include "ActsLUXEPipeline/LUXELookupTableMaker.hpp"
 #include "Acts/Utilities/Logger.hpp"
 #include <filesystem>
 
@@ -21,7 +23,7 @@ int main() {
 
     // setup the sequencer first w/ config derived from options
     Sequencer::Config seqCfg;
-    seqCfg.events = 10;
+    seqCfg.events = 100;
     seqCfg.numThreads = 1;
     Sequencer sequencer(seqCfg);
 
@@ -77,6 +79,9 @@ int main() {
     sequencer.addAlgorithm(
         std::make_shared<LUXENavigator::MeasurementsCreator>(mcCfg, logLevel));
 
+    LookupTableMaker::Config ltCfg{mcCfg.outputCollection,gOpt,mcCfg.detector};
+    sequencer.addAlgorithm(
+            std::make_shared<LookupTableMaker>(ltCfg, logLevel));
 
     return sequencer.run();
 //    return 0;
