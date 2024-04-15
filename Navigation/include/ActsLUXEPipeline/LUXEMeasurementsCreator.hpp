@@ -15,6 +15,8 @@
 #include "Acts/Geometry/GeometryContext.hpp"
 #include "Acts/Geometry/GeometryHierarchyMap.hpp"
 #include "Acts/MagneticField/MagneticFieldContext.hpp"
+
+#include "Acts/MagneticField/MagneticFieldProvider.hpp"
 #include "Acts/Propagator/EigenStepper.hpp"
 #include "Acts/Propagator/AbortList.hpp"
 #include "Acts/Propagator/ActionList.hpp"
@@ -75,7 +77,6 @@ namespace LUXENavigator {
 
             // only generate measurements on surfaces
             if (!navigator.currentSurface(state.navigation)) {
-//                result.fullTrack.push_back(stepper.position(state.stepping));
                 return;
             }
 
@@ -154,7 +155,7 @@ namespace LUXENavigator {
             // detector
             std::shared_ptr<const Acts::Experimental::Detector> detector;
             // variable bins magnetic field
-            std::shared_ptr<Acts::InterpolatedBFieldMap<LUXEMagneticField::vGrid>> BFieldPtr;
+            std::shared_ptr<Acts::MagneticFieldProvider> BFieldPtr;
         };
 
         /// @brief Constructor
@@ -206,7 +207,7 @@ namespace LUXENavigator {
             std::normal_distribution<> pDisM(-0.002,0.0018);
             std::gamma_distribution<double> pzDis(3, 1.2);
 
-            Acts::ActsScalar m_e = 0.000511;
+            Acts::ActsScalar m_e = 0.511 * 1_MeV;
             LUXEDataContainer::SimMeasurements results;
             Acts::ActsScalar px = (pDisP(gen)+pDisM(gen))/2;
             Acts::ActsScalar pz = (pDisP(gen)+pDisM(gen))/2;
@@ -229,7 +230,7 @@ namespace LUXENavigator {
                     std::move(stepper), std::move(navigator));
             results = createMeasurements(
                     propagator, ctx,
-                    Acts::CurvilinearTrackParameters(mPos4, phi*180/M_PI*1_degree, theta*180/M_PI*1_degree,
+                    Acts::CurvilinearTrackParameters(mPos4, phi, theta,
                                                      1_e / (p*1_GeV), ipCov, Acts::ParticleHypothesis::electron()));
             m_outputMeasurements(ctx, std::move(results));
             return ProcessCode::SUCCESS;
