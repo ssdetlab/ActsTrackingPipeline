@@ -1,4 +1,4 @@
-find_package(ROOT COMPONENTS Tree REQUIRED)
+find_package(ROOT COMPONENTS Core Tree Hist Gpad REQUIRED)
 
 # Includes for Acts are propagated
 # through the library linking
@@ -18,6 +18,9 @@ target_link_libraries(
         ActsLUXEPipelineCore
         PUBLIC
         ActsCore
+        ROOT::Core
         ROOT::Tree
+        ROOT::Hist
+        ROOT::Gpad
 )
       

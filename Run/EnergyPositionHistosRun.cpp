@@ -3,8 +3,9 @@
 #include "ActsLUXEPipeline/LUXEBinnedMagneticField.hpp"
 #include "ActsLUXEPipeline/ConstantBoundedField.hpp"
 #include "ActsLUXEPipeline/LUXEMeasurementsCreator.hpp"
-
-#include "ActsLUXEPipeline/LUXELookupTableMaker.hpp"
+#include "ActsLUXEPipeline/AlgorithmContext.hpp"
+#include "ActsLUXEPipeline/LookupDataWriter.hpp"
+#include "ActsLUXEPipeline/LookupMaker.hpp"
 #include "Acts/Utilities/Logger.hpp"
 #include <filesystem>
 
@@ -79,10 +80,14 @@ int main() {
     sequencer.addAlgorithm(
         std::make_shared<LUXENavigator::MeasurementsCreator>(mcCfg, logLevel));
 
-    LookupTableMaker::Config ltCfg{mcCfg.outputCollection,gOpt,mcCfg.detector};
+    LookupDataWriter::Config lookupWriterCfg{mcCfg.outputCollection,gOpt,mcCfg.detector};
     sequencer.addAlgorithm(
-            std::make_shared<LookupTableMaker>(ltCfg, logLevel));
+            std::make_shared<LookupDataWriter>(lookupWriterCfg, logLevel));
 
-    return sequencer.run();
-//    return 0;
+    sequencer.run();
+
+    LookupMaker::Config lookupMakerCfg{lookupWriterCfg.filename};
+    auto lMaker = std::make_shared<LookupMaker>(lookupMakerCfg);
+    lMaker->execute();
+    return 0;
 }

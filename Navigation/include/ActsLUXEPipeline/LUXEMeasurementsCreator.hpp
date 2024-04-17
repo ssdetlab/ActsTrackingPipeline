@@ -7,7 +7,7 @@
 #include "ActsLUXEPipeline/LUXESimpleSourceLink.hpp"
 #include "ActsLUXEPipeline/IAlgorithm.hpp"
 #include "ActsLUXEPipeline/LUXEEffectiveMaterial.hpp"
-#include "ActsLUXEPipeline/LUXEMeasurement.hpp"
+#include "ActsLUXEPipeline/SimMeasurementBoostIO.hpp"
 
 #include "ActsLUXEPipeline/DataHandle.hpp"
 

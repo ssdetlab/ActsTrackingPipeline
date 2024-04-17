@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Acts/EventData/SourceLink.hpp"
-
 #include "ActsLUXEPipeline/IAlgorithm.hpp"
 #include "ActsLUXEPipeline/DataHandle.hpp"
 #include "ActsLUXEPipeline/LUXESimpleSourceLink.hpp"
@@ -19,13 +18,8 @@
 #include <vector>
 #include <iostream>
 
-/// @brief The ideal seeder for the LUXE simulation
-/// takes the the SimMeasurements and converts them 
-/// into seeds
-
-class LookupTableMaker : public IAlgorithm {
+class LookupDataWriter : public IAlgorithm {
     public:
-
         struct ROOTMeasurement {
             unsigned int id;
             float x1;
@@ -52,15 +46,15 @@ class LookupTableMaker : public IAlgorithm {
 
 
         /// @brief Constructor
-        LookupTableMaker(Config config, Acts::Logging::Level level)
-            : IAlgorithm("LookupTableMaker", level),
+        LookupDataWriter(Config config, Acts::Logging::Level level)
+            : IAlgorithm("LookupDataWriter", level),
             m_cfg(std::move(config)) {
                 m_inputMeasurements.initialize(m_cfg.inputCollection);
                 ACTS_VERBOSE("Constructing lookup table...");
                 m_cfg.file = new TFile(&m_cfg.filename[0],"recreate");
         }
 
-        ~LookupTableMaker() = default;
+        ~LookupDataWriter() = default;
 
         /// @brief The execute method        
         ProcessCode execute(const AlgorithmContext& ctx) const override {
@@ -69,7 +63,6 @@ class LookupTableMaker : public IAlgorithm {
             // Get the input measurements
             // from the context
             auto input = m_inputMeasurements(ctx);
-
 
             TTree* tree = dynamic_cast<TTree*>(m_cfg.file->Get("basic_tree"));
             ROOTMeasurement s;
@@ -120,4 +113,6 @@ class LookupTableMaker : public IAlgorithm {
 
         ReadDataHandle<LUXEDataContainer::SimMeasurements> m_inputMeasurements
             {this, "InputMeasurements"};
+
+
 };
