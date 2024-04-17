@@ -21,8 +21,8 @@ int main() {
 
     // setup the sequencer first w/ config derived from options
     Sequencer::Config seqCfg;
-    seqCfg.events = 10;
-    seqCfg.numThreads = 1;
+    seqCfg.events = 1000;
+    seqCfg.numThreads = -1;
     Sequencer sequencer(seqCfg);
 
 //    LUXEROOTReader::LUXEROOTSimDataReader::Config readerCfg

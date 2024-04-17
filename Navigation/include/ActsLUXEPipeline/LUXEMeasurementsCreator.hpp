@@ -7,7 +7,7 @@
 #include "ActsLUXEPipeline/LUXESimpleSourceLink.hpp"
 #include "ActsLUXEPipeline/IAlgorithm.hpp"
 #include "ActsLUXEPipeline/LUXEEffectiveMaterial.hpp"
-#include "ActsLUXEPipeline/LUXEMeasurement.hpp"
+#include "ActsLUXEPipeline/SimMeasurementBoostIO.hpp"
 
 #include "ActsLUXEPipeline/DataHandle.hpp"
 
@@ -68,10 +68,11 @@ namespace LUXENavigator {
                               stepper.position(state.stepping)[2],
                               stepper.time(state.stepping)};
             }
-            if (state.steps > 100) {
-                std::cout<<"Too many steps, discarding run"<<std::endl;
-                stepper.update(state.stepping, Acts::Vector3{0,0,0}, Acts::Vector3{0,1,0},
-                               .01, 0);
+            if (state.steps > state.options.maxSteps - 1) {
+                ACTS_INFO("Run exceeded max steps, discarding");
+//                stepper.update(state.stepping, Acts::Vector3{0,0,0}, Acts::Vector3{0,1,0},
+//                               .01, 0);
+                state.navigation.navigationBreak = true;
                 return;
             }
 
@@ -119,18 +120,18 @@ namespace LUXENavigator {
             Acts::BoundVector scatteredParameters = parameters;
             ActsFatras::Particle beforeParticle = tempParticle;
             for (auto material:layerMaterials) {
-                float p1 = tempParticle.absoluteMomentum();
+//                float p1 = tempParticle.absoluteMomentum();
                 auto scatter = scattering(gen, material, tempParticle);
                 auto BBLoss = BBProcess(gen, material, tempParticle);
                 auto BHLoss = BHProcess(gen, material, tempParticle);
-                float p2 = tempParticle.absoluteMomentum();
-                if (p2 < p1/2) {
-                    scatteredParameters[Acts::eBoundQOverP] =
-                            beforeParticle.charge()/(0.999*beforeParticle.absoluteMomentum());
-                } else {
+//                float p2 = tempParticle.absoluteMomentum();
+//                if (p2 < p1/2) {
+//                    scatteredParameters[Acts::eBoundQOverP] =
+//                            beforeParticle.charge()/(0.999*beforeParticle.absoluteMomentum());
+//                } else {
                     scatteredParameters[Acts::eBoundQOverP] =
                             tempParticle.charge()/tempParticle.absoluteMomentum();
-                }
+//                }
             }
 
             Acts::SquareMatrix2 cov = Acts::SquareMatrix2::Identity();
