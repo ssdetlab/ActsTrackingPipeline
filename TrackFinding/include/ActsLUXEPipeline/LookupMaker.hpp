@@ -1,4 +1,5 @@
 #pragma once
+#pragma link C++ namespace LookupMaker
 
 #include <TFile.h>
 #include <TTree.h>
@@ -6,7 +7,6 @@
 #include <TH2D.h>
 #include <TInterpreter.h>
 #include <TROOT.h>
-
 #include <vector>
 #include <iostream>
 
@@ -107,6 +107,7 @@ class LookupMaker {
             }
 
             TH2D *X1Y4histogram = new TH2D("X1Y4histogram", "", 2500, 50, 560, 13, 4249.5125, 4262.5125); // Adjust binning and range as needed
+
             // Fill histogram
             for (Long64_t i = 0; i < nEntries; ++i) {
                 tree->GetEntry(i);

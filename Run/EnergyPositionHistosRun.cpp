@@ -15,7 +15,7 @@ using namespace Acts::UnitLiterals;
 /// a uniform energy spectrum and record the
 /// energy vs position histograms for each layer
 int main() {
-    Acts::Logging::Level logLevel = Acts::Logging::VERBOSE;
+    Acts::Logging::Level logLevel = Acts::Logging::INFO;
 
     const std::vector<std::pair<Acts::ActsScalar,Acts::ActsScalar>> MagneticFieldBounds =
         {std::make_pair(-1000_mm,1000_mm),
@@ -24,7 +24,7 @@ int main() {
 
     // setup the sequencer first w/ config derived from options
     Sequencer::Config seqCfg;
-    seqCfg.events = 100;
+    seqCfg.events = 10000;
     seqCfg.numThreads = 1;
     Sequencer sequencer(seqCfg);
 

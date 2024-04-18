@@ -1,4 +1,4 @@
-find_package(ROOT COMPONENTS Core Tree Hist Gpad REQUIRED)
+find_package(ROOT COMPONENTS Core Tree Hist Gpad Net RIO REQUIRED)
 
 # Includes for Acts are propagated
 # through the library linking
@@ -22,5 +22,7 @@ target_link_libraries(
         ROOT::Tree
         ROOT::Hist
         ROOT::Gpad
+        ROOT::Net
+        ROOT::RIO
 )
       
