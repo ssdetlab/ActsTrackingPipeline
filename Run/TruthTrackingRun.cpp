@@ -41,7 +41,6 @@ int main() {
     // --------------------------------------------------------------
     // LUXE detector setup
 
-
     // Set the path to the gdml file
     // and the names of the volumes to be converted
     std::string gdmlPath = 
@@ -56,6 +55,10 @@ int main() {
 
     for (auto& vol : detector->rootVolumes()) {
         std::cout << "Volume: " << vol->name() << " = " << vol->surfaces().size() << std::endl;
+        for (auto& surf : vol->surfaces()) {
+            std::cout << "Surface: (" << surf->center(gctx).transpose() << ") = (" << surf->normal(gctx,surf->center(gctx),Acts::Vector3(0,1,0)).transpose() << ")" << std::endl;
+
+        }
     }
 
 
@@ -208,6 +211,25 @@ int main() {
             Propagator, 
             Trajectory, 
             TrackContainer>>(fitterCfg, logLevel));
+
+    // --------------------------------------------------------------
+    // Event visualization
+
+    // Add the event visualizer to the sequencer
+    EventVisualizer::Config visCfg{
+        .inputCollectionSeeds = "SimSeeds",
+        .inputCollectionTracks = "SimTracks",
+        .outputPath = "Tracks.obj",
+        .nTracks = 100,
+        .detector = detector.get(),
+        .visualizeVolumes = false,
+        .visualizeHits = true,
+        .visualizeTracks = true
+    };
+
+    sequencer.addAlgorithm(
+        std::make_shared<EventVisualizer>(visCfg, logLevel));
+
 
     // --------------------------------------------------------------
     // Run all configured algorithms and return the appropriate status.
