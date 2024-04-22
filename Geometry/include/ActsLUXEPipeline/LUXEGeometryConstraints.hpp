@@ -100,7 +100,7 @@ namespace LUXEGeometry {
         const Acts::Vector3 armTranslation{
             0_mm, 0_mm, (staveZ.at(7) + staveZ.at(0))/2};
 
-        // Layer volumes encapsulating the staves
+        /// Layer volumes encapsulating the staves
         const Acts::ActsScalar deltaZ = 
             (staveZ.at(0) - staveZ.at(1))/2 + 1_mm;
 
