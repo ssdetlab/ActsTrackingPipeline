@@ -1,5 +1,8 @@
-find_package(ROOT COMPONENTS Core Tree Hist Gpad Net RIO REQUIRED)
-
+#
+# Include the geometry component
+# to the pipeline core
+#
+find_package(Boost REQUIRED COMPONENTS serialization)
 # Includes for Acts are propagated
 # through the library linking
 target_include_directories(
@@ -7,22 +10,19 @@ target_include_directories(
         PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
 
-
 # Sources
 target_sources(
         ActsLUXEPipelineCore
         PRIVATE
+        #        src/LUXEMNavigator.cpp
 )
 
+# For now we assume that the pipeline
+# always uses the Geant4 plugin
 target_link_libraries(
         ActsLUXEPipelineCore
         PUBLIC
         ActsCore
-        ROOT::Core
-        ROOT::Tree
-        ROOT::Hist
-        ROOT::Gpad
-        ROOT::Net
-        ROOT::RIO
+        ActsFatras
+        Boost::serialization
 )
-      
