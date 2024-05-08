@@ -24,4 +24,7 @@ class IWriter : public SequenceElement {
 
         /// Fulfil the algorithm interface
         ProcessCode initialize() override { return ProcessCode::SUCCESS; }
+
+        /// Fulfil the algorithm interface
+        ProcessCode finalize() override { return ProcessCode::SUCCESS; }
 };

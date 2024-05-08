@@ -1,12 +1,12 @@
 #pragma once
 
-#include "Acts/EventData/SourceLink.hpp"
-
 #include "ActsLUXEPipeline/IAlgorithm.hpp"
 #include "ActsLUXEPipeline/DataHandle.hpp"
-#include "ActsLUXEPipeline/LUXESimpleSourceLink.hpp"
-#include "ActsLUXEPipeline/LUXEDataContainers.hpp"
+#include "ActsLUXEPipeline/SimpleSourceLink.hpp"
+#include "ActsLUXEPipeline/DataContainers.hpp"
 #include "ActsLUXEPipeline/LUXEGeometryConstraints.hpp"
+
+#include "Acts/EventData/SourceLink.hpp"
 
 /// @brief The ideal seeder for the LUXE simulation
 /// takes the the SimMeasurements and converts them 
@@ -66,7 +66,7 @@ class IdealSeeder : public IAlgorithm {
                 ipStdDev.cwiseProduct(ipStdDev).asDiagonal();
 
             // Create the seeds
-            LUXEDataContainer::Seeds seeds;
+            Seeds seeds;
             std::vector<Acts::SourceLink> sourceLinks;
             for (auto it = input.begin(); it != input.end() - 1; ++it) {
                 if (it->trackId == (it + 1)->trackId) {
@@ -95,8 +95,8 @@ class IdealSeeder : public IAlgorithm {
 
                     // Add the seed to the list
                     // and reset the source links
-                    seeds.push_back(LUXEDataContainer::Seed
-                        {sourceLinks, ipParameters});
+                    seeds.push_back(Seed
+                        {sourceLinks, ipParameters, it->trackId});
                     sourceLinks.clear();
                 }
             }
@@ -112,8 +112,8 @@ class IdealSeeder : public IAlgorithm {
                 Acts::ParticleHypothesis::electron());
 
             // Add the last seed
-            seeds.push_back(LUXEDataContainer::Seed
-                {sourceLinks, ipParameters});
+            seeds.push_back(Seed
+                {sourceLinks, ipParameters, input.back().trackId});
 
             m_outputSeeds(ctx, std::move(seeds));
 
@@ -125,9 +125,9 @@ class IdealSeeder : public IAlgorithm {
     private:
         Config m_cfg;
 
-        ReadDataHandle<LUXEDataContainer::SimMeasurements> m_inputMeasurements
+        ReadDataHandle<SimMeasurements> m_inputMeasurements
             {this, "InputMeasurements"};
 
-        WriteDataHandle<LUXEDataContainer::Seeds> m_outputSeeds
+        WriteDataHandle<Seeds> m_outputSeeds
             {this, "OutputSeeds"};
 };

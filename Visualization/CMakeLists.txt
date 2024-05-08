@@ -11,19 +11,12 @@ target_include_directories(
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
 
 # Sources
-target_sources(
-    ActsLUXEPipelineCore
-    PRIVATE
-    src/IAlgorithm.cpp
-    src/Sequencer.cpp
-    src/WhiteBoard.cpp
-    src/SequenceElement.cpp
-    src/RandomNumbers.cpp)
+# target_sources(
+    # ActsLUXEPipelineCore
+    # PRIVATE
+    # src/SequenceElement.cpp)
 
 target_link_libraries(
     ActsLUXEPipelineCore
     PUBLIC
-    TBB::tbb
-    ROOT::Core
-    ActsCore
-    ActsPluginFpeMonitoring)
+    ActsCore)

@@ -1,8 +1,9 @@
 #pragma once
 
-#include "Acts/Utilities/ThrowAssert.hpp"
 #include "ActsLUXEPipeline/SequenceElement.hpp"
 #include "ActsLUXEPipeline/WhiteBoard.hpp"
+
+#include "Acts/Utilities/ThrowAssert.hpp"
 
 #include <iostream>
 #include <stdexcept>

@@ -1,6 +1,5 @@
 #pragma once
 
-
 #include "Acts/MagneticField/MagneticFieldProvider.hpp"
 #include "Acts/Definitions/Algebra.hpp"
 #include "Acts/MagneticField/InterpolatedBFieldMap.hpp"
@@ -10,8 +9,6 @@
 #include <vector>
 #include <functional>
 #include <tuple>
-
-namespace LUXEMagneticField {
 
 using vBins = std::vector<std::double_t>;
 using eBins = std::tuple<std::double_t, std::double_t, std::size_t>;
@@ -90,5 +87,3 @@ Acts::InterpolatedBFieldMap<eGrid> buildBinnedBField(
     const fieldTransform& transformBField,
     const eGridOptions& gridOpt,
     const Acts::MagneticFieldContext& mctx); 
-
-} // namespace LUXEMagneticField

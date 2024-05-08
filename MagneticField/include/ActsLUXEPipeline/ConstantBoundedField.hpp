@@ -3,8 +3,6 @@
 #include "Acts/MagneticField/MagneticFieldProvider.hpp"
 #include "Acts/Geometry/Extent.hpp"
 
-namespace LUXEMagneticField {
-
 /// @brief Constant magnetic field with bounded region
 ///
 /// This class provides a constant magnetic field within a
@@ -78,5 +76,3 @@ class ConstantBoundedField : public Acts::MagneticFieldProvider {
         /// magnetic field extent
         Acts::Extent m_Extent;
 };
-
-} // namespace LUXEMagneticField

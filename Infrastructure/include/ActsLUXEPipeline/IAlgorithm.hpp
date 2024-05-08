@@ -2,6 +2,7 @@
 
 #include "ActsLUXEPipeline/ProcessCode.hpp"
 #include "ActsLUXEPipeline/SequenceElement.hpp"
+
 #include "Acts/Utilities/Logger.hpp"
 
 #include <memory>
