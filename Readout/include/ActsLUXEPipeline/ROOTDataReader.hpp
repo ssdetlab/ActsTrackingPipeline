@@ -1,13 +1,13 @@
 #pragma once
 
-#include "Acts/Utilities/Logger.hpp"
-#include "Acts/EventData/SourceLink.hpp"
-#include "Acts/Definitions/TrackParametrization.hpp"
-
 #include "ActsLUXEPipeline/IReader.hpp"
 #include "ActsLUXEPipeline/ProcessCode.hpp"
 #include "ActsLUXEPipeline/AlgorithmContext.hpp"
 #include "ActsLUXEPipeline/DataHandle.hpp"
+
+#include "Acts/Utilities/Logger.hpp"
+#include "Acts/EventData/SourceLink.hpp"
+#include "Acts/Definitions/TrackParametrization.hpp"
 
 #include "TChain.h"
 #include "TVector3.h"

@@ -1,16 +1,16 @@
 #pragma once
 
+#include "ActsLUXEPipeline/IAlgorithm.hpp"
+#include "ActsLUXEPipeline/DataHandle.hpp"
+#include "ActsLUXEPipeline/SimpleSourceLink.hpp"
+#include "ActsLUXEPipeline/DataContainers.hpp"
+
 #include "Acts/EventData/SourceLink.hpp"
 #include "Acts/TrackFitting/KalmanFitter.hpp"
 #include "Acts/TrackFitting/GainMatrixSmoother.hpp"
 #include "Acts/TrackFitting/GainMatrixUpdater.hpp"
 #include "Acts/EventData/VectorTrackContainer.hpp"
 #include "Acts/EventData/ProxyAccessor.hpp"
-
-#include "ActsLUXEPipeline/IAlgorithm.hpp"
-#include "ActsLUXEPipeline/DataHandle.hpp"
-#include "ActsLUXEPipeline/LUXESimpleSourceLink.hpp"
-#include "ActsLUXEPipeline/LUXEDataContainers.hpp"
 
 template <typename propagator_t,
 typename trajectory_t = Acts::VectorMultiTrajectory,
@@ -48,14 +48,21 @@ class TrackFitter : public IAlgorithm {
             auto trackStateContainer = std::make_shared<trajectory_t>();
             Acts::TrackContainer tracks(trackContainer, trackStateContainer);
 
+            std::vector<std::int32_t> trackIds;
+
             for (const auto& seed : input) {
                 auto start = seed.ipParameters;
                 auto sourceLinks = seed.sourceLinks;
+                
                 auto res = m_cfg.fitter.fit(sourceLinks.begin(), sourceLinks.end(), 
                     start, m_cfg.kfOptions, tracks);
-
+                
+                trackIds.push_back(seed.trackId);
             }
-            m_outputTracks(ctx, std::move(tracks));
+            auto outTracks = Tracks<container_t, trajectory_t>{
+                tracks, trackIds};
+
+            m_outputTracks(ctx, std::move(outTracks));
 
             return ProcessCode::SUCCESS;
         }
@@ -65,12 +72,10 @@ class TrackFitter : public IAlgorithm {
     private:
         Config m_cfg;
 
-        ReadDataHandle<LUXEDataContainer::Seeds> m_inputSeeds
+        ReadDataHandle<Seeds> m_inputSeeds
             {this, "InputSeeds"};
 
-        WriteDataHandle<
-            Acts::TrackContainer<
-                container_t,
-                trajectory_t,
-                std::shared_ptr>> m_outputTracks{this, "OutputTracks"};
+        WriteDataHandle<Tracks<
+            container_t, trajectory_t>> m_outputTracks
+            {this, "OutputTracks"};
 };

@@ -1,8 +1,5 @@
 #include "ActsLUXEPipeline/Sequencer.hpp"
 
-#include "Acts/Plugins/FpeMonitoring/FpeMonitor.hpp"
-#include "Acts/Utilities/Helpers.hpp"
-#include "Acts/Utilities/Logger.hpp"
 #include "ActsLUXEPipeline/AlgorithmContext.hpp"
 #include "ActsLUXEPipeline/DataHandle.hpp"
 #include "ActsLUXEPipeline/IAlgorithm.hpp"
@@ -12,6 +9,10 @@
 #include "ActsLUXEPipeline/ProcessCode.hpp"
 #include "ActsLUXEPipeline/SequenceElement.hpp"
 #include "ActsLUXEPipeline/WhiteBoard.hpp"
+
+#include "Acts/Plugins/FpeMonitoring/FpeMonitor.hpp"
+#include "Acts/Utilities/Helpers.hpp"
+#include "Acts/Utilities/Logger.hpp"
 
 #include <algorithm>
 #include <atomic>

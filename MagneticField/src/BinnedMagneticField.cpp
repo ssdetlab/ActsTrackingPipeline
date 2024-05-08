@@ -1,6 +1,4 @@
-#include "ActsLUXEPipeline/LUXEBinnedMagneticField.hpp"
-
-namespace LUXEMagneticField {
+#include "ActsLUXEPipeline/BinnedMagneticField.hpp"
 
 Acts::InterpolatedBFieldMap<vGrid> buildBinnedBField(
     const Acts::MagneticFieldProvider& mFieldVal,
@@ -73,5 +71,3 @@ Acts::InterpolatedBFieldMap<eGrid> buildBinnedBField(
     
         return bField;
 }
-
-} // namespace LUXEMagneticField

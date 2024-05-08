@@ -2,6 +2,7 @@
 
 #include "Acts/Definitions/Algebra.hpp"
 #include "Acts/Definitions/Units.hpp"
+#include "Acts/Utilities/BinUtility.hpp"
 
 #include "G4Transform3D.hh" 
 #include "G4ThreeVector.hh"
@@ -128,6 +129,16 @@ namespace LUXEGeometry {
         const G4Transform3D g4ToWorld = G4Transform3D(
             CLHEP::HepRotationX(M_PI_2), 
             G4ThreeVector(0, 0, 0));
+
+        // Path to the material file
+        const std::string materialPath = "";
+
+        // Material binning for the surfaces
+        const Acts::BinUtility materialBinningX = 
+            Acts::BinUtility(16, -chipSizeX/2, chipSizeX/2, Acts::closed, Acts::binX);
+
+        const Acts::BinUtility materialBinningY = 
+            Acts::BinUtility(8, -chipSizeY/2, chipSizeY/2, Acts::closed, Acts::binY);
     };
 
 } // namespace LUXEGeometry
