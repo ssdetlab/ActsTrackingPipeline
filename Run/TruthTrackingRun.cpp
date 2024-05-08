@@ -1,14 +1,14 @@
 #include "ActsLUXEPipeline/LUXEROOTDataReader.hpp"
 #include "ActsLUXEPipeline/LUXEGeometry.hpp"
-#include "ActsLUXEPipeline/LUXEIdealSeeder.hpp"
-#include "ActsLUXEPipeline/LUXETrackFitter.hpp"
+#include "ActsLUXEPipeline/IdealSeeder.hpp"
+#include "ActsLUXEPipeline/TrackFitter.hpp"
 #include "ActsLUXEPipeline/ConstantBoundedField.hpp"
 #include "ActsLUXEPipeline/Sequencer.hpp"
 #include "ActsLUXEPipeline/EventVisualizer.hpp" 
+#include "ActsLUXEPipeline/ROOTFittedTrackWriter.hpp"
 
 #include "Acts/Navigation/DetectorNavigator.hpp"
 #include "Acts/Propagator/EigenStepper.hpp"
-
 
 #include <filesystem>
 
@@ -30,7 +30,7 @@ using namespace Acts::UnitLiterals;
 
 int main() {
     // Set the log level
-    Acts::Logging::Level logLevel = Acts::Logging::VERBOSE;
+    Acts::Logging::Level logLevel = Acts::Logging::INFO;
 
     // Dummy context and options
     Acts::GeometryContext gctx;
@@ -47,11 +47,13 @@ int main() {
         "/home/romanurmanov/lab/LUXE/acts_LUXE_tracking/ActsLUXEPipeline_gdmls/lxgeomdump_stave_positron.gdml";
     std::vector<std::string> names{"OPPPSensitive"};
 
+    std::string materialPath = "/home/romanurmanov/lab/LUXE/acts_LUXE_tracking/ActsLUXEPipeline_build/material.json";
+
     // Build the LUXE detector
     auto trackerBP = 
         LUXEGeometry::makeBlueprintLUXE(gdmlPath, names, gOpt);
     auto detector =
-        LUXEGeometry::buildLUXEDetector(std::move(trackerBP), gctx, gOpt);
+        LUXEGeometry::buildLUXEDetector(std::move(trackerBP), gctx, gOpt, materialPath, {});
 
     for (auto& vol : detector->rootVolumes()) {
         std::cout << "Volume: " << vol->name() << " = " << vol->surfaces().size() << std::endl;
@@ -60,7 +62,6 @@ int main() {
 
         }
     }
-
 
     // --------------------------------------------------------------
     // The magnetic field setup
@@ -80,7 +81,7 @@ int main() {
         gOpt.dipoleTranslation[2] - gOpt.dipoleBounds[2] + gOpt.constantFieldDelta[2],
         gOpt.dipoleTranslation[2] + gOpt.dipoleBounds[2] - gOpt.constantFieldDelta[2]);
 
-    auto field = std::make_shared<LUXEMagneticField::ConstantBoundedField>(
+    auto field = std::make_shared<ConstantBoundedField>(
         Acts::Vector3(0., 0., -1.2_T),
         dipoleExtent);
 
@@ -90,7 +91,7 @@ int main() {
     // Setup the sequencer
     Sequencer::Config seqCfg;
     seqCfg.events = 10;
-    seqCfg.numThreads = -1;
+    seqCfg.numThreads = 16;
     Sequencer sequencer(seqCfg);
 
     // Add the sim data reader
@@ -125,6 +126,18 @@ int main() {
     // Process only the first event
     readerCfg.filePaths = std::vector<std::string>(
         readerCfg.filePaths.begin(), readerCfg.filePaths.begin() + 72); 
+    readerCfg.energyCuts = {1_GeV, 100_GeV};
+
+    // Vertex position extent in the already rotated frame
+    Acts::Extent vertexExtent;
+    vertexExtent.set(
+        Acts::binX, -150_cm, 150_cm);
+    vertexExtent.set(
+        Acts::binZ, -150_cm, 150_cm);
+    vertexExtent.set(
+        Acts::binY, -150_cm, 150_cm);
+
+    readerCfg.vertexPosExtent = vertexExtent;
 
     // Add the reader to the sequencer
     sequencer.addReader(
@@ -139,8 +152,8 @@ int main() {
     IdealSeeder::Config seederCfg{
         .inputCollection = "SimMeasurements",
         .outputCollection = "SimSeeds",
-        .minHits = 4,
-        .maxHits = 4,
+        .minHits = 3,
+        .maxHits = 10,
         .gOpt = gOpt
     };
     sequencer.addAlgorithm(
@@ -212,24 +225,35 @@ int main() {
             Trajectory, 
             TrackContainer>>(fitterCfg, logLevel));
 
-    // --------------------------------------------------------------
-    // Event visualization
 
-    // Add the event visualizer to the sequencer
-    EventVisualizer::Config visCfg{
-        .inputCollectionSeeds = "SimSeeds",
-        .inputCollectionTracks = "SimTracks",
-        .outputPath = "Tracks.obj",
-        .nTracks = 100,
-        .detector = detector.get(),
-        .visualizeVolumes = false,
-        .visualizeHits = true,
-        .visualizeTracks = true
+    // // --------------------------------------------------------------
+    // // Event visualization
+
+    // // Add the event visualizer to the sequencer
+    // EventVisualizer::Config visCfg{
+        // .inputCollectionSeeds = "SimSeeds",
+        // .inputCollectionTracks = "SimTracks",
+        // .outputPath = "Tracks.obj",
+        // .nTracks = 100,
+        // .detector = detector.get(),
+        // .visualizeVolumes = false,
+        // .visualizeHits = true,
+        // .visualizeTracks = true
+    // };
+
+    // sequencer.addAlgorithm(
+        // std::make_shared<EventVisualizer>(visCfg, logLevel));
+
+    auto trackWriterCfg = ROOTFittedTrackWriter::Config{
+        "SimTracks",
+        "fitted-tracks",
+        "fitted-tracks.root",
+        3,
+        10
     };
 
-    sequencer.addAlgorithm(
-        std::make_shared<EventVisualizer>(visCfg, logLevel));
-
+    sequencer.addWriter(
+        std::make_shared<ROOTFittedTrackWriter>(trackWriterCfg, logLevel));
 
     // --------------------------------------------------------------
     // Run all configured algorithms and return the appropriate status.

@@ -1,10 +1,11 @@
 #pragma once
 
-#include "Acts/Definitions/Units.hpp"
 #include "ActsLUXEPipeline/ROOTDataReader.hpp"
 #include "ActsLUXEPipeline/LUXEGeometryConstraints.hpp"
-#include "ActsLUXEPipeline/LUXESimpleSourceLink.hpp"
-#include "ActsLUXEPipeline/LUXEDataContainers.hpp"
+#include "ActsLUXEPipeline/SimpleSourceLink.hpp"
+#include "ActsLUXEPipeline/DataContainers.hpp"
+
+#include "Acts/Definitions/Units.hpp"
 
 namespace LUXEROOTReader {
 
@@ -54,15 +55,17 @@ TLorentzVector convertToIP(
 /// @note Covariance is implemented as a diagonal matrix
 /// of ALPIDE intrinsic resolutions
 class LUXEROOTSimDataReader : 
-    public ROOTDataReader<LUXEDataContainer::SimMeasurements> {
+    public ROOTDataReader<SimMeasurements> {
         public:
             /// @brief The configuration struct
             struct Config 
-                : public ROOTDataReader<LUXEDataContainer::SimMeasurements>::Config{
+                : public ROOTDataReader<SimMeasurements>::Config{
                     /// The geometry options
                     LUXEGeometry::GeometryOptions gOpt;
+                    /// Vertex cuts
+                    Acts::Extent vertexPosExtent;
                     /// Energy cuts
-                    std::tuple<Acts::ActsScalar, Acts::ActsScalar> energyCuts = 
+                    std::pair<Acts::ActsScalar, Acts::ActsScalar> energyCuts = 
                         {8 * Acts::UnitConstants::GeV, 100 * Acts::UnitConstants::GeV};
             };
 
@@ -81,11 +84,11 @@ class LUXEROOTSimDataReader :
 
             Acts::RotationMatrix3 m_actsToWorld;
 
-            std::tuple<Acts::ActsScalar, Acts::ActsScalar> m_energyCuts;
+            std::pair<Acts::ActsScalar, Acts::ActsScalar> m_energyCuts;
 
             inline void prepareMeasurements(
                 const AlgorithmContext &context, 
-                LUXEDataContainer::SimMeasurements* measurements) const override {
+                SimMeasurements* measurements) const override {
                     // Check if the event number is correct
                     auto eventId = m_intColumns.at("eventId");
                     if (eventId != context.eventNumber) {
@@ -116,8 +119,20 @@ class LUXEROOTSimDataReader :
                     Acts::ActsScalar me = 0.511 * Acts::UnitConstants::MeV;
                     for (int idx = 0; idx < hits->size(); idx++) {
                         // Apply the cuts
-                        if (mom->at(idx).E() < std::get<0>(m_energyCuts) || 
-                            mom->at(idx).E() > std::get<1>(m_energyCuts)) {
+                        if (mom->at(idx).E() < m_energyCuts.first || 
+                            mom->at(idx).E() > m_energyCuts.second) {
+                            continue;
+                        }
+
+                        // Convert the vertex
+                        Acts::Vector3 trueVertex3 = 
+                            {vertices->at(idx).X() * Acts::UnitConstants::mm, 
+                            vertices->at(idx).Y() * Acts::UnitConstants::mm, 
+                            vertices->at(idx).Z() * Acts::UnitConstants::mm};
+                        trueVertex3 = 
+                            m_actsToWorld * trueVertex3;
+
+                        if (!m_cfg.vertexPosExtent.contains(trueVertex3)) {
                             continue;
                         }
 
@@ -134,15 +149,6 @@ class LUXEROOTSimDataReader :
 
                         const Acts::Vector2 trueHitLoc = 
                             convertToLoc(trueHitGlob, geoId, m_cfg.gOpt);
-
-                        // Convert the vertex
-                        Acts::Vector3 trueVertex3 = 
-                            {vertices->at(idx).X() * Acts::UnitConstants::mm, 
-                            vertices->at(idx).Y() * Acts::UnitConstants::mm, 
-                            vertices->at(idx).Z() * Acts::UnitConstants::mm};
-
-                        trueVertex3 = 
-                            m_actsToWorld * trueVertex3;
 
                         // KF accepts 4D vectors
                         Acts::Vector4 trueVertex = 
@@ -178,7 +184,7 @@ class LUXEROOTSimDataReader :
                         Acts::SourceLink sl{ssl};
     
                         // Fill the measurement
-                        LUXEDataContainer::SimMeasurement measurement{
+                        SimMeasurement measurement{
                             .sourceLink = sl,
                             .truthParameters = truthPars,
                             .trueVertex = trueVertex,

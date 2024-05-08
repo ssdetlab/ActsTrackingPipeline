@@ -1,12 +1,13 @@
 #pragma once
 
-#include "Acts/Plugins/FpeMonitoring/FpeMonitor.hpp"
 #include "ActsLUXEPipeline/IAlgorithm.hpp"
 #include "ActsLUXEPipeline/IContextDecorator.hpp"
 #include "ActsLUXEPipeline/IReader.hpp"
 #include "ActsLUXEPipeline/IWriter.hpp"
 #include "ActsLUXEPipeline/SequenceElement.hpp"
 #include "ActsLUXEPipeline/tbbWrap.hpp"
+
+#include "Acts/Plugins/FpeMonitoring/FpeMonitor.hpp"
 #include "Acts/Utilities/Logger.hpp"
 
 #include <cstddef>
