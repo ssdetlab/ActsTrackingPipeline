@@ -2,99 +2,123 @@
 #include "ActsLUXEPipeline/LUXEGeometry.hpp"
 #include "ActsLUXEPipeline/BinnedMagneticField.hpp"
 #include "ActsLUXEPipeline/ConstantBoundedField.hpp"
-#include "ActsLUXEPipeline/LUXEMeasurementsCreator.hpp"
+#include "ActsLUXEPipeline/MeasurementsCreator.hpp"
 #include "ActsLUXEPipeline/AlgorithmContext.hpp"
 #include "ActsLUXEPipeline/LookupDataWriter.hpp"
 #include "ActsLUXEPipeline/LookupMaker.hpp"
+#include "ActsLUXEPipeline/Generators.hpp"
+
 #include "Acts/Utilities/Logger.hpp"
+
 #include <filesystem>
 
 using namespace Acts::UnitLiterals;
+
+using Propagator = Acts::Propagator<
+    Acts::EigenStepper<>, 
+    Acts::Experimental::DetectorNavigator>;
+using TrackParameters = Acts::CurvilinearTrackParameters;
 
 /// @brief Run the propagation through 
 /// a uniform energy spectrum and record the
 /// energy vs position histograms for each layer
 int main() {
-
+    // Set the log level
     Acts::Logging::Level logLevel = Acts::Logging::INFO;
 
+    // Dummy context and options
+    Acts::GeometryContext gctx;
+    Acts::MagneticFieldContext mctx;
+    Acts::CalibrationContext cctx;
+    LUXEGeometry::GeometryOptions gOpt;
 
-//     const std::vector<std::pair<Acts::ActsScalar,Acts::ActsScalar>> MagneticFieldBounds =
-//         {std::make_pair(-1000_mm,1000_mm),
-//             std::make_pair(1450_mm,2650_mm),
-//             std::make_pair(-100_mm,100_mm)};
+    // --------------------------------------------------------------
+    // LUXE detector setup
 
+    // Set the path to the gdml file
+    // and the names of the volumes to be converted
+    std::string gdmlPath = 
+        "/home/romanurmanov/lab/LUXE/acts_LUXE_tracking/ActsLUXEPipeline_gdmls/lxgeomdump_stave_positron.gdml";
+    std::vector<std::string> names{"OPPPSensitive"};
 
-    // setup the sequencer first w/ config derived from options
+    std::string materialPath = "/home/romanurmanov/lab/LUXE/acts_LUXE_tracking/ActsLUXEPipeline_build/material.json";
+
+    // Build the LUXE detector
+    auto trackerBP = 
+        LUXEGeometry::makeBlueprintLUXE(gdmlPath, names, gOpt);
+    auto detector =
+        LUXEGeometry::buildLUXEDetector(std::move(trackerBP), gctx, gOpt, materialPath, {});
+
+    // --------------------------------------------------------------
+    // The magnetic field setup
+
+    // Extent in already rotated frame
+    Acts::Extent dipoleExtent;
+    dipoleExtent.set(
+        Acts::binX, 
+        gOpt.dipoleTranslation[0] - gOpt.dipoleBounds[0] + gOpt.constantFieldDelta[0],
+        gOpt.dipoleTranslation[0] + gOpt.dipoleBounds[0] - gOpt.constantFieldDelta[0]);
+    dipoleExtent.set(
+        Acts::binZ,
+        gOpt.dipoleTranslation[1] - gOpt.dipoleBounds[1] + gOpt.constantFieldDelta[1],
+        gOpt.dipoleTranslation[1] + gOpt.dipoleBounds[1] - gOpt.constantFieldDelta[1]);
+    dipoleExtent.set(
+        Acts::binY,
+        gOpt.dipoleTranslation[2] - gOpt.dipoleBounds[2] + gOpt.constantFieldDelta[2],
+        gOpt.dipoleTranslation[2] + gOpt.dipoleBounds[2] - gOpt.constantFieldDelta[2]);
+
+    auto field = std::make_shared<ConstantBoundedField>(
+        Acts::Vector3(0., 0., -1.2_T),
+        dipoleExtent);
+
+    // --------------------------------------------------------------
+    // Event creation 
+
+    // Setup the sequencer
     Sequencer::Config seqCfg;
     seqCfg.events = 10000;
     seqCfg.numThreads = 1;
+    seqCfg.trackFpes = false;
     Sequencer sequencer(seqCfg);
 
+    Acts::Experimental::DetectorNavigator::Config navCfg;
+    navCfg.detector = detector.get();
+    navCfg.resolvePassive = false;
+    navCfg.resolveMaterial = true;
+    navCfg.resolveSensitive = true;
 
-// //    LUXEROOTReader::LUXEROOTSimDataReader::Config readerCfg
-// //        = LUXEROOTReader::defaultSimConfig();
-// //    readerCfg.dataCollection = "SourceLink";
-// //    std::string pathToDir = "/home/romanurmanov/lab/LUXE/acts_LUXE_tracking/ActsLUXEPipeline_dataInRootFormat/SignalNextTrial_e1gpc_10.0_1";
-//     // map (x,y,z) -> (x,y,z)
-//     auto transformPos = [&](const Acts::Vector3& pos) {
-//         for (int i=0;i<3;i++) {
-//             if (pos[i] < MagneticFieldBounds[i].first ||
-//                 pos[i] > MagneticFieldBounds[i].second) {
-//                 return Acts::Vector3{0,1400,0};
-//             }
-//         }
-//         return pos;
-//     };
+    Acts::Experimental::DetectorNavigator navigator(
+        navCfg, 
+        Acts::getDefaultLogger(
+            "DetectorNavigator", 
+            logLevel));
+    Acts::EigenStepper<> stepper(field);
 
-//     // map (Bx,By,Bz) -> (Bx,By,Bz)
-//     auto transformBField = [](const Acts::Vector3& field, const Acts::Vector3&) {
-//         return field;
-//     };
+    auto propagator = 
+        Propagator(std::move(stepper), std::move(navigator));
 
+    MeasurementsCreator::Config mcCfg;
+    mcCfg.outputCollection = "Measurements";
+    mcCfg.vertexGenerator = std::make_shared<StationaryVertexGenerator>();
+    mcCfg.momentumGenerator = std::make_shared<LUXESimParticle::LUXEMomentumGenerator>();
+    mcCfg.randomNumberSvc = std::make_shared<RandomNumbers>(RandomNumbers::Config());
 
-    LUXEMagneticField::vGridOptions gridOpt;
-    gridOpt.xBins = {-1000,-1, 0.,200, 999,1000.};
-    gridOpt.yBins = {1300,1400,1450,1451, 2050.,2649,2650.,2651};
-    gridOpt.zBins = {-101,-100, 0.,1, 100, 101.};
-
-
-//     // Build the LUXE detector
-//     std::string gdmlPath = "lxgeomdump_stave_positron.gdml";
-//     std::vector<std::string> names = {"OPPPSensitive"};
-//     Acts::GeometryContext gctx;
-//     Acts::MagneticFieldContext mctx;
-//     LUXEGeometry::GeometryOptions gOpt;
-//     double B_z = 0.95_T;
-
-//     Acts::Extent dipoleExtent;
-//     dipoleExtent.set(Acts::binX, -1000_mm, 1000_mm);
-//     dipoleExtent.set(Acts::binY, 1450_mm, 2650_mm);
-//     dipoleExtent.set(Acts::binZ, -100_mm, 100_mm);
-
-
-    auto BField = LUXEMagneticField::buildBinnedBField(
-        LUXEMagneticField::ConstantBoundedField(Acts::Vector3(0., 0., B_z), dipoleExtent),
-        transformPos, transformBField, gridOpt, mctx);
-
-    auto positronArmBpr = LUXEGeometry::makeBlueprintLUXE(gdmlPath, names, gOpt);
-    auto detector = LUXEGeometry::buildLUXEDetector(std::move(positronArmBpr), gctx, gOpt);
-
-    LUXENavigator::MeasurementsCreator::Config mcCfg;
-    mcCfg.detector = detector;
-    mcCfg.BFieldPtr = std::make_shared<Acts::InterpolatedBFieldMap<LUXEMagneticField::vGrid>>(BField);
     sequencer.addAlgorithm(
-        std::make_shared<LUXENavigator::MeasurementsCreator>(mcCfg, logLevel));
+        std::make_shared<MeasurementsCreator>(
+                propagator, mcCfg, logLevel));
 
-    LookupDataWriter::Config lookupWriterCfg{mcCfg.outputCollection,gOpt,mcCfg.detector};
-    sequencer.addAlgorithm(
-            std::make_shared<LookupDataWriter>(lookupWriterCfg, logLevel));
+    LookupDataWriter::Config lookupWriterCfg{
+        mcCfg.outputCollection,
+        gOpt,
+        detector};
+    sequencer.addWriter(
+        std::make_shared<LookupDataWriter>(lookupWriterCfg, logLevel));
 
     sequencer.run();
 
-    LookupMaker::Config lookupMakerCfg{lookupWriterCfg.filename};
-    auto lMaker = std::make_shared<LookupMaker>(lookupMakerCfg);
-    lMaker->execute();
+    // LookupMaker::Config lookupMakerCfg{lookupWriterCfg.filename};
+    // auto lMaker = std::make_shared<LookupMaker>(lookupMakerCfg);
+    // lMaker->execute();
 
     return 0;
 }

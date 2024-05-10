@@ -25,8 +25,6 @@ class IdealSeeder : public IAlgorithm {
             /// The maximum number of hits
             /// for a seed to be created
             std::uint32_t maxHits = 4;
-            /// Geometry options
-            const LUXEGeometry::GeometryOptions& gOpt;
         };
 
         /// @brief Constructor

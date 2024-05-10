@@ -98,10 +98,10 @@ class ROOTFittedTrackWriter : public IWriter {
             }
         }
     
-        /// Reader name() method
+        /// Writer name() method
         std::string name() const { return "ROOTFittedTrackWriter"; }
     
-        /// Read out data from the input stream
+        /// Write out data to the input stream
         ProcessCode write(const AlgorithmContext &ctx) override {
             auto inputTracks = m_inputTracks(ctx);
 
