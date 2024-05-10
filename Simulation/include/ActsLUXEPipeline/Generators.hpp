@@ -47,15 +47,14 @@ namespace LUXESimParticle {
     struct LUXEMomentumGenerator : public IMomentumGenerator {
         LUXEGeometry::GeometryOptions gOpt;
         
-        Acts::ActsScalar meanP = 2 * 1_MeV;
-        Acts::ActsScalar sigmaP = 1.8 * 1_MeV;
+        Acts::ActsScalar meanP = 2_MeV;
+        Acts::ActsScalar sigmaP = 1.8_MeV;
 
-        Acts::ActsScalar meanM = -2 * 1_MeV;
-        Acts::ActsScalar sigmaM = 1.8 * 1_MeV;
+        Acts::ActsScalar meanM = -2_MeV;
+        Acts::ActsScalar sigmaM = 1.8_MeV;
 
-        Acts::ActsScalar shapeZ = 3;
-        Acts::ActsScalar scaleZ = 1.2;
-
+        Acts::ActsScalar shapeZ = 3_GeV;
+        Acts::ActsScalar scaleZ = 1.2_GeV;
 
         Acts::Vector3 gen(RandomEngine rng) const override {
             std::normal_distribution<Acts::ActsScalar> pDisP(meanP, sigmaP);
