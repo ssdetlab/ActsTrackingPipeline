@@ -5,30 +5,13 @@
 #include "ActsLUXEPipeline/ProcessCode.hpp"
 #include "ActsLUXEPipeline/IMaterialWriter.hpp"
 #include "ActsLUXEPipeline/RandomNumbers.hpp"
+#include "ActsLUXEPipeline/Generators.hpp"
 
 #include "Acts/Definitions/Algebra.hpp"
 #include "Acts/Geometry/GeometryContext.hpp"
 #include "Acts/Material/MaterialInteraction.hpp"
 #include "Acts/Material/MaterialValidater.hpp"
 #include "Acts/Utilities/Logger.hpp"
-
-struct IVertexGenerator {
-    virtual Acts::Vector3 generateVertex(RandomEngine rng) = 0;
-};
-
-struct UniformVertexGenerator : public IVertexGenerator {
-    Acts::Vector3 mins{0., 0., 0.};
-    Acts::Vector3 maxs{0., 0., 0.};
-
-    Acts::Vector3 generateVertex(RandomEngine rng) override {
-        std::uniform_real_distribution<Acts::ActsScalar> uniform;
-        Acts::Vector3 vertex{
-            uniform(rng),
-            uniform(rng),
-            uniform(rng)};
-        return mins + vertex.cwiseProduct(maxs - mins);
-    }
-};
 
 /// @class MaterialValidation
 ///

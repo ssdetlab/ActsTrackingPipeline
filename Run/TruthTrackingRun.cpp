@@ -4,7 +4,6 @@
 #include "ActsLUXEPipeline/TrackFitter.hpp"
 #include "ActsLUXEPipeline/ConstantBoundedField.hpp"
 #include "ActsLUXEPipeline/Sequencer.hpp"
-#include "ActsLUXEPipeline/EventVisualizer.hpp" 
 #include "ActsLUXEPipeline/ROOTFittedTrackWriter.hpp"
 
 #include "Acts/Navigation/DetectorNavigator.hpp"
@@ -55,14 +54,6 @@ int main() {
     auto detector =
         LUXEGeometry::buildLUXEDetector(std::move(trackerBP), gctx, gOpt, materialPath, {});
 
-    for (auto& vol : detector->rootVolumes()) {
-        std::cout << "Volume: " << vol->name() << " = " << vol->surfaces().size() << std::endl;
-        for (auto& surf : vol->surfaces()) {
-            std::cout << "Surface: (" << surf->center(gctx).transpose() << ") = (" << surf->normal(gctx,surf->center(gctx),Acts::Vector3(0,1,0)).transpose() << ")" << std::endl;
-
-        }
-    }
-
     // --------------------------------------------------------------
     // The magnetic field setup
 
@@ -92,6 +83,7 @@ int main() {
     Sequencer::Config seqCfg;
     seqCfg.events = 10;
     seqCfg.numThreads = 16;
+    seqCfg.trackFpes = false;
     Sequencer sequencer(seqCfg);
 
     // Add the sim data reader
@@ -147,14 +139,12 @@ int main() {
     // --------------------------------------------------------------
     // Seed finding 
 
-
     // Add the ideal seeder to the sequencer
     IdealSeeder::Config seederCfg{
         .inputCollection = "SimMeasurements",
         .outputCollection = "SimSeeds",
         .minHits = 3,
         .maxHits = 10,
-        .gOpt = gOpt
     };
     sequencer.addAlgorithm(
         std::make_shared<IdealSeeder>(seederCfg, logLevel));
@@ -226,23 +216,8 @@ int main() {
             TrackContainer>>(fitterCfg, logLevel));
 
 
-    // // --------------------------------------------------------------
-    // // Event visualization
-
-    // // Add the event visualizer to the sequencer
-    // EventVisualizer::Config visCfg{
-        // .inputCollectionSeeds = "SimSeeds",
-        // .inputCollectionTracks = "SimTracks",
-        // .outputPath = "Tracks.obj",
-        // .nTracks = 100,
-        // .detector = detector.get(),
-        // .visualizeVolumes = false,
-        // .visualizeHits = true,
-        // .visualizeTracks = true
-    // };
-
-    // sequencer.addAlgorithm(
-        // std::make_shared<EventVisualizer>(visCfg, logLevel));
+    // --------------------------------------------------------------
+    // Event write out
 
     auto trackWriterCfg = ROOTFittedTrackWriter::Config{
         "SimTracks",

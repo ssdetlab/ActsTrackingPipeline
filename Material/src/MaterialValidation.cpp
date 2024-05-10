@@ -52,7 +52,7 @@ ProcessCode MaterialValidation::execute(
             auto rMaterial = m_cfg.materialValidater->recordMaterial(
                 context.geoContext, 
                 context.magFieldContext, 
-                m_cfg.startPosition->generateVertex(rng),
+                m_cfg.startPosition->gen(rng),
                 direction);
         
             recordedMaterialTracks.emplace_hint(

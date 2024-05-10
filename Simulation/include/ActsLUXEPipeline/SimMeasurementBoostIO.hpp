@@ -1,9 +1,10 @@
 #pragma once
 
-#include "Acts/Definitions/Algebra.hpp"
-#include "ActsLUXEPipeline/LUXESimpleSourceLink.hpp"
-#include "ActsLUXEPipeline/LUXEDataContainers.hpp"
+#include "ActsLUXEPipeline/SimpleSourceLink.hpp"
+#include "ActsLUXEPipeline/DataContainers.hpp"
 #include "ActsLUXEPipeline/LUXEEffectiveMaterial.hpp"
+
+#include "Acts/Definitions/Algebra.hpp"
 #include "Acts/Geometry/GeometryHierarchyMap.hpp"
 
 #include <vector>
@@ -46,7 +47,7 @@ namespace LUXENavigator {
                 trueVertexZ(),
                 trueVertexT() {}
 
-        MeasurementComponents(LUXEDataContainer::SimMeasurement m) :
+        MeasurementComponents(SimMeasurement m) :
                 eId(m.sourceLink.get<SimpleSourceLink>().eventId),
                 gId(m.sourceLink.get<SimpleSourceLink>().geometryId().sensitive()),
                 l0(m.sourceLink.get<SimpleSourceLink>().parameters[0]),
@@ -78,7 +79,7 @@ namespace LUXENavigator {
         }
     };
 
-    void saveMeasurementsToFile(const LUXEDataContainer::SimMeasurements& measurements, const std::string& filename) {
+    void saveMeasurementsToFile(const SimMeasurements& measurements, const std::string& filename) {
         std::ofstream ofs(filename, std::ios::binary);
         if (!ofs) {
             std::cerr << "Error opening file for writing: " << filename << std::endl;
@@ -96,8 +97,8 @@ namespace LUXENavigator {
     }
 
 // Function to load vector of Measurements from a file
-    LUXEDataContainer::SimMeasurements loadMeasurementsFromFile(const std::string& filename) {
-        LUXEDataContainer::SimMeasurements measurements;
+    SimMeasurements loadMeasurementsFromFile(const std::string& filename) {
+        SimMeasurements measurements;
         std::ifstream ifs(filename, std::ios::binary);
         if (!ifs) {
             std::cerr << "Error opening file for reading: " << filename << std::endl;
@@ -125,7 +126,7 @@ namespace LUXENavigator {
             truthParams[Acts::eBoundTheta] = mC.theta;
             truthParams[Acts::eBoundQOverP] = mC.qOverP;
             truthParams[Acts::eBoundTime] = mC.time;
-            LUXEDataContainer::SimMeasurement m{sl, truthParams, trueVertex, mC.eId};
+            SimMeasurement m{sl, truthParams, trueVertex, mC.eId};
             measurements.push_back(m);
         }
         std::cout<<"Loaded "<< vectorSize << " measurements from: "<<filename<<std::endl;
