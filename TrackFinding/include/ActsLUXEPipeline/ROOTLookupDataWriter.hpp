@@ -21,11 +21,12 @@
 #include <vector>
 #include <iostream>
 
-class LookupDataWriter : public IWriter {
+class ROOTLookupDataWriter : public IWriter {
     public:
         struct ROOTMeasurement {
             unsigned int id;
             float x1;
+            float y1;
             float z1;
             float x4;
             float y4;
@@ -39,8 +40,12 @@ class LookupDataWriter : public IWriter {
             std::string inputCollection = "Measurements";
             /// Geometry options
             const LUXEGeometry::GeometryOptions& gOpt;
-            /// Detector
-            const std::shared_ptr<const Acts::Experimental::Detector>& detector;
+            /// Surface accessor
+            Acts::SourceLinkSurfaceAccessor surfaceAccessor;
+            /// First layer extent
+            Acts::Extent firstLayerExtent;
+            /// Last layer extent
+            Acts::Extent lastLayerExtent;
             /// The output file name
             std::string filePath = "seed-lookup.root";
             /// The output tree name
@@ -49,7 +54,7 @@ class LookupDataWriter : public IWriter {
 
 
         /// @brief Constructor
-        LookupDataWriter(const Config& config, Acts::Logging::Level level)
+        ROOTLookupDataWriter(const Config& config, Acts::Logging::Level level)
             : m_cfg(config),
             m_logger(Acts::getDefaultLogger(name(), level)) {
                 if (m_cfg.filePath.empty()) {
@@ -65,6 +70,7 @@ class LookupDataWriter : public IWriter {
 
                 m_tree->Branch("id", &m_s.id);
                 m_tree->Branch("x1", &m_s.x1);
+                m_tree->Branch("y1", &m_s.y1);
                 m_tree->Branch("z1", &m_s.z1);
                 m_tree->Branch("x4", &m_s.x4);
                 m_tree->Branch("y4", &m_s.y4);
@@ -74,10 +80,10 @@ class LookupDataWriter : public IWriter {
                 m_inputMeasurements.initialize(m_cfg.inputCollection);
         }
 
-        LookupDataWriter(const LookupDataWriter &) = delete;
-        LookupDataWriter(const LookupDataWriter &&) = delete;
+        ROOTLookupDataWriter(const ROOTLookupDataWriter &) = delete;
+        ROOTLookupDataWriter(const ROOTLookupDataWriter &&) = delete;
 
-        ~LookupDataWriter() {
+        ~ROOTLookupDataWriter() {
             if (m_file) {
                 m_file->Write();
                 m_file->Close();
@@ -86,7 +92,7 @@ class LookupDataWriter : public IWriter {
         }
 
         /// Writer name() method
-        std::string name() const { return "LookupDataWriter"; }
+        std::string name() const { return "ROOTLookupDataWriter"; }
 
         /// @brief The execute method        
         ProcessCode write(const AlgorithmContext &ctx) override {
@@ -94,49 +100,48 @@ class LookupDataWriter : public IWriter {
             // from the context
             auto input = m_inputMeasurements(ctx);
 
-            SimpleSourceLink::SurfaceAccessor SA{*m_cfg.detector};
-
             if (input.empty()) {
                 ACTS_INFO("Empty input encountered, skipping");
                 return ProcessCode::SUCCESS;
             }
 
-            Acts::Vector2 params(
-                input[0].truthParameters[0],
-                input[0].truthParameters[1]);
+            auto firstHit = input.front();
+            Acts::Vector2 locFirstHit(
+                firstHit.truthParameters[Acts::eBoundLoc0],
+                firstHit.truthParameters[Acts::eBoundLoc1]);
 
-            auto globalPosition = 
-                SA(input[0].sourceLink)->localToGlobal(
+            auto globFirstHit = 
+                m_cfg.surfaceAccessor(firstHit.sourceLink)->localToGlobal(
                     ctx.geoContext, 
-                    params, 
+                    locFirstHit, 
                     Acts::Vector3(0, 1, 0));
 
             auto me = 0.511 * Acts::UnitConstants::MeV;
+            if (m_cfg.firstLayerExtent.contains(globFirstHit)) {
+                auto lastHit = input.back();
 
-            auto size = input.size();
-            if ((globalPosition[1] < m_cfg.gOpt.staveZ.at(3) && 
-                globalPosition[0] <= m_cfg.gOpt.chipXOdd.at(0)) ||
-                    globalPosition[1] < m_cfg.gOpt.staveZ.at(0)) {
-                        Acts::Vector2 paramsL(
-                            input[size-1].truthParameters[0],
-                            input[size-1].truthParameters[1]);
+                Acts::Vector2 locLastHit(
+                    lastHit.truthParameters[Acts::eBoundLoc0],
+                    lastHit.truthParameters[Acts::eBoundLoc1]);
 
-                        auto globalPositionL = 
-                            SA(input[size-1].sourceLink)->localToGlobal(
-                                ctx.geoContext, 
-                                paramsL, 
-                                Acts::Vector3(0, 1, 0));
+                auto globLastHit = 
+                    m_cfg.surfaceAccessor(lastHit.sourceLink)->localToGlobal(
+                        ctx.geoContext, 
+                        locLastHit, 
+                        Acts::Vector3(0, 1, 0));
 
-                        m_s.id = input[0].trackId;
-                        m_s.x1 = globalPosition[0];
-                        m_s.z1 = globalPosition[2];
-                        m_s.x4 = globalPositionL[0];
-                        m_s.y4 = globalPositionL[1];
-                        m_s.z4 = globalPositionL[2];
-                        m_s.E = std::hypot(
-                            std::pow(input[0].truthParameters[4],-1), me);
-                        m_tree->Fill();
+                m_s.id = firstHit.trackId;
+                m_s.x1 = globFirstHit.x();
+                m_s.y1 = globFirstHit.y();
+                m_s.z1 = globFirstHit.z();
+                m_s.x4 = globLastHit.x();
+                m_s.y4 = globLastHit.y();
+                m_s.z4 = globLastHit.z();
+                m_s.E = std::hypot(
+                    1/firstHit.truthParameters[Acts::eBoundQOverP], me);
+                m_tree->Fill();
             }
+
             return ProcessCode::SUCCESS;
         }
 
