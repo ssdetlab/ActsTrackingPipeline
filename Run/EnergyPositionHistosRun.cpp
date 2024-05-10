@@ -4,7 +4,7 @@
 #include "ActsLUXEPipeline/ConstantBoundedField.hpp"
 #include "ActsLUXEPipeline/MeasurementsCreator.hpp"
 #include "ActsLUXEPipeline/AlgorithmContext.hpp"
-#include "ActsLUXEPipeline/LookupDataWriter.hpp"
+#include "ActsLUXEPipeline/ROOTLookupDataWriter.hpp"
 #include "ActsLUXEPipeline/LookupMaker.hpp"
 #include "ActsLUXEPipeline/Generators.hpp"
 
@@ -107,12 +107,33 @@ int main() {
         std::make_shared<MeasurementsCreator>(
                 propagator, mcCfg, logLevel));
 
-    LookupDataWriter::Config lookupWriterCfg{
+    ROOTLookupDataWriter::Config lookupWriterCfg{
         mcCfg.outputCollection,
-        gOpt,
-        detector};
+        gOpt};
+
+    SimpleSourceLink::SurfaceAccessor surfaceAccessor{*detector};
+    lookupWriterCfg.surfaceAccessor.connect<
+        &SimpleSourceLink::SurfaceAccessor::operator()>(
+        &surfaceAccessor);
+
+    // Extent in already rotated frame
+    Acts::Extent firstLayerExtent;
+    firstLayerExtent.set(
+        Acts::binX, 
+        gOpt.chipXEven.at(0) - gOpt.chipSizeX,
+        gOpt.chipXOdd.at(8) + gOpt.chipSizeX);
+    firstLayerExtent.set(
+        Acts::binZ,
+        - gOpt.chipSizeY, gOpt.chipSizeY);
+    firstLayerExtent.set(
+        Acts::binY,
+        gOpt.layerZPositions.at(0) - gOpt.layerBounds.at(2),
+        gOpt.layerZPositions.at(0) + gOpt.layerBounds.at(2));
+
+    lookupWriterCfg.firstLayerExtent = firstLayerExtent;
+
     sequencer.addWriter(
-        std::make_shared<LookupDataWriter>(lookupWriterCfg, logLevel));
+        std::make_shared<ROOTLookupDataWriter>(lookupWriterCfg, logLevel));
 
     sequencer.run();
 
