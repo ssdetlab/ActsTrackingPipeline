@@ -66,9 +66,8 @@ ProcessCode MeasurementsCreator::execute(
         SimMeasurements results = createMeasurements(
             m_propagator, ctx,
             TrackParameters(
-                mPos4, phi*180/M_PI*1_degree, 
-                theta*180/M_PI*1_degree,
-                -1_e / (p*1_GeV), ipCov, 
+                mPos4, phi, theta,
+                -1_e / p, ipCov, 
                 Acts::ParticleHypothesis::electron()));
     
         m_outputMeasurements(ctx, std::move(results));
