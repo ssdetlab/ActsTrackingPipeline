@@ -23,14 +23,16 @@
 
 class ROOTLookupDataWriter : public IWriter {
     public:
-        struct ROOTMeasurement {
+        /// @brief The ROOT lookup data struct
+        /// for seeding Lookup table creation
+        struct ROOTLookupData {
             unsigned int id;
-            float x1;
-            float y1;
-            float z1;
-            float x4;
-            float y4;
-            float z4;
+            float xFirst;
+            float yFirst;
+            float zFirst;
+            float xLast;
+            float yLast;
+            float zLast;
             float E;
         };
 
@@ -38,8 +40,6 @@ class ROOTLookupDataWriter : public IWriter {
         struct Config {
             /// The input collection
             std::string inputCollection = "Measurements";
-            /// Geometry options
-            const LUXEGeometry::GeometryOptions& gOpt;
             /// Surface accessor
             Acts::SourceLinkSurfaceAccessor surfaceAccessor;
             /// First layer extent
@@ -68,14 +68,14 @@ class ROOTLookupDataWriter : public IWriter {
                 m_tree = new TTree(m_cfg.treeName.c_str(), 
                     m_cfg.treeName.c_str());
 
-                m_tree->Branch("id", &m_s.id);
-                m_tree->Branch("x1", &m_s.x1);
-                m_tree->Branch("y1", &m_s.y1);
-                m_tree->Branch("z1", &m_s.z1);
-                m_tree->Branch("x4", &m_s.x4);
-                m_tree->Branch("y4", &m_s.y4);
-                m_tree->Branch("z4", &m_s.z4);
-                m_tree->Branch("E", &m_s.E);
+                m_tree->Branch("id", &m_ld.id);
+                m_tree->Branch("xFirst", &m_ld.xFirst);
+                m_tree->Branch("yFirst", &m_ld.yFirst);
+                m_tree->Branch("zFirst", &m_ld.zFirst);
+                m_tree->Branch("xLast", &m_ld.xLast);
+                m_tree->Branch("yLast", &m_ld.yLast);
+                m_tree->Branch("zLast", &m_ld.zLast);
+                m_tree->Branch("E", &m_ld.E);
 
                 m_inputMeasurements.initialize(m_cfg.inputCollection);
         }
@@ -101,9 +101,34 @@ class ROOTLookupDataWriter : public IWriter {
             auto input = m_inputMeasurements(ctx);
 
             if (input.empty()) {
-                ACTS_INFO("Empty input encountered, skipping");
                 return ProcessCode::SUCCESS;
             }
+
+            // Sort the input by y coordinate
+            std::sort(input.begin(), input.end(), 
+                [&](const SimMeasurement& a, const SimMeasurement& b) {
+                    Acts::Vector2 aHitLoc(
+                        a.truthParameters[Acts::eBoundLoc0],
+                        a.truthParameters[Acts::eBoundLoc1]);
+
+                    Acts::Vector2 bHitLoc(
+                        b.truthParameters[Acts::eBoundLoc0],
+                        b.truthParameters[Acts::eBoundLoc1]);
+
+                    auto aHitGlob = 
+                        m_cfg.surfaceAccessor(a.sourceLink)->localToGlobal(
+                            ctx.geoContext, 
+                            aHitLoc, 
+                            Acts::Vector3(0, 1, 0));
+                    
+                    auto bHitGlob =
+                        m_cfg.surfaceAccessor(b.sourceLink)->localToGlobal(
+                            ctx.geoContext, 
+                            bHitLoc, 
+                            Acts::Vector3(0, 1, 0));
+
+                    return aHitGlob.y() < bHitGlob.y();
+                });
 
             auto firstHit = input.front();
             Acts::Vector2 locFirstHit(
@@ -116,6 +141,7 @@ class ROOTLookupDataWriter : public IWriter {
                     locFirstHit, 
                     Acts::Vector3(0, 1, 0));
 
+            // Store the lookup data
             auto me = 0.511 * Acts::UnitConstants::MeV;
             if (m_cfg.firstLayerExtent.contains(globFirstHit)) {
                 auto lastHit = input.back();
@@ -130,14 +156,14 @@ class ROOTLookupDataWriter : public IWriter {
                         locLastHit, 
                         Acts::Vector3(0, 1, 0));
 
-                m_s.id = firstHit.trackId;
-                m_s.x1 = globFirstHit.x();
-                m_s.y1 = globFirstHit.y();
-                m_s.z1 = globFirstHit.z();
-                m_s.x4 = globLastHit.x();
-                m_s.y4 = globLastHit.y();
-                m_s.z4 = globLastHit.z();
-                m_s.E = std::hypot(
+                m_ld.id = firstHit.trackId;
+                m_ld.xFirst = globFirstHit.x();
+                m_ld.yFirst = globFirstHit.y();
+                m_ld.zFirst = globFirstHit.z();
+                m_ld.xLast = globLastHit.x();
+                m_ld.yLast = globLastHit.y();
+                m_ld.zLast = globLastHit.z();
+                m_ld.E = std::hypot(
                     1/firstHit.truthParameters[Acts::eBoundQOverP], me);
                 m_tree->Fill();
             }
@@ -164,8 +190,8 @@ class ROOTLookupDataWriter : public IWriter {
         /// The output tree
         TTree *m_tree = nullptr;
 
-        /// Private access to the ROOTMeasurement struct
-        ROOTMeasurement m_s;
+        /// Private access to the ROOTLookupData struct
+        ROOTLookupData m_ld;
 
         std::unique_ptr<const Acts::Logger> m_logger;
 };

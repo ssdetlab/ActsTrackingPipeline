@@ -46,7 +46,7 @@ int main() {
         "/home/romanurmanov/lab/LUXE/acts_LUXE_tracking/ActsLUXEPipeline_gdmls/lxgeomdump_stave_positron.gdml";
     std::vector<std::string> names{"OPPPSensitive"};
 
-    std::string materialPath = "/home/romanurmanov/lab/LUXE/acts_LUXE_tracking/ActsLUXEPipeline_build/material.json";
+    std::string materialPath = "/home/romanurmanov/lab/LUXE/acts_LUXE_tracking/ActsLUXEPipeline_material/material_uniform_binned_16X_8Y.json";
 
     // Build the LUXE detector
     auto trackerBP = 

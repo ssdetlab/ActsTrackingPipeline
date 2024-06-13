@@ -48,9 +48,12 @@ int main() {
         }
     }
 
+    // --------------------------------------------------------------
+    // Material validation setup
+
     // Setup the sequencer
     Sequencer::Config seqCfg;
-    seqCfg.events = 100000;
+    seqCfg.events = 10000;
     seqCfg.numThreads = 1;
     Sequencer sequencer(seqCfg);
 

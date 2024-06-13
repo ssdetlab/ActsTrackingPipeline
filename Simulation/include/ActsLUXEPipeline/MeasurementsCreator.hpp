@@ -58,20 +58,13 @@ struct MeasurementsCreatorAction {
         propagator_state_t &state, const stepper_t &stepper,
         const navigator_t &navigator, result_type &result,
         const Acts::Logger &logger) const {
-            Acts::Vector4 trueVertex;
-            if (state.steps == 0) {
-                trueVertex = {
-                    stepper.position(state.stepping)[0],
-                    stepper.position(state.stepping)[1],
-                    stepper.position(state.stepping)[2],
-                    stepper.time(state.stepping)};
-            }
             // only generate measurements on surfaces
             if (!navigator.currentSurface(state.navigation)) {
                 return;
             }
             const Acts::Surface &surface = *navigator.currentSurface(state.navigation);
             const Acts::GeometryIdentifier geoId = surface.geometryId();
+
             // only generate measurements on sensitive surface
             if (!geoId.sensitive()) {
                 ACTS_VERBOSE("Create no measurements on non-sensitive surface " << geoId);
@@ -106,6 +99,7 @@ struct MeasurementsCreatorAction {
                     stepper.charge(state.stepping)/parameters[Acts::eBoundQOverP],
                     particlePos);
 
+            // Retrieve the material
             Acts::MaterialSlab material;
             if (!surface.surfaceMaterial()) {
                 material = makeSiliconSlab();
@@ -119,12 +113,14 @@ struct MeasurementsCreatorAction {
                 material = hsm->materialSlab(loc);
             }
 
+            // Create the scattering and energy loss processes
             std::random_device rd;
             std::mt19937 gen(rd());
             auto scattering = ActsFatras::GaussianMixtureScattering();
             ActsFatras::BetheBloch BBProcess;
             ActsFatras::BetheHeitler BHProcess;
 
+            // Apply the scattering and energy loss processes
             Acts::BoundVector scatteredParameters = parameters;
             ActsFatras::Particle beforeParticle = tempParticle;
             auto scatter = scattering(gen, material, tempParticle);
@@ -133,14 +129,31 @@ struct MeasurementsCreatorAction {
             scatteredParameters[Acts::eBoundQOverP] =
                 tempParticle.charge()/tempParticle.absoluteMomentum();
 
+            // Create the source link
             Acts::SquareMatrix2 cov = Acts::SquareMatrix2::Identity();
+            SimpleSourceLink simpleSL(loc, cov, geoId, sourceId);
+            
+            // Reset the state
             Acts::BoundSquareMatrix resetCov = Acts::BoundSquareMatrix::Identity();
             scatteredParameters[Acts::eBoundPhi] = tempParticle.phi();
             scatteredParameters[Acts::eBoundTheta] = tempParticle.theta();
             stepper.resetState(state.stepping, scatteredParameters, resetCov, surface);
-            SimpleSourceLink simpleSL(loc, cov, geoId, sourceId);
+            
+            // Dummy IP parameters
+            Acts::CurvilinearTrackParameters ipParameters(
+                Acts::Vector4::Zero(),
+                Acts::Vector3::Zero(),
+                1/1_GeV,
+                Acts::BoundSquareMatrix::Identity(),
+                Acts::ParticleHypothesis::electron());
+
+            // Create the measurement
             Acts::SourceLink sl(simpleSL);
-            SimMeasurement sm{sl, scatteredParameters, trueVertex, static_cast<int>(sourceId)};
+            SimMeasurement sm{
+                sl, 
+                scatteredParameters,
+                ipParameters,
+                static_cast<int>(sourceId)};
             result.push_back(sm);
     }
 };
@@ -164,6 +177,8 @@ class MeasurementsCreator : public IAlgorithm {
             std::shared_ptr<IMomentumGenerator> momentumGenerator;
             /// Random number generator
             std::shared_ptr<RandomNumbers> randomNumberSvc;
+            /// Number of tracks to be generated
+            std::size_t nTracks = 100;
         };
 
         /// @brief Constructor
@@ -177,7 +192,8 @@ class MeasurementsCreator : public IAlgorithm {
         SimMeasurements createMeasurements(
             const Propagator& propagator,
             const AlgorithmContext& ctx,
-            const TrackParameters& trackParameters) const;
+            const TrackParameters& trackParameters,
+            std::size_t id) const;
     
         /// @brief The execute method
         ProcessCode execute(const AlgorithmContext& ctx) const override;

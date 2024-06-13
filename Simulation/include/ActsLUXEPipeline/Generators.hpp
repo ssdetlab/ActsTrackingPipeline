@@ -72,4 +72,28 @@ namespace LUXESimParticle {
         }
     };
 
+    /// @brief Uniform momentum generator
+    struct RangedUniformMomentumGenerator : public IMomentumGenerator {
+        std::vector<std::pair<Acts::ActsScalar, Acts::ActsScalar>> Eranges {
+            std::make_pair(1_GeV, 3_GeV),
+            std::make_pair(3_GeV, 6_GeV),
+            std::make_pair(6_GeV, 9_GeV),
+            std::make_pair(9_GeV, 12_GeV)};
+    
+        Acts::ActsScalar m = 0.511 * Acts::UnitConstants::MeV;
+    
+        Acts::Vector3 gen(RandomEngine rng) const override {
+            std::uniform_int_distribution<int> range_select(0, Eranges.size() - 1);
+            int range = range_select(rng);
+    
+            Acts::ActsScalar Emin = Eranges.at(range).first;
+            Acts::ActsScalar Emax = Eranges.at(range).second;
+    
+            std::uniform_real_distribution<Acts::ActsScalar> uniform(Emin, Emax);
+            Acts::ActsScalar E = uniform(rng);
+            Acts::ActsScalar p = std::sqrt(E * E - m * m);
+    
+            return p * Acts::Vector3(0, 1, 0);
+        }
+    };
 }
