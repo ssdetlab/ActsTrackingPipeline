@@ -2,9 +2,8 @@
 
 #include "ActsLUXEPipeline/IAlgorithm.hpp"
 #include "ActsLUXEPipeline/DataHandle.hpp"
-#include "ActsLUXEPipeline/SimpleSourceLink.hpp"
 #include "ActsLUXEPipeline/DataContainers.hpp"
-#include "ActsLUXEPipeline/LUXEGeometryConstraints.hpp"
+#include "ActsLUXEPipeline/SimpleSourceLink.hpp"
 
 #include "Acts/EventData/SourceLink.hpp"
 
@@ -44,6 +43,11 @@ class IdealSeeder : public IAlgorithm {
             // from the context
             auto input = m_inputMeasurements(ctx);
 
+            if (input.empty()) {
+                m_outputSeeds(ctx, Seeds());
+                return ProcessCode::SUCCESS;
+            }
+
             // Sort the input by track id
             std::sort(input.begin(), input.end(),
                 [](const auto& a, const auto& b) {
@@ -51,28 +55,23 @@ class IdealSeeder : public IAlgorithm {
                 }
             );
 
-            // Create IP covariance matrix from 
-            // reasonable standard deviations
-            Acts::BoundVector ipStdDev;
-            ipStdDev[Acts::eBoundLoc0] = 100_um;
-            ipStdDev[Acts::eBoundLoc1] = 100_um;
-            ipStdDev[Acts::eBoundTime] = 25_ns;
-            ipStdDev[Acts::eBoundPhi] = 2_degree;
-            ipStdDev[Acts::eBoundTheta] = 2_degree;
-            ipStdDev[Acts::eBoundQOverP] = 1 / 100_GeV;
-            Acts::BoundSquareMatrix ipCov = 
-                ipStdDev.cwiseProduct(ipStdDev).asDiagonal();
-
             // Create the seeds
             Seeds seeds;
             std::vector<Acts::SourceLink> sourceLinks;
-            for (auto it = input.begin(); it != input.end() - 1; ++it) {
-                if (it->trackId == (it + 1)->trackId) {
+
+            // Insert the first source link
+            sourceLinks.push_back(input.front().sourceLink);
+            for (auto it = input.begin() + 1; it != input.end(); ++it) {
+                if (it->trackId == (it - 1)->trackId && (it + 1) != input.end()) {
                     // Add the source link to the list
                     // if the hit is from the same track
                     sourceLinks.push_back(it->sourceLink);
                 }
                 else {
+                    if ((it + 1) == input.end()) {
+                        // Add the last source link
+                        sourceLinks.push_back(it->sourceLink);
+                    }
                     if (sourceLinks.size() < m_cfg.minHits || 
                         sourceLinks.size() > m_cfg.maxHits) {
                             // If the seed does not have the right size
@@ -83,36 +82,18 @@ class IdealSeeder : public IAlgorithm {
 
                     // Ip parameter is the same for all hits
                     // with the same track id
-                    Acts::CurvilinearTrackParameters ipParameters(
-                        it->trueVertex, 
-                        it->truthParameters[Acts::eBoundPhi],
-                        it->truthParameters[Acts::eBoundTheta], 
-                        -it->truthParameters[Acts::eBoundQOverP], 
-                        ipCov,
-                        Acts::ParticleHypothesis::electron());
+                    Acts::CurvilinearTrackParameters ipParameters =
+                        (it - 1)->ipParameters;
 
                     // Add the seed to the list
                     // and reset the source links
                     seeds.push_back(Seed
-                        {sourceLinks, ipParameters, it->trackId});
+                        {sourceLinks, ipParameters, (it - 1)->trackId});
                     sourceLinks.clear();
+                    sourceLinks.push_back(it->sourceLink);
                 }
             }
             
-            // Ip parameter is the same for all hits
-            // with the same track id
-            Acts::CurvilinearTrackParameters ipParameters(
-                input.back().trueVertex, 
-                input.back().truthParameters[Acts::eBoundPhi],
-                input.back().truthParameters[Acts::eBoundTheta], 
-                -input.back().truthParameters[Acts::eBoundQOverP], 
-                ipCov,
-                Acts::ParticleHypothesis::electron());
-
-            // Add the last seed
-            seeds.push_back(Seed
-                {sourceLinks, ipParameters, input.back().trackId});
-
             m_outputSeeds(ctx, std::move(seeds));
 
             return ProcessCode::SUCCESS;

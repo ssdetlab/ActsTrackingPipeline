@@ -5,7 +5,7 @@
 #include "ActsLUXEPipeline/MeasurementsCreator.hpp"
 #include "ActsLUXEPipeline/AlgorithmContext.hpp"
 #include "ActsLUXEPipeline/ROOTLookupDataWriter.hpp"
-#include "ActsLUXEPipeline/LookupMaker.hpp"
+#include "ActsLUXEPipeline/CsvLookupTableWriter.hpp"
 #include "ActsLUXEPipeline/Generators.hpp"
 
 #include "Acts/Utilities/Logger.hpp"
@@ -41,7 +41,7 @@ int main() {
         "/home/romanurmanov/lab/LUXE/acts_LUXE_tracking/ActsLUXEPipeline_gdmls/lxgeomdump_stave_positron.gdml";
     std::vector<std::string> names{"OPPPSensitive"};
 
-    std::string materialPath = "/home/romanurmanov/lab/LUXE/acts_LUXE_tracking/ActsLUXEPipeline_build/material.json";
+    std::string materialPath = "/home/romanurmanov/lab/LUXE/acts_LUXE_tracking/ActsLUXEPipeline_material/material_uniform_binned_16X_8Y.json";
 
     // Build the LUXE detector
     auto trackerBP = 
@@ -76,11 +76,12 @@ int main() {
 
     // Setup the sequencer
     Sequencer::Config seqCfg;
-    seqCfg.events = 10000;
+    seqCfg.events = 100000;
     seqCfg.numThreads = 1;
     seqCfg.trackFpes = false;
     Sequencer sequencer(seqCfg);
 
+    // Setup the measurements creator
     Acts::Experimental::DetectorNavigator::Config navCfg;
     navCfg.detector = detector.get();
     navCfg.resolvePassive = false;
@@ -102,14 +103,18 @@ int main() {
     mcCfg.vertexGenerator = std::make_shared<StationaryVertexGenerator>();
     mcCfg.momentumGenerator = std::make_shared<LUXESimParticle::LUXEMomentumGenerator>();
     mcCfg.randomNumberSvc = std::make_shared<RandomNumbers>(RandomNumbers::Config());
+    mcCfg.nTracks = 1;
 
     sequencer.addAlgorithm(
         std::make_shared<MeasurementsCreator>(
                 propagator, mcCfg, logLevel));
 
+    // --------------------------------------------------------------
+    // Lookup data generation 
+
+    // Add the lookup data writers
     ROOTLookupDataWriter::Config lookupWriterCfg{
-        mcCfg.outputCollection,
-        gOpt};
+        mcCfg.outputCollection};
 
     SimpleSourceLink::SurfaceAccessor surfaceAccessor{*detector};
     lookupWriterCfg.surfaceAccessor.connect<
@@ -124,7 +129,8 @@ int main() {
         gOpt.chipXOdd.at(8) + gOpt.chipSizeX);
     firstLayerExtent.set(
         Acts::binZ,
-        - gOpt.chipSizeY, gOpt.chipSizeY);
+        -gOpt.chipY - gOpt.chipSizeY/2,
+        -gOpt.chipY + gOpt.chipSizeY/2);
     firstLayerExtent.set(
         Acts::binY,
         gOpt.layerZPositions.at(0) - gOpt.layerBounds.at(2),
@@ -135,11 +141,24 @@ int main() {
     sequencer.addWriter(
         std::make_shared<ROOTLookupDataWriter>(lookupWriterCfg, logLevel));
 
-    sequencer.run();
+    auto lookupMakerCfg = CsvLookupTableWriter::Config();
 
-    // LookupMaker::Config lookupMakerCfg{lookupWriterCfg.filename};
-    // auto lMaker = std::make_shared<LookupMaker>(lookupMakerCfg);
-    // lMaker->execute();
+    // Grid parameters
+    lookupMakerCfg.XFirst = {
+        5000, 
+        gOpt.chipXEven.at(0) - gOpt.chipSizeX/2, 
+        gOpt.chipXOdd.at(8) + gOpt.chipSizeX/2};
+    lookupMakerCfg.ZFirst = {
+        500, 
+        -gOpt.chipY - gOpt.chipSizeY/2,
+        -gOpt.chipY + gOpt.chipSizeY/2};
+    lookupMakerCfg.surfaceAccessor.connect<
+        &SimpleSourceLink::SurfaceAccessor::operator()>(
+        &surfaceAccessor);
 
-    return 0;
+    auto lookupMaker = std::make_shared<CsvLookupTableWriter>(lookupMakerCfg, logLevel);
+
+    sequencer.addWriter(lookupMaker);
+
+    return sequencer.run();
 }

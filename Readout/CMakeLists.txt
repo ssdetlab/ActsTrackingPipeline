@@ -39,7 +39,7 @@ ROOT_GENERATE_DICTIONARY(
     LINKDEF 
     ./include/ActsLUXEPipeline/detail/LinkDef.h)
 target_link_libraries(
-    G__LUXESimEventDict 
+    LUXESimEventDict 
     PRIVATE 
     ROOT::RIO
     ROOT::Physics)

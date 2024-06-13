@@ -9,6 +9,8 @@
 
 namespace LUXEROOTReader {
 
+using namespace Acts::UnitLiterals;
+
 /// @brief Global to local conversion
 /// for the LUXE geometry
 Acts::Vector2 convertToLoc(
@@ -115,12 +117,26 @@ class LUXEROOTSimDataReader :
                     Acts::GeometryIdentifier geoId;
                     geoId.setSensitive(geoIdval + 11);
                     
+                    // Create IP covariance matrix from 
+                    // reasonable standard deviations
+                    Acts::BoundVector ipStdDev;
+                    ipStdDev[Acts::eBoundLoc0] = 100_um;
+                    ipStdDev[Acts::eBoundLoc1] = 100_um;
+                    ipStdDev[Acts::eBoundTime] = 25_ns;
+                    ipStdDev[Acts::eBoundPhi] = 2_degree;
+                    ipStdDev[Acts::eBoundTheta] = 2_degree;
+                    ipStdDev[Acts::eBoundQOverP] = 1 / 100_GeV;
+                    Acts::BoundSquareMatrix ipCov = 
+                        ipStdDev.cwiseProduct(ipStdDev).asDiagonal();
+
                     // Create the measurements
                     Acts::ActsScalar me = 0.511 * Acts::UnitConstants::MeV;
                     for (int idx = 0; idx < hits->size(); idx++) {
+                        auto hitMom = mom->at(idx); 
+
                         // Apply the cuts
-                        if (mom->at(idx).E() < m_energyCuts.first || 
-                            mom->at(idx).E() > m_energyCuts.second) {
+                        if (hitMom.E() < m_energyCuts.first || 
+                            hitMom.E() > m_energyCuts.second) {
                             continue;
                         }
 
@@ -139,7 +155,7 @@ class LUXEROOTSimDataReader :
                         // Convert the momentum to the IP
                         // because it was sampled just before the 
                         // impact with the detector
-                        TLorentzVector ipMom = convertToIP(mom->at(idx), me);
+                        TLorentzVector ipMom = convertToIP(hitMom, me);
 
                         // Convert the true hit to the local coordinates
                         Acts::Vector3 trueHitGlob = 
@@ -161,8 +177,10 @@ class LUXEROOTSimDataReader :
                         truthPars[Acts::eBoundLoc0] = trueHitLoc[Acts::eBoundLoc0];
                         truthPars[Acts::eBoundLoc1] = trueHitLoc[Acts::eBoundLoc1];
 
+                        // Infer as the momentum at the first hit
                         Acts::Vector3 trueP = 
-                            {ipMom.Px(), ipMom.Py(), ipMom.Pz()};
+                            {hitMom.Px(), hitMom.Py(), hitMom.Pz()};
+
                         Acts::Vector3 dir = trueP.normalized();
 
                         Acts::Vector3 dirRotated = 
@@ -171,8 +189,24 @@ class LUXEROOTSimDataReader :
                         truthPars[Acts::eBoundPhi] = Acts::VectorHelpers::phi(dirRotated);
                         truthPars[Acts::eBoundTheta] = Acts::VectorHelpers::theta(dirRotated);
                         truthPars[Acts::eBoundQOverP] = 
-                            1/(ipMom.E() * Acts::UnitConstants::GeV);
-                        truthPars[Acts::eBoundTime] = ipMom.T();
+                            -1_e/(hitMom.E() * Acts::UnitConstants::GeV);
+                        truthPars[Acts::eBoundTime] = hitMom.T();
+
+                        // Set up IP information
+                        Acts::Vector3 truePIP = 
+                            {ipMom.Px(), ipMom.Py(), ipMom.Pz()};
+                        Acts::Vector3 dirIP = trueP.normalized();
+
+                        Acts::Vector3 dirIPRotated = 
+                            m_actsToWorld * dirIP;
+
+                        Acts::CurvilinearTrackParameters ipParameters(
+                            trueVertex, 
+                            Acts::VectorHelpers::phi(dirIPRotated),
+                            Acts::VectorHelpers::theta(dirIPRotated),
+                            -1_e/(ipMom.E() * Acts::UnitConstants::GeV),
+                            ipCov,
+                            Acts::ParticleHypothesis::electron());
 
                         // Covariance is filled with the intrinsic resolution
                         Acts::Vector2 stddev(5  * Acts::UnitConstants::um,
@@ -187,7 +221,7 @@ class LUXEROOTSimDataReader :
                         SimMeasurement measurement{
                             .sourceLink = sl,
                             .truthParameters = truthPars,
-                            .trueVertex = trueVertex,
+                            .ipParameters = ipParameters,
                             .trackId = trackId->at(idx)
                         };
 

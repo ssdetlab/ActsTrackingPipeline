@@ -3,7 +3,8 @@
 # If needed, add a new run analogously
 #
 
-add_run(EnergyPositionHistos EnergyPositionHistosRun.cpp)
+add_run(LookupDataGeneration LookupDataGenerationRun.cpp)
+add_run(PathSeeding PathSeedingRun.cpp)
 if (LUXEPipeline_BUILD_LUXE_READOUT)
     add_run(TruthTracking TruthTrackingRun.cpp)
 endif()

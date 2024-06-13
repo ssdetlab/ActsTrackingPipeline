@@ -174,7 +174,7 @@ class ROOTDataReader : public IReader {
         
                 // Create the measurements
                 measurementContainer_t measurements;
-                for (auto entry = std::get<1>(*it); entry < std::get<2>(*it); ++entry) {
+                for (auto entry = std::get<1>(*it); entry < std::get<2>(*it); entry++) {
                     m_chain->GetEntry(entry);
                     prepareMeasurements(context, &measurements);
                 }

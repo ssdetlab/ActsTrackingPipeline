@@ -42,6 +42,9 @@ int main() {
         }
     }
 
+    // --------------------------------------------------------------
+    // Material mapping setup
+
     // Setup the sequencer
     Sequencer::Config seqCfg;
     // seqCfg.events = 10;
