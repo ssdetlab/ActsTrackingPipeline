@@ -113,8 +113,9 @@ int main() {
     // Lookup data generation 
 
     // Add the lookup data writers
-    ROOTLookupDataWriter::Config lookupWriterCfg{
-        mcCfg.outputCollection};
+    ROOTLookupDataWriter::Config lookupWriterCfg;
+        
+    lookupWriterCfg.inputCollection = mcCfg.outputCollection;
 
     SimpleSourceLink::SurfaceAccessor surfaceAccessor{*detector};
     lookupWriterCfg.surfaceAccessor.connect<
