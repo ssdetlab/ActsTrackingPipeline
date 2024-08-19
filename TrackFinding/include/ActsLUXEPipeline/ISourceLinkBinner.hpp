@@ -3,11 +3,13 @@
 #include "Acts/EventData/SourceLink.hpp"
 #include "Acts/Geometry/GeometryContext.hpp"
 #include "Acts/Definitions/Algebra.hpp"
-#include "Acts/Utilities/detail/Axis.hpp"
+#include "Acts/Utilities/Axis.hpp"
 #include "Acts/Utilities/Grid.hpp"
 
+/// @brief Interface class for binning source links
+/// into a lookup table -- a grid of source links
 class ISourceLinkBinner {
-    using eAxis = Acts::detail::EquidistantAxis;
+    using eAxis = Acts::Axis<Acts::AxisType::Equidistant, Acts::AxisBoundaryType::Open>;
     using eGrid = Acts::Grid<std::vector<Acts::SourceLink>, eAxis, eAxis>;
 
     public:

@@ -124,6 +124,7 @@ ProcessCode PathSeeder::execute(const AlgorithmContext& ctx) const {
             continue;
         }
 
+        // Store the pivot source link
         sourceLinks.push_back(input.at(i).sourceLink);
 
         // Iterate over the intersections 

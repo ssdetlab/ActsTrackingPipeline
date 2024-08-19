@@ -57,6 +57,11 @@ class TrackFitter : public IAlgorithm {
                 auto res = m_cfg.fitter.fit(sourceLinks.begin(), sourceLinks.end(), 
                     start, m_cfg.kfOptions, tracks);
                 
+                if (!res.ok()) {
+                    ACTS_ERROR("Track fitting failed");
+                    return ProcessCode::ABORT;
+                }
+
                 trackIds.push_back(seed.trackId);
             }
             auto outTracks = Tracks<container_t, trajectory_t>{

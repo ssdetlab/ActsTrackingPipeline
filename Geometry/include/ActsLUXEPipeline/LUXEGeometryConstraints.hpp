@@ -82,8 +82,8 @@ namespace LUXEGeometry {
             0_mm, 0_mm, 2150_mm};
 
         const std::vector<Acts::ActsScalar> trackerBounds = 
-            {chipXOdd.at(8) + chipSizeX/2 + 1_mm, 
-                chipSizeY/2 + 1_mm, 2200_mm};
+            {chipXOdd.at(8) + chipSizeX/2 + 100_mm, 
+                chipSizeY/2 + 100_mm, 2200_mm};
 
         // Dipole volume encapsulating the
         // magnetic field
@@ -91,8 +91,8 @@ namespace LUXEGeometry {
             0_mm, 0_mm, 2050_mm};
 
         const std::vector<Acts::ActsScalar> dipoleBounds = 
-            {chipXOdd.at(8) + chipSizeX/2 + 1_mm, 
-                chipSizeY/2 + 1_mm, 600_mm};
+            {chipXOdd.at(8) + chipSizeX/2 + 100_mm, 
+                chipSizeY/2 + 100_mm, 600_mm};
 
         const std::vector<Acts::ActsScalar> constantFieldDelta = 
             {0_mm, 0_mm, 120_mm};
@@ -106,8 +106,8 @@ namespace LUXEGeometry {
             (staveZ.at(0) - staveZ.at(1))/2 + 1_mm;
 
         const std::vector<Acts::ActsScalar> layerBounds = 
-            {chipXOdd.at(8) + chipSizeX/2 + 1_mm, 
-                chipSizeY/2 + 1_mm, deltaZ};
+            {chipXOdd.at(8) + chipSizeX/2 + 100_mm, 
+                chipSizeY/2 + 100_mm, deltaZ};
 
         /// Global rotation of the world volume
         /// in the Acts format for volumes
@@ -135,10 +135,20 @@ namespace LUXEGeometry {
 
         // Material binning for the surfaces
         const Acts::BinUtility materialBinningX = 
-            Acts::BinUtility(16, -chipSizeX/2, chipSizeX/2, Acts::closed, Acts::binX);
+            Acts::BinUtility(
+                16, 
+                -chipSizeX/2, 
+                chipSizeX/2, 
+                Acts::closed, 
+                Acts::BinningValue::binX);
 
         const Acts::BinUtility materialBinningY = 
-            Acts::BinUtility(8, -chipSizeY/2, chipSizeY/2, Acts::closed, Acts::binY);
+            Acts::BinUtility(
+                8, 
+                -chipSizeY/2, 
+                chipSizeY/2, 
+                Acts::closed, 
+                Acts::BinningValue::binY);
     };
 
 } // namespace LUXEGeometry
