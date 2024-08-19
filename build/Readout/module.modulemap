@@ -1,0 +1,7 @@
+module "LUXESimEventDict" {
+  requires cplusplus
+  module "./include/ActsLUXEPipeline/detail/ROOTDictDefs.h" { header "./include/ActsLUXEPipeline/detail/ROOTDictDefs.h" export * }
+  link "libLUXESimEventDict.dylib"
+  export *
+}
+
