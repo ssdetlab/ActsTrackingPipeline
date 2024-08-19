@@ -30,6 +30,7 @@ option(LUXEPipeline_BUILD_LUXE_READOUT
 # algorithm execution
 find_package(TBB COMPONENTS tbb REQUIRED)
 find_package(ROOT COMPONENTS Core REQUIRED)
+find_package(BOOST)
 
 # Geant4 is required for the geometry
 if (LUXEPipeline_BUILD_GEOMETRY)
