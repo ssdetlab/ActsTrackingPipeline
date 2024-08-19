@@ -27,7 +27,7 @@ makeBlueprintLUXE(
 
         // Here binning is dont in the unrotated frame
         // Have to fix the consistency inside Acts
-        std::vector<Acts::BinningValue> trackerBins = {Acts::binZ};
+        std::vector<Acts::BinningValue> trackerBins = {Acts::BinningValue::binZ};
 
         Acts::Transform3 trackerTransform = Acts::Transform3::Identity();
         trackerTransform.rotate(
@@ -54,7 +54,7 @@ makeBlueprintLUXE(
             auto layerBuilder =
                 makeLayerBuilder<1>(
                     world, gOpt.g4ToWorld, names, 
-                    {zBounds}, {Acts::binY});
+                    {zBounds}, {Acts::BinningValue::binY});
 
             // Convention is that the transformations
             // are with respect to the global frame
@@ -88,7 +88,7 @@ makeBlueprintLUXE(
         auto layerBuilder =
             makeLayerBuilder<1>(
                 world, gOpt.g4ToWorld, names, 
-                {zBounds}, {Acts::binZ});
+                {zBounds}, {Acts::BinningValue::binZ});
 
         Acts::Transform3 dipoleTransform = Acts::Transform3::Identity();
         dipoleTransform.rotate(

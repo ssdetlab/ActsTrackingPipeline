@@ -20,12 +20,14 @@ SimMeasurements MeasurementsCreator::createMeasurements(
     std::size_t id) const {
         using Actions = Acts::ActionList<MeasurementsCreatorAction>;
         using Aborters = Acts::AbortList<Acts::EndOfWorldReached>;
+        using PropagatorOptions =
+            typename Propagator::template Options<Actions, Aborters>;
 
         // Set options for propagator
-        Acts::PropagatorOptions<Actions, Aborters> options(
+        PropagatorOptions options(
             ctx.geoContext, ctx.magFieldContext);
 
-        auto& creator = options.actionList.get<MeasurementsCreatorAction>();
+        auto& creator = options.actionList.template get<MeasurementsCreatorAction>();
         creator.sourceId = id;
 
         // Launch and collect the measurements

@@ -108,7 +108,7 @@ class ROOTFittedTrackWriter : public IWriter {
             auto tracks = inputTracks.tracks;
             auto ids = inputTracks.trackIds;
 
-            for (int idx = 0; idx < inputTracks.size(); idx++) {
+            for (int idx = 0; idx < inputTracks.size() - 10; idx++) {
                 auto [id,track] = inputTracks.getByIndex(idx);
                 std::cout << "WRITE ID = " << id << std::endl;
 
@@ -126,7 +126,7 @@ class ROOTFittedTrackWriter : public IWriter {
                 std::vector<TVector3> filteredPulls;
                 std::vector<TVector3> smoothedPulls;
                 for (auto state : track.trackStatesReversed()) {
-                    if (!state.hasReferenceSurface() || !state.hasProjector()) {
+                    if (!state.hasProjector()) {
                         continue;
                     }
                     auto hit = state.effectiveCalibrated();

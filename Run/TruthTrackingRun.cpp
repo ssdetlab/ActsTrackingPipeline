@@ -20,6 +20,8 @@ using AbortList = Acts::AbortList<Acts::EndOfWorldReached>;
 using Propagator = Acts::Propagator<
     Acts::EigenStepper<>, 
     Acts::Experimental::DetectorNavigator>;
+using PropagatorOptions =
+    typename Propagator::template Options<ActionList, AbortList>;
 
 using Trajectory = Acts::VectorMultiTrajectory;
 using TrackContainer = Acts::VectorTrackContainer;
@@ -29,7 +31,7 @@ using namespace Acts::UnitLiterals;
 
 int main() {
     // Set the log level
-    Acts::Logging::Level logLevel = Acts::Logging::INFO;
+    Acts::Logging::Level logLevel = Acts::Logging::VERBOSE;
 
     // Dummy context and options
     Acts::GeometryContext gctx;
@@ -60,15 +62,15 @@ int main() {
     // Extent in already rotated frame
     Acts::Extent dipoleExtent;
     dipoleExtent.set(
-        Acts::binX, 
+        Acts::BinningValue::binX, 
         gOpt.dipoleTranslation[0] - gOpt.dipoleBounds[0] + gOpt.constantFieldDelta[0],
         gOpt.dipoleTranslation[0] + gOpt.dipoleBounds[0] - gOpt.constantFieldDelta[0]);
     dipoleExtent.set(
-        Acts::binZ,
+        Acts::BinningValue::binZ,
         gOpt.dipoleTranslation[1] - gOpt.dipoleBounds[1] + gOpt.constantFieldDelta[1],
         gOpt.dipoleTranslation[1] + gOpt.dipoleBounds[1] - gOpt.constantFieldDelta[1]);
     dipoleExtent.set(
-        Acts::binY,
+        Acts::BinningValue::binY,
         gOpt.dipoleTranslation[2] - gOpt.dipoleBounds[2] + gOpt.constantFieldDelta[2],
         gOpt.dipoleTranslation[2] + gOpt.dipoleBounds[2] - gOpt.constantFieldDelta[2]);
 
@@ -81,7 +83,7 @@ int main() {
 
     // Setup the sequencer
     Sequencer::Config seqCfg;
-    seqCfg.events = 10;
+    seqCfg.events = 1;
     seqCfg.numThreads = 16;
     seqCfg.trackFpes = false;
     Sequencer sequencer(seqCfg);
@@ -118,16 +120,16 @@ int main() {
     // Process only the first event
     readerCfg.filePaths = std::vector<std::string>(
         readerCfg.filePaths.begin(), readerCfg.filePaths.begin() + 72); 
-    readerCfg.energyCuts = {1_GeV, 100_GeV};
+    readerCfg.energyCuts = {3_GeV, 100_GeV};
 
     // Vertex position extent in the already rotated frame
     Acts::Extent vertexExtent;
     vertexExtent.set(
-        Acts::binX, -150_cm, 150_cm);
+        Acts::BinningValue::binX, -150_cm, 150_cm);
     vertexExtent.set(
-        Acts::binZ, -150_cm, 150_cm);
+        Acts::BinningValue::binZ, -150_cm, 150_cm);
     vertexExtent.set(
-        Acts::binY, -150_cm, 150_cm);
+        Acts::BinningValue::binY, -150_cm, 150_cm);
 
     readerCfg.vertexPosExtent = vertexExtent;
 
@@ -174,7 +176,7 @@ int main() {
         &surfaceAccessor);
 
     auto propOptions = 
-        Acts::PropagatorOptions<ActionList,AbortList>(gctx, mctx);
+        PropagatorOptions(gctx, mctx);
 
     propOptions.maxSteps = 200;
 
@@ -219,16 +221,16 @@ int main() {
     // --------------------------------------------------------------
     // Event write out
 
-    auto trackWriterCfg = ROOTFittedTrackWriter::Config{
-        "SimTracks",
-        "fitted-tracks",
-        "fitted-tracks.root",
-        3,
-        10
-    };
+    // auto trackWriterCfg = ROOTFittedTrackWriter::Config{
+        // "SimTracks",
+        // "fitted-tracks",
+        // "fitted-tracks.root",
+        // 3,
+        // 10
+    // };
 
-    sequencer.addWriter(
-        std::make_shared<ROOTFittedTrackWriter>(trackWriterCfg, logLevel));
+    // sequencer.addWriter(
+        // std::make_shared<ROOTFittedTrackWriter>(trackWriterCfg, logLevel));
 
     // --------------------------------------------------------------
     // Run all configured algorithms and return the appropriate status.

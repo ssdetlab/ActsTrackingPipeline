@@ -6,7 +6,7 @@
 
 #include "Acts/Definitions/Algebra.hpp"
 #include "Acts/Geometry/Extent.hpp"
-#include "Acts/Utilities/detail/Axis.hpp"
+#include "Acts/Utilities/Axis.hpp"
 #include "Acts/Utilities/Grid.hpp"
 #include "Acts/EventData/SourceLink.hpp"
 
@@ -14,7 +14,7 @@
 #include <fstream>
 
 class CsvLookupTableWriter : public IWriter {
-    using eAxis = Acts::detail::EquidistantAxis;
+    using eAxis = Acts::Axis<Acts::AxisType::Equidistant, Acts::AxisBoundaryType::Open>;
     using eGrid = Acts::Grid<std::vector<Acts::ActsScalar>, eAxis>;
 
     public:
