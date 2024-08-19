@@ -1,0 +1,1849 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no" ?>
+<gdml xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://service-spi.web.cern.ch/service-spi/app/releases/GDML/schema/gdml.xsd">
+
+  <define/>
+
+  <materials>
+    <isotope N="1" Z="1" name="H10x192ede0">
+      <atom unit="g/mole" value="1.00782503081372"/>
+    </isotope>
+    <isotope N="2" Z="1" name="H20x192ee50">
+      <atom unit="g/mole" value="2.01410199966617"/>
+    </isotope>
+    <element name="H0x192eec0">
+      <fraction n="0.999885" ref="H10x192ede0"/>
+      <fraction n="0.000115" ref="H20x192ee50"/>
+    </element>
+    <material name="Galactic0x194d640" state="gas">
+      <T unit="K" value="2.73"/>
+      <P unit="pascal" value="3e-18"/>
+      <MEE unit="eV" value="19.2"/>
+      <D unit="g/cm3" value="1e-25"/>
+      <fraction n="1" ref="H0x192eec0"/>
+    </material>
+    <isotope N="12" Z="6" name="C120x192d940">
+      <atom unit="g/mole" value="12"/>
+    </isotope>
+    <isotope N="13" Z="6" name="C130x192d990">
+      <atom unit="g/mole" value="13.0034"/>
+    </isotope>
+    <element name="Carbon0x192d7e0">
+      <fraction n="0.9893" ref="C120x192d940"/>
+      <fraction n="0.0107" ref="C130x192d990"/>
+    </element>
+    <isotope N="28" Z="14" name="Si280x1948d60">
+      <atom unit="g/mole" value="27.9769"/>
+    </isotope>
+    <isotope N="29" Z="14" name="Si290x194e000">
+      <atom unit="g/mole" value="28.9765"/>
+    </isotope>
+    <isotope N="30" Z="14" name="Si300x194e050">
+      <atom unit="g/mole" value="29.9738"/>
+    </isotope>
+    <element name="Silicon0x194dee0">
+      <fraction n="0.922296077703922" ref="Si280x1948d60"/>
+      <fraction n="0.0468319531680468" ref="Si290x194e000"/>
+      <fraction n="0.0308719691280309" ref="Si300x194e050"/>
+    </element>
+    <isotope N="55" Z="25" name="Cr550x1945180">
+      <atom unit="g/mole" value="54.938"/>
+    </isotope>
+    <element name="Chrome0x1945090">
+      <fraction n="1" ref="Cr550x1945180"/>
+    </element>
+    <isotope N="55" Z="25" name="Mn550x194e2e0">
+      <atom unit="g/mole" value="54.938"/>
+    </isotope>
+    <element name="Manganese0x194e140">
+      <fraction n="1" ref="Mn550x194e2e0"/>
+    </element>
+    <isotope N="54" Z="26" name="Fe540x1945430">
+      <atom unit="g/mole" value="53.9396"/>
+    </isotope>
+    <isotope N="56" Z="26" name="Fe560x1945480">
+      <atom unit="g/mole" value="55.9349"/>
+    </isotope>
+    <isotope N="57" Z="26" name="Fe570x19454d0">
+      <atom unit="g/mole" value="56.9354"/>
+    </isotope>
+    <isotope N="58" Z="26" name="Fe580x1945520">
+      <atom unit="g/mole" value="57.9333"/>
+    </isotope>
+    <element name="Iron0x1945270">
+      <fraction n="0.05845" ref="Fe540x1945430"/>
+      <fraction n="0.91754" ref="Fe560x1945480"/>
+      <fraction n="0.02119" ref="Fe570x19454d0"/>
+      <fraction n="0.00282" ref="Fe580x1945520"/>
+    </element>
+    <isotope N="58" Z="28" name="Ni580x1945a10">
+      <atom unit="g/mole" value="57.9353"/>
+    </isotope>
+    <isotope N="60" Z="28" name="Ni600x1945a60">
+      <atom unit="g/mole" value="59.9308"/>
+    </isotope>
+    <isotope N="61" Z="28" name="Ni610x1945ab0">
+      <atom unit="g/mole" value="60.9311"/>
+    </isotope>
+    <isotope N="62" Z="28" name="Ni620x1945b00">
+      <atom unit="g/mole" value="61.9283"/>
+    </isotope>
+    <isotope N="64" Z="28" name="Ni640x1945b50">
+      <atom unit="g/mole" value="63.928"/>
+    </isotope>
+    <element name="Nickel0x19458a0">
+      <fraction n="0.680769" ref="Ni580x1945a10"/>
+      <fraction n="0.262231" ref="Ni600x1945a60"/>
+      <fraction n="0.011399" ref="Ni610x1945ab0"/>
+      <fraction n="0.036345" ref="Ni620x1945b00"/>
+      <fraction n="0.009256" ref="Ni640x1945b50"/>
+    </element>
+    <material name="StainlessSteel0x194e3d0" state="solid">
+      <T unit="K" value="293.15"/>
+      <MEE unit="eV" value="283.950311419092"/>
+      <D unit="g/cm3" value="8.06"/>
+      <fraction n="0.001" ref="Carbon0x192d7e0"/>
+      <fraction n="0.007" ref="Silicon0x194dee0"/>
+      <fraction n="0.18" ref="Chrome0x1945090"/>
+      <fraction n="0.01" ref="Manganese0x194e140"/>
+      <fraction n="0.712" ref="Iron0x1945270"/>
+      <fraction n="0.09" ref="Nickel0x19458a0"/>
+    </material>
+    <material Z="13" name="G4_Al0x274d4e0" state="solid">
+      <T unit="K" value="293.15"/>
+      <MEE unit="eV" value="166"/>
+      <D unit="g/cm3" value="2.699"/>
+      <atom unit="g/mole" value="26.9815"/>
+    </material>
+    <isotope N="54" Z="26" name="Fe540x193c570">
+      <atom unit="g/mole" value="53.9396"/>
+    </isotope>
+    <isotope N="56" Z="26" name="Fe560x193c5c0">
+      <atom unit="g/mole" value="55.9349"/>
+    </isotope>
+    <isotope N="57" Z="26" name="Fe570x193c610">
+      <atom unit="g/mole" value="56.9354"/>
+    </isotope>
+    <isotope N="58" Z="26" name="Fe580x193c690">
+      <atom unit="g/mole" value="57.9333"/>
+    </isotope>
+    <element name="Fe0x193c6e0">
+      <fraction n="0.05845" ref="Fe540x193c570"/>
+      <fraction n="0.91754" ref="Fe560x193c5c0"/>
+      <fraction n="0.02119" ref="Fe570x193c610"/>
+      <fraction n="0.00282" ref="Fe580x193c690"/>
+    </element>
+    <material name="Iron0x193c430" state="solid">
+      <T unit="K" value="293.15"/>
+      <MEE unit="eV" value="286"/>
+      <D unit="g/cm3" value="7.87"/>
+      <fraction n="1" ref="Fe0x193c6e0"/>
+    </material>
+    <isotope N="63" Z="29" name="Cu630x193ceb0">
+      <atom unit="g/mole" value="62.9296"/>
+    </isotope>
+    <isotope N="65" Z="29" name="Cu650x193cf00">
+      <atom unit="g/mole" value="64.9278"/>
+    </isotope>
+    <element name="Cu0x193cf50">
+      <fraction n="0.6917" ref="Cu630x193ceb0"/>
+      <fraction n="0.3083" ref="Cu650x193cf00"/>
+    </element>
+    <material name="Copper0x193cd70" state="solid">
+      <T unit="K" value="293.15"/>
+      <MEE unit="eV" value="322"/>
+      <D unit="g/cm3" value="8.96"/>
+      <fraction n="1" ref="Cu0x193cf50"/>
+    </material>
+    <isotope N="16" Z="8" name="O160x192de50">
+      <atom unit="g/mole" value="15.9949"/>
+    </isotope>
+    <isotope N="17" Z="8" name="O170x192dea0">
+      <atom unit="g/mole" value="16.9991"/>
+    </isotope>
+    <isotope N="18" Z="8" name="O180x192def0">
+      <atom unit="g/mole" value="17.9992"/>
+    </isotope>
+    <element name="Oxygen0x192dd10">
+      <fraction n="0.99757" ref="O160x192de50"/>
+      <fraction n="0.00038" ref="O170x192dea0"/>
+      <fraction n="0.00205" ref="O180x192def0"/>
+    </element>
+    <isotope N="1" Z="1" name="H10x192d660">
+      <atom unit="g/mole" value="1.00782503081372"/>
+    </isotope>
+    <isotope N="2" Z="1" name="H20x192d6d0">
+      <atom unit="g/mole" value="2.01410199966617"/>
+    </isotope>
+    <element name="Hydrogen0x1901100">
+      <fraction n="0.999885" ref="H10x192d660"/>
+      <fraction n="0.000115" ref="H20x192d6d0"/>
+    </element>
+    <material name="XFELVacuum0x1956d10" state="gas">
+      <T unit="K" value="300"/>
+      <P unit="pascal" value="1e-06"/>
+      <MEE unit="eV" value="50.7301800285021"/>
+      <D unit="g/cm3" value="2.89e-18"/>
+      <fraction n="0.334444841128169" ref="Carbon0x192d7e0"/>
+      <fraction n="0.445555158871832" ref="Oxygen0x192dd10"/>
+      <fraction n="0.22" ref="Hydrogen0x1901100"/>
+    </material>
+    <isotope N="12" Z="6" name="C120x2763510">
+      <atom unit="g/mole" value="12"/>
+    </isotope>
+    <isotope N="13" Z="6" name="C130x2763560">
+      <atom unit="g/mole" value="13.0034"/>
+    </isotope>
+    <element name="C0x275bc20">
+      <fraction n="0.9893" ref="C120x2763510"/>
+      <fraction n="0.0107" ref="C130x2763560"/>
+    </element>
+    <material name="CarbonFiber0x2771000" state="solid">
+      <T unit="K" value="293.15"/>
+      <MEE unit="eV" value="67.8058135998218"/>
+      <D unit="g/cm3" value="1.6"/>
+      <fraction n="0.5" ref="C0x275bc20"/>
+      <fraction n="0.0655" ref="Hydrogen0x1901100"/>
+      <fraction n="0.26785" ref="Carbon0x192d7e0"/>
+      <fraction n="0.16665" ref="Oxygen0x192dd10"/>
+    </material>
+    <isotope N="16" Z="8" name="O160x19518a0">
+      <atom unit="g/mole" value="15.9949"/>
+    </isotope>
+    <isotope N="17" Z="8" name="O170x1951c30">
+      <atom unit="g/mole" value="16.9991"/>
+    </isotope>
+    <isotope N="18" Z="8" name="O180x1951ca0">
+      <atom unit="g/mole" value="17.9992"/>
+    </isotope>
+    <element name="O0x1951cf0">
+      <fraction n="0.99757" ref="O160x19518a0"/>
+      <fraction n="0.00038" ref="O170x1951c30"/>
+      <fraction n="0.00205" ref="O180x1951ca0"/>
+    </element>
+    <material name="G4_WATER0x2777150" state="solid">
+      <T unit="K" value="293.15"/>
+      <MEE unit="eV" value="78"/>
+      <D unit="g/cm3" value="1"/>
+      <fraction n="0.111898477841067" ref="H0x192eec0"/>
+      <fraction n="0.888101522158933" ref="O0x1951cf0"/>
+    </material>
+    <isotope N="14" Z="7" name="N140x2774c60">
+      <atom unit="g/mole" value="14.0031"/>
+    </isotope>
+    <isotope N="15" Z="7" name="N150x2774cb0">
+      <atom unit="g/mole" value="15.0001"/>
+    </isotope>
+    <element name="N0x2776280">
+      <fraction n="0.99632" ref="N140x2774c60"/>
+      <fraction n="0.00368" ref="N150x2774cb0"/>
+    </element>
+    <material name="G4_KAPTON0x27760c0" state="solid">
+      <T unit="K" value="293.15"/>
+      <MEE unit="eV" value="79.6"/>
+      <D unit="g/cm3" value="1.42"/>
+      <fraction n="0.691127814286998" ref="C0x275bc20"/>
+      <fraction n="0.0263633782339879" ref="H0x192eec0"/>
+      <fraction n="0.0732713201549139" ref="N0x2776280"/>
+      <fraction n="0.2092374873241" ref="O0x1951cf0"/>
+    </material>
+    <material name="ColdPlateMaterial0x2771380" state="solid">
+      <T unit="K" value="293.15"/>
+      <MEE unit="eV" value="64.9803674527085"/>
+      <D unit="g/cm3" value="1.48679245283019"/>
+      <fraction n="0.0871116751269036" ref="Hydrogen0x1901100"/>
+      <fraction n="0.3562269035533" ref="Carbon0x192d7e0"/>
+      <fraction n="0.221636040609137" ref="Oxygen0x192dd10"/>
+      <fraction n="0.33502538071066" ref="C0x275bc20"/>
+    </material>
+    <material name="StaveEndCapMaterial0x2771240" state="solid">
+      <T unit="K" value="293.15"/>
+      <MEE unit="eV" value="73.6709617281652"/>
+      <D unit="g/cm3" value="1.4"/>
+      <fraction n="0.554032118206098" ref="Carbon0x192d7e0"/>
+      <fraction n="0.0294266588047588" ref="Hydrogen0x1901100"/>
+      <fraction n="0.116541222989144" ref="Oxygen0x192dd10"/>
+      <fraction n="0.3" ref="C0x275bc20"/>
+    </material>
+    <material Z="13" name="Aluminium0x1936df0" state="solid">
+      <T unit="K" value="293.15"/>
+      <MEE unit="eV" value="166"/>
+      <D unit="g/cm3" value="2.7"/>
+      <atom unit="g/mole" value="26.9815"/>
+    </material>
+    <isotope N="35" Z="17" name="Cl350x2781b80">
+      <atom unit="g/mole" value="34.9689"/>
+    </isotope>
+    <isotope N="37" Z="17" name="Cl370x277e050">
+      <atom unit="g/mole" value="36.9659"/>
+    </isotope>
+    <element name="Cl0x2782780">
+      <fraction n="0.7578" ref="Cl350x2781b80"/>
+      <fraction n="0.2422" ref="Cl370x277e050"/>
+    </element>
+    <material name="G4_POLYVINYL_CHLORIDE0x27825a0" state="solid">
+      <T unit="K" value="293.15"/>
+      <MEE unit="eV" value="108.2"/>
+      <D unit="g/cm3" value="1.3"/>
+      <fraction n="0.384356672764272" ref="C0x275bc20"/>
+      <fraction n="0.0483828062386325" ref="H0x192eec0"/>
+      <fraction n="0.567260520997095" ref="Cl0x2782780"/>
+    </material>
+    <isotope N="28" Z="14" name="Si280x1937260">
+      <atom unit="g/mole" value="27.9769"/>
+    </isotope>
+    <isotope N="29" Z="14" name="Si290x1937210">
+      <atom unit="g/mole" value="28.9765"/>
+    </isotope>
+    <isotope N="30" Z="14" name="Si300x1937770">
+      <atom unit="g/mole" value="29.9738"/>
+    </isotope>
+    <element name="Si0x19377f0">
+      <fraction n="0.922296077703922" ref="Si280x1937260"/>
+      <fraction n="0.0468319531680468" ref="Si290x1937210"/>
+      <fraction n="0.0308719691280309" ref="Si300x1937770"/>
+    </element>
+    <material name="Silicon0x1937630" state="solid">
+      <T unit="K" value="293.15"/>
+      <MEE unit="eV" value="173"/>
+      <D unit="g/cm3" value="2.33"/>
+      <fraction n="1" ref="Si0x19377f0"/>
+    </material>
+  </materials>
+
+  <solids>
+    <tube aunit="deg" deltaphi="360" lunit="mm" name="solidDetChamberLeftPipe0x273de30" rmax="76.2" rmin="73.43" startphi="0" z="43.18"/>
+    <tube aunit="deg" deltaphi="360" lunit="mm" name="solidDetChamberLeftVac0x273e0e0" rmax="73.43" rmin="0" startphi="0" z="43.18"/>
+    <tube aunit="deg" deltaphi="360" lunit="mm" name="solidDetChamberLeftFlange0x273e610" rmax="101.22" rmin="76.2" startphi="0" z="22.35"/>
+    <tube aunit="deg" deltaphi="360" lunit="mm" name="solidDetChamberLeftTap0x273e990" rmax="101.22" rmin="0" startphi="0" z="22.35"/>
+    <tube aunit="deg" deltaphi="360" lunit="mm" name="solidDetChamberFrontInletVac0x2741710" rmax="48.39" rmin="0" startphi="0" z="19.81"/>
+    <tube aunit="deg" deltaphi="360" lunit="mm" name="solidDetChamberFrontInlet0x2741430" rmax="75.82" rmin="0" startphi="0" z="39.62"/>
+    <tube aunit="deg" deltaphi="360" lunit="mm" name="solidDetChamberFrontPipe0x27420c0" rmax="209.55" rmin="174.63" startphi="0" z="56.9"/>
+    <tube aunit="deg" deltaphi="360" lunit="mm" name="solidDetChamberFrontPipeVac0x2742480" rmax="174.63" rmin="0" startphi="0" z="56.9"/>
+    <box lunit="mm" name="solidDetChamberBottomPanel0x272d3a0" x="546.1" y="19.05" z="1384.3"/>
+    <box lunit="mm" name="solidDetChamberTopCut0x272d7d0" x="393.7" y="38.1" z="584.2"/>
+    <subtraction name="solidDetChamberTopPanel00x272d980">
+      <first ref="solidDetChamberBottomPanel0x272d3a0"/>
+      <second ref="solidDetChamberTopCut0x272d7d0"/>
+      <position name="solidDetChamberTopPanel00x272d980_pos" unit="mm" x="0" y="0" z="342.55"/>
+    </subtraction>
+    <subtraction name="solidDetChamberTopPanel0x272dc50">
+      <first ref="solidDetChamberTopPanel00x272d980"/>
+      <second ref="solidDetChamberTopCut0x272d7d0"/>
+      <position name="solidDetChamberTopPanel0x272dc50_pos" unit="mm" x="0" y="0" z="-342.55"/>
+    </subtraction>
+    <box lunit="mm" name="solidDetChamberBack00x273aa50" x="546.1" y="776" z="19.05"/>
+    <box lunit="mm" name="solidDetChamberBackCut0x273aad0" x="393.7" y="685.8" z="38.1"/>
+    <subtraction name="solidDetChamberBack0x273abb0">
+      <first ref="solidDetChamberBack00x273aa50"/>
+      <second ref="solidDetChamberBackCut0x273aad0"/>
+      <position name="solidDetChamberBack0x273abb0_pos" unit="mm" x="0" y="-8.90000000000002" z="0"/>
+    </subtraction>
+    <tube aunit="deg" deltaphi="360" lunit="mm" name="solidFinletCut0x1b697e0" rmax="48.39" rmin="0" startphi="0" z="38.1"/>
+    <subtraction name="DetChamberFrontInletCut00x273b1b0">
+      <first ref="solidDetChamberBack00x273aa50"/>
+      <second ref="solidFinletCut0x1b697e0"/>
+      <position name="DetChamberFrontInletCut00x273b1b0_pos" unit="mm" x="182.66" y="297.61" z="0"/>
+    </subtraction>
+    <subtraction name="DetChamberFrontInletCut10x273b4b0">
+      <first ref="DetChamberFrontInletCut00x273b1b0"/>
+      <second ref="solidFinletCut0x1b697e0"/>
+      <position name="DetChamberFrontInletCut10x273b4b0_pos" unit="mm" x="-182.66" y="297.61" z="0"/>
+    </subtraction>
+    <subtraction name="DetChamberFrontInletCut20x273b780">
+      <first ref="DetChamberFrontInletCut10x273b4b0"/>
+      <second ref="solidFinletCut0x1b697e0"/>
+      <position name="DetChamberFrontInletCut20x273b780_pos" unit="mm" x="-182.66" y="-297.61" z="0"/>
+    </subtraction>
+    <subtraction name="DetChamberFrontInletCut30x273ba20">
+      <first ref="DetChamberFrontInletCut20x273b780"/>
+      <second ref="solidFinletCut0x1b697e0"/>
+      <position name="DetChamberFrontInletCut30x273ba20_pos" unit="mm" x="182.66" y="-297.61" z="0"/>
+    </subtraction>
+    <tube aunit="deg" deltaphi="360" lunit="mm" name="solidFPCut0x1b493c0" rmax="174.63" rmin="0" startphi="0" z="38.1"/>
+    <subtraction name="solidDetChamberFront0x273bcf0">
+      <first ref="DetChamberFrontInletCut30x273ba20"/>
+      <second ref="solidFPCut0x1b493c0"/>
+      <position name="solidDetChamberFront0x273bcf0_pos" unit="mm" x="0" y="-56.37" z="0"/>
+    </subtraction>
+    <box lunit="mm" name="solidDetChamberSide0x273c990" x="19.05" y="737.9" z="1384.3"/>
+    <tube aunit="deg" deltaphi="360" lunit="mm" name="solidLinletCut0x273ca10" rmax="73.15" rmin="0" startphi="0" z="38.1"/>
+    <subtraction name="DetChamberLeftInletCut00x273cbc0">
+      <first ref="solidDetChamberSide0x273c990"/>
+      <second ref="solidLinletCut0x273ca10"/>
+      <position name="DetChamberLeftInletCut00x273cbc0_pos" unit="mm" x="0" y="-165.75" z="-527.05"/>
+      <rotation name="DetChamberLeftInletCut00x273cbc0_rot" unit="deg" x="0" y="90" z="0"/>
+    </subtraction>
+    <subtraction name="DetChamberLeftInletCut10x273ce70">
+      <first ref="DetChamberLeftInletCut00x273cbc0"/>
+      <second ref="solidLinletCut0x273ca10"/>
+      <position name="DetChamberLeftInletCut10x273ce70_pos" unit="mm" x="0" y="-165.75" z="-158.75"/>
+      <rotation name="DetChamberLeftInletCut10x273ce70_rot" unit="deg" x="0" y="90" z="0"/>
+    </subtraction>
+    <subtraction name="DetChamberLeftInletCut20x273d120">
+      <first ref="DetChamberLeftInletCut10x273ce70"/>
+      <second ref="solidLinletCut0x273ca10"/>
+      <position name="DetChamberLeftInletCut20x273d120_pos" unit="mm" x="0" y="-165.75" z="158.75"/>
+      <rotation name="DetChamberLeftInletCut20x273d120_rot" unit="deg" x="0" y="90" z="0"/>
+    </subtraction>
+    <subtraction name="DetChamberLeftInletCut30x273d3d0">
+      <first ref="DetChamberLeftInletCut20x273d120"/>
+      <second ref="solidLinletCut0x273ca10"/>
+      <position name="DetChamberLeftInletCut30x273d3d0_pos" unit="mm" x="0" y="-165.75" z="527.05"/>
+      <rotation name="DetChamberLeftInletCut30x273d3d0_rot" unit="deg" x="0" y="90" z="0"/>
+    </subtraction>
+    <box lunit="mm" name="solidDetChamberRCut0x273e560" x="38.1" y="647.7" z="584.2"/>
+    <subtraction name="solidDetChamberRight00x273ed10">
+      <first ref="solidDetChamberSide0x273c990"/>
+      <second ref="solidDetChamberRCut0x273e560"/>
+      <position name="solidDetChamberRight00x273ed10_pos" unit="mm" x="0" y="13.32" z="-342.9"/>
+    </subtraction>
+    <subtraction name="solidDetChamberRight0x2740da0">
+      <first ref="solidDetChamberRight00x273ed10"/>
+      <second ref="solidDetChamberRCut0x273e560"/>
+      <position name="solidDetChamberRight0x2740da0_pos" unit="mm" x="0" y="13.32" z="342.9"/>
+    </subtraction>
+    <box lunit="mm" name="solidDetChamberBottomPad0x27484d0" x="508" y="6.36" z="1384.3"/>
+    <box lunit="mm" name="solidDetChamberOpticBrd0x274df10" x="482.6" y="11.68" z="1346.2"/>
+    <box lunit="mm" name="solidDetChamber0x272d170" x="546.1" y="776" z="1422.4"/>
+    <box lunit="mm" name="solidDetChamberBottomExt0x2742cb0" x="38" y="19.05" z="1384.3"/>
+    <box lunit="mm" name="solidDetChamberWinPanel00x2743180" x="457.2" y="401.19" z="17.78"/>
+    <tube aunit="deg" deltaphi="360" lunit="mm" name="solidDetChamberWinPipeCut0x27432f0" rmax="173.1" rmin="0" startphi="0" z="35.56"/>
+    <subtraction name="solidDetChamberWinPanel10x27434e0">
+      <first ref="solidDetChamberWinPanel00x2743180"/>
+      <second ref="solidDetChamberWinPipeCut0x27432f0"/>
+      <position name="solidDetChamberWinPanel10x27434e0_pos" unit="mm" x="0" y="16.445" z="0"/>
+    </subtraction>
+    <tube aunit="deg" deltaphi="360" lunit="mm" name="solidDetChamberWinPipeVac0x2743b10" rmax="173.1" rmin="0" startphi="0" z="17.78"/>
+    <box lunit="mm" name="solidDetChamberWindow0x27448f0" x="50" y="120" z="0.51"/>
+    <box lunit="mm" name="solidDetChamberWinVac0x2744600" x="50" y="120" z="17.78"/>
+    <box lunit="mm" name="solidDetChamberWinPanelSide0x2743fc0" x="203.6" y="120" z="17.78"/>
+    <box lunit="mm" name="solidDetChamberWinPanelTop0x27442d0" x="457.2" y="228.11" z="17.78"/>
+    <box lunit="mm" name="solidDetChamberCoverTop0x2747040" x="457.2" y="24.19" z="647.7"/>
+    <box lunit="mm" name="solidDetChamberCoverRight0x27475b0" x="24.19" y="711.2" z="647.7"/>
+    <tube aunit="deg" deltaphi="360" lunit="mm" name="solidDetChamberHandleL0x2741d80" rmax="10" rmin="0" startphi="0" z="123.51"/>
+    <tube aunit="deg" deltaphi="360" lunit="mm" name="solidDetChamberHandleH0x2747d00" rmax="10" rmin="0" startphi="0" z="28"/>
+    <torus aunit="deg" deltaphi="90" lunit="mm" name="solidDetChamberHandleA0x2747ab0" rmax="10" rmin="0" rtor="20" startphi="0"/>
+    <box lunit="mm" name="solidDetChamberContainer0x272cf40" x="710.48" y="858.19" z="1497.08"/>
+    <tube aunit="deg" deltaphi="360" lunit="mm" name="solidDetChamberSupport0x274a940" rmax="7" rmin="0" startphi="0" z="35"/>
+    <box lunit="mm" name="solidFlashMagnetHalf10x27666b0" x="673.1" y="285.75" z="914.4"/>
+    <box lunit="mm" name="solidFlashMMiddleCut0x2766830" x="470" y="310.32" z="1828.8"/>
+    <subtraction name="solidFlashMagnetHalf20x2766a50">
+      <first ref="solidFlashMagnetHalf10x27666b0"/>
+      <second ref="solidFlashMMiddleCut0x2766830"/>
+      <position name="solidFlashMagnetHalf20x2766a50_pos" unit="mm" x="0" y="-142.875" z="0"/>
+    </subtraction>
+    <box lunit="mm" name="solidFlashMACut0x2766970" x="141.42135623731" y="70.7106781186547" z="1828.8"/>
+    <subtraction name="solidFlashMagnetHalf30x2766cb0">
+      <first ref="solidFlashMagnetHalf20x2766a50"/>
+      <second ref="solidFlashMACut0x2766970"/>
+      <position name="solidFlashMagnetHalf30x2766cb0_pos" unit="mm" x="336.55" y="142.875" z="0"/>
+      <rotation name="solidFlashMagnetHalf30x2766cb0_rot" unit="deg" x="0" y="0" z="-45"/>
+    </subtraction>
+    <subtraction name="solidFlashMagnetHalf0x2766f60">
+      <first ref="solidFlashMagnetHalf30x2766cb0"/>
+      <second ref="solidFlashMACut0x2766970"/>
+      <position name="solidFlashMagnetHalf0x2766f60_pos" unit="mm" x="-336.55" y="142.875" z="0"/>
+      <rotation name="solidFlashMagnetHalf0x2766f60_rot" unit="deg" x="0" y="0" z="45"/>
+    </subtraction>
+    <box lunit="mm" name="solidFlashMagnetCore10x27673b0" x="210" y="125.2" z="914.4"/>
+    <box lunit="mm" name="solidFlashMagnetCoreCut0x2767510" x="56.5685424949238" y="28.2842712474619" z="1828.8"/>
+    <subtraction name="solidFlashMagnetCore20x2767650">
+      <first ref="solidFlashMagnetCore10x27673b0"/>
+      <second ref="solidFlashMagnetCoreCut0x2767510"/>
+      <position name="solidFlashMagnetCore20x2767650_pos" unit="mm" x="105" y="-62.6" z="0"/>
+      <rotation name="solidFlashMagnetCore20x2767650_rot" unit="deg" x="0" y="0" z="45"/>
+    </subtraction>
+    <subtraction name="solidFlashMagnetCore0x2767900">
+      <first ref="solidFlashMagnetCore20x2767650"/>
+      <second ref="solidFlashMagnetCoreCut0x2767510"/>
+      <position name="solidFlashMagnetCore0x2767900_pos" unit="mm" x="-105" y="-62.6" z="0"/>
+      <rotation name="solidFlashMagnetCore0x2767900_rot" unit="deg" x="0" y="0" z="-45"/>
+    </subtraction>
+    <box lunit="mm" name="solidFlashMagnetCoilZ0x2767d50" x="110" y="100" z="934.4"/>
+    <box lunit="mm" name="solidFlashMagnetCoilX0x2768050" x="230" y="100" z="110"/>
+    <tube aunit="deg" deltaphi="90" lunit="mm" name="solidFlashMCoilR0x27459b0" rmax="110" rmin="0" startphi="0" z="100"/>
+    <box lunit="mm" name="solidDipolMagSmallSupportTop0x27686d0" x="571.5" y="33.782" z="914.4"/>
+    <box lunit="mm" name="solidDipolMagSmallSupportLeg0x276a450" x="101.6" y="101.6" z="54.61"/>
+    <box lunit="mm" name="solidDumpMagnetSupportTop0x276d520" x="1575.562" y="38.1" z="1645.92"/>
+    <box lunit="mm" name="solidDumpMagnetSupportLeg0x276e1a0" x="154.432" y="154.432" z="1196.958"/>
+    <box lunit="mm" name="solidDMBPipeOuter0x2765e50" x="51.054" y="101.854" z="914.4"/>
+    <box lunit="mm" name="solidDMBPipeInner0x2765fb0" x="44.704" y="95.504" z="1828.8"/>
+    <subtraction name="solidDMBPipeXY0x27660f0">
+      <first ref="solidDMBPipeOuter0x2765e50"/>
+      <second ref="solidDMBPipeInner0x2765fb0"/>
+    </subtraction>
+    <box lunit="mm" name="solidDMBPipeContainer0x2765b80" x="51.054" y="101.854" z="914.4"/>
+    <box lunit="mm" name="logicDumpMagnetFieldsolid0x2765840" x="470" y="59.92" z="914.4"/>
+    <trd lunit="mm" name="solidTruss10x2748850" x1="15" x2="0.7" y1="15" y2="0.7" z="4.9"/>
+    <trd lunit="mm" name="solidTrussCut10x2777b80" x1="30" x2="30" y1="15" y2="0.7" z="4.9"/>
+    <subtraction name="solidTrussS10x2777ea0">
+      <first ref="solidTruss10x2748850"/>
+      <second ref="solidTrussCut10x2777b80"/>
+      <position name="solidTrussS10x2777ea0_pos" unit="mm" x="0" y="0" z="-0.3"/>
+    </subtraction>
+    <trd lunit="mm" name="solidTrussCut20x2777d00" x1="14.5" x2="0.2" y1="30" y2="30" z="4.9"/>
+    <subtraction name="solidTruss0x27780a0">
+      <first ref="solidTrussS10x2777ea0"/>
+      <second ref="solidTrussCut20x2777d00"/>
+      <position name="solidTruss0x27780a0_pos" unit="mm" x="0" y="0" z="-0.3"/>
+    </subtraction>
+    <box lunit="mm" name="solidTrussBar0x2778580" x="285" y="0.7" z="0.3"/>
+    <tube aunit="deg" deltaphi="360" lunit="mm" name="solidTrkCoolWater0x2779900" rmax="0.512" rmin="0" startphi="0" z="285"/>
+    <tube aunit="deg" deltaphi="360" lunit="mm" name="solidTrkCoolPipe0x2779550" rmax="0.537" rmin="0" startphi="0" z="285"/>
+    <box lunit="mm" name="solidColdPlate0x2751e50" x="290" y="15" z="0.265"/>
+    <trd lunit="mm" name="solidTrussEndCap0x277a800" x1="2.5" x2="2.5" y1="15" y2="0.7" z="4.9"/>
+    <box lunit="mm" name="solidStaveSide10x277ac40" x="14" y="10" z="2"/>
+    <tube aunit="deg" deltaphi="360" lunit="mm" name="solidStvSidePinCut0x277ad20" rmax="0.6" rmin="0" startphi="0" z="4"/>
+    <subtraction name="solidStaveSide20x277b100">
+      <first ref="solidStaveSide10x277ac40"/>
+      <second ref="solidStvSidePinCut0x277ad20"/>
+      <position name="solidStaveSide20x277b100_pos" unit="mm" x="2" y="0" z="0"/>
+    </subtraction>
+    <tube aunit="deg" deltaphi="360" lunit="mm" name="solidStvSideScrewCut0x277af30" rmax="1" rmin="0" startphi="0" z="4"/>
+    <subtraction name="solidStaveSideIn0x277b350">
+      <first ref="solidStaveSide20x277b100"/>
+      <second ref="solidStvSideScrewCut0x277af30"/>
+      <position name="solidStaveSideIn0x277b350_pos" unit="mm" x="-2" y="0" z="0"/>
+    </subtraction>
+    <xtru lunit="mm" name="solidStaveHolder0x277c0c0">
+      <twoDimVertex x="0" y="0"/>
+      <twoDimVertex x="0" y="59.5"/>
+      <twoDimVertex x="4" y="59.5"/>
+      <twoDimVertex x="10" y="52"/>
+      <twoDimVertex x="10" y="0"/>
+      <twoDimVertex x="8" y="0"/>
+      <twoDimVertex x="8" y="52"/>
+      <twoDimVertex x="2" y="55.5"/>
+      <twoDimVertex x="2" y="0"/>
+      <section scalingFactor="1" xOffset="0" yOffset="0" zOrder="0" zPosition="-1.5"/>
+      <section scalingFactor="1" xOffset="0" yOffset="0" zOrder="1" zPosition="1.5"/>
+    </xtru>
+    <tube aunit="deg" deltaphi="360" lunit="mm" name="solidInServCoolPipeCnctr0x27847a0" rmax="1" rmin="0.5" startphi="0" z="4"/>
+    <tube aunit="deg" deltaphi="360" lunit="mm" name="solidInServCoolPipeCnctrW0x2784b40" rmax="0.5" rmin="0" startphi="0" z="4"/>
+    <tube aunit="deg" deltaphi="360" lunit="mm" name="solidInServCoolPipeCnctrS0x2784f00" rmax="0.65" rmin="0.5" startphi="0" z="6"/>
+    <tube aunit="deg" deltaphi="360" lunit="mm" name="solidInServCoolPipeCnctrSW0x27852c0" rmax="0.5" rmin="0" startphi="0" z="6"/>
+    <tube aunit="deg" deltaphi="360" lunit="mm" name="solidInServCoolPipeCnctrSP0x2785680" rmax="1" rmin="0.65" startphi="0" z="6"/>
+    <tube aunit="deg" deltaphi="360" lunit="mm" name="solidInServCoolPipe00x2783310" rmax="1" rmin="0.65" startphi="0" z="12.9300120096096"/>
+    <tube aunit="deg" deltaphi="360" lunit="mm" name="solidInServCoolPipe0W0x2783660" rmax="0.65" rmin="0" startphi="0" z="12.9300120096096"/>
+    <tube aunit="deg" deltaphi="360" lunit="mm" name="solidInServCoolPipe10x27839f0" rmax="1" rmin="0.65" startphi="0" z="51.7200480384384"/>
+    <tube aunit="deg" deltaphi="360" lunit="mm" name="solidInServCoolPipe1W0x2783d80" rmax="0.65" rmin="0" startphi="0" z="51.7200480384384"/>
+    <torus aunit="deg" deltaphi="18.1948723387668" lunit="mm" name="solidInServCoolPipeR0x2784110" rmax="1" rmin="0.65" rtor="300" startphi="0"/>
+    <torus aunit="deg" deltaphi="18.1948723387668" lunit="mm" name="solidInServCoolPipeRW0x2784440" rmax="0.65" rmin="0" rtor="300" startphi="0"/>
+    <para alpha="0" aunit="deg" lunit="mm" name="solidInServFlatCblSec00x2786640" phi="0" theta="2.29061004263853" x="0.200159936051149" y="15" z="50"/>
+    <box lunit="mm" name="solidInServFlatCblSec10x2785b20" x="50" y="15" z="0.2"/>
+    <box lunit="mm" name="solidInServFlatCblSec200x2786c00" x="185.6" y="15" z="0.05"/>
+    <para alpha="0" aunit="deg" lunit="mm" name="solidInServFlatCblSec210x2786f00" phi="180" theta="11.9968993079236" x="0.102232883652962" y="15" z="80"/>
+    <para alpha="0" aunit="deg" lunit="mm" name="solidInServFlatCblSec220x2787290" phi="180" theta="14.0362434679265" x="0.0515388203202208" y="15" z="80"/>
+    <box lunit="mm" name="solidInServFlatCblSec310x2787620" x="105.6" y="15" z="0.1"/>
+    <box lunit="mm" name="solidInServFlatCblSec320x2787980" x="105.6" y="15" z="0.05"/>
+    <box lunit="mm" name="solidFPCLayer10x277fdc0" x="270.8" y="15" z="0.1"/>
+    <box lunit="mm" name="solidFPCLayer20x2780df0" x="270.8" y="15" z="0.05"/>
+    <box lunit="mm" name="solidOPPPSensor10x2781160" x="30" y="15" z="0.05"/>
+    <box lunit="mm" name="solidOPPPSensorSensitive0x2781270" x="29.94176" y="13.76256" z="0.025"/>
+    <subtraction name="solidOPPPSensor0x27813e0">
+      <first ref="solidOPPPSensor10x2781160"/>
+      <second ref="solidOPPPSensorSensitive0x2781270"/>
+      <position name="solidOPPPSensor0x27813e0_pos" unit="mm" x="0" y="0.61872" z="-0.0125"/>
+    </subtraction>
+    <box lunit="mm" name="solidStaveSensorContainer0x277e2b0" x="270.8" y="15" z="0.2"/>
+    <box lunit="mm" name="solidOPPPTrackerL0x2773ec0" x="580" y="65" z="360"/>
+    <box lunit="mm" name="solidOPPPSupportMiddleBar0x27e5590" x="30" y="20" z="60"/>
+    <box lunit="mm" name="solidOPPPSupportBar0x278c160" x="30" y="10" z="303"/>
+    <para alpha="0" aunit="deg" lunit="mm" name="solidOPPPSupportCrossBar0x278ebc0" phi="0" theta="31.5513849483135" x="30" y="10" z="114"/>
+    <tube aunit="deg" deltaphi="360" lunit="mm" name="solidOPPPSupportJoin0x27e6ac0" rmax="15" rmin="5" startphi="0" z="15"/>
+    <box lunit="mm" name="solidOPPPSupportHolder10x27e58f0" x="169" y="160" z="70"/>
+    <subtraction name="solidOPPPSupportHolder20x27e6120">
+      <first ref="solidOPPPSupportHolder10x27e58f0"/>
+      <second ref="solidOPPPSupportHolder10x27e58f0"/>
+      <position name="solidOPPPSupportHolder20x27e6120_pos" unit="mm" x="102" y="80" z="52.5"/>
+      <rotation name="solidOPPPSupportHolder20x27e6120_rot" unit="deg" x="0" y="45" z="0"/>
+    </subtraction>
+    <subtraction name="solidOPPPSupportHolder30x27e63f0">
+      <first ref="solidOPPPSupportHolder20x27e6120"/>
+      <second ref="solidOPPPSupportHolder10x27e58f0"/>
+      <position name="solidOPPPSupportHolder30x27e63f0_pos" unit="mm" x="102" y="80" z="-52.5"/>
+      <rotation name="solidOPPPSupportHolder30x27e63f0_rot" unit="deg" x="0" y="-45" z="0"/>
+    </subtraction>
+    <box lunit="mm" name="solidOPPPSupportHolderCut0x27e5fb0" x="169" y="160" z="140"/>
+    <subtraction name="solidOPPPSupportHolder0x27e66a0">
+      <first ref="solidOPPPSupportHolder30x27e63f0"/>
+      <second ref="solidOPPPSupportHolderCut0x27e5fb0"/>
+      <position name="solidOPPPSupportHolder0x27e66a0_pos" unit="mm" x="10" y="-10" z="0"/>
+    </subtraction>
+    <box lunit="mm" name="solidOPPPDetSupportTableTop0x27e7010" x="240" y="20" z="210"/>
+    <box lunit="mm" name="solidOPPPDetSupportTableLeg0x27e73d0" x="35" y="35" z="430.76"/>
+    <box lunit="mm" name="World0x1b48e80" x="20000" y="20000" z="62000"/>
+  </solids>
+
+  <structure>
+    <volume name="logicDetChamberLeftPipe0x273df40">
+      <materialref ref="Galactic0x194d640"/>
+      <solidref ref="solidDetChamberLeftPipe0x273de30"/>
+    </volume>
+    <volume name="logicDetChamberLeftVac0x273e2d0">
+      <materialref ref="Galactic0x194d640"/>
+      <solidref ref="solidDetChamberLeftVac0x273e0e0"/>
+    </volume>
+    <volume name="logicDetChamberLeftFlange0x273e830">
+      <materialref ref="Galactic0x194d640"/>
+      <solidref ref="solidDetChamberLeftFlange0x273e610"/>
+    </volume>
+    <assembly name="Assembly_1">
+      <physvol name="logicDetChamberLeftPipe_pv0x2721740">
+        <volumeref ref="logicDetChamberLeftPipe0x273df40"/>
+      </physvol>
+      <physvol name="logicDetChamberLeftVac_pv0x2721778">
+        <volumeref ref="logicDetChamberLeftVac0x273e2d0"/>
+      </physvol>
+      <physvol name="logicDetChamberLeftFlange_pv0x27217b0">
+        <volumeref ref="logicDetChamberLeftFlange0x273e830"/>
+        <position name="Assembly_1_position_2" unit="mm" x="0" y="0" z="10.415"/>
+      </physvol>
+    </assembly>
+    <volume name="logicDetChamberLeftTap0x273eba0">
+      <materialref ref="StainlessSteel0x194e3d0"/>
+      <solidref ref="solidDetChamberLeftTap0x273e990"/>
+    </volume>
+    <volume name="logicDetChamberFrontInletVac0x2741930">
+      <materialref ref="Galactic0x194d640"/>
+      <solidref ref="solidDetChamberFrontInletVac0x2741710"/>
+    </volume>
+    <volume name="logicDetChamberFrontInlet0x27415d0">
+      <materialref ref="StainlessSteel0x194e3d0"/>
+      <solidref ref="solidDetChamberFrontInlet0x2741430"/>
+      <physvol name="DetChamberFrontInletVac0x2741ad0">
+        <volumeref ref="logicDetChamberFrontInletVac0x2741930"/>
+        <position name="DetChamberFrontInletVac0x2741ad0_pos" unit="mm" x="0" y="0" z="9.905"/>
+      </physvol>
+    </volume>
+    <volume name="logicDetChamberFrontPipe0x27422e0">
+      <materialref ref="StainlessSteel0x194e3d0"/>
+      <solidref ref="solidDetChamberFrontPipe0x27420c0"/>
+    </volume>
+    <volume name="logicDetChamberFrontPipeVac0x27426a0">
+      <materialref ref="Galactic0x194d640"/>
+      <solidref ref="solidDetChamberFrontPipeVac0x2742480"/>
+    </volume>
+    <volume name="logicDetChamberBottomPanel0x272d530">
+      <materialref ref="StainlessSteel0x194e3d0"/>
+      <solidref ref="solidDetChamberBottomPanel0x272d3a0"/>
+    </volume>
+    <volume name="logicDetChamberTopPanel0x272df40">
+      <materialref ref="StainlessSteel0x194e3d0"/>
+      <solidref ref="solidDetChamberTopPanel0x272dc50"/>
+    </volume>
+    <volume name="logicDetChamberBack0x273ae20">
+      <materialref ref="StainlessSteel0x194e3d0"/>
+      <solidref ref="solidDetChamberBack0x273abb0"/>
+    </volume>
+    <volume name="logicDetChamberFront0x273bfe0">
+      <materialref ref="StainlessSteel0x194e3d0"/>
+      <solidref ref="solidDetChamberFront0x273bcf0"/>
+    </volume>
+    <volume name="logicDetChamberLeft0x273d680">
+      <materialref ref="StainlessSteel0x194e3d0"/>
+      <solidref ref="DetChamberLeftInletCut30x273d3d0"/>
+    </volume>
+    <volume name="logicDetChamberRight0x27410c0">
+      <materialref ref="StainlessSteel0x194e3d0"/>
+      <solidref ref="solidDetChamberRight0x2740da0"/>
+    </volume>
+    <volume name="logicDetChamberBottomPad0x274dc90">
+      <materialref ref="StainlessSteel0x194e3d0"/>
+      <solidref ref="solidDetChamberBottomPad0x27484d0"/>
+    </volume>
+    <volume name="logicDetChamberOpticBoard0x274e0a0">
+      <materialref ref="G4_Al0x274d4e0"/>
+      <solidref ref="solidDetChamberOpticBrd0x274df10"/>
+    </volume>
+    <volume name="logicDetChamber0x272d270">
+      <materialref ref="Galactic0x194d640"/>
+      <solidref ref="solidDetChamber0x272d170"/>
+      <physvol name="DetChamberBottomPanel0x272d690">
+        <volumeref ref="logicDetChamberBottomPanel0x272d530"/>
+        <position name="DetChamberBottomPanel0x272d690_pos" unit="mm" x="0" y="-378.475" z="-4.61852778244065e-14"/>
+      </physvol>
+      <physvol name="DetChamberTopPanel0x272e070">
+        <volumeref ref="logicDetChamberTopPanel0x272df40"/>
+        <position name="DetChamberTopPanel0x272e070_pos" unit="mm" x="0" y="378.475" z="-4.61852778244065e-14"/>
+      </physvol>
+      <physvol name="DetChamberBackPanel0x273af60">
+        <volumeref ref="logicDetChamberBack0x273ae20"/>
+        <position name="DetChamberBackPanel0x273af60_pos" unit="mm" x="0" y="0" z="701.675"/>
+      </physvol>
+      <physvol name="DetChamberFrontPanel0x273c110">
+        <volumeref ref="logicDetChamberFront0x273bfe0"/>
+        <position name="DetChamberFrontPanel0x273c110_pos" unit="mm" x="0" y="0" z="-701.675"/>
+      </physvol>
+      <physvol name="DetChamberLeftPanel0x273d800">
+        <volumeref ref="logicDetChamberLeft0x273d680"/>
+        <position name="DetChamberLeftPanel0x273d800_pos" unit="mm" x="263.525" y="0" z="0"/>
+      </physvol>
+      <physvol name="DetChamberRightPanel0x2741220">
+        <volumeref ref="logicDetChamberRight0x27410c0"/>
+        <position name="DetChamberRightPanel0x2741220_pos" unit="mm" x="-263.525" y="0" z="0"/>
+      </physvol>
+      <physvol copynumber="1" name="DetChamberBottomPad0x274ddd0">
+        <volumeref ref="logicDetChamberBottomPad0x274dc90"/>
+        <position name="DetChamberBottomPad0x274ddd0_pos" unit="mm" x="0" y="-365.77" z="0"/>
+      </physvol>
+      <physvol copynumber="1" name="DetChamberOpticBoard0x274e250">
+        <volumeref ref="logicDetChamberOpticBoard0x274e0a0"/>
+        <position name="DetChamberOpticBoard0x274e250_pos" unit="mm" x="0" y="-351.19" z="0"/>
+      </physvol>
+    </volume>
+    <volume name="logicDetChamberBottomExt0x2742dc0">
+      <materialref ref="StainlessSteel0x194e3d0"/>
+      <solidref ref="solidDetChamberBottomExt0x2742cb0"/>
+    </volume>
+    <volume name="logicDetChamberWinPanel0x2743740">
+      <materialref ref="StainlessSteel0x194e3d0"/>
+      <solidref ref="solidDetChamberWinPanel10x27434e0"/>
+    </volume>
+    <volume name="logicDetChamberWinPipeVac0x2743cb0">
+      <materialref ref="Galactic0x194d640"/>
+      <solidref ref="solidDetChamberWinPipeVac0x2743b10"/>
+    </volume>
+    <volume name="logicDetChamberWindow0x2744a50">
+      <materialref ref="StainlessSteel0x194e3d0"/>
+      <solidref ref="solidDetChamberWindow0x27448f0"/>
+    </volume>
+    <volume name="logicDetChamberWinVac0x2744780">
+      <materialref ref="Galactic0x194d640"/>
+      <solidref ref="solidDetChamberWinVac0x2744600"/>
+      <physvol name="DetChamberWindow0x2744bf0">
+        <volumeref ref="logicDetChamberWindow0x2744a50"/>
+        <position name="DetChamberWindow0x2744bf0_pos" unit="mm" x="0" y="0" z="8.635"/>
+      </physvol>
+    </volume>
+    <volume name="logicDetChamberWinPanelSide0x2744130">
+      <materialref ref="StainlessSteel0x194e3d0"/>
+      <solidref ref="solidDetChamberWinPanelSide0x2743fc0"/>
+    </volume>
+    <volume name="logicDetChamberWinPanelTop0x2744460">
+      <materialref ref="StainlessSteel0x194e3d0"/>
+      <solidref ref="solidDetChamberWinPanelTop0x27442d0"/>
+    </volume>
+    <volume name="logicDetChamberCoverTop0x2747230">
+      <materialref ref="StainlessSteel0x194e3d0"/>
+      <solidref ref="solidDetChamberCoverTop0x2747040"/>
+    </volume>
+    <volume name="logicDetChamberCoverRight0x2747720">
+      <materialref ref="StainlessSteel0x194e3d0"/>
+      <solidref ref="solidDetChamberCoverRight0x27475b0"/>
+    </volume>
+    <volume name="logicDetChamberHandleL0x2748070">
+      <materialref ref="StainlessSteel0x194e3d0"/>
+      <solidref ref="solidDetChamberHandleL0x2741d80"/>
+    </volume>
+    <volume name="logicDetChamberHandleH0x2748230">
+      <materialref ref="StainlessSteel0x194e3d0"/>
+      <solidref ref="solidDetChamberHandleH0x2747d00"/>
+    </volume>
+    <volume name="logicDetChamberHandleA0x2747ed0">
+      <materialref ref="StainlessSteel0x194e3d0"/>
+      <solidref ref="solidDetChamberHandleA0x2747ab0"/>
+    </volume>
+    <assembly name="Assembly_2">
+      <physvol name="logicDetChamberHandleL_pv0x2721830">
+        <volumeref ref="logicDetChamberHandleL0x2748070"/>
+        <position name="Assembly_2_position_0" unit="mm" x="0" y="48" z="0"/>
+      </physvol>
+      <physvol name="logicDetChamberHandleH_pv0x2721868">
+        <volumeref ref="logicDetChamberHandleH0x2748230"/>
+        <position name="Assembly_2_position_1" unit="mm" x="0" y="14" z="81.755"/>
+        <rotation name="Assembly_2_rotation_1" unit="deg" x="-90" y="0" z="0"/>
+      </physvol>
+      <physvol name="logicDetChamberHandleH_pv0x27218a0">
+        <volumeref ref="logicDetChamberHandleH0x2748230"/>
+        <position name="Assembly_2_position_2" unit="mm" x="0" y="14" z="-81.755"/>
+        <rotation name="Assembly_2_rotation_2" unit="deg" x="-90" y="0" z="0"/>
+      </physvol>
+      <physvol name="logicDetChamberHandleA_pv0x27218d8">
+        <volumeref ref="logicDetChamberHandleA0x2747ed0"/>
+        <position name="Assembly_2_position_3" unit="mm" x="0" y="28" z="-61.755"/>
+        <rotation name="Assembly_2_rotation_3" unit="deg" x="0" y="-90" z="0"/>
+      </physvol>
+      <physvol name="logicDetChamberHandleA_pv0x2721910">
+        <volumeref ref="logicDetChamberHandleA0x2747ed0"/>
+        <position name="Assembly_2_position_4" unit="mm" x="0" y="28" z="61.755"/>
+        <rotation name="Assembly_2_rotation_4" unit="deg" x="0" y="90" z="0"/>
+      </physvol>
+    </assembly>
+    <volume name="logicDetChamberContainer0x272d040">
+      <materialref ref="Galactic0x194d640"/>
+      <solidref ref="solidDetChamberContainer0x272cf40"/>
+      <physvol name="Imprint_1_0x273ee40">
+        <volumeref ref="Assembly_1"/>
+        <position name="Imprint_1_0x273ee40_pos" unit="mm" x="294.64" y="-206.845" z="-507.49"/>
+        <rotation name="Imprint_1_0x273ee40_rot" unit="deg" x="0" y="-90" z="0"/>
+      </physvol>
+      <physvol name="DetChamberLeftTap0x273f470">
+        <volumeref ref="logicDetChamberLeftTap0x273eba0"/>
+        <position name="DetChamberLeftTap0x273f470_pos" unit="mm" x="327.405" y="-206.845" z="-507.49"/>
+        <rotation name="DetChamberLeftTap0x273f470_rot" unit="deg" x="0" y="90" z="0"/>
+      </physvol>
+      <physvol name="Imprint_2_0x273f5f0">
+        <volumeref ref="Assembly_1"/>
+        <position name="Imprint_2_0x273f5f0_pos" unit="mm" x="294.64" y="-206.845" z="-139.19"/>
+        <rotation name="Imprint_2_0x273f5f0_rot" unit="deg" x="0" y="-90" z="0"/>
+      </physvol>
+      <physvol copynumber="1" name="DetChamberLeftTap0x273fc10">
+        <volumeref ref="logicDetChamberLeftTap0x273eba0"/>
+        <position name="DetChamberLeftTap0x273fc10_pos" unit="mm" x="327.405" y="-206.845" z="-139.19"/>
+        <rotation name="DetChamberLeftTap0x273fc10_rot" unit="deg" x="0" y="90" z="0"/>
+      </physvol>
+      <physvol name="Imprint_3_0x273fd00">
+        <volumeref ref="Assembly_1"/>
+        <position name="Imprint_3_0x273fd00_pos" unit="mm" x="294.64" y="-206.845" z="178.31"/>
+        <rotation name="Imprint_3_0x273fd00_rot" unit="deg" x="0" y="-90" z="0"/>
+      </physvol>
+      <physvol copynumber="2" name="DetChamberLeftTap0x27402a0">
+        <volumeref ref="logicDetChamberLeftTap0x273eba0"/>
+        <position name="DetChamberLeftTap0x27402a0_pos" unit="mm" x="327.405" y="-206.845" z="178.31"/>
+        <rotation name="DetChamberLeftTap0x27402a0_rot" unit="deg" x="0" y="90" z="0"/>
+      </physvol>
+      <physvol name="Imprint_4_0x2740460">
+        <volumeref ref="Assembly_1"/>
+        <position name="Imprint_4_0x2740460_pos" unit="mm" x="294.64" y="-206.845" z="546.61"/>
+        <rotation name="Imprint_4_0x2740460_rot" unit="deg" x="0" y="-90" z="0"/>
+      </physvol>
+      <physvol copynumber="3" name="DetChamberLeftTap0x2740a10">
+        <volumeref ref="logicDetChamberLeftTap0x273eba0"/>
+        <position name="DetChamberLeftTap0x2740a10_pos" unit="mm" x="327.405" y="-206.845" z="546.61"/>
+        <rotation name="DetChamberLeftTap0x2740a10_rot" unit="deg" x="0" y="90" z="0"/>
+      </physvol>
+      <physvol name="DetChamberFrontInlet0x2741c10">
+        <volumeref ref="logicDetChamberFrontInlet0x27415d0"/>
+        <position name="DetChamberFrontInlet0x2741c10_pos" unit="mm" x="182.66" y="256.515" z="-711.45"/>
+      </physvol>
+      <physvol copynumber="1" name="DetChamberFrontInlet0x2741e90">
+        <volumeref ref="logicDetChamberFrontInlet0x27415d0"/>
+        <position name="DetChamberFrontInlet0x2741e90_pos" unit="mm" x="-182.66" y="256.515" z="-711.45"/>
+      </physvol>
+      <physvol copynumber="2" name="DetChamberFrontInlet0x2741f40">
+        <volumeref ref="logicDetChamberFrontInlet0x27415d0"/>
+        <position name="DetChamberFrontInlet0x2741f40_pos" unit="mm" x="-182.66" y="-338.705" z="-711.45"/>
+      </physvol>
+      <physvol copynumber="3" name="DetChamberFrontInlet0x2742000">
+        <volumeref ref="logicDetChamberFrontInlet0x27415d0"/>
+        <position name="DetChamberFrontInlet0x2742000_pos" unit="mm" x="182.66" y="-338.705" z="-711.45"/>
+      </physvol>
+      <physvol name="DetChamberFrontPipe0x2742840">
+        <volumeref ref="logicDetChamberFrontPipe0x27422e0"/>
+        <position name="DetChamberFrontPipe0x2742840_pos" unit="mm" x="0" y="-97.465" z="-720.09"/>
+      </physvol>
+      <physvol name="DetChamberFrontPipeVac0x2742980">
+        <volumeref ref="logicDetChamberFrontPipeVac0x27426a0"/>
+        <position name="DetChamberFrontPipeVac0x2742980_pos" unit="mm" x="0" y="-97.465" z="-720.09"/>
+      </physvol>
+      <physvol name="DetChamberAsemblyVolume0x2742ad0">
+        <volumeref ref="logicDetChamber0x272d270"/>
+        <position name="DetChamberAsemblyVolume0x2742ad0_pos" unit="mm" x="0" y="-41.095" z="19.56"/>
+      </physvol>
+      <physvol name="DetChamberBottomExt0x2742f60">
+        <volumeref ref="logicDetChamberBottomExt0x2742dc0"/>
+        <position name="DetChamberBottomExt0x2742f60_pos" unit="mm" x="292.05" y="-419.57" z="0.51000000000003"/>
+      </physvol>
+      <physvol copynumber="1" name="DetChamberBottomExt0x27430a0">
+        <volumeref ref="logicDetChamberBottomExt0x2742dc0"/>
+        <position name="DetChamberBottomExt0x27430a0_pos" unit="mm" x="-292.05" y="-419.57" z="0.51000000000003"/>
+      </physvol>
+      <physvol name="DetChamberWinPanel0x27438f0">
+        <volumeref ref="logicDetChamberWinPanel0x2743740"/>
+        <position name="DetChamberWinPanel0x27438f0_pos" unit="mm" x="0" y="-228.5" z="739.65"/>
+      </physvol>
+      <physvol name="DetChamberWinPipeVac0x2743e50">
+        <volumeref ref="logicDetChamberWinPipeVac0x2743cb0"/>
+        <position name="DetChamberWinPipeVac0x2743e50_pos" unit="mm" x="0" y="-212.055" z="739.65"/>
+      </physvol>
+      <physvol name="DetChamberWindowVac0x2746bb0">
+        <volumeref ref="logicDetChamberWinVac0x2744780"/>
+        <position name="DetChamberWindowVac0x2746bb0_pos" unit="mm" x="0" y="32.095" z="739.65"/>
+      </physvol>
+      <physvol name="DetChamberWinPanelSide0x2746cf0">
+        <volumeref ref="logicDetChamberWinPanelSide0x2744130"/>
+        <position name="DetChamberWinPanelSide0x2746cf0_pos" unit="mm" x="-126.8" y="32.095" z="739.65"/>
+      </physvol>
+      <physvol copynumber="1" name="DetChamberWinPanelSide0x2746e40">
+        <volumeref ref="logicDetChamberWinPanelSide0x2744130"/>
+        <position name="DetChamberWinPanelSide0x2746e40_pos" unit="mm" x="126.8" y="32.095" z="739.65"/>
+      </physvol>
+      <physvol name="DetChamberWinPanelTop0x2746ef0">
+        <volumeref ref="logicDetChamberWinPanelTop0x2744460"/>
+        <position name="DetChamberWinPanelTop0x2746ef0_pos" unit="mm" x="0" y="206.15" z="739.65"/>
+      </physvol>
+      <physvol name="DetChamberCoverTop0x2747380">
+        <volumeref ref="logicDetChamberCoverTop0x2747230"/>
+        <position name="DetChamberCoverTop0x2747380_pos" unit="mm" x="0" y="359" z="362.11"/>
+      </physvol>
+      <physvol copynumber="1" name="DetChamberCoverTop0x27474d0">
+        <volumeref ref="logicDetChamberCoverTop0x2747230"/>
+        <position name="DetChamberCoverTop0x27474d0_pos" unit="mm" x="0" y="359" z="-322.99"/>
+      </physvol>
+      <physvol name="DetChamberCoverRight0x27478c0">
+        <volumeref ref="logicDetChamberCoverRight0x2747720"/>
+        <position name="DetChamberCoverRight0x27478c0_pos" unit="mm" x="-285.145" y="-27.775" z="362.46"/>
+      </physvol>
+      <physvol copynumber="1" name="DetChamberCoverRight0x2747a00">
+        <volumeref ref="logicDetChamberCoverRight0x2747720"/>
+        <position name="DetChamberCoverRight0x2747a00_pos" unit="mm" x="-285.145" y="-27.775" z="-322.64"/>
+      </physvol>
+      <physvol name="Imprint_1_0x27489a0">
+        <volumeref ref="Assembly_2"/>
+        <position name="Imprint_1_0x27489a0_pos" unit="mm" x="0" y="371.095" z="-119.14"/>
+        <rotation name="Imprint_1_0x27489a0_rot" unit="deg" x="0" y="-90" z="0"/>
+      </physvol>
+      <physvol name="Imprint_2_0x27492c0">
+        <volumeref ref="Assembly_2"/>
+        <position name="Imprint_2_0x27492c0_pos" unit="mm" x="-297.24" y="-27.775" z="-119.14"/>
+        <rotation name="Imprint_2_0x27492c0_rot" unit="deg" x="-90" y="0" z="-90"/>
+      </physvol>
+      <physvol name="Imprint_3_0x2749c70">
+        <volumeref ref="Assembly_2"/>
+        <position name="Imprint_3_0x2749c70_pos" unit="mm" x="0" y="371.095" z="-526.84"/>
+        <rotation name="Imprint_3_0x2749c70_rot" unit="deg" x="0" y="-90" z="0"/>
+      </physvol>
+      <physvol name="Imprint_4_0x274a5c0">
+        <volumeref ref="Assembly_2"/>
+        <position name="Imprint_4_0x274a5c0_pos" unit="mm" x="-297.24" y="-27.775" z="-526.84"/>
+        <rotation name="Imprint_4_0x274a5c0_rot" unit="deg" x="-90" y="0" z="-90"/>
+      </physvol>
+      <physvol name="Imprint_5_0x274afe0">
+        <volumeref ref="Assembly_2"/>
+        <position name="Imprint_5_0x274afe0_pos" unit="mm" x="0" y="371.095" z="565.96"/>
+        <rotation name="Imprint_5_0x274afe0_rot" unit="deg" x="0" y="-90" z="0"/>
+      </physvol>
+      <physvol name="Imprint_6_0x274b930">
+        <volumeref ref="Assembly_2"/>
+        <position name="Imprint_6_0x274b930_pos" unit="mm" x="-297.24" y="-27.775" z="565.96"/>
+        <rotation name="Imprint_6_0x274b930_rot" unit="deg" x="-90" y="0" z="-90"/>
+      </physvol>
+      <physvol name="Imprint_7_0x274c2d0">
+        <volumeref ref="Assembly_2"/>
+        <position name="Imprint_7_0x274c2d0_pos" unit="mm" x="0" y="371.095" z="158.26"/>
+        <rotation name="Imprint_7_0x274c2d0_rot" unit="deg" x="0" y="-90" z="0"/>
+      </physvol>
+      <physvol name="Imprint_8_0x274cc20">
+        <volumeref ref="Assembly_2"/>
+        <position name="Imprint_8_0x274cc20_pos" unit="mm" x="-297.24" y="-27.775" z="158.26"/>
+        <rotation name="Imprint_8_0x274cc20_rot" unit="deg" x="-90" y="0" z="-90"/>
+      </physvol>
+    </volume>
+    <volume name="logicDetChamberSupport0x274e490">
+      <materialref ref="Iron0x193c430"/>
+      <solidref ref="solidDetChamberSupport0x274a940"/>
+    </volume>
+    <assembly name="Assembly_3">
+      <physvol name="logicDetChamberContainer_pv0x274e9d0">
+        <volumeref ref="logicDetChamberContainer0x272d040"/>
+        <position name="Assembly_3_position_0" unit="mm" x="0" y="429.095" z="0"/>
+      </physvol>
+      <physvol name="logicDetChamberSupport_pv0x274ea08">
+        <volumeref ref="logicDetChamberSupport0x274e490"/>
+        <position name="Assembly_3_position_1" unit="mm" x="290.05" y="-17.5" z="671.15"/>
+        <rotation name="Assembly_3_rotation_1" unit="deg" x="-90" y="0" z="0"/>
+      </physvol>
+      <physvol name="logicDetChamberSupport_pv0x274ea40">
+        <volumeref ref="logicDetChamberSupport0x274e490"/>
+        <position name="Assembly_3_position_2" unit="mm" x="290.05" y="-17.5" z="-671.15"/>
+        <rotation name="Assembly_3_rotation_2" unit="deg" x="-90" y="0" z="0"/>
+      </physvol>
+      <physvol name="logicDetChamberSupport_pv0x274ea78">
+        <volumeref ref="logicDetChamberSupport0x274e490"/>
+        <position name="Assembly_3_position_3" unit="mm" x="-290.05" y="-17.5" z="-671.15"/>
+        <rotation name="Assembly_3_rotation_3" unit="deg" x="-90" y="0" z="0"/>
+      </physvol>
+      <physvol name="logicDetChamberSupport_pv0x274eab0">
+        <volumeref ref="logicDetChamberSupport0x274e490"/>
+        <position name="Assembly_3_position_4" unit="mm" x="-290.05" y="-17.5" z="671.15"/>
+        <rotation name="Assembly_3_rotation_4" unit="deg" x="-90" y="0" z="0"/>
+      </physvol>
+    </assembly>
+    <volume name="logicFlashMagnetHalf0x2767210">
+      <materialref ref="Iron0x193c430"/>
+      <solidref ref="solidFlashMagnetHalf0x2766f60"/>
+    </volume>
+    <volume name="logicFlashMagnetCore0x2767bb0">
+      <materialref ref="Iron0x193c430"/>
+      <solidref ref="solidFlashMagnetCore0x2767900"/>
+    </volume>
+    <volume name="logicFlashMagnetCoilZ0x2767eb0">
+      <materialref ref="Copper0x193cd70"/>
+      <solidref ref="solidFlashMagnetCoilZ0x2767d50"/>
+    </volume>
+    <volume name="logicFlashMagnetCoilX0x27681b0">
+      <materialref ref="Copper0x193cd70"/>
+      <solidref ref="solidFlashMagnetCoilX0x2768050"/>
+    </volume>
+    <volume name="logicFlashMCoilR0x2768430">
+      <materialref ref="Copper0x193cd70"/>
+      <solidref ref="solidFlashMCoilR0x27459b0"/>
+    </volume>
+    <assembly name="Assembly_14">
+      <physvol name="logicFlashMagnetHalf_pv0x2769930">
+        <volumeref ref="logicFlashMagnetHalf0x2767210"/>
+        <position name="Assembly_14_position_0" unit="mm" x="0" y="142.875" z="0"/>
+      </physvol>
+      <physvol name="logicFlashMagnetCore_pv0x2769968">
+        <volumeref ref="logicFlashMagnetCore0x2767bb0"/>
+        <position name="Assembly_14_position_1" unit="mm" x="0" y="92.56" z="0"/>
+      </physvol>
+      <physvol name="logicFlashMagnetCoilZ_pv0x27699a0">
+        <volumeref ref="logicFlashMagnetCoilZ0x2767eb0"/>
+        <position name="Assembly_14_position_2" unit="mm" x="170" y="105.16" z="0"/>
+      </physvol>
+      <physvol name="logicFlashMagnetCoilZ_pv0x27699d8">
+        <volumeref ref="logicFlashMagnetCoilZ0x2767eb0"/>
+        <position name="Assembly_14_position_3" unit="mm" x="-170" y="105.16" z="0"/>
+      </physvol>
+      <physvol name="logicFlashMagnetCoilX_pv0x2769a10">
+        <volumeref ref="logicFlashMagnetCoilX0x27681b0"/>
+        <position name="Assembly_14_position_4" unit="mm" x="0" y="105.16" z="522.2"/>
+      </physvol>
+      <physvol name="logicFlashMagnetCoilX_pv0x2769a48">
+        <volumeref ref="logicFlashMagnetCoilX0x27681b0"/>
+        <position name="Assembly_14_position_5" unit="mm" x="0" y="105.16" z="-522.2"/>
+      </physvol>
+      <physvol name="logicFlashMCoilR_pv0x2769a80">
+        <volumeref ref="logicFlashMCoilR0x2768430"/>
+        <position name="Assembly_14_position_6" unit="mm" x="115" y="105.16" z="467.2"/>
+        <rotation name="Assembly_14_rotation_6" unit="deg" x="-90" y="0" z="0"/>
+      </physvol>
+      <physvol name="logicFlashMCoilR_pv0x2769ab8">
+        <volumeref ref="logicFlashMCoilR0x2768430"/>
+        <position name="Assembly_14_position_7" unit="mm" x="-115" y="105.16" z="467.2"/>
+        <rotation name="Assembly_14_rotation_7" unit="deg" x="-90" y="0" z="-90"/>
+      </physvol>
+      <physvol name="logicFlashMCoilR_pv0x2769af0">
+        <volumeref ref="logicFlashMCoilR0x2768430"/>
+        <position name="Assembly_14_position_8" unit="mm" x="115" y="105.16" z="-467.2"/>
+        <rotation name="Assembly_14_rotation_8" unit="deg" x="-90" y="0" z="90"/>
+      </physvol>
+      <physvol name="logicFlashMCoilR_pv0x2769b28">
+        <volumeref ref="logicFlashMCoilR0x2768430"/>
+        <position name="Assembly_14_position_9" unit="mm" x="-115" y="105.16" z="-467.2"/>
+        <rotation name="Assembly_14_rotation_9" unit="deg" x="-90" y="0" z="-180"/>
+      </physvol>
+      <physvol name="logicFlashMagnetHalf_pv0x2769b60">
+        <volumeref ref="logicFlashMagnetHalf0x2767210"/>
+        <position name="Assembly_14_position_10" unit="mm" x="-1.74971411428178e-14" y="-142.875" z="0"/>
+        <rotation name="Assembly_14_rotation_10" unit="deg" x="0" y="0" z="-180"/>
+      </physvol>
+      <physvol name="logicFlashMagnetCore_pv0x2769b98">
+        <volumeref ref="logicFlashMagnetCore0x2767bb0"/>
+        <position name="Assembly_14_position_11" unit="mm" x="-1.13353307729079e-14" y="-92.56" z="0"/>
+        <rotation name="Assembly_14_rotation_11" unit="deg" x="0" y="0" z="-180"/>
+      </physvol>
+      <physvol name="logicFlashMagnetCoilZ_pv0x2769bd0">
+        <volumeref ref="logicFlashMagnetCoilZ0x2767eb0"/>
+        <position name="Assembly_14_position_12" unit="mm" x="-170" y="-105.16" z="0"/>
+        <rotation name="Assembly_14_rotation_12" unit="deg" x="0" y="0" z="-180"/>
+      </physvol>
+      <physvol name="logicFlashMagnetCoilZ_pv0x2769c08">
+        <volumeref ref="logicFlashMagnetCoilZ0x2767eb0"/>
+        <position name="Assembly_14_position_13" unit="mm" x="170" y="-105.16" z="0"/>
+        <rotation name="Assembly_14_rotation_13" unit="deg" x="0" y="0" z="-180"/>
+      </physvol>
+      <physvol name="logicFlashMagnetCoilX_pv0x2769c40">
+        <volumeref ref="logicFlashMagnetCoilX0x27681b0"/>
+        <position name="Assembly_14_position_14" unit="mm" x="-1.28783857398336e-14" y="-105.16" z="522.2"/>
+        <rotation name="Assembly_14_rotation_14" unit="deg" x="0" y="0" z="-180"/>
+      </physvol>
+      <physvol name="logicFlashMagnetCoilX_pv0x2769c78">
+        <volumeref ref="logicFlashMagnetCoilX0x27681b0"/>
+        <position name="Assembly_14_position_15" unit="mm" x="-1.28783857398336e-14" y="-105.16" z="-522.2"/>
+        <rotation name="Assembly_14_rotation_15" unit="deg" x="0" y="0" z="-180"/>
+      </physvol>
+      <physvol name="logicFlashMCoilR_pv0x2769cb0">
+        <volumeref ref="logicFlashMCoilR0x2768430"/>
+        <position name="Assembly_14_position_16" unit="mm" x="-115" y="-105.16" z="467.2"/>
+        <rotation name="Assembly_14_rotation_16" unit="deg" x="90" y="0" z="-180"/>
+      </physvol>
+      <physvol name="logicFlashMCoilR_pv0x2769ce8">
+        <volumeref ref="logicFlashMCoilR0x2768430"/>
+        <position name="Assembly_14_position_17" unit="mm" x="115" y="-105.16" z="467.2"/>
+        <rotation name="Assembly_14_rotation_17" unit="deg" x="90" y="0" z="90"/>
+      </physvol>
+      <physvol name="logicFlashMCoilR_pv0x2769d20">
+        <volumeref ref="logicFlashMCoilR0x2768430"/>
+        <position name="Assembly_14_position_18" unit="mm" x="-115" y="-105.16" z="-467.2"/>
+        <rotation name="Assembly_14_rotation_18" unit="deg" x="90" y="0" z="-90"/>
+      </physvol>
+      <physvol name="logicFlashMCoilR_pv0x2769d58">
+        <volumeref ref="logicFlashMCoilR0x2768430"/>
+        <position name="Assembly_14_position_19" unit="mm" x="115" y="-105.16" z="-467.2"/>
+        <rotation name="Assembly_14_rotation_19" unit="deg" x="90" y="0" z="0"/>
+      </physvol>
+    </assembly>
+    <volume name="logicDipolMagSmallSupportTop0x276a220">
+      <materialref ref="StainlessSteel0x194e3d0"/>
+      <solidref ref="solidDipolMagSmallSupportTop0x27686d0"/>
+    </volume>
+    <volume name="logicDipolMagSmallSupportLeg0x276d270">
+      <materialref ref="StainlessSteel0x194e3d0"/>
+      <solidref ref="solidDipolMagSmallSupportLeg0x276a450"/>
+    </volume>
+    <assembly name="Assembly_15">
+      <physvol name="logicDipolMagSmallSupportTop_pv0x27687a0">
+        <volumeref ref="logicDipolMagSmallSupportTop0x276a220"/>
+        <position name="Assembly_15_position_0" unit="mm" x="0" y="-16.891" z="0"/>
+      </physvol>
+      <physvol name="logicDipolMagSmallSupportLeg_pv0x27687d8">
+        <volumeref ref="logicDipolMagSmallSupportLeg0x276d270"/>
+        <position name="Assembly_15_position_1" unit="mm" x="-133.35" y="-61.087" z="-304.8"/>
+        <rotation name="Assembly_15_rotation_1" unit="deg" x="90" y="0" z="0"/>
+      </physvol>
+      <physvol name="logicDipolMagSmallSupportLeg_pv0x2768810">
+        <volumeref ref="logicDipolMagSmallSupportLeg0x276d270"/>
+        <position name="Assembly_15_position_2" unit="mm" x="-133.35" y="-61.087" z="304.8"/>
+        <rotation name="Assembly_15_rotation_2" unit="deg" x="90" y="0" z="0"/>
+      </physvol>
+      <physvol name="logicDipolMagSmallSupportLeg_pv0x2768848">
+        <volumeref ref="logicDipolMagSmallSupportLeg0x276d270"/>
+        <position name="Assembly_15_position_3" unit="mm" x="133.35" y="-61.087" z="0"/>
+        <rotation name="Assembly_15_rotation_3" unit="deg" x="90" y="0" z="0"/>
+      </physvol>
+    </assembly>
+    <volume name="logicDumpMagnetSupportTop0x276dff0">
+      <materialref ref="StainlessSteel0x194e3d0"/>
+      <solidref ref="solidDumpMagnetSupportTop0x276d520"/>
+    </volume>
+    <volume name="logicDumpMagnetSupportLeg0x276e300">
+      <materialref ref="StainlessSteel0x194e3d0"/>
+      <solidref ref="solidDumpMagnetSupportLeg0x276e1a0"/>
+    </volume>
+    <assembly name="Assembly_16">
+      <physvol name="logicDumpMagnetSupportTop_pv0x276d640">
+        <volumeref ref="logicDumpMagnetSupportTop0x276dff0"/>
+        <position name="Assembly_16_position_0" unit="mm" x="0" y="-19.05" z="0"/>
+      </physvol>
+      <physvol name="logicDumpMagnetSupportLeg_pv0x276d678">
+        <volumeref ref="logicDumpMagnetSupportLeg0x276e300"/>
+        <position name="Assembly_16_position_1" unit="mm" x="-556.133" y="-636.579" z="-591.312"/>
+        <rotation name="Assembly_16_rotation_1" unit="deg" x="90" y="0" z="0"/>
+      </physvol>
+      <physvol name="logicDumpMagnetSupportLeg_pv0x276d6b0">
+        <volumeref ref="logicDumpMagnetSupportLeg0x276e300"/>
+        <position name="Assembly_16_position_2" unit="mm" x="-556.133" y="-636.579" z="591.312"/>
+        <rotation name="Assembly_16_rotation_2" unit="deg" x="90" y="0" z="0"/>
+      </physvol>
+      <physvol name="logicDumpMagnetSupportLeg_pv0x276d6e8">
+        <volumeref ref="logicDumpMagnetSupportLeg0x276e300"/>
+        <position name="Assembly_16_position_3" unit="mm" x="556.133" y="-636.579" z="0"/>
+        <rotation name="Assembly_16_rotation_3" unit="deg" x="90" y="0" z="0"/>
+      </physvol>
+    </assembly>
+    <volume name="logicDMBPipe0x2766200">
+      <materialref ref="StainlessSteel0x194e3d0"/>
+      <solidref ref="solidDMBPipeXY0x27660f0"/>
+    </volume>
+    <volume name="logicDMBPipeContainer0x2765ce0">
+      <materialref ref="XFELVacuum0x1956d10"/>
+      <solidref ref="solidDMBPipeContainer0x2765b80"/>
+      <physvol name="DMBPipe0x2766350">
+        <volumeref ref="logicDMBPipe0x2766200"/>
+      </physvol>
+    </volume>
+    <volume name="logicDumpMagnetField0x27659f0">
+      <materialref ref="Galactic0x194d640"/>
+      <solidref ref="logicDumpMagnetFieldsolid0x2765840"/>
+      <physvol name="DMBPipeContainer0x27664f0">
+        <volumeref ref="logicDMBPipeContainer0x2765ce0"/>
+        <rotation name="DMBPipeContainer0x27664f0_rot" unit="deg" x="0" y="0" z="90"/>
+      </physvol>
+    </volume>
+    <volume name="logicTruss0x2778310">
+      <materialref ref="CarbonFiber0x2771000"/>
+      <solidref ref="solidTruss0x27780a0"/>
+    </volume>
+    <volume name="logicTrussBar0x27793d0">
+      <materialref ref="CarbonFiber0x2771000"/>
+      <solidref ref="solidTrussBar0x2778580"/>
+    </volume>
+    <volume name="logicTrkCoolWater0x2751a80">
+      <materialref ref="G4_WATER0x2777150"/>
+      <solidref ref="solidTrkCoolWater0x2779900"/>
+    </volume>
+    <volume name="logicTrkCoolPipe0x2779760">
+      <materialref ref="G4_KAPTON0x27760c0"/>
+      <solidref ref="solidTrkCoolPipe0x2779550"/>
+      <physvol name="TrkCoolWater0x2751c20">
+        <volumeref ref="logicTrkCoolWater0x2751a80"/>
+      </physvol>
+    </volume>
+    <volume name="logicColdPlate0x277a6a0">
+      <materialref ref="ColdPlateMaterial0x2771380"/>
+      <solidref ref="solidColdPlate0x2751e50"/>
+    </volume>
+    <volume name="logicTrussEndCap0x277aa00">
+      <materialref ref="StaveEndCapMaterial0x2771240"/>
+      <solidref ref="solidTrussEndCap0x277a800"/>
+    </volume>
+    <volume name="logicStaveSideIn0x277b620">
+      <materialref ref="StaveEndCapMaterial0x2771240"/>
+      <solidref ref="solidStaveSideIn0x277b350"/>
+    </volume>
+    <volume name="logicStaveSideOut0x277be10">
+      <materialref ref="StaveEndCapMaterial0x2771240"/>
+      <solidref ref="solidStaveSide20x277b100"/>
+    </volume>
+    <assembly name="Assembly_17">
+      <physvol name="logicTruss_pv0x2778ba0">
+        <volumeref ref="logicTruss0x2778310"/>
+        <position name="Assembly_17_position_0" unit="mm" x="-135" y="0" z="0"/>
+      </physvol>
+      <physvol name="logicTruss_pv0x2778bd8">
+        <volumeref ref="logicTruss0x2778310"/>
+        <position name="Assembly_17_position_1" unit="mm" x="-120" y="0" z="0"/>
+      </physvol>
+      <physvol name="logicTruss_pv0x2778c10">
+        <volumeref ref="logicTruss0x2778310"/>
+        <position name="Assembly_17_position_2" unit="mm" x="-105" y="0" z="0"/>
+      </physvol>
+      <physvol name="logicTruss_pv0x2778c48">
+        <volumeref ref="logicTruss0x2778310"/>
+        <position name="Assembly_17_position_3" unit="mm" x="-90" y="0" z="0"/>
+      </physvol>
+      <physvol name="logicTruss_pv0x2778c80">
+        <volumeref ref="logicTruss0x2778310"/>
+        <position name="Assembly_17_position_4" unit="mm" x="-75" y="0" z="0"/>
+      </physvol>
+      <physvol name="logicTruss_pv0x2778cb8">
+        <volumeref ref="logicTruss0x2778310"/>
+        <position name="Assembly_17_position_5" unit="mm" x="-60" y="0" z="0"/>
+      </physvol>
+      <physvol name="logicTruss_pv0x2778cf0">
+        <volumeref ref="logicTruss0x2778310"/>
+        <position name="Assembly_17_position_6" unit="mm" x="-45" y="0" z="0"/>
+      </physvol>
+      <physvol name="logicTruss_pv0x2778d28">
+        <volumeref ref="logicTruss0x2778310"/>
+        <position name="Assembly_17_position_7" unit="mm" x="-30" y="0" z="0"/>
+      </physvol>
+      <physvol name="logicTruss_pv0x2778d60">
+        <volumeref ref="logicTruss0x2778310"/>
+        <position name="Assembly_17_position_8" unit="mm" x="-15" y="0" z="0"/>
+      </physvol>
+      <physvol name="logicTruss_pv0x2778d98">
+        <volumeref ref="logicTruss0x2778310"/>
+      </physvol>
+      <physvol name="logicTruss_pv0x2778dd0">
+        <volumeref ref="logicTruss0x2778310"/>
+        <position name="Assembly_17_position_10" unit="mm" x="15" y="0" z="0"/>
+      </physvol>
+      <physvol name="logicTruss_pv0x2778e08">
+        <volumeref ref="logicTruss0x2778310"/>
+        <position name="Assembly_17_position_11" unit="mm" x="30" y="0" z="0"/>
+      </physvol>
+      <physvol name="logicTruss_pv0x2778e40">
+        <volumeref ref="logicTruss0x2778310"/>
+        <position name="Assembly_17_position_12" unit="mm" x="45" y="0" z="0"/>
+      </physvol>
+      <physvol name="logicTruss_pv0x2778e78">
+        <volumeref ref="logicTruss0x2778310"/>
+        <position name="Assembly_17_position_13" unit="mm" x="60" y="0" z="0"/>
+      </physvol>
+      <physvol name="logicTruss_pv0x2778eb0">
+        <volumeref ref="logicTruss0x2778310"/>
+        <position name="Assembly_17_position_14" unit="mm" x="75" y="0" z="0"/>
+      </physvol>
+      <physvol name="logicTruss_pv0x2778ee8">
+        <volumeref ref="logicTruss0x2778310"/>
+        <position name="Assembly_17_position_15" unit="mm" x="90" y="0" z="0"/>
+      </physvol>
+      <physvol name="logicTruss_pv0x2778f20">
+        <volumeref ref="logicTruss0x2778310"/>
+        <position name="Assembly_17_position_16" unit="mm" x="105" y="0" z="0"/>
+      </physvol>
+      <physvol name="logicTruss_pv0x2778f58">
+        <volumeref ref="logicTruss0x2778310"/>
+        <position name="Assembly_17_position_17" unit="mm" x="120" y="0" z="0"/>
+      </physvol>
+      <physvol name="logicTruss_pv0x2778f90">
+        <volumeref ref="logicTruss0x2778310"/>
+        <position name="Assembly_17_position_18" unit="mm" x="135" y="0" z="0"/>
+      </physvol>
+      <physvol name="logicTrussBar_pv0x2778fc8">
+        <volumeref ref="logicTrussBar0x27793d0"/>
+        <position name="Assembly_17_position_19" unit="mm" x="0" y="0" z="2"/>
+      </physvol>
+      <physvol name="logicTrkCoolPipe_pv0x2779000">
+        <volumeref ref="logicTrkCoolPipe0x2779760"/>
+        <position name="Assembly_17_position_20" unit="mm" x="0" y="3" z="-1.913"/>
+        <rotation name="Assembly_17_rotation_20" unit="deg" x="0" y="-90" z="0"/>
+      </physvol>
+      <physvol name="logicTrkCoolPipe_pv0x2779038">
+        <volumeref ref="logicTrkCoolPipe0x2779760"/>
+        <position name="Assembly_17_position_21" unit="mm" x="0" y="-3" z="-1.913"/>
+        <rotation name="Assembly_17_rotation_21" unit="deg" x="0" y="-90" z="0"/>
+      </physvol>
+      <physvol name="logicColdPlate_pv0x2779070">
+        <volumeref ref="logicColdPlate0x277a6a0"/>
+        <position name="Assembly_17_position_22" unit="mm" x="0" y="0" z="-2.5825"/>
+      </physvol>
+      <physvol name="logicTrussEndCap_pv0x27790a8">
+        <volumeref ref="logicTrussEndCap0x277aa00"/>
+        <position name="Assembly_17_position_23" unit="mm" x="143.75" y="0" z="0"/>
+      </physvol>
+      <physvol name="logicTrussEndCap_pv0x27790e0">
+        <volumeref ref="logicTrussEndCap0x277aa00"/>
+        <position name="Assembly_17_position_24" unit="mm" x="-143.75" y="0" z="0"/>
+      </physvol>
+      <physvol name="logicStaveSideIn_pv0x2779118">
+        <volumeref ref="logicStaveSideIn0x277b620"/>
+        <position name="Assembly_17_position_25" unit="mm" x="-152" y="0" z="-1.915"/>
+      </physvol>
+      <physvol name="logicStaveSideOut_pv0x2779150">
+        <volumeref ref="logicStaveSideOut0x277be10"/>
+        <position name="Assembly_17_position_26" unit="mm" x="152" y="0" z="-1.915"/>
+        <rotation name="Assembly_17_rotation_26" unit="deg" x="0" y="0" z="-180"/>
+      </physvol>
+    </assembly>
+    <volume name="logicStaveHolder0x277ec90">
+      <materialref ref="Aluminium0x1936df0"/>
+      <solidref ref="solidStaveHolder0x277c0c0"/>
+    </volume>
+    <assembly name="Assembly_18">
+      <physvol name="logicStaveHolder_pv0x277e5a0">
+        <volumeref ref="logicStaveHolder0x277ec90"/>
+        <position name="Assembly_18_position_0" unit="mm" x="148" y="-57.5" z="0.585"/>
+      </physvol>
+      <physvol name="logicStaveHolder_pv0x277e5d8">
+        <volumeref ref="logicStaveHolder0x277ec90"/>
+        <position name="Assembly_18_position_1" unit="mm" x="-148" y="-57.5" z="0.585"/>
+        <rotation name="Assembly_18_rotation_1" unit="deg" x="180" y="0" z="180"/>
+      </physvol>
+    </assembly>
+    <volume name="logicInServCoolPipeCnctr0x27849a0">
+      <materialref ref="StaveEndCapMaterial0x2771240"/>
+      <solidref ref="solidInServCoolPipeCnctr0x27847a0"/>
+    </volume>
+    <volume name="logicInServCoolPipeCnctrW0x2784d60">
+      <materialref ref="G4_WATER0x2777150"/>
+      <solidref ref="solidInServCoolPipeCnctrW0x2784b40"/>
+    </volume>
+    <volume name="logicInServCoolPipeCnctrS0x2785120">
+      <materialref ref="StaveEndCapMaterial0x2771240"/>
+      <solidref ref="solidInServCoolPipeCnctrS0x2784f00"/>
+    </volume>
+    <volume name="logicInServCoolPipeCnctrSW0x27854e0">
+      <materialref ref="G4_WATER0x2777150"/>
+      <solidref ref="solidInServCoolPipeCnctrSW0x27852c0"/>
+    </volume>
+    <volume name="logicInServCoolPipeCnctrSP0x27858a0">
+      <materialref ref="G4_POLYVINYL_CHLORIDE0x27825a0"/>
+      <solidref ref="solidInServCoolPipeCnctrSP0x2785680"/>
+    </volume>
+    <volume name="logicInServCoolPipe00x27834c0">
+      <materialref ref="G4_POLYVINYL_CHLORIDE0x27825a0"/>
+      <solidref ref="solidInServCoolPipe00x2783310"/>
+    </volume>
+    <volume name="logicInServCoolPipe0W0x2783850">
+      <materialref ref="G4_WATER0x2777150"/>
+      <solidref ref="solidInServCoolPipe0W0x2783660"/>
+    </volume>
+    <volume name="logicInServCoolPipe10x2783be0">
+      <materialref ref="G4_POLYVINYL_CHLORIDE0x27825a0"/>
+      <solidref ref="solidInServCoolPipe10x27839f0"/>
+    </volume>
+    <volume name="logicInServCoolPipe1W0x2783f70">
+      <materialref ref="G4_WATER0x2777150"/>
+      <solidref ref="solidInServCoolPipe1W0x2783d80"/>
+    </volume>
+    <volume name="logicInServCoolPipeR0x27842a0">
+      <materialref ref="G4_POLYVINYL_CHLORIDE0x27825a0"/>
+      <solidref ref="solidInServCoolPipeR0x2784110"/>
+    </volume>
+    <volume name="logicInServCoolPipeRW0x27845d0">
+      <materialref ref="G4_WATER0x2777150"/>
+      <solidref ref="solidInServCoolPipeRW0x2784440"/>
+    </volume>
+    <volume name="logicInServFlatCblSec00x2786850">
+      <materialref ref="G4_KAPTON0x27760c0"/>
+      <solidref ref="solidInServFlatCblSec00x2786640"/>
+    </volume>
+    <volume name="logicInServFlatCblSec10x2786a60">
+      <materialref ref="G4_KAPTON0x27760c0"/>
+      <solidref ref="solidInServFlatCblSec10x2785b20"/>
+    </volume>
+    <volume name="logicInServFlatCblSec200x2786d60">
+      <materialref ref="G4_KAPTON0x27760c0"/>
+      <solidref ref="solidInServFlatCblSec200x2786c00"/>
+    </volume>
+    <volume name="logicInServFlatCblSec210x27870f0">
+      <materialref ref="G4_KAPTON0x27760c0"/>
+      <solidref ref="solidInServFlatCblSec210x2786f00"/>
+    </volume>
+    <volume name="logicInServFlatCblSec220x2787480">
+      <materialref ref="G4_KAPTON0x27760c0"/>
+      <solidref ref="solidInServFlatCblSec220x2787290"/>
+    </volume>
+    <volume name="logicInServFlatCblSec310x2787830">
+      <materialref ref="G4_KAPTON0x27760c0"/>
+      <solidref ref="solidInServFlatCblSec310x2787620"/>
+    </volume>
+    <volume name="logicInServFlatCblSec320x2787ae0">
+      <materialref ref="G4_KAPTON0x27760c0"/>
+      <solidref ref="solidInServFlatCblSec320x2787980"/>
+    </volume>
+    <assembly name="Assembly_22">
+      <physvol name="logicInServCoolPipeCnctr_pv0x27898b0">
+        <volumeref ref="logicInServCoolPipeCnctr0x27849a0"/>
+        <position name="Assembly_22_position_0" unit="mm" x="161" y="2.5" z="-1.915"/>
+        <rotation name="Assembly_22_rotation_0" unit="deg" x="0" y="-90" z="0"/>
+      </physvol>
+      <physvol name="logicInServCoolPipeCnctrW_pv0x27898e8">
+        <volumeref ref="logicInServCoolPipeCnctrW0x2784d60"/>
+        <position name="Assembly_22_position_1" unit="mm" x="161" y="2.5" z="-1.915"/>
+        <rotation name="Assembly_22_rotation_1" unit="deg" x="0" y="-90" z="0"/>
+      </physvol>
+      <physvol name="logicInServCoolPipeCnctrS_pv0x2789920">
+        <volumeref ref="logicInServCoolPipeCnctrS0x2785120"/>
+        <position name="Assembly_22_position_2" unit="mm" x="166" y="2.5" z="-1.915"/>
+        <rotation name="Assembly_22_rotation_2" unit="deg" x="0" y="-90" z="0"/>
+      </physvol>
+      <physvol name="logicInServCoolPipeCnctrSW_pv0x2789958">
+        <volumeref ref="logicInServCoolPipeCnctrSW0x27854e0"/>
+        <position name="Assembly_22_position_3" unit="mm" x="166" y="2.5" z="-1.915"/>
+        <rotation name="Assembly_22_rotation_3" unit="deg" x="0" y="-90" z="0"/>
+      </physvol>
+      <physvol name="logicInServCoolPipeCnctrSP_pv0x2789990">
+        <volumeref ref="logicInServCoolPipeCnctrSP0x27858a0"/>
+        <position name="Assembly_22_position_4" unit="mm" x="166" y="2.5" z="-1.915"/>
+        <rotation name="Assembly_22_rotation_4" unit="deg" x="0" y="-90" z="0"/>
+      </physvol>
+      <physvol name="logicInServCoolPipe0_pv0x27899c8">
+        <volumeref ref="logicInServCoolPipe00x27834c0"/>
+        <position name="Assembly_22_position_5" unit="mm" x="175.465006004805" y="2.5" z="-1.915"/>
+        <rotation name="Assembly_22_rotation_5" unit="deg" x="0" y="-90" z="0"/>
+      </physvol>
+      <physvol name="logicInServCoolPipe0W_pv0x2789a00">
+        <volumeref ref="logicInServCoolPipe0W0x2783850"/>
+        <position name="Assembly_22_position_6" unit="mm" x="175.465006004805" y="2.5" z="-1.915"/>
+        <rotation name="Assembly_22_rotation_6" unit="deg" x="0" y="-90" z="0"/>
+      </physvol>
+      <physvol name="logicInServCoolPipe1_pv0x2789a38">
+        <volumeref ref="logicInServCoolPipe10x2783be0"/>
+        <position name="Assembly_22_position_7" unit="mm" x="395.139975980781" y="2.5" z="28.085"/>
+        <rotation name="Assembly_22_rotation_7" unit="deg" x="0" y="-90" z="0"/>
+      </physvol>
+      <physvol name="logicInServCoolPipe1W_pv0x2789a70">
+        <volumeref ref="logicInServCoolPipe1W0x2783f70"/>
+        <position name="Assembly_22_position_8" unit="mm" x="395.139975980781" y="2.5" z="28.085"/>
+        <rotation name="Assembly_22_rotation_8" unit="deg" x="0" y="-90" z="0"/>
+      </physvol>
+      <physvol name="logicInServCoolPipeR_pv0x2789aa8">
+        <volumeref ref="logicInServCoolPipeR0x27842a0"/>
+        <position name="Assembly_22_position_9" unit="mm" x="181.93001200961" y="2.5" z="298.085"/>
+        <rotation name="Assembly_22_rotation_9" unit="deg" x="-90" y="0" z="90"/>
+      </physvol>
+      <physvol name="logicInServCoolPipeRW_pv0x2789ae0">
+        <volumeref ref="logicInServCoolPipeRW0x27845d0"/>
+        <position name="Assembly_22_position_10" unit="mm" x="181.93001200961" y="2.5" z="298.085"/>
+        <rotation name="Assembly_22_rotation_10" unit="deg" x="-90" y="0" z="90"/>
+      </physvol>
+      <physvol name="logicInServCoolPipeR_pv0x2789b18">
+        <volumeref ref="logicInServCoolPipeR0x27842a0"/>
+        <position name="Assembly_22_position_11" unit="mm" x="369.279951961562" y="2.5" z="-271.915"/>
+        <rotation name="Assembly_22_rotation_11" unit="deg" x="-90" y="0" z="-90"/>
+      </physvol>
+      <physvol name="logicInServCoolPipeRW_pv0x2789b50">
+        <volumeref ref="logicInServCoolPipeRW0x27845d0"/>
+        <position name="Assembly_22_position_12" unit="mm" x="369.279951961562" y="2.5" z="-271.915"/>
+        <rotation name="Assembly_22_rotation_12" unit="deg" x="-90" y="0" z="-90"/>
+      </physvol>
+      <physvol name="logicInServCoolPipeCnctr_pv0x2789b88">
+        <volumeref ref="logicInServCoolPipeCnctr0x27849a0"/>
+        <position name="Assembly_22_position_13" unit="mm" x="161" y="-2.5" z="-1.915"/>
+        <rotation name="Assembly_22_rotation_13" unit="deg" x="0" y="-90" z="0"/>
+      </physvol>
+      <physvol name="logicInServCoolPipeCnctrW_pv0x2789bc0">
+        <volumeref ref="logicInServCoolPipeCnctrW0x2784d60"/>
+        <position name="Assembly_22_position_14" unit="mm" x="161" y="-2.5" z="-1.915"/>
+        <rotation name="Assembly_22_rotation_14" unit="deg" x="0" y="-90" z="0"/>
+      </physvol>
+      <physvol name="logicInServCoolPipeCnctrS_pv0x2789bf8">
+        <volumeref ref="logicInServCoolPipeCnctrS0x2785120"/>
+        <position name="Assembly_22_position_15" unit="mm" x="166" y="-2.5" z="-1.915"/>
+        <rotation name="Assembly_22_rotation_15" unit="deg" x="0" y="-90" z="0"/>
+      </physvol>
+      <physvol name="logicInServCoolPipeCnctrSW_pv0x2789c30">
+        <volumeref ref="logicInServCoolPipeCnctrSW0x27854e0"/>
+        <position name="Assembly_22_position_16" unit="mm" x="166" y="-2.5" z="-1.915"/>
+        <rotation name="Assembly_22_rotation_16" unit="deg" x="0" y="-90" z="0"/>
+      </physvol>
+      <physvol name="logicInServCoolPipeCnctrSP_pv0x2789c68">
+        <volumeref ref="logicInServCoolPipeCnctrSP0x27858a0"/>
+        <position name="Assembly_22_position_17" unit="mm" x="166" y="-2.5" z="-1.915"/>
+        <rotation name="Assembly_22_rotation_17" unit="deg" x="0" y="-90" z="0"/>
+      </physvol>
+      <physvol name="logicInServCoolPipe0_pv0x2789ca0">
+        <volumeref ref="logicInServCoolPipe00x27834c0"/>
+        <position name="Assembly_22_position_18" unit="mm" x="175.465006004805" y="-2.5" z="-1.915"/>
+        <rotation name="Assembly_22_rotation_18" unit="deg" x="0" y="-90" z="0"/>
+      </physvol>
+      <physvol name="logicInServCoolPipe0W_pv0x2789cd8">
+        <volumeref ref="logicInServCoolPipe0W0x2783850"/>
+        <position name="Assembly_22_position_19" unit="mm" x="175.465006004805" y="-2.5" z="-1.915"/>
+        <rotation name="Assembly_22_rotation_19" unit="deg" x="0" y="-90" z="0"/>
+      </physvol>
+      <physvol name="logicInServCoolPipe1_pv0x2789d10">
+        <volumeref ref="logicInServCoolPipe10x2783be0"/>
+        <position name="Assembly_22_position_20" unit="mm" x="395.139975980781" y="-2.5" z="28.085"/>
+        <rotation name="Assembly_22_rotation_20" unit="deg" x="0" y="-90" z="0"/>
+      </physvol>
+      <physvol name="logicInServCoolPipe1W_pv0x2789d48">
+        <volumeref ref="logicInServCoolPipe1W0x2783f70"/>
+        <position name="Assembly_22_position_21" unit="mm" x="395.139975980781" y="-2.5" z="28.085"/>
+        <rotation name="Assembly_22_rotation_21" unit="deg" x="0" y="-90" z="0"/>
+      </physvol>
+      <physvol name="logicInServCoolPipeR_pv0x2789d80">
+        <volumeref ref="logicInServCoolPipeR0x27842a0"/>
+        <position name="Assembly_22_position_22" unit="mm" x="181.93001200961" y="-2.5" z="298.085"/>
+        <rotation name="Assembly_22_rotation_22" unit="deg" x="-90" y="0" z="90"/>
+      </physvol>
+      <physvol name="logicInServCoolPipeRW_pv0x2789db8">
+        <volumeref ref="logicInServCoolPipeRW0x27845d0"/>
+        <position name="Assembly_22_position_23" unit="mm" x="181.93001200961" y="-2.5" z="298.085"/>
+        <rotation name="Assembly_22_rotation_23" unit="deg" x="-90" y="0" z="90"/>
+      </physvol>
+      <physvol name="logicInServCoolPipeR_pv0x2789df0">
+        <volumeref ref="logicInServCoolPipeR0x27842a0"/>
+        <position name="Assembly_22_position_24" unit="mm" x="369.279951961562" y="-2.5" z="-271.915"/>
+        <rotation name="Assembly_22_rotation_24" unit="deg" x="-90" y="0" z="-90"/>
+      </physvol>
+      <physvol name="logicInServCoolPipeRW_pv0x2789e28">
+        <volumeref ref="logicInServCoolPipeRW0x27845d0"/>
+        <position name="Assembly_22_position_25" unit="mm" x="369.279951961562" y="-2.5" z="-271.915"/>
+        <rotation name="Assembly_22_rotation_25" unit="deg" x="-90" y="0" z="-90"/>
+      </physvol>
+      <physvol name="logicInServFlatCblSec0_pv0x2789e60">
+        <volumeref ref="logicInServFlatCblSec00x2786850"/>
+        <position name="Assembly_22_position_26" unit="mm" x="160.4" y="0" z="-3.81507996802557"/>
+        <rotation name="Assembly_22_rotation_26" unit="deg" x="0" y="-90" z="0"/>
+      </physvol>
+      <physvol name="logicInServFlatCblSec1_pv0x2789e98">
+        <volumeref ref="logicInServFlatCblSec10x2786a60"/>
+        <position name="Assembly_22_position_27" unit="mm" x="210.4" y="0" z="-4.81515993605115"/>
+      </physvol>
+      <physvol name="logicInServFlatCblSec20_pv0x2789ed0">
+        <volumeref ref="logicInServFlatCblSec200x2786d60"/>
+        <position name="Assembly_22_position_28" unit="mm" x="328.2" y="0" z="-4.89015993605115"/>
+      </physvol>
+      <physvol name="logicInServFlatCblSec21_pv0x2789f08">
+        <volumeref ref="logicInServFlatCblSec210x27870f0"/>
+        <position name="Assembly_22_position_29" unit="mm" x="275.4" y="0" z="3.68595650577533"/>
+        <rotation name="Assembly_22_rotation_29" unit="deg" x="0" y="-90" z="0"/>
+      </physvol>
+      <physvol name="logicInServFlatCblSec22_pv0x2789f40">
+        <volumeref ref="logicInServFlatCblSec220x2787480"/>
+        <position name="Assembly_22_position_30" unit="mm" x="275.4" y="0" z="5.26284235776192"/>
+        <rotation name="Assembly_22_rotation_30" unit="deg" x="0" y="-90" z="0"/>
+      </physvol>
+      <physvol name="logicInServFlatCblSec31_pv0x2789f78">
+        <volumeref ref="logicInServFlatCblSec310x2787830"/>
+        <position name="Assembly_22_position_31" unit="mm" x="368.2" y="0" z="12.1870729476018"/>
+      </physvol>
+      <physvol name="logicInServFlatCblSec32_pv0x2789fb0">
+        <volumeref ref="logicInServFlatCblSec320x2787ae0"/>
+        <position name="Assembly_22_position_32" unit="mm" x="368.2" y="0" z="15.263611767922"/>
+      </physvol>
+    </assembly>
+    <volume name="logicFPCLayer10x2780ce0">
+      <materialref ref="G4_KAPTON0x27760c0"/>
+      <solidref ref="solidFPCLayer10x277fdc0"/>
+    </volume>
+    <volume name="logicFPCLayer20x2780ed0">
+      <materialref ref="Aluminium0x1936df0"/>
+      <solidref ref="solidFPCLayer20x2780df0"/>
+    </volume>
+    <volume name="logicOPPPSensor0x27815c0">
+      <materialref ref="Silicon0x1937630"/>
+      <solidref ref="solidOPPPSensor0x27813e0"/>
+    </volume>
+    <volume name="logicOPPPSensitive0x27816f0">
+      <materialref ref="Silicon0x1937630"/>
+      <solidref ref="solidOPPPSensorSensitive0x2781270"/>
+    </volume>
+    <volume name="logicStaveSensorContainer0x277df70">
+      <materialref ref="Galactic0x194d640"/>
+      <solidref ref="solidStaveSensorContainer0x277e2b0"/>
+      <physvol name="FPCLayer10x2780fe0">
+        <volumeref ref="logicFPCLayer10x2780ce0"/>
+        <position name="FPCLayer10x2780fe0_pos" unit="mm" x="0" y="0" z="0.05"/>
+      </physvol>
+      <physvol name="FPCLayer20x27810a0">
+        <volumeref ref="logicFPCLayer20x2780ed0"/>
+        <position name="FPCLayer20x27810a0_pos" unit="mm" x="0" y="0" z="-0.025"/>
+      </physvol>
+      <physvol name="OPPPSensor0x27818a0">
+        <volumeref ref="logicOPPPSensor0x27815c0"/>
+        <position name="OPPPSensor0x27818a0_pos" unit="mm" x="-120.4" y="0" z="-0.075"/>
+      </physvol>
+      <physvol name="OPPPSensitive0x27877d0">
+        <volumeref ref="logicOPPPSensitive0x27816f0"/>
+        <position name="OPPPSensitive0x27877d0_pos" unit="mm" x="-120.4" y="0.61872" z="-0.0875"/>
+      </physvol>
+      <physvol copynumber="1" name="OPPPSensor0x2781a90">
+        <volumeref ref="logicOPPPSensor0x27815c0"/>
+        <position name="OPPPSensor0x2781a90_pos" unit="mm" x="-90.3" y="0" z="-0.075"/>
+      </physvol>
+      <physvol copynumber="1" name="OPPPSensitive0x2781b20">
+        <volumeref ref="logicOPPPSensitive0x27816f0"/>
+        <position name="OPPPSensitive0x2781b20_pos" unit="mm" x="-90.3" y="0.61872" z="-0.0875"/>
+      </physvol>
+      <physvol copynumber="2" name="OPPPSensor0x2781bd0">
+        <volumeref ref="logicOPPPSensor0x27815c0"/>
+        <position name="OPPPSensor0x2781bd0_pos" unit="mm" x="-60.2" y="0" z="-0.075"/>
+      </physvol>
+      <physvol copynumber="2" name="OPPPSensitive0x2781c90">
+        <volumeref ref="logicOPPPSensitive0x27816f0"/>
+        <position name="OPPPSensitive0x2781c90_pos" unit="mm" x="-60.2" y="0.61872" z="-0.0875"/>
+      </physvol>
+      <physvol copynumber="3" name="OPPPSensor0x2781d50">
+        <volumeref ref="logicOPPPSensor0x27815c0"/>
+        <position name="OPPPSensor0x2781d50_pos" unit="mm" x="-30.1" y="0" z="-0.075"/>
+      </physvol>
+      <physvol copynumber="3" name="OPPPSensitive0x2781de0">
+        <volumeref ref="logicOPPPSensitive0x27816f0"/>
+        <position name="OPPPSensitive0x2781de0_pos" unit="mm" x="-30.1" y="0.61872" z="-0.0875"/>
+      </physvol>
+      <physvol copynumber="4" name="OPPPSensor0x2781e70">
+        <volumeref ref="logicOPPPSensor0x27815c0"/>
+        <position name="OPPPSensor0x2781e70_pos" unit="mm" x="-7.105427357601e-15" y="0" z="-0.075"/>
+      </physvol>
+      <physvol copynumber="4" name="OPPPSensitive0x2781f00">
+        <volumeref ref="logicOPPPSensitive0x27816f0"/>
+        <position name="OPPPSensitive0x2781f00_pos" unit="mm" x="-7.105427357601e-15" y="0.61872" z="-0.0875"/>
+      </physvol>
+      <physvol copynumber="5" name="OPPPSensor0x2781fb0">
+        <volumeref ref="logicOPPPSensor0x27815c0"/>
+        <position name="OPPPSensor0x2781fb0_pos" unit="mm" x="30.1" y="0" z="-0.075"/>
+      </physvol>
+      <physvol copynumber="5" name="OPPPSensitive0x2782010">
+        <volumeref ref="logicOPPPSensitive0x27816f0"/>
+        <position name="OPPPSensitive0x2782010_pos" unit="mm" x="30.1" y="0.61872" z="-0.0875"/>
+      </physvol>
+      <physvol copynumber="6" name="OPPPSensor0x27820a0">
+        <volumeref ref="logicOPPPSensor0x27815c0"/>
+        <position name="OPPPSensor0x27820a0_pos" unit="mm" x="60.2" y="0" z="-0.075"/>
+      </physvol>
+      <physvol copynumber="6" name="OPPPSensitive0x2782130">
+        <volumeref ref="logicOPPPSensitive0x27816f0"/>
+        <position name="OPPPSensitive0x2782130_pos" unit="mm" x="60.2" y="0.61872" z="-0.0875"/>
+      </physvol>
+      <physvol copynumber="7" name="OPPPSensor0x27821c0">
+        <volumeref ref="logicOPPPSensor0x27815c0"/>
+        <position name="OPPPSensor0x27821c0_pos" unit="mm" x="90.3" y="0" z="-0.075"/>
+      </physvol>
+      <physvol copynumber="7" name="OPPPSensitive0x2782360">
+        <volumeref ref="logicOPPPSensitive0x27816f0"/>
+        <position name="OPPPSensitive0x2782360_pos" unit="mm" x="90.3" y="0.61872" z="-0.0875"/>
+      </physvol>
+      <physvol copynumber="8" name="OPPPSensor0x27823f0">
+        <volumeref ref="logicOPPPSensor0x27815c0"/>
+        <position name="OPPPSensor0x27823f0_pos" unit="mm" x="120.4" y="0" z="-0.075"/>
+      </physvol>
+      <physvol copynumber="8" name="OPPPSensitive0x2782480">
+        <volumeref ref="logicOPPPSensitive0x27816f0"/>
+        <position name="OPPPSensitive0x2782480_pos" unit="mm" x="120.4" y="0.61872" z="-0.0875"/>
+      </physvol>
+    </volume>
+    <volume name="logicOPPPTrackerL0x2775ca0">
+      <materialref ref="Galactic0x194d640"/>
+      <solidref ref="solidOPPPTrackerL0x2773ec0"/>
+      <physvol name="Imprint_1_0x278c840">
+        <volumeref ref="Assembly_17"/>
+        <position name="Imprint_1_0x278c840_pos" unit="mm" x="-131" y="25" z="-160.085"/>
+      </physvol>
+      <physvol name="Imprint_1_0x278c1e0">
+        <volumeref ref="Assembly_18"/>
+        <position name="Imprint_1_0x278c1e0_pos" unit="mm" x="-131" y="25" z="-160.085"/>
+      </physvol>
+      <physvol name="Imprint_1_0x278c570">
+        <volumeref ref="Assembly_22"/>
+        <position name="Imprint_1_0x278c570_pos" unit="mm" x="-131" y="25" z="-160.085"/>
+      </physvol>
+      <physvol name="OPPPSensorFlex0x27a1700">
+        <volumeref ref="logicStaveSensorContainer0x277df70"/>
+        <position name="OPPPSensorFlex0x27a1700_pos" unit="mm" x="-131" y="25" z="-162.9"/>
+      </physvol>
+      <physvol name="Imprint_4_0x27a20e0">
+        <volumeref ref="Assembly_17"/>
+        <position name="Imprint_4_0x27a20e0_pos" unit="mm" x="-131" y="25" z="-60.085"/>
+      </physvol>
+      <physvol name="Imprint_4_0x27a1a90">
+        <volumeref ref="Assembly_18"/>
+        <position name="Imprint_4_0x27a1a90_pos" unit="mm" x="-131" y="25" z="-60.085"/>
+      </physvol>
+      <physvol name="Imprint_3_0x27a1e50">
+        <volumeref ref="Assembly_22"/>
+        <position name="Imprint_3_0x27a1e50_pos" unit="mm" x="-131" y="25" z="-60.085"/>
+      </physvol>
+      <physvol copynumber="2" name="OPPPSensorFlex0x273a0a0">
+        <volumeref ref="logicStaveSensorContainer0x277df70"/>
+        <position name="OPPPSensorFlex0x273a0a0_pos" unit="mm" x="-131" y="25" z="-62.9"/>
+      </physvol>
+      <physvol name="Imprint_7_0x27bbbc0">
+        <volumeref ref="Assembly_17"/>
+        <position name="Imprint_7_0x27bbbc0_pos" unit="mm" x="-131" y="25" z="39.915"/>
+      </physvol>
+      <physvol name="Imprint_7_0x273a3f0">
+        <volumeref ref="Assembly_18"/>
+        <position name="Imprint_7_0x273a3f0_pos" unit="mm" x="-131" y="25" z="39.915"/>
+      </physvol>
+      <physvol name="Imprint_5_0x273a7b0">
+        <volumeref ref="Assembly_22"/>
+        <position name="Imprint_5_0x273a7b0_pos" unit="mm" x="-131" y="25" z="39.915"/>
+      </physvol>
+      <physvol copynumber="4" name="OPPPSensorFlex0x27cf400">
+        <volumeref ref="logicStaveSensorContainer0x277df70"/>
+        <position name="OPPPSensorFlex0x27cf400_pos" unit="mm" x="-131" y="25" z="37.1"/>
+      </physvol>
+      <physvol name="Imprint_10_0x27cfd70">
+        <volumeref ref="Assembly_17"/>
+        <position name="Imprint_10_0x27cfd70_pos" unit="mm" x="-131" y="25" z="139.915"/>
+      </physvol>
+      <physvol name="Imprint_10_0x27cf720">
+        <volumeref ref="Assembly_18"/>
+        <position name="Imprint_10_0x27cf720_pos" unit="mm" x="-131" y="25" z="139.915"/>
+      </physvol>
+      <physvol name="Imprint_7_0x27cfae0">
+        <volumeref ref="Assembly_22"/>
+        <position name="Imprint_7_0x27cfae0_pos" unit="mm" x="-131" y="25" z="139.915"/>
+      </physvol>
+      <physvol copynumber="6" name="OPPPSensorFlex0x27e4f50">
+        <volumeref ref="logicStaveSensorContainer0x277df70"/>
+        <position name="OPPPSensorFlex0x27e4f50_pos" unit="mm" x="-131" y="25" z="137.1"/>
+      </physvol>
+    </volume>
+    <volume name="logicOPPPSupportMiddleBar0x27e5700">
+      <materialref ref="StainlessSteel0x194e3d0"/>
+      <solidref ref="solidOPPPSupportMiddleBar0x27e5590"/>
+    </volume>
+    <volume name="logicOPPPSupportBar0x27e5400">
+      <materialref ref="StainlessSteel0x194e3d0"/>
+      <solidref ref="solidOPPPSupportBar0x278c160"/>
+    </volume>
+    <volume name="logicOPPPSupportCrossBar0x27e5ad0">
+      <materialref ref="StainlessSteel0x194e3d0"/>
+      <solidref ref="solidOPPPSupportCrossBar0x278ebc0"/>
+    </volume>
+    <volume name="logicOPPPSupportJoin0x27e6cb0">
+      <materialref ref="G4_Al0x274d4e0"/>
+      <solidref ref="solidOPPPSupportJoin0x27e6ac0"/>
+    </volume>
+    <volume name="logicOPPPSupportHolder0x27e6950">
+      <materialref ref="G4_Al0x274d4e0"/>
+      <solidref ref="solidOPPPSupportHolder0x27e66a0"/>
+    </volume>
+    <volume name="logicOPPPDetSupportTableTop0x27e71a0">
+      <materialref ref="G4_Al0x274d4e0"/>
+      <solidref ref="solidOPPPDetSupportTableTop0x27e7010"/>
+    </volume>
+    <volume name="logicOPPPDetSupportTableLeg0x27e7530">
+      <materialref ref="G4_Al0x274d4e0"/>
+      <solidref ref="solidOPPPDetSupportTableLeg0x27e73d0"/>
+    </volume>
+    <assembly name="Assembly_28">
+      <physvol name="logicOPPPSupportMiddleBar_pv0x279ad10">
+        <volumeref ref="logicOPPPSupportMiddleBar0x27e5700"/>
+        <position name="Assembly_28_position_0" unit="mm" x="0" y="-10" z="0"/>
+      </physvol>
+      <physvol name="logicOPPPSupportBar_pv0x279ad48">
+        <volumeref ref="logicOPPPSupportBar0x27e5400"/>
+        <position name="Assembly_28_position_1" unit="mm" x="144" y="-5" z="0"/>
+      </physvol>
+      <physvol name="logicOPPPSupportBar_pv0x279ad80">
+        <volumeref ref="logicOPPPSupportBar0x27e5400"/>
+        <position name="Assembly_28_position_2" unit="mm" x="-144" y="-5" z="0"/>
+      </physvol>
+      <physvol name="logicOPPPSupportCrossBar_pv0x279adb8">
+        <volumeref ref="logicOPPPSupportCrossBar0x27e5ad0"/>
+        <position name="Assembly_28_position_3" unit="mm" x="-72" y="-5" z="50"/>
+        <rotation name="Assembly_28_rotation_3" unit="deg" x="0" y="-90" z="0"/>
+      </physvol>
+      <physvol name="logicOPPPSupportCrossBar_pv0x279adf0">
+        <volumeref ref="logicOPPPSupportCrossBar0x27e5ad0"/>
+        <position name="Assembly_28_position_4" unit="mm" x="72" y="-5" z="50"/>
+        <rotation name="Assembly_28_rotation_4" unit="deg" x="-180" y="-90" z="0"/>
+      </physvol>
+      <physvol name="logicOPPPSupportCrossBar_pv0x279ae28">
+        <volumeref ref="logicOPPPSupportCrossBar0x27e5ad0"/>
+        <position name="Assembly_28_position_5" unit="mm" x="72" y="-5" z="-50"/>
+        <rotation name="Assembly_28_rotation_5" unit="deg" x="0" y="-90" z="0"/>
+      </physvol>
+      <physvol name="logicOPPPSupportCrossBar_pv0x279ae60">
+        <volumeref ref="logicOPPPSupportCrossBar0x27e5ad0"/>
+        <position name="Assembly_28_position_6" unit="mm" x="-72" y="-5" z="-50"/>
+        <rotation name="Assembly_28_rotation_6" unit="deg" x="-180" y="-90" z="0"/>
+      </physvol>
+      <physvol name="logicOPPPSupportJoin_pv0x279ae98">
+        <volumeref ref="logicOPPPSupportJoin0x27e6cb0"/>
+        <position name="Assembly_28_position_7" unit="mm" x="0" y="-27.5" z="0"/>
+        <rotation name="Assembly_28_rotation_7" unit="deg" x="-90" y="0" z="0"/>
+      </physvol>
+      <physvol name="logicOPPPSupportHolder_pv0x279aed0">
+        <volumeref ref="logicOPPPSupportHolder0x27e6950"/>
+        <position name="Assembly_28_position_8" unit="mm" x="-69.5" y="-115" z="0"/>
+      </physvol>
+      <physvol name="logicOPPPDetSupportTableTop_pv0x279af08">
+        <volumeref ref="logicOPPPDetSupportTableTop0x27e71a0"/>
+        <position name="Assembly_28_position_9" unit="mm" x="-164" y="-155" z="0"/>
+        <rotation name="Assembly_28_rotation_9" unit="deg" x="0" y="0" z="90"/>
+      </physvol>
+      <physvol name="logicOPPPDetSupportTableLeg_pv0x279af40">
+        <volumeref ref="logicOPPPDetSupportTableLeg0x27e7530"/>
+        <position name="Assembly_28_position_10" unit="mm" x="-389.38" y="-155" z="-52.5"/>
+        <rotation name="Assembly_28_rotation_10" unit="deg" x="90" y="-90" z="0"/>
+      </physvol>
+      <physvol name="logicOPPPDetSupportTableLeg_pv0x279af78">
+        <volumeref ref="logicOPPPDetSupportTableLeg0x27e7530"/>
+        <position name="Assembly_28_position_11" unit="mm" x="-389.38" y="-155" z="52.5"/>
+        <rotation name="Assembly_28_rotation_11" unit="deg" x="90" y="-90" z="0"/>
+      </physvol>
+    </assembly>
+    <volume name="World0x1b067f0">
+      <materialref ref="Galactic0x194d640"/>
+      <solidref ref="World0x1b48e80"/>
+      <physvol name="Imprint_1_0x274ecc0">
+        <volumeref ref="Assembly_3"/>
+        <position name="Imprint_1_0x274ecc0_pos" unit="mm" x="0" y="-347.63" z="15801.46"/>
+      </physvol>
+      <physvol name="Imprint_1_0x276a6e0">
+        <volumeref ref="Assembly_14"/>
+        <position name="Imprint_1_0x276a6e0_pos" unit="mm" x="0" y="-16" z="13060.61"/>
+        <rotation name="Imprint_1_0x276a6e0_rot" unit="deg" x="0" y="0" z="-90"/>
+      </physvol>
+      <physvol name="Imprint_1_0x276d730">
+        <volumeref ref="Assembly_15"/>
+        <position name="Imprint_1_0x276d730_pos" unit="mm" x="0" y="-352.55" z="13060.61"/>
+      </physvol>
+      <physvol name="Imprint_1_0x276e800">
+        <volumeref ref="Assembly_16"/>
+        <position name="Imprint_1_0x276e800_pos" unit="mm" x="0" y="-440.942" z="13163.57"/>
+      </physvol>
+      <physvol name="DumpMagnetField0x276f140">
+        <volumeref ref="logicDumpMagnetField0x27659f0"/>
+        <position name="DumpMagnetField0x276f140_pos" unit="mm" x="0" y="-16" z="13060.61"/>
+        <rotation name="DumpMagnetField0x276f140_rot" unit="deg" x="0" y="0" z="-90"/>
+      </physvol>
+      <physvol name="OPPPTrackerL0x27e51a0">
+        <volumeref ref="logicOPPPTrackerL0x2775ca0"/>
+        <position name="OPPPTrackerL0x27e51a0_pos" unit="mm" x="25" y="341.7" z="16730"/>
+        <rotation name="OPPPTrackerL0x27e51a0_rot" unit="deg" x="0" y="0" z="-90"/>
+      </physvol>
+      <physvol name="Imprint_1_0x27e7d50">
+        <volumeref ref="Assembly_28"/>
+        <position name="Imprint_1_0x27e7d50_pos" unit="mm" x="57.5" y="210.7" z="16721.415"/>
+        <rotation name="Imprint_1_0x27e7d50_rot" unit="deg" x="0" y="0" z="-90"/>
+      </physvol>
+    </volume>
+  </structure>
+
+  <setup name="Default" version="1.0">
+    <world ref="World0x1b067f0"/>
+  </setup>
+
+</gdml>

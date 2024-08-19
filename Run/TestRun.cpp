@@ -17,6 +17,9 @@
 #include "Acts/Surfaces/RectangleBounds.hpp"
 #include "Acts/Surfaces/PlaneSurface.hpp"
 
+#include "Acts/Visualization/ObjVisualization3D.hpp"
+#include "Acts/Visualization/GeometryView3D.hpp"
+
 using ActionList = Acts::ActionList<>;
 using AbortList = Acts::AbortList<Acts::EndOfWorldReached>;
 
@@ -75,11 +78,19 @@ int main() {
     
     auto [sFull, vFull, suFull, vuFull] = lbFull->construct(gctx);
 
+    Acts::ObjVisualization3D volumeObj;
+    Acts::ViewConfig pConfig = Acts::s_viewSensitive;
+
     int k = 0;
     for (auto& surf : sFull) {
         std::cout << k << " Surface: " << surf->center(gctx).transpose() << std::endl;
         k++;
+        Acts::GeometryView3D::drawSurface(
+                volumeObj,*(surf),gctx,
+                Acts::Transform3::Identity(),pConfig);
     }
+
+    volumeObj.write("volumes.obj");
 
     return 0;
 

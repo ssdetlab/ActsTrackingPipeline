@@ -2673,4 +2673,7 @@ Run/CMakeFiles/RunTest.dir/TestRun.cpp.o: \
   /Users/alonlevi/CLionProjects/ACTS/install/include/Acts/Surfaces/PlanarBounds.hpp \
   /Users/alonlevi/CLionProjects/ACTS/install/include/Acts/Surfaces/PlaneSurface.hpp \
   /Users/alonlevi/CLionProjects/ACTS/install/include/Acts/Surfaces/InfiniteBounds.hpp \
-  /Users/alonlevi/CLionProjects/ACTS/install/include/Acts/Surfaces/SurfaceConcept.hpp
+  /Users/alonlevi/CLionProjects/ACTS/install/include/Acts/Surfaces/SurfaceConcept.hpp \
+  /Users/alonlevi/CLionProjects/ACTS/install/include/Acts/Visualization/ObjVisualization3D.hpp \
+  /Users/alonlevi/CLionProjects/ACTS/install/include/Acts/Visualization/detail/ObjVisualization3D.ipp \
+  /Users/alonlevi/CLionProjects/ACTS/install/include/Acts/Visualization/GeometryView3D.hpp
