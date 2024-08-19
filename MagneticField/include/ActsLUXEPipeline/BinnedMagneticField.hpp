@@ -3,7 +3,7 @@
 #include "Acts/MagneticField/MagneticFieldProvider.hpp"
 #include "Acts/Definitions/Algebra.hpp"
 #include "Acts/MagneticField/InterpolatedBFieldMap.hpp"
-#include "Acts/Utilities/detail/Axis.hpp"
+#include "Acts/Utilities/Axis.hpp"
 #include "Acts/Utilities/Grid.hpp"
 
 #include <vector>
@@ -13,8 +13,8 @@
 using vBins = std::vector<std::double_t>;
 using eBins = std::tuple<std::double_t, std::double_t, std::size_t>;
 
-using vAxis = Acts::detail::VariableAxis;
-using eAxis = Acts::detail::EquidistantAxis;
+using vAxis = Acts::Axis<Acts::AxisType::Variable, Acts::AxisBoundaryType::Open>;
+using eAxis = Acts::Axis<Acts::AxisType::Equidistant, Acts::AxisBoundaryType::Open>;
 
 using vGrid = Acts::Grid<Acts::Vector3, vAxis, vAxis, vAxis>;
 using eGrid = Acts::Grid<Acts::Vector3, eAxis, eAxis, eAxis>;

@@ -55,15 +55,15 @@ int main() {
     // Extent in already rotated frame
     Acts::Extent dipoleExtent;
     dipoleExtent.set(
-        Acts::binX, 
+        Acts::BinningValue::binX, 
         gOpt.dipoleTranslation[0] - gOpt.dipoleBounds[0] + gOpt.constantFieldDelta[0],
         gOpt.dipoleTranslation[0] + gOpt.dipoleBounds[0] - gOpt.constantFieldDelta[0]);
     dipoleExtent.set(
-        Acts::binZ,
+        Acts::BinningValue::binZ,
         gOpt.dipoleTranslation[1] - gOpt.dipoleBounds[1] + gOpt.constantFieldDelta[1],
         gOpt.dipoleTranslation[1] + gOpt.dipoleBounds[1] - gOpt.constantFieldDelta[1]);
     dipoleExtent.set(
-        Acts::binY,
+        Acts::BinningValue::binY,
         gOpt.dipoleTranslation[2] - gOpt.dipoleBounds[2] + gOpt.constantFieldDelta[2],
         gOpt.dipoleTranslation[2] + gOpt.dipoleBounds[2] - gOpt.constantFieldDelta[2]);
 
@@ -124,15 +124,15 @@ int main() {
     // Extent in already rotated frame
     Acts::Extent firstLayerExtent;
     firstLayerExtent.set(
-        Acts::binX, 
+        Acts::BinningValue::binX, 
         gOpt.chipXEven.at(0) - gOpt.chipSizeX,
         gOpt.chipXOdd.at(8) + gOpt.chipSizeX);
     firstLayerExtent.set(
-        Acts::binZ,
+        Acts::BinningValue::binZ,
         -gOpt.chipY - gOpt.chipSizeY/2,
         -gOpt.chipY + gOpt.chipSizeY/2);
     firstLayerExtent.set(
-        Acts::binY,
+        Acts::BinningValue::binY,
         gOpt.layerZPositions.at(0) - gOpt.layerBounds.at(2),
         gOpt.layerZPositions.at(0) + gOpt.layerBounds.at(2));
 

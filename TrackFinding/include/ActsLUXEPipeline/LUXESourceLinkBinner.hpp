@@ -5,14 +5,14 @@
 #include "ActsLUXEPipeline/DataContainers.hpp"
 #include "ActsLUXEPipeline/SimpleSourceLink.hpp"
 
-#include "Acts/Utilities/detail/Axis.hpp"
+#include "Acts/Utilities/Axis.hpp"
 #include "Acts/Utilities/Grid.hpp"
 
 namespace LUXETrackFinding {
 
 class LUXESourceLinkBinner : public ISourceLinkBinner {
     public:
-        using eAxis = Acts::detail::EquidistantAxis;
+        using eAxis = Acts::Axis<Acts::AxisType::Equidistant, Acts::AxisBoundaryType::Open>;
         using eGrid = Acts::Grid<std::vector<Acts::SourceLink>, eAxis, eAxis>;
 
         /// @brief The nested configuration struct

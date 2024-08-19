@@ -21,7 +21,7 @@ class ForwardOrderedIntersectionFinder : public IIntersectionFinder {
                             gctx, 
                             position, 
                             direction,
-                            Acts::BoundaryCheck(true), 
+                            Acts::BoundaryTolerance::AbsoluteCartesian(tol, tol), 
                             tol);
                 
                     // Take the closest

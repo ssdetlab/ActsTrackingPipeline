@@ -55,11 +55,11 @@ namespace LUXENavigator {
                 phi(m.truthParameters[Acts::eBoundPhi]),
                 theta(m.truthParameters[Acts::eBoundTheta]),
                 qOverP(m.truthParameters[Acts::eBoundQOverP]),
-                time(m.truthParameters[Acts::eBoundTime]),
-                trueVertexX(m.trueVertex[0]),
-                trueVertexY(m.trueVertex[1]),
-                trueVertexZ(m.trueVertex[2]),
-                trueVertexT(m.trueVertex[3]){}
+                time(m.truthParameters[Acts::eBoundTime]){}
+                // trueVertexX(m.trueVertex[0]),
+                // trueVertexY(m.trueVertex[1]),
+                // trueVertexZ(m.trueVertex[2]),
+                // trueVertexT(m.trueVertex[3]){}
 
 
         template<class Archive>
@@ -126,7 +126,16 @@ namespace LUXENavigator {
             truthParams[Acts::eBoundTheta] = mC.theta;
             truthParams[Acts::eBoundQOverP] = mC.qOverP;
             truthParams[Acts::eBoundTime] = mC.time;
-            SimMeasurement m{sl, truthParams, trueVertex, mC.eId};
+
+            Acts::CurvilinearTrackParameters ipParameters(
+                    trueVertex,
+                    Acts::VectorHelpers::phi(trueVertex.segment<3>(0)),
+                    Acts::VectorHelpers::theta(trueVertex.segment<3>(0)),
+                    -1/(trueVertex.norm() * Acts::UnitConstants::GeV),
+                    Acts::ActsMatrix<6,6>::Identity(),
+                    Acts::ParticleHypothesis::electron());
+
+            SimMeasurement m{sl, truthParams, ipParameters, mC.eId};
             measurements.push_back(m);
         }
         std::cout<<"Loaded "<< vectorSize << " measurements from: "<<filename<<std::endl;

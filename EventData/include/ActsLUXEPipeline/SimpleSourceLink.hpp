@@ -1,9 +1,9 @@
 #pragma once
 
+#include "Acts/Utilities/detail/Subspace.hpp"
 #include "Acts/Definitions/Algebra.hpp"
 #include "Acts/Definitions/TrackParametrization.hpp"
 #include "Acts/Detector/Detector.hpp"
-#include "Acts/EventData/Measurement.hpp"
 #include "Acts/EventData/MultiTrajectory.hpp"
 #include "Acts/EventData/SourceLink.hpp"
 #include "Acts/Geometry/GeometryContext.hpp"
@@ -85,9 +85,8 @@ inline std::ostream& operator<<(std::ostream& os,
 ///
 /// @param gctx Unused
 /// @param trackState TrackState to calibrated
-/// @return The measurement used
 template <typename trajectory_t>
-Acts::BoundVariantMeasurement simpleSourceLinkCalibratorReturn(
+void simpleSourceLinkCalibratorReturn(
     const Acts::GeometryContext& /*gctx*/, 
     const Acts::CalibrationContext& /*cctx*/,
     const Acts::SourceLink& sourceLink,
@@ -96,13 +95,12 @@ Acts::BoundVariantMeasurement simpleSourceLinkCalibratorReturn(
 
         trackState.setUncalibratedSourceLink(sourceLink);
 
-        auto meas =
-            makeMeasurement(trackState.getUncalibratedSourceLink(), 
-                sl.parameters, sl.covariance, 
-                sl.indices[0], sl.indices[1]);
         trackState.allocateCalibrated(2);
-        trackState.setCalibrated(meas);
-        return meas;
+        trackState.template calibrated<2>() = sl.parameters;
+        trackState.template calibratedCovariance<2>() = sl.covariance;
+        trackState.setProjector(Acts::detail::FixedSizeSubspace<Acts::BoundIndices::eBoundSize, 2>(
+                                    std::array{sl.indices[0], sl.indices[1]})
+                                    .projector<double>());
 }
 
 /// Extract the measurement from a SimpleSourceLink.
