@@ -24,6 +24,8 @@ target_sources(
     PRIVATE
     src/LUXEGeometry.cpp
     src/LUXEGeometryIdGenerator.cpp
+    src/E320Geometry.cpp
+    src/E320GeometryIdGenerator.cpp
 )
 
 # For now we assume that the pipeline 
