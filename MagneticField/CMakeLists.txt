@@ -16,6 +16,7 @@ target_sources(
     PRIVATE
     src/LxBFields.cpp
     src/BinnedMagneticField.cpp
+    src/QuadrupoleMagField.cpp
 )
 
 # For now we assume that the pipeline 
