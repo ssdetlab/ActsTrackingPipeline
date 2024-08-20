@@ -15,6 +15,7 @@ target_sources(
     ActsLUXEPipelineCore
     PRIVATE
     src/BinnedMagneticField.cpp
+    src/QuadrupoleMagField.cpp
 )
 
 # For now we assume that the pipeline 
