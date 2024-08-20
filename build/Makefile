@@ -470,6 +470,30 @@ MagneticField/src/BinnedMagneticField.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/ActsLUXEPipelineCore.dir/build.make CMakeFiles/ActsLUXEPipelineCore.dir/MagneticField/src/BinnedMagneticField.cpp.s
 .PHONY : MagneticField/src/BinnedMagneticField.cpp.s
 
+MagneticField/src/LxBFields.o: MagneticField/src/LxBFields.cpp.o
+.PHONY : MagneticField/src/LxBFields.o
+
+# target to build an object file
+MagneticField/src/LxBFields.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/ActsLUXEPipelineCore.dir/build.make CMakeFiles/ActsLUXEPipelineCore.dir/MagneticField/src/LxBFields.cpp.o
+.PHONY : MagneticField/src/LxBFields.cpp.o
+
+MagneticField/src/LxBFields.i: MagneticField/src/LxBFields.cpp.i
+.PHONY : MagneticField/src/LxBFields.i
+
+# target to preprocess a source file
+MagneticField/src/LxBFields.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/ActsLUXEPipelineCore.dir/build.make CMakeFiles/ActsLUXEPipelineCore.dir/MagneticField/src/LxBFields.cpp.i
+.PHONY : MagneticField/src/LxBFields.cpp.i
+
+MagneticField/src/LxBFields.s: MagneticField/src/LxBFields.cpp.s
+.PHONY : MagneticField/src/LxBFields.s
+
+# target to generate assembly for a file
+MagneticField/src/LxBFields.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/ActsLUXEPipelineCore.dir/build.make CMakeFiles/ActsLUXEPipelineCore.dir/MagneticField/src/LxBFields.cpp.s
+.PHONY : MagneticField/src/LxBFields.cpp.s
+
 Material/src/CoreMaterialMapping.o: Material/src/CoreMaterialMapping.cpp.o
 .PHONY : Material/src/CoreMaterialMapping.o
 
@@ -683,6 +707,9 @@ help:
 	@echo "... MagneticField/src/BinnedMagneticField.o"
 	@echo "... MagneticField/src/BinnedMagneticField.i"
 	@echo "... MagneticField/src/BinnedMagneticField.s"
+	@echo "... MagneticField/src/LxBFields.o"
+	@echo "... MagneticField/src/LxBFields.i"
+	@echo "... MagneticField/src/LxBFields.s"
 	@echo "... Material/src/CoreMaterialMapping.o"
 	@echo "... Material/src/CoreMaterialMapping.i"
 	@echo "... Material/src/CoreMaterialMapping.s"

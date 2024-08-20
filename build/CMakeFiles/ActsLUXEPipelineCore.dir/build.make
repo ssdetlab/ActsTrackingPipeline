@@ -153,10 +153,24 @@ CMakeFiles/ActsLUXEPipelineCore.dir/TrackFinding/src/PathSeeder.cpp.s: cmake_for
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/ActsLUXEPipelineCore.dir/TrackFinding/src/PathSeeder.cpp.s"
 	/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/alonlevi/CLionProjects/LUXEPipeline/TrackFinding/src/PathSeeder.cpp -o CMakeFiles/ActsLUXEPipelineCore.dir/TrackFinding/src/PathSeeder.cpp.s
 
+CMakeFiles/ActsLUXEPipelineCore.dir/MagneticField/src/LxBFields.cpp.o: CMakeFiles/ActsLUXEPipelineCore.dir/flags.make
+CMakeFiles/ActsLUXEPipelineCore.dir/MagneticField/src/LxBFields.cpp.o: /Users/alonlevi/CLionProjects/LUXEPipeline/MagneticField/src/LxBFields.cpp
+CMakeFiles/ActsLUXEPipelineCore.dir/MagneticField/src/LxBFields.cpp.o: CMakeFiles/ActsLUXEPipelineCore.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/alonlevi/CLionProjects/LUXEPipeline/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_7) "Building CXX object CMakeFiles/ActsLUXEPipelineCore.dir/MagneticField/src/LxBFields.cpp.o"
+	/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/ActsLUXEPipelineCore.dir/MagneticField/src/LxBFields.cpp.o -MF CMakeFiles/ActsLUXEPipelineCore.dir/MagneticField/src/LxBFields.cpp.o.d -o CMakeFiles/ActsLUXEPipelineCore.dir/MagneticField/src/LxBFields.cpp.o -c /Users/alonlevi/CLionProjects/LUXEPipeline/MagneticField/src/LxBFields.cpp
+
+CMakeFiles/ActsLUXEPipelineCore.dir/MagneticField/src/LxBFields.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/ActsLUXEPipelineCore.dir/MagneticField/src/LxBFields.cpp.i"
+	/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /Users/alonlevi/CLionProjects/LUXEPipeline/MagneticField/src/LxBFields.cpp > CMakeFiles/ActsLUXEPipelineCore.dir/MagneticField/src/LxBFields.cpp.i
+
+CMakeFiles/ActsLUXEPipelineCore.dir/MagneticField/src/LxBFields.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/ActsLUXEPipelineCore.dir/MagneticField/src/LxBFields.cpp.s"
+	/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/alonlevi/CLionProjects/LUXEPipeline/MagneticField/src/LxBFields.cpp -o CMakeFiles/ActsLUXEPipelineCore.dir/MagneticField/src/LxBFields.cpp.s
+
 CMakeFiles/ActsLUXEPipelineCore.dir/MagneticField/src/BinnedMagneticField.cpp.o: CMakeFiles/ActsLUXEPipelineCore.dir/flags.make
 CMakeFiles/ActsLUXEPipelineCore.dir/MagneticField/src/BinnedMagneticField.cpp.o: /Users/alonlevi/CLionProjects/LUXEPipeline/MagneticField/src/BinnedMagneticField.cpp
 CMakeFiles/ActsLUXEPipelineCore.dir/MagneticField/src/BinnedMagneticField.cpp.o: CMakeFiles/ActsLUXEPipelineCore.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/alonlevi/CLionProjects/LUXEPipeline/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_7) "Building CXX object CMakeFiles/ActsLUXEPipelineCore.dir/MagneticField/src/BinnedMagneticField.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/alonlevi/CLionProjects/LUXEPipeline/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_8) "Building CXX object CMakeFiles/ActsLUXEPipelineCore.dir/MagneticField/src/BinnedMagneticField.cpp.o"
 	/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/ActsLUXEPipelineCore.dir/MagneticField/src/BinnedMagneticField.cpp.o -MF CMakeFiles/ActsLUXEPipelineCore.dir/MagneticField/src/BinnedMagneticField.cpp.o.d -o CMakeFiles/ActsLUXEPipelineCore.dir/MagneticField/src/BinnedMagneticField.cpp.o -c /Users/alonlevi/CLionProjects/LUXEPipeline/MagneticField/src/BinnedMagneticField.cpp
 
 CMakeFiles/ActsLUXEPipelineCore.dir/MagneticField/src/BinnedMagneticField.cpp.i: cmake_force
@@ -170,7 +184,7 @@ CMakeFiles/ActsLUXEPipelineCore.dir/MagneticField/src/BinnedMagneticField.cpp.s:
 CMakeFiles/ActsLUXEPipelineCore.dir/Material/src/ROOTMaterialTrackReader.cpp.o: CMakeFiles/ActsLUXEPipelineCore.dir/flags.make
 CMakeFiles/ActsLUXEPipelineCore.dir/Material/src/ROOTMaterialTrackReader.cpp.o: /Users/alonlevi/CLionProjects/LUXEPipeline/Material/src/ROOTMaterialTrackReader.cpp
 CMakeFiles/ActsLUXEPipelineCore.dir/Material/src/ROOTMaterialTrackReader.cpp.o: CMakeFiles/ActsLUXEPipelineCore.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/alonlevi/CLionProjects/LUXEPipeline/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_8) "Building CXX object CMakeFiles/ActsLUXEPipelineCore.dir/Material/src/ROOTMaterialTrackReader.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/alonlevi/CLionProjects/LUXEPipeline/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_9) "Building CXX object CMakeFiles/ActsLUXEPipelineCore.dir/Material/src/ROOTMaterialTrackReader.cpp.o"
 	/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/ActsLUXEPipelineCore.dir/Material/src/ROOTMaterialTrackReader.cpp.o -MF CMakeFiles/ActsLUXEPipelineCore.dir/Material/src/ROOTMaterialTrackReader.cpp.o.d -o CMakeFiles/ActsLUXEPipelineCore.dir/Material/src/ROOTMaterialTrackReader.cpp.o -c /Users/alonlevi/CLionProjects/LUXEPipeline/Material/src/ROOTMaterialTrackReader.cpp
 
 CMakeFiles/ActsLUXEPipelineCore.dir/Material/src/ROOTMaterialTrackReader.cpp.i: cmake_force
@@ -184,7 +198,7 @@ CMakeFiles/ActsLUXEPipelineCore.dir/Material/src/ROOTMaterialTrackReader.cpp.s: 
 CMakeFiles/ActsLUXEPipelineCore.dir/Material/src/ROOTMaterialTrackWriter.cpp.o: CMakeFiles/ActsLUXEPipelineCore.dir/flags.make
 CMakeFiles/ActsLUXEPipelineCore.dir/Material/src/ROOTMaterialTrackWriter.cpp.o: /Users/alonlevi/CLionProjects/LUXEPipeline/Material/src/ROOTMaterialTrackWriter.cpp
 CMakeFiles/ActsLUXEPipelineCore.dir/Material/src/ROOTMaterialTrackWriter.cpp.o: CMakeFiles/ActsLUXEPipelineCore.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/alonlevi/CLionProjects/LUXEPipeline/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_9) "Building CXX object CMakeFiles/ActsLUXEPipelineCore.dir/Material/src/ROOTMaterialTrackWriter.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/alonlevi/CLionProjects/LUXEPipeline/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_10) "Building CXX object CMakeFiles/ActsLUXEPipelineCore.dir/Material/src/ROOTMaterialTrackWriter.cpp.o"
 	/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/ActsLUXEPipelineCore.dir/Material/src/ROOTMaterialTrackWriter.cpp.o -MF CMakeFiles/ActsLUXEPipelineCore.dir/Material/src/ROOTMaterialTrackWriter.cpp.o.d -o CMakeFiles/ActsLUXEPipelineCore.dir/Material/src/ROOTMaterialTrackWriter.cpp.o -c /Users/alonlevi/CLionProjects/LUXEPipeline/Material/src/ROOTMaterialTrackWriter.cpp
 
 CMakeFiles/ActsLUXEPipelineCore.dir/Material/src/ROOTMaterialTrackWriter.cpp.i: cmake_force
@@ -198,7 +212,7 @@ CMakeFiles/ActsLUXEPipelineCore.dir/Material/src/ROOTMaterialTrackWriter.cpp.s: 
 CMakeFiles/ActsLUXEPipelineCore.dir/Material/src/JsonMaterialWriter.cpp.o: CMakeFiles/ActsLUXEPipelineCore.dir/flags.make
 CMakeFiles/ActsLUXEPipelineCore.dir/Material/src/JsonMaterialWriter.cpp.o: /Users/alonlevi/CLionProjects/LUXEPipeline/Material/src/JsonMaterialWriter.cpp
 CMakeFiles/ActsLUXEPipelineCore.dir/Material/src/JsonMaterialWriter.cpp.o: CMakeFiles/ActsLUXEPipelineCore.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/alonlevi/CLionProjects/LUXEPipeline/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_10) "Building CXX object CMakeFiles/ActsLUXEPipelineCore.dir/Material/src/JsonMaterialWriter.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/alonlevi/CLionProjects/LUXEPipeline/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_11) "Building CXX object CMakeFiles/ActsLUXEPipelineCore.dir/Material/src/JsonMaterialWriter.cpp.o"
 	/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/ActsLUXEPipelineCore.dir/Material/src/JsonMaterialWriter.cpp.o -MF CMakeFiles/ActsLUXEPipelineCore.dir/Material/src/JsonMaterialWriter.cpp.o.d -o CMakeFiles/ActsLUXEPipelineCore.dir/Material/src/JsonMaterialWriter.cpp.o -c /Users/alonlevi/CLionProjects/LUXEPipeline/Material/src/JsonMaterialWriter.cpp
 
 CMakeFiles/ActsLUXEPipelineCore.dir/Material/src/JsonMaterialWriter.cpp.i: cmake_force
@@ -212,7 +226,7 @@ CMakeFiles/ActsLUXEPipelineCore.dir/Material/src/JsonMaterialWriter.cpp.s: cmake
 CMakeFiles/ActsLUXEPipelineCore.dir/Material/src/CoreMaterialMapping.cpp.o: CMakeFiles/ActsLUXEPipelineCore.dir/flags.make
 CMakeFiles/ActsLUXEPipelineCore.dir/Material/src/CoreMaterialMapping.cpp.o: /Users/alonlevi/CLionProjects/LUXEPipeline/Material/src/CoreMaterialMapping.cpp
 CMakeFiles/ActsLUXEPipelineCore.dir/Material/src/CoreMaterialMapping.cpp.o: CMakeFiles/ActsLUXEPipelineCore.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/alonlevi/CLionProjects/LUXEPipeline/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_11) "Building CXX object CMakeFiles/ActsLUXEPipelineCore.dir/Material/src/CoreMaterialMapping.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/alonlevi/CLionProjects/LUXEPipeline/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_12) "Building CXX object CMakeFiles/ActsLUXEPipelineCore.dir/Material/src/CoreMaterialMapping.cpp.o"
 	/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/ActsLUXEPipelineCore.dir/Material/src/CoreMaterialMapping.cpp.o -MF CMakeFiles/ActsLUXEPipelineCore.dir/Material/src/CoreMaterialMapping.cpp.o.d -o CMakeFiles/ActsLUXEPipelineCore.dir/Material/src/CoreMaterialMapping.cpp.o -c /Users/alonlevi/CLionProjects/LUXEPipeline/Material/src/CoreMaterialMapping.cpp
 
 CMakeFiles/ActsLUXEPipelineCore.dir/Material/src/CoreMaterialMapping.cpp.i: cmake_force
@@ -226,7 +240,7 @@ CMakeFiles/ActsLUXEPipelineCore.dir/Material/src/CoreMaterialMapping.cpp.s: cmak
 CMakeFiles/ActsLUXEPipelineCore.dir/Material/src/MaterialValidation.cpp.o: CMakeFiles/ActsLUXEPipelineCore.dir/flags.make
 CMakeFiles/ActsLUXEPipelineCore.dir/Material/src/MaterialValidation.cpp.o: /Users/alonlevi/CLionProjects/LUXEPipeline/Material/src/MaterialValidation.cpp
 CMakeFiles/ActsLUXEPipelineCore.dir/Material/src/MaterialValidation.cpp.o: CMakeFiles/ActsLUXEPipelineCore.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/alonlevi/CLionProjects/LUXEPipeline/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_12) "Building CXX object CMakeFiles/ActsLUXEPipelineCore.dir/Material/src/MaterialValidation.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/alonlevi/CLionProjects/LUXEPipeline/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_13) "Building CXX object CMakeFiles/ActsLUXEPipelineCore.dir/Material/src/MaterialValidation.cpp.o"
 	/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/ActsLUXEPipelineCore.dir/Material/src/MaterialValidation.cpp.o -MF CMakeFiles/ActsLUXEPipelineCore.dir/Material/src/MaterialValidation.cpp.o.d -o CMakeFiles/ActsLUXEPipelineCore.dir/Material/src/MaterialValidation.cpp.o -c /Users/alonlevi/CLionProjects/LUXEPipeline/Material/src/MaterialValidation.cpp
 
 CMakeFiles/ActsLUXEPipelineCore.dir/Material/src/MaterialValidation.cpp.i: cmake_force
@@ -240,7 +254,7 @@ CMakeFiles/ActsLUXEPipelineCore.dir/Material/src/MaterialValidation.cpp.s: cmake
 CMakeFiles/ActsLUXEPipelineCore.dir/Simulation/src/MeasurementsCreator.cpp.o: CMakeFiles/ActsLUXEPipelineCore.dir/flags.make
 CMakeFiles/ActsLUXEPipelineCore.dir/Simulation/src/MeasurementsCreator.cpp.o: /Users/alonlevi/CLionProjects/LUXEPipeline/Simulation/src/MeasurementsCreator.cpp
 CMakeFiles/ActsLUXEPipelineCore.dir/Simulation/src/MeasurementsCreator.cpp.o: CMakeFiles/ActsLUXEPipelineCore.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/alonlevi/CLionProjects/LUXEPipeline/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_13) "Building CXX object CMakeFiles/ActsLUXEPipelineCore.dir/Simulation/src/MeasurementsCreator.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/alonlevi/CLionProjects/LUXEPipeline/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_14) "Building CXX object CMakeFiles/ActsLUXEPipelineCore.dir/Simulation/src/MeasurementsCreator.cpp.o"
 	/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/ActsLUXEPipelineCore.dir/Simulation/src/MeasurementsCreator.cpp.o -MF CMakeFiles/ActsLUXEPipelineCore.dir/Simulation/src/MeasurementsCreator.cpp.o.d -o CMakeFiles/ActsLUXEPipelineCore.dir/Simulation/src/MeasurementsCreator.cpp.o -c /Users/alonlevi/CLionProjects/LUXEPipeline/Simulation/src/MeasurementsCreator.cpp
 
 CMakeFiles/ActsLUXEPipelineCore.dir/Simulation/src/MeasurementsCreator.cpp.i: cmake_force
@@ -254,7 +268,7 @@ CMakeFiles/ActsLUXEPipelineCore.dir/Simulation/src/MeasurementsCreator.cpp.s: cm
 CMakeFiles/ActsLUXEPipelineCore.dir/Geometry/src/LUXEGeometry.cpp.o: CMakeFiles/ActsLUXEPipelineCore.dir/flags.make
 CMakeFiles/ActsLUXEPipelineCore.dir/Geometry/src/LUXEGeometry.cpp.o: /Users/alonlevi/CLionProjects/LUXEPipeline/Geometry/src/LUXEGeometry.cpp
 CMakeFiles/ActsLUXEPipelineCore.dir/Geometry/src/LUXEGeometry.cpp.o: CMakeFiles/ActsLUXEPipelineCore.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/alonlevi/CLionProjects/LUXEPipeline/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_14) "Building CXX object CMakeFiles/ActsLUXEPipelineCore.dir/Geometry/src/LUXEGeometry.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/alonlevi/CLionProjects/LUXEPipeline/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_15) "Building CXX object CMakeFiles/ActsLUXEPipelineCore.dir/Geometry/src/LUXEGeometry.cpp.o"
 	/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/ActsLUXEPipelineCore.dir/Geometry/src/LUXEGeometry.cpp.o -MF CMakeFiles/ActsLUXEPipelineCore.dir/Geometry/src/LUXEGeometry.cpp.o.d -o CMakeFiles/ActsLUXEPipelineCore.dir/Geometry/src/LUXEGeometry.cpp.o -c /Users/alonlevi/CLionProjects/LUXEPipeline/Geometry/src/LUXEGeometry.cpp
 
 CMakeFiles/ActsLUXEPipelineCore.dir/Geometry/src/LUXEGeometry.cpp.i: cmake_force
@@ -268,7 +282,7 @@ CMakeFiles/ActsLUXEPipelineCore.dir/Geometry/src/LUXEGeometry.cpp.s: cmake_force
 CMakeFiles/ActsLUXEPipelineCore.dir/Geometry/src/LUXEGeometryIdGenerator.cpp.o: CMakeFiles/ActsLUXEPipelineCore.dir/flags.make
 CMakeFiles/ActsLUXEPipelineCore.dir/Geometry/src/LUXEGeometryIdGenerator.cpp.o: /Users/alonlevi/CLionProjects/LUXEPipeline/Geometry/src/LUXEGeometryIdGenerator.cpp
 CMakeFiles/ActsLUXEPipelineCore.dir/Geometry/src/LUXEGeometryIdGenerator.cpp.o: CMakeFiles/ActsLUXEPipelineCore.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/alonlevi/CLionProjects/LUXEPipeline/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_15) "Building CXX object CMakeFiles/ActsLUXEPipelineCore.dir/Geometry/src/LUXEGeometryIdGenerator.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/alonlevi/CLionProjects/LUXEPipeline/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_16) "Building CXX object CMakeFiles/ActsLUXEPipelineCore.dir/Geometry/src/LUXEGeometryIdGenerator.cpp.o"
 	/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/ActsLUXEPipelineCore.dir/Geometry/src/LUXEGeometryIdGenerator.cpp.o -MF CMakeFiles/ActsLUXEPipelineCore.dir/Geometry/src/LUXEGeometryIdGenerator.cpp.o.d -o CMakeFiles/ActsLUXEPipelineCore.dir/Geometry/src/LUXEGeometryIdGenerator.cpp.o -c /Users/alonlevi/CLionProjects/LUXEPipeline/Geometry/src/LUXEGeometryIdGenerator.cpp
 
 CMakeFiles/ActsLUXEPipelineCore.dir/Geometry/src/LUXEGeometryIdGenerator.cpp.i: cmake_force
@@ -287,6 +301,7 @@ ActsLUXEPipelineCore_OBJECTS = \
 "CMakeFiles/ActsLUXEPipelineCore.dir/Infrastructure/src/SequenceElement.cpp.o" \
 "CMakeFiles/ActsLUXEPipelineCore.dir/Infrastructure/src/RandomNumbers.cpp.o" \
 "CMakeFiles/ActsLUXEPipelineCore.dir/TrackFinding/src/PathSeeder.cpp.o" \
+"CMakeFiles/ActsLUXEPipelineCore.dir/MagneticField/src/LxBFields.cpp.o" \
 "CMakeFiles/ActsLUXEPipelineCore.dir/MagneticField/src/BinnedMagneticField.cpp.o" \
 "CMakeFiles/ActsLUXEPipelineCore.dir/Material/src/ROOTMaterialTrackReader.cpp.o" \
 "CMakeFiles/ActsLUXEPipelineCore.dir/Material/src/ROOTMaterialTrackWriter.cpp.o" \
@@ -307,6 +322,7 @@ lib/libActsLUXEPipelineCore.dylib: CMakeFiles/ActsLUXEPipelineCore.dir/Infrastru
 lib/libActsLUXEPipelineCore.dylib: CMakeFiles/ActsLUXEPipelineCore.dir/Infrastructure/src/SequenceElement.cpp.o
 lib/libActsLUXEPipelineCore.dylib: CMakeFiles/ActsLUXEPipelineCore.dir/Infrastructure/src/RandomNumbers.cpp.o
 lib/libActsLUXEPipelineCore.dylib: CMakeFiles/ActsLUXEPipelineCore.dir/TrackFinding/src/PathSeeder.cpp.o
+lib/libActsLUXEPipelineCore.dylib: CMakeFiles/ActsLUXEPipelineCore.dir/MagneticField/src/LxBFields.cpp.o
 lib/libActsLUXEPipelineCore.dylib: CMakeFiles/ActsLUXEPipelineCore.dir/MagneticField/src/BinnedMagneticField.cpp.o
 lib/libActsLUXEPipelineCore.dylib: CMakeFiles/ActsLUXEPipelineCore.dir/Material/src/ROOTMaterialTrackReader.cpp.o
 lib/libActsLUXEPipelineCore.dylib: CMakeFiles/ActsLUXEPipelineCore.dir/Material/src/ROOTMaterialTrackWriter.cpp.o
@@ -375,7 +391,7 @@ lib/libActsLUXEPipelineCore.dylib: /Users/alonlevi/Programs/root_install/lib/lib
 lib/libActsLUXEPipelineCore.dylib: /Users/alonlevi/Programs/root_install/lib/libThread.so
 lib/libActsLUXEPipelineCore.dylib: /Users/alonlevi/Programs/root_install/lib/libCore.so
 lib/libActsLUXEPipelineCore.dylib: CMakeFiles/ActsLUXEPipelineCore.dir/link.txt
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=/Users/alonlevi/CLionProjects/LUXEPipeline/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_16) "Linking CXX shared library lib/libActsLUXEPipelineCore.dylib"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=/Users/alonlevi/CLionProjects/LUXEPipeline/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_17) "Linking CXX shared library lib/libActsLUXEPipelineCore.dylib"
 	$(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/ActsLUXEPipelineCore.dir/link.txt --verbose=$(VERBOSE)
 
 # Rule to build all files generated by this target.

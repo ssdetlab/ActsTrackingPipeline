@@ -14,6 +14,7 @@ target_include_directories(
 target_sources(
     ActsLUXEPipelineCore
     PRIVATE
+    src/LxBFields.cpp
     src/BinnedMagneticField.cpp
 )
 

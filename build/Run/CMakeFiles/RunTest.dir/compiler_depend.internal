@@ -1199,8 +1199,11 @@ Run/CMakeFiles/RunTest.dir/TestRun.cpp.o
  /Users/alonlevi/CLionProjects/ACTS/install/include/Acts/Utilities/detail/grid_helper.hpp
  /Users/alonlevi/CLionProjects/ACTS/install/include/Acts/Utilities/detail/interpolation_impl.hpp
  /Users/alonlevi/CLionProjects/ACTS/install/include/Acts/Utilities/detail/periodic.hpp
+ /Users/alonlevi/CLionProjects/ACTS/install/include/Acts/Visualization/GeometryView3D.hpp
  /Users/alonlevi/CLionProjects/ACTS/install/include/Acts/Visualization/IVisualization3D.hpp
+ /Users/alonlevi/CLionProjects/ACTS/install/include/Acts/Visualization/ObjVisualization3D.hpp
  /Users/alonlevi/CLionProjects/ACTS/install/include/Acts/Visualization/ViewConfig.hpp
+ /Users/alonlevi/CLionProjects/ACTS/install/include/Acts/Visualization/detail/ObjVisualization3D.ipp
  /Users/alonlevi/CLionProjects/LUXEPipeline/EventData/include/ActsLUXEPipeline/DataContainers.hpp
  /Users/alonlevi/CLionProjects/LUXEPipeline/EventData/include/ActsLUXEPipeline/SimpleSourceLink.hpp
  /Users/alonlevi/CLionProjects/LUXEPipeline/Geometry/include/ActsLUXEPipeline/LUXEGeometry.hpp
@@ -1217,6 +1220,7 @@ Run/CMakeFiles/RunTest.dir/TestRun.cpp.o
  /Users/alonlevi/CLionProjects/LUXEPipeline/Infrastructure/include/ActsLUXEPipeline/WhiteBoard.hpp
  /Users/alonlevi/CLionProjects/LUXEPipeline/Infrastructure/include/ActsLUXEPipeline/tbbWrap.hpp
  /Users/alonlevi/CLionProjects/LUXEPipeline/MagneticField/include/ActsLUXEPipeline/ConstantBoundedField.hpp
+ /Users/alonlevi/CLionProjects/LUXEPipeline/MagneticField/include/ActsLUXEPipeline/LxBFields.hpp
  /Users/alonlevi/CLionProjects/LUXEPipeline/Readout/include/ActsLUXEPipeline/LUXEROOTDataReader.hpp
  /Users/alonlevi/CLionProjects/LUXEPipeline/Readout/include/ActsLUXEPipeline/ROOTDataReader.hpp
  /Users/alonlevi/CLionProjects/LUXEPipeline/Readout/include/ActsLUXEPipeline/ROOTFittedTrackWriter.hpp
@@ -1273,6 +1277,7 @@ Run/CMakeFiles/RunTest.dir/TestRun.cpp.o
  /Users/alonlevi/Programs/geant4-v11.2.2-install/include/Geant4/G4ExceptionSeverity.hh
  /Users/alonlevi/Programs/geant4-v11.2.2-install/include/Geant4/G4ExtrudedSolid.hh
  /Users/alonlevi/Programs/geant4-v11.2.2-install/include/Geant4/G4ExtrudedSolid.icc
+ /Users/alonlevi/Programs/geant4-v11.2.2-install/include/Geant4/G4Field.hh
  /Users/alonlevi/Programs/geant4-v11.2.2-install/include/Geant4/G4GDMLAuxStructType.hh
  /Users/alonlevi/Programs/geant4-v11.2.2-install/include/Geant4/G4GDMLEvaluator.hh
  /Users/alonlevi/Programs/geant4-v11.2.2-install/include/Geant4/G4GDMLMessenger.hh
@@ -1302,6 +1307,7 @@ Run/CMakeFiles/RunTest.dir/TestRun.cpp.o
  /Users/alonlevi/Programs/geant4-v11.2.2-install/include/Geant4/G4Log.hh
  /Users/alonlevi/Programs/geant4-v11.2.2-install/include/Geant4/G4LogicalVolume.hh
  /Users/alonlevi/Programs/geant4-v11.2.2-install/include/Geant4/G4LogicalVolume.icc
+ /Users/alonlevi/Programs/geant4-v11.2.2-install/include/Geant4/G4MagneticField.hh
  /Users/alonlevi/Programs/geant4-v11.2.2-install/include/Geant4/G4MaterialPropertiesIndex.hh
  /Users/alonlevi/Programs/geant4-v11.2.2-install/include/Geant4/G4MaterialPropertiesTable.hh
  /Users/alonlevi/Programs/geant4-v11.2.2-install/include/Geant4/G4MaterialPropertyVector.hh

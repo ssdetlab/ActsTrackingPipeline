@@ -1198,8 +1198,11 @@ Run/CMakeFiles/RunTest.dir/TestRun.cpp.o: /Users/alonlevi/CLionProjects/LUXEPipe
   /Users/alonlevi/CLionProjects/ACTS/install/include/Acts/Utilities/detail/grid_helper.hpp \
   /Users/alonlevi/CLionProjects/ACTS/install/include/Acts/Utilities/detail/interpolation_impl.hpp \
   /Users/alonlevi/CLionProjects/ACTS/install/include/Acts/Utilities/detail/periodic.hpp \
+  /Users/alonlevi/CLionProjects/ACTS/install/include/Acts/Visualization/GeometryView3D.hpp \
   /Users/alonlevi/CLionProjects/ACTS/install/include/Acts/Visualization/IVisualization3D.hpp \
+  /Users/alonlevi/CLionProjects/ACTS/install/include/Acts/Visualization/ObjVisualization3D.hpp \
   /Users/alonlevi/CLionProjects/ACTS/install/include/Acts/Visualization/ViewConfig.hpp \
+  /Users/alonlevi/CLionProjects/ACTS/install/include/Acts/Visualization/detail/ObjVisualization3D.ipp \
   /Users/alonlevi/CLionProjects/LUXEPipeline/EventData/include/ActsLUXEPipeline/DataContainers.hpp \
   /Users/alonlevi/CLionProjects/LUXEPipeline/EventData/include/ActsLUXEPipeline/SimpleSourceLink.hpp \
   /Users/alonlevi/CLionProjects/LUXEPipeline/Geometry/include/ActsLUXEPipeline/LUXEGeometry.hpp \
@@ -1216,6 +1219,7 @@ Run/CMakeFiles/RunTest.dir/TestRun.cpp.o: /Users/alonlevi/CLionProjects/LUXEPipe
   /Users/alonlevi/CLionProjects/LUXEPipeline/Infrastructure/include/ActsLUXEPipeline/WhiteBoard.hpp \
   /Users/alonlevi/CLionProjects/LUXEPipeline/Infrastructure/include/ActsLUXEPipeline/tbbWrap.hpp \
   /Users/alonlevi/CLionProjects/LUXEPipeline/MagneticField/include/ActsLUXEPipeline/ConstantBoundedField.hpp \
+  /Users/alonlevi/CLionProjects/LUXEPipeline/MagneticField/include/ActsLUXEPipeline/LxBFields.hpp \
   /Users/alonlevi/CLionProjects/LUXEPipeline/Readout/include/ActsLUXEPipeline/LUXEROOTDataReader.hpp \
   /Users/alonlevi/CLionProjects/LUXEPipeline/Readout/include/ActsLUXEPipeline/ROOTDataReader.hpp \
   /Users/alonlevi/CLionProjects/LUXEPipeline/Readout/include/ActsLUXEPipeline/ROOTFittedTrackWriter.hpp \
@@ -1272,6 +1276,7 @@ Run/CMakeFiles/RunTest.dir/TestRun.cpp.o: /Users/alonlevi/CLionProjects/LUXEPipe
   /Users/alonlevi/Programs/geant4-v11.2.2-install/include/Geant4/G4ExceptionSeverity.hh \
   /Users/alonlevi/Programs/geant4-v11.2.2-install/include/Geant4/G4ExtrudedSolid.hh \
   /Users/alonlevi/Programs/geant4-v11.2.2-install/include/Geant4/G4ExtrudedSolid.icc \
+  /Users/alonlevi/Programs/geant4-v11.2.2-install/include/Geant4/G4Field.hh \
   /Users/alonlevi/Programs/geant4-v11.2.2-install/include/Geant4/G4GDMLAuxStructType.hh \
   /Users/alonlevi/Programs/geant4-v11.2.2-install/include/Geant4/G4GDMLEvaluator.hh \
   /Users/alonlevi/Programs/geant4-v11.2.2-install/include/Geant4/G4GDMLMessenger.hh \
@@ -1301,6 +1306,7 @@ Run/CMakeFiles/RunTest.dir/TestRun.cpp.o: /Users/alonlevi/CLionProjects/LUXEPipe
   /Users/alonlevi/Programs/geant4-v11.2.2-install/include/Geant4/G4Log.hh \
   /Users/alonlevi/Programs/geant4-v11.2.2-install/include/Geant4/G4LogicalVolume.hh \
   /Users/alonlevi/Programs/geant4-v11.2.2-install/include/Geant4/G4LogicalVolume.icc \
+  /Users/alonlevi/Programs/geant4-v11.2.2-install/include/Geant4/G4MagneticField.hh \
   /Users/alonlevi/Programs/geant4-v11.2.2-install/include/Geant4/G4MaterialPropertiesIndex.hh \
   /Users/alonlevi/Programs/geant4-v11.2.2-install/include/Geant4/G4MaterialPropertiesTable.hh \
   /Users/alonlevi/Programs/geant4-v11.2.2-install/include/Geant4/G4MaterialPropertyVector.hh \
@@ -3086,8 +3092,6 @@ Run/CMakeFiles/RunTest.dir/TestRun.cpp.o: /Users/alonlevi/CLionProjects/LUXEPipe
 
 /opt/homebrew/include/boost/type_traits/conjunction.hpp:
 
-/opt/homebrew/include/boost/type_traits/add_volatile.hpp:
-
 /opt/homebrew/include/boost/type_traits/add_rvalue_reference.hpp:
 
 /opt/homebrew/include/boost/type_traits/add_lvalue_reference.hpp:
@@ -3932,6 +3936,8 @@ Run/CMakeFiles/RunTest.dir/TestRun.cpp.o: /Users/alonlevi/CLionProjects/LUXEPipe
 
 /opt/homebrew/include/boost/container/small_vector.hpp:
 
+/opt/homebrew/include/boost/container/options.hpp:
+
 /opt/homebrew/include/boost/hana/detail/operators/arithmetic.hpp:
 
 /opt/homebrew/include/boost/container/detail/std_fwd.hpp:
@@ -4432,6 +4438,8 @@ Run/CMakeFiles/RunTest.dir/TestRun.cpp.o: /Users/alonlevi/CLionProjects/LUXEPipe
 
 /Users/alonlevi/Programs/geant4-v11.2.2-install/include/Geant4/G4MaterialPropertiesIndex.hh:
 
+/Users/alonlevi/Programs/geant4-v11.2.2-install/include/Geant4/G4MagneticField.hh:
+
 /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.5.sdk/usr/include/sys/_types/_blksize_t.h:
 
 /Users/alonlevi/Programs/geant4-v11.2.2-install/include/Geant4/G4LogicalVolume.hh:
@@ -4601,6 +4609,14 @@ Run/CMakeFiles/RunTest.dir/TestRun.cpp.o: /Users/alonlevi/CLionProjects/LUXEPipe
 /Users/alonlevi/CLionProjects/LUXEPipeline/Geometry/include/ActsLUXEPipeline/LUXEGeometry.hpp:
 
 /Users/alonlevi/CLionProjects/LUXEPipeline/EventData/include/ActsLUXEPipeline/SimpleSourceLink.hpp:
+
+/opt/homebrew/include/boost/iterator/detail/config_undef.hpp:
+
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.5.sdk/usr/include/c++/v1/__atomic/kill_dependency.h:
+
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.5.sdk/usr/include/c++/v1/__iterator/next.h:
+
+/Users/alonlevi/CLionProjects/ACTS/install/include/Acts/Visualization/ObjVisualization3D.hpp:
 
 /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.5.sdk/usr/include/c++/v1/__memory/allocator_destructor.h:
 
@@ -4836,6 +4852,8 @@ Run/CMakeFiles/RunTest.dir/TestRun.cpp.o: /Users/alonlevi/CLionProjects/LUXEPipe
 
 /Users/alonlevi/Programs/root_install/include/TChain.h:
 
+/Users/alonlevi/CLionProjects/ACTS/install/include/Acts/Visualization/detail/ObjVisualization3D.ipp:
+
 /Users/alonlevi/CLionProjects/ACTS/install/include/Acts/Material/Interactions.hpp:
 
 /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.5.sdk/usr/include/c++/v1/__functional/pointer_to_unary_function.h:
@@ -5052,6 +5070,10 @@ Run/CMakeFiles/RunTest.dir/TestRun.cpp.o: /Users/alonlevi/CLionProjects/LUXEPipe
 
 /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.5.sdk/usr/include/xlocale/_time.h:
 
+/opt/homebrew/include/boost/type_traits/add_volatile.hpp:
+
+/Users/alonlevi/CLionProjects/ACTS/install/include/Acts/Visualization/GeometryView3D.hpp:
+
 /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.5.sdk/usr/include/xlocale/_inttypes.h:
 
 /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.5.sdk/usr/include/wctype.h:
@@ -5217,6 +5239,8 @@ Run/CMakeFiles/RunTest.dir/TestRun.cpp.o: /Users/alonlevi/CLionProjects/LUXEPipe
 /opt/homebrew/include/boost/hana/fwd/concept/iterable.hpp:
 
 /Users/alonlevi/Programs/geant4-v11.2.2-install/include/Geant4/G4Cons.hh:
+
+/Users/alonlevi/CLionProjects/LUXEPipeline/MagneticField/include/ActsLUXEPipeline/LxBFields.hpp:
 
 /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.5.sdk/usr/include/sys/_types/_fd_set.h:
 
@@ -5988,6 +6012,8 @@ Run/CMakeFiles/RunTest.dir/TestRun.cpp.o: /Users/alonlevi/CLionProjects/LUXEPipe
 
 /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.5.sdk/usr/include/c++/v1/system_error:
 
+/Users/alonlevi/Programs/geant4-v11.2.2-install/include/Geant4/G4Field.hh:
+
 /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.5.sdk/usr/include/sys/_types/_blkcnt_t.h:
 
 /Users/alonlevi/Programs/geant4-v11.2.2-install/include/Geant4/G4ReplicaNavigation.icc:
@@ -6131,12 +6157,6 @@ Run/CMakeFiles/RunTest.dir/TestRun.cpp.o: /Users/alonlevi/CLionProjects/LUXEPipe
 /Users/alonlevi/CLionProjects/ACTS/install/include/Acts/Propagator/PropagatorResult.hpp:
 
 /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.5.sdk/usr/include/c++/v1/__type_traits/add_volatile.h:
-
-/opt/homebrew/include/xercesc/dom/DOMElement.hpp:
-
-/Users/alonlevi/Programs/geant4-v11.2.2-install/include/Geant4/G4GDMLReadSetup.hh:
-
-/opt/homebrew/include/boost/container/detail/workaround.hpp:
 
 /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.5.sdk/usr/include/c++/v1/stack:
 
@@ -6477,12 +6497,6 @@ Run/CMakeFiles/RunTest.dir/TestRun.cpp.o: /Users/alonlevi/CLionProjects/LUXEPipe
 /opt/homebrew/include/boost/preprocessor/tuple/eat.hpp:
 
 /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.5.sdk/usr/include/c++/v1/__iterator/ostreambuf_iterator.h:
-
-/opt/homebrew/include/boost/iterator/detail/config_undef.hpp:
-
-/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.5.sdk/usr/include/c++/v1/__atomic/kill_dependency.h:
-
-/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.5.sdk/usr/include/c++/v1/__iterator/next.h:
 
 /Users/alonlevi/Programs/root_install/include/TError.h:
 
@@ -6920,12 +6934,6 @@ Run/CMakeFiles/RunTest.dir/TestRun.cpp.o: /Users/alonlevi/CLionProjects/LUXEPipe
 
 /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.5.sdk/usr/include/c++/v1/__type_traits/is_trivially_copy_assignable.h:
 
-/opt/homebrew/include/boost/range/detail/extract_optional_type.hpp:
-
-/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.5.sdk/usr/include/c++/v1/__algorithm/pstl_backends/cpu_backends/any_of.h:
-
-/opt/homebrew/include/boost/container/new_allocator.hpp:
-
 /opt/homebrew/include/eigen3/Eigen/src/plugins/ArrayCwiseUnaryOps.h:
 
 /opt/homebrew/include/boost/range/distance.hpp:
@@ -7119,8 +7127,6 @@ Run/CMakeFiles/RunTest.dir/TestRun.cpp.o: /Users/alonlevi/CLionProjects/LUXEPipe
 /opt/homebrew/include/boost/type_traits/add_pointer.hpp:
 
 /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.5.sdk/usr/include/c++/v1/__bit/bit_cast.h:
-
-/opt/homebrew/include/boost/container/options.hpp:
 
 /opt/homebrew/include/boost/mpl/aux_/config/static_constant.hpp:
 
@@ -7337,12 +7343,6 @@ Run/CMakeFiles/RunTest.dir/TestRun.cpp.o: /Users/alonlevi/CLionProjects/LUXEPipe
 /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.5.sdk/usr/include/c++/v1/__algorithm/ranges_search_n.h:
 
 /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.5.sdk/usr/include/c++/v1/__compare/ordering.h:
-
-/opt/homebrew/include/eigen3/Eigen/src/Core/products/Parallelizer.h:
-
-/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.5.sdk/usr/include/_types/_uint8_t.h:
-
-/opt/homebrew/include/boost/container/detail/version_type.hpp:
 
 /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.5.sdk/usr/include/c++/v1/__compare/compare_weak_order_fallback.h:
 
@@ -7672,6 +7672,12 @@ Run/CMakeFiles/RunTest.dir/TestRun.cpp.o: /Users/alonlevi/CLionProjects/LUXEPipe
 
 /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.5.sdk/usr/include/_stdio.h:
 
+/opt/homebrew/include/boost/range/detail/extract_optional_type.hpp:
+
+/opt/homebrew/include/boost/container/new_allocator.hpp:
+
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.5.sdk/usr/include/c++/v1/__algorithm/pstl_backends/cpu_backends/any_of.h:
+
 /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.5.sdk/usr/include/c++/v1/__algorithm/pstl_backends/cpu_backend.h:
 
 /opt/homebrew/include/boost/histogram/axis/variable.hpp:
@@ -7912,9 +7918,21 @@ Run/CMakeFiles/RunTest.dir/TestRun.cpp.o: /Users/alonlevi/CLionProjects/LUXEPipe
 
 /Users/alonlevi/CLionProjects/ACTS/install/include/Acts/Utilities/BoundingBox.hpp:
 
+/opt/homebrew/include/eigen3/Eigen/src/Core/products/Parallelizer.h:
+
+/opt/homebrew/include/boost/container/detail/version_type.hpp:
+
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.5.sdk/usr/include/_types/_uint8_t.h:
+
 /opt/homebrew/include/boost/hana/first.hpp:
 
 /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.5.sdk/usr/include/c++/v1/__type_traits/is_core_convertible.h:
+
+/opt/homebrew/include/xercesc/dom/DOMElement.hpp:
+
+/opt/homebrew/include/boost/container/detail/workaround.hpp:
+
+/Users/alonlevi/Programs/geant4-v11.2.2-install/include/Geant4/G4GDMLReadSetup.hh:
 
 /opt/homebrew/include/eigen3/Eigen/src/Core/Array.h:
 

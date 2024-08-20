@@ -1932,6 +1932,9 @@ Run/CMakeFiles/RunTest.dir/TestRun.cpp.o: \
   /Users/alonlevi/Programs/root_install/include/ROOT/TRWSpinLock.hxx \
   /Users/alonlevi/Programs/root_install/include/ROOT/TSpinMutex.hxx \
   /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.5.sdk/usr/include/c++/v1/condition_variable \
+  /Users/alonlevi/CLionProjects/LUXEPipeline/MagneticField/include/ActsLUXEPipeline/LxBFields.hpp \
+  /Users/alonlevi/Programs/geant4-v11.2.2-install/include/Geant4/G4MagneticField.hh \
+  /Users/alonlevi/Programs/geant4-v11.2.2-install/include/Geant4/G4Field.hh \
   /Users/alonlevi/CLionProjects/ACTS/install/include/Acts/Navigation/DetectorNavigator.hpp \
   /opt/homebrew/include/boost/algorithm/string.hpp \
   /opt/homebrew/include/boost/algorithm/string/std_containers_traits.hpp \

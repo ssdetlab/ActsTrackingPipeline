@@ -15,6 +15,8 @@ file(REMOVE_RECURSE
   "CMakeFiles/ActsLUXEPipelineCore.dir/Infrastructure/src/WhiteBoard.cpp.o.d"
   "CMakeFiles/ActsLUXEPipelineCore.dir/MagneticField/src/BinnedMagneticField.cpp.o"
   "CMakeFiles/ActsLUXEPipelineCore.dir/MagneticField/src/BinnedMagneticField.cpp.o.d"
+  "CMakeFiles/ActsLUXEPipelineCore.dir/MagneticField/src/LxBFields.cpp.o"
+  "CMakeFiles/ActsLUXEPipelineCore.dir/MagneticField/src/LxBFields.cpp.o.d"
   "CMakeFiles/ActsLUXEPipelineCore.dir/Material/src/CoreMaterialMapping.cpp.o"
   "CMakeFiles/ActsLUXEPipelineCore.dir/Material/src/CoreMaterialMapping.cpp.o.d"
   "CMakeFiles/ActsLUXEPipelineCore.dir/Material/src/JsonMaterialWriter.cpp.o"
