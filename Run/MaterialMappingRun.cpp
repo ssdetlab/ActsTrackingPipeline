@@ -1,4 +1,4 @@
-#include "ActsLUXEPipeline/LUXEGeometry.hpp"
+#include "ActsLUXEPipeline/E320Geometry.hpp"
 #include "ActsLUXEPipeline/Sequencer.hpp"
 #include "ActsLUXEPipeline/ROOTMaterialTrackReader.hpp"
 #include "ActsLUXEPipeline/CoreMaterialMapping.hpp"
@@ -17,23 +17,23 @@ int main() {
     Acts::GeometryContext gctx;
     Acts::MagneticFieldContext mctx;
     Acts::CalibrationContext cctx;
-    LUXEGeometry::GeometryOptions gOpt;
+    E320Geometry::GeometryOptions gOpt;
 
     // --------------------------------------------------------------
-    // LUXE detector setup
+    // Detector setup
 
     // Set the path to the gdml file
     // and the names of the volumes to be converted
     std::string gdmlPath = 
-        "/home/romanurmanov/lab/LUXE/acts_LUXE_tracking/ActsLUXEPipeline_gdmls/lxgeomdump_ip_tracker_positron.gdml";
-    std::vector<std::string> names{"OPPPSensitive", "VCWindowPanel"};
+        "/home/romanurmanov/lab/LUXE/acts_LUXE_tracking/E320Pipeline_gdmls/ettgeom_magnet_pdc_tracker.gdml";
+    std::vector<std::string> names{"OPPPSensitive"};
 
     std::vector<Acts::GeometryIdentifier> materialVeto{};
 
     auto trackerBP = 
-        LUXEGeometry::makeBlueprintLUXE(gdmlPath, names, gOpt);
+        E320Geometry::makeBlueprintE320(gdmlPath, names, gOpt);
     auto detector =
-        LUXEGeometry::buildLUXEDetector(std::move(trackerBP), gctx, gOpt, materialVeto);
+        E320Geometry::buildE320Detector(std::move(trackerBP), gctx, gOpt, materialVeto);
 
     for (auto& vol : detector->rootVolumes()) {
         std::cout << "Volume: " << vol->name() << " = " << vol->surfaces().size() << std::endl;
@@ -47,7 +47,6 @@ int main() {
 
     // Setup the sequencer
     Sequencer::Config seqCfg;
-    // seqCfg.events = 10;
     seqCfg.numThreads = 1;
     Sequencer sequencer(seqCfg);
 
@@ -58,7 +57,7 @@ int main() {
     auto materialTrackReaderCfg = ROOTMaterialTrackReader::Config{
         "material-tracks",
         "material-tracks",
-        {"/home/romanurmanov/lab/LUXE/reports/acts_telescope_geo_4/material_files/uniform/geant4_material_tracks.root"}
+        {"/home/romanurmanov/lab/LUXE/acts_LUXE_tracking/E320Pipeline_material/geant4_material_tracks.root"}
     };
 
     auto materialTrackReader = std::make_shared<ROOTMaterialTrackReader>(
