@@ -1,10 +1,4 @@
 #include "ActsLUXEPipeline/QuadrupoleMagField.hpp"
-// #include "G4RotationMatrix.hh"
-
-// namespace
-// {
-//    G4RotationMatrix IdentityMatrix; 
-// }
 
 QuadrupoleMagField::QuadrupoleMagField(Acts::ActsScalar gradient) 
     : m_gradient(gradient) {};
@@ -19,10 +13,6 @@ QuadrupoleMagField::QuadrupoleMagField(
 
 QuadrupoleMagField::~QuadrupoleMagField() = default;
 
-/// @brief Get the magnetic field cache
-///
-/// @param mctx Magnetic field context
-/// @return magnetic field cache
 Acts::MagneticFieldProvider::Cache QuadrupoleMagField::makeCache(
     const Acts::MagneticFieldContext& mctx) const {
         return Acts::MagneticFieldProvider::Cache(
