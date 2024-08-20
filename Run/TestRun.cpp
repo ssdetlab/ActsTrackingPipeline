@@ -125,6 +125,7 @@ int main() {
     double MagField[6];
     double ppos[4] = {0.0, 0.0, IPMagnetZpos, 0.0};
     bfield->GetFieldValue(ppos, MagField);
+
     volumeObj.write("volumes.obj");
 
     return 0;
