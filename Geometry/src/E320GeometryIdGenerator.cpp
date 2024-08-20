@@ -63,7 +63,8 @@ void E320GeometryIdGenerator::assignGeometryId(
         auto geoID = Acts::GeometryIdentifier(0u);
         if (!m_cfg.overrideExistingIds && rGeoID.value() != 0) {
             return;
-        } else if (
+        } 
+        else if (
             (rGeoID.sensitive() == 0 && rGeoID.passive() == 0) ||
             m_cfg.overrideExistingIds) {
                 Acts::Vector3 center = surface.center(Acts::GeometryContext());
@@ -74,7 +75,7 @@ void E320GeometryIdGenerator::assignGeometryId(
                 std::int32_t layerId;
                 for (auto [id, z] : m_cfg.gOpt.staveZ) {
                     // These are already rotated surfaces
-                    if (std::abs(center.y() - z) < 1e-1) {
+                    if (std::abs(center.z() - z) < 1e-1) {
                         layerId = id;
                         break;
                     }
@@ -85,7 +86,7 @@ void E320GeometryIdGenerator::assignGeometryId(
                 std::int32_t chipId;
                 auto chipIDs = m_cfg.gOpt.chipX;
                 for (auto [id, x] : chipIDs) {
-                    if (std::abs(center.z() + x) < 1e-1) {
+                    if (std::abs(center.y() - x) < 1e-1) {
                         chipId = id;
                         break;
                     }
@@ -98,7 +99,8 @@ void E320GeometryIdGenerator::assignGeometryId(
                 ccache.sensitiveCount++;
         
                 surface.assignGeometryId(geoID);
-        } else if (rGeoID.sensitive() != 0 || rGeoID.passive() != 0) {
+        } 
+        else if (rGeoID.sensitive() != 0 || rGeoID.passive() != 0) {
             ACTS_VERBOSE(
                 "Surface already has a geometry id, only setting volume and layer id.");
             rGeoID.setVolume(geoID.volume());
@@ -112,7 +114,8 @@ Acts::GeometryIdentifier E320GeometryIdGenerator::volumeId(
         Acts::GeometryIdentifier geoID(0u);
         if (!m_cfg.containerMode) {
             geoID.setVolume(cache.volumeCount);
-        } else {
+        } 
+        else {
             geoID.setVolume(m_cfg.containerId);
             if (incrementLayer) {
                 ++cache.layerCount;

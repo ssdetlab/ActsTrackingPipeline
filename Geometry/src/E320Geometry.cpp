@@ -54,7 +54,7 @@ makeBlueprintE320(
             auto layerBuilder =
                 makeLayerBuilder<1>(
                     world, gOpt.g4ToWorld, names, 
-                    {zBounds}, {Acts::BinningValue::binY});
+                    {zBounds}, {Acts::BinningValue::binZ});
 
             // Convention is that the transformations
             // are with respect to the global frame
