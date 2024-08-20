@@ -2,7 +2,7 @@
 #include "ActsLUXEPipeline/E320Geometry.hpp"
 #include "ActsLUXEPipeline/IdealSeeder.hpp"
 #include "ActsLUXEPipeline/TrackFitter.hpp"
-#include "ActsLUXEPipeline/ConstantBoundedField.hpp"
+#include "ActsLUXEPipeline/QuadrupoleMagField.hpp"
 #include "ActsLUXEPipeline/Sequencer.hpp"
 #include "ActsLUXEPipeline/ROOTFittedTrackWriter.hpp"
 
