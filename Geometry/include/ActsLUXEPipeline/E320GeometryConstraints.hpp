@@ -112,7 +112,7 @@ namespace E320Geometry {
         /// Global rotation of the world volume
         /// in the Acts format for volumes
         const Acts::RotationMatrix3 actsToWorldRotation = 
-            Acts::AngleAxis3(M_PI_2,
+            Acts::AngleAxis3(0,
                 Acts::Vector3(1., 0., 0.)).toRotationMatrix();
         
         /// Global translation of the world volume
@@ -127,7 +127,7 @@ namespace E320Geometry {
         /// Global rotation of the world volume
         /// in the Geant4 format for surfaces
         const G4Transform3D g4ToWorld = G4Transform3D(
-            CLHEP::HepRotationX(M_PI_2), 
+            CLHEP::HepRotationX(0), 
             G4ThreeVector(0, 0, 0));
 
         // Material binning for the surfaces
