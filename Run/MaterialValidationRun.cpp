@@ -29,7 +29,7 @@ int main() {
     // and the names of the volumes to be converted
     std::string gdmlPath = 
         "/home/romanurmanov/lab/LUXE/acts_LUXE_tracking/E320Pipeline_gdmls/ettgeom_magnet_pdc_tracker.gdml";
-    std::vector<std::string> names{"OPPPSensitive"};
+    std::vector<std::string> names{"OPPPSensitive", "DetChamberWindow"};
 
     std::vector<Acts::GeometryIdentifier> materialVeto{};
 
@@ -43,7 +43,7 @@ int main() {
     for (auto& vol : detector->rootVolumes()) {
         std::cout << "Volume: " << vol->name() << " = " << vol->surfaces().size() << std::endl;
         for (auto& surf : vol->surfaces()) {
-            std::cout << "Surface: (" << surf->center(gctx).transpose() << ") = (" << surf->normal(gctx,surf->center(gctx),Acts::Vector3(0,1,0)).transpose() << ")" << std::endl;
+            std::cout << "Surface: (" << surf->center(gctx).transpose() << ") = (" << surf->normal(gctx,surf->center(gctx),Acts::Vector3(0,1,0)).transpose() << ")" << surf->geometryId() << std::endl;
             std::cout << "Surface material: " << surf->surfaceMaterial() << std::endl;
         }
     }
