@@ -1,17 +1,13 @@
 #include "ActsLUXEPipeline/LUXEROOTDataReader.hpp"
-#include "ActsLUXEPipeline/LUXEGeometry.hpp"
+#include "ActsLUXEPipeline/E320Geometry.hpp"
 #include "ActsLUXEPipeline/IdealSeeder.hpp"
 #include "ActsLUXEPipeline/TrackFitter.hpp"
 #include "ActsLUXEPipeline/ConstantBoundedField.hpp"
 #include "ActsLUXEPipeline/Sequencer.hpp"
 #include "ActsLUXEPipeline/ROOTFittedTrackWriter.hpp"
-<<<<<<< Updated upstream
-=======
 #include "ActsLUXEPipeline/DipoleMagField.hpp"
 #include "ActsLUXEPipeline/QuadrupoleMagField.hpp"
-#include "ActsLUXEPipeline/LxBFields.hpp"
 #include "ActsLUXEPipeline/BinnedMagneticField.hpp"
->>>>>>> Stashed changes
 
 #include "Acts/Navigation/DetectorNavigator.hpp"
 #include "Acts/Propagator/EigenStepper.hpp"
@@ -23,6 +19,9 @@
 
 #include "Acts/Surfaces/RectangleBounds.hpp"
 #include "Acts/Surfaces/PlaneSurface.hpp"
+
+#include "Acts/Visualization/ObjVisualization3D.hpp"
+#include "Acts/Visualization/GeometryView3D.hpp"
 
 using ActionList = Acts::ActionList<>;
 using AbortList = Acts::AbortList<Acts::EndOfWorldReached>;
@@ -42,39 +41,31 @@ using namespace Acts::UnitLiterals;
 int main() {
     // Set the log level
     Acts::Logging::Level logLevel = Acts::Logging::VERBOSE;
-    
+
     // Dummy context and options
     Acts::GeometryContext gctx;
     Acts::MagneticFieldContext mctx;
     Acts::CalibrationContext cctx;
-    LUXEGeometry::GeometryOptions gOpt;
+    E320Geometry::GeometryOptions gOpt;
 
     // --------------------------------------------------------------
-    // LUXE detector setup
+    // Detector setup
 
     // Set the path to the gdml file
     // and the names of the volumes to be converted
-    std::string gdmlPath = 
-        "/home/romanurmanov/lab/LUXE/acts_LUXE_tracking/E320Pipeline_gdmls/ettgeom_magnet_pdc_tracker.gdml";
+    std::string gdmlPath =
+            "/Users/alonlevi/Documents/Zstuff/ettgeom_magnet_pdc_tracker.gdml";
     std::vector<std::string> names{"OPPPSensitive"};
 
-    /// Read the gdml file and get the world volume
-    G4GDMLParser parser;
-    parser.Read(gdmlPath, false);
-    auto world = parser.GetWorldVolume();
+    // Build the detector
+    auto trackerBP =
+            E320Geometry::makeBlueprintE320(gdmlPath, names, gOpt);
+    auto detector =
+            E320Geometry::buildE320Detector(std::move(trackerBP), gctx, gOpt, {});
 
-    // Default template parameters are fine
-    // when using names as identifiers
-    auto spFullCfg = Acts::Experimental::Geant4SurfaceProvider<>::Config();
-    spFullCfg.g4World = world;
-    spFullCfg.surfacePreselector =
-        std::make_shared<Acts::Geant4PhysicalVolumeSelectors::NameSelector>(names,
-                                                                            true);
+    Acts::ObjVisualization3D volumeObj;
+    Acts::ViewConfig pConfig = Acts::s_viewSensitive;
 
-<<<<<<< Updated upstream
-    auto spFull = std::make_shared<Acts::Experimental::Geant4SurfaceProvider<>>(
-        spFullCfg, Acts::Experimental::Geant4SurfaceProvider<>::kdtOptions());
-=======
     for (auto& v : detector->volumes()) {
         std::cout << v->name() << std::endl;
         if (v->name()=="Dipole" || v->name()=="Tracker_gap_0") {
@@ -108,27 +99,39 @@ int main() {
     Acts::MagneticFieldProvider::Cache quad1Cache = quad1FieldFunc.makeCache(mctx);
     Acts::MagneticFieldProvider::Cache quad2Cache = quad2FieldFunc.makeCache(mctx);
     Acts::MagneticFieldProvider::Cache quad3Cache = quad3FieldFunc.makeCache(mctx);
->>>>>>> Stashed changes
     
-    auto lbFullCfg = Acts::Experimental::LayerStructureBuilder::Config();
-    lbFullCfg.surfacesProvider = spFull;
-    
-    auto lbFull =
-        std::make_shared<Acts::Experimental::LayerStructureBuilder>(lbFullCfg);
-    
-    auto [sFull, vFull, suFull, vuFull] = lbFull->construct(gctx);
+    auto transformPos = [](const Acts::Vector3& pos) {
+        E320Geometry::GeometryOptions dipoleOpt;
+        for (int i=0;i<3;i++) {
+            if (pos[i]<=-1*dipoleOpt.dipoleBounds[i] ||
+                pos[i]>dipoleOpt.dipoleBounds[i]) {
+                std::cout<<"\nAltered "<<pos<<" to (0,0,5000)"<<std::endl;
+                return Acts::Vector3{0,0,5000};
+            }
+        }
+        return pos;
+    };
+    auto dipolePos = [transformPos, gOpt](const Acts::Vector3& pos) {
+        return transformPos(pos-gOpt.dipoleTranslation);
+    };
+    auto quad1Pos = [transformPos, gOpt](const Acts::Vector3& pos) {
+        return transformPos(pos-gOpt.quad1Translation);
+    };
+    auto quad2Pos = [transformPos, gOpt](const Acts::Vector3& pos) {
+        return transformPos(pos-gOpt.quad2Translation);
+    };
+    auto quad3Pos = [transformPos, gOpt](const Acts::Vector3& pos) {
+        return transformPos(pos-gOpt.quad3Translation);
+    };
+// map (Bx,By,Bz) -> (Bx,By,Bz)
+    auto transformBField = [](const Acts::Vector3& field, const Acts::Vector3&) {
+        return field;
+    };
 
-<<<<<<< Updated upstream
-    int k = 0;
-    for (auto& surf : sFull) {
-        std::cout << k << " Surface: " << surf->center(gctx).transpose() << std::endl;
-        k++;
-    }
-=======
     vGridOptions gridOpt;
     gridOpt.xBins = {-1*GridLimits[0],-200,-166, 0,0.5, 164,165,166,GridLimits[0]};
     gridOpt.yBins = {-1*GridLimits[1],-1, 0,0.5, 28,29,30,51,52,GridLimits[1]};
-    gridOpt.zBins = {-1*GridLimits[2],-2,-1, 0,0.5, 1.0,2,GridLimits[2]};
+    gridOpt.zBins = {-1*GridLimits[2],-2,-1, 0,0.5, 1.0,2,1001,GridLimits[2],5001,5002};
 
     auto DipoleField = buildBinnedBField(dipoleFieldFunc, dipolePos, transformBField, gridOpt, mctx);
     auto DipoleFieldPtr = std::make_shared<Acts::InterpolatedBFieldMap<vGrid>>(DipoleField);
@@ -138,12 +141,14 @@ int main() {
     auto Quad2FieldPtr = std::make_shared<Acts::InterpolatedBFieldMap<vGrid>>(Quad2Field);
     auto Quad3Field = buildBinnedBField(quad3FieldFunc, quad3Pos, transformBField, gridOpt, mctx);
     auto Quad3FieldPtr = std::make_shared<Acts::InterpolatedBFieldMap<vGrid>>(Quad3Field);
-    
-    
-//    std::cout<<"FieldPtr"<<(DipoleFieldPtr->getField(Acts::Vector3{0,0,13140})).value()<<std::endl;
-//    std::cout<<bxval<<std::endl;
+
+    std::cout<<"Dipole@(0,0,40): "<<(DipoleFieldPtr->getField(Acts::Vector3{0,0,40})).value()<<std::endl;
+    std::cout<<"Dipole@(0,0,13140): "<<(DipoleFieldPtr->getField(Acts::Vector3{0,0,13140})).value()<<std::endl;
+    std::cout<<"Quad1@(1,2,13140): "<<(Quad1FieldPtr->getField(Acts::Vector3{1,2,13140})).value()<<std::endl;
+    std::cout<<"Quad1@(1,2,4189): "<<(Quad1FieldPtr->getField(Acts::Vector3{1,2,4189})).value()<<std::endl;
+    std::cout<<bxval<<std::endl;
+    std::cout<<4_T/1_m<<std::endl;
     volumeObj.write("E320volumes.obj");
->>>>>>> Stashed changes
 
     return 0;
 

@@ -47,7 +47,8 @@ public:
         Acts::ActsScalar a1 = (position[0] > m_xParams[0] && position[0] < m_xParams[1]) ?
                               Acts::ActsScalar(1.0) : Acts::ActsScalar(0.0);
         Acts::ActsScalar a2 = decayFunction(position[1],m_yParams);
-        Acts::ActsScalar a3 = decayFunction(position[2],m_zParams);
+        Acts::ActsScalar a3 = (position[0] > -1000 && position[0] < 1000) ?
+                              decayFunction(position[1],m_zParams) : Acts::ActsScalar(0.0);
         fieldValue[0] = a1 * a2 * a3;
         return Acts::Result<Acts::Vector3>::success(m_fieldS * fieldValue);
     }
