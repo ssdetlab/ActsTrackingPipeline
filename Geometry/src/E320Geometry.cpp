@@ -81,14 +81,37 @@ makeBlueprintE320(
             trackerBP->add(std::move(layerNode));
         }
 
-        auto zBounds = std::make_tuple(
+        auto pdcWindowZBounds = std::make_tuple(
+            gOpt.pdcWindowTranslation.z() - gOpt.pdcWindowBounds[2],
+            gOpt.pdcWindowTranslation.z() + gOpt.pdcWindowBounds[2]);
+
+        auto pdcWindowLayerBuilder =
+            makeLayerBuilder<1>(
+                world, gOpt.g4ToWorld, names, 
+                {pdcWindowZBounds}, {Acts::BinningValue::binZ});
+
+        Acts::Transform3 pdcWindowTransform = Acts::Transform3::Identity();
+        pdcWindowTransform.rotate(
+            gOpt.actsToWorld.rotation().inverse());
+        pdcWindowTransform.translate(gOpt.pdcWindowTranslation);
+
+        auto pdcWindowNode = 
+            std::make_unique<Acts::Experimental::Blueprint::Node>(
+            "pdcWindow", pdcWindowTransform,
+            Acts::VolumeBounds::eCuboid,
+            gOpt.pdcWindowBounds, pdcWindowLayerBuilder);
+
+        trackerBP->add(std::move(pdcWindowNode));
+
+
+        auto dipoleZBounds = std::make_tuple(
             gOpt.dipoleTranslation.z() - gOpt.dipoleBounds[2],
             gOpt.dipoleTranslation.z() + gOpt.dipoleBounds[2]);
 
-        auto layerBuilder =
+        auto dipoleLayerBuilder =
             makeLayerBuilder<1>(
                 world, gOpt.g4ToWorld, names, 
-                {zBounds}, {Acts::BinningValue::binZ});
+                {dipoleZBounds}, {Acts::BinningValue::binZ});
 
         Acts::Transform3 dipoleTransform = Acts::Transform3::Identity();
         dipoleTransform.rotate(
@@ -99,9 +122,19 @@ makeBlueprintE320(
             std::make_unique<Acts::Experimental::Blueprint::Node>(
             "Dipole", dipoleTransform,
             Acts::VolumeBounds::eCuboid,
-            gOpt.dipoleBounds, layerBuilder);
+            gOpt.dipoleBounds, dipoleLayerBuilder);
 
         trackerBP->add(std::move(dipoleNode));
+
+        
+        auto quad1ZBounds = std::make_tuple(
+            gOpt.quad1Translation.z() - gOpt.quad1Bounds[2],
+            gOpt.quad1Translation.z() + gOpt.quad1Bounds[2]);
+
+        auto quad1LayerBuilder =
+            makeLayerBuilder<1>(
+                world, gOpt.g4ToWorld, names, 
+                {quad1ZBounds}, {Acts::BinningValue::binZ});
 
         Acts::Transform3 quad1Transform = Acts::Transform3::Identity();
         quad1Transform.rotate(
@@ -112,9 +145,19 @@ makeBlueprintE320(
             std::make_unique<Acts::Experimental::Blueprint::Node>(
             "Quad1", quad1Transform,
             Acts::VolumeBounds::eCuboid,
-            gOpt.quad1Bounds, layerBuilder);
+            gOpt.quad1Bounds, quad1LayerBuilder);
 
         trackerBP->add(std::move(quad1Node));
+        
+
+        auto quad2ZBounds = std::make_tuple(
+            gOpt.quad2Translation.z() - gOpt.quad2Bounds[2],
+            gOpt.quad2Translation.z() + gOpt.quad2Bounds[2]);
+
+        auto quad2LayerBuilder =
+            makeLayerBuilder<1>(
+                world, gOpt.g4ToWorld, names, 
+                {quad2ZBounds}, {Acts::BinningValue::binZ});
 
         Acts::Transform3 quad2Transform = Acts::Transform3::Identity();
         quad2Transform.rotate(
@@ -125,9 +168,19 @@ makeBlueprintE320(
             std::make_unique<Acts::Experimental::Blueprint::Node>(
             "Quad2", quad2Transform,
             Acts::VolumeBounds::eCuboid,
-            gOpt.quad2Bounds, layerBuilder);
+            gOpt.quad2Bounds, quad2LayerBuilder);
 
         trackerBP->add(std::move(quad2Node));
+
+        
+        auto quad3ZBounds = std::make_tuple(
+            gOpt.quad3Translation.z() - gOpt.quad3Bounds[2],
+            gOpt.quad3Translation.z() + gOpt.quad3Bounds[2]);
+
+        auto quad3LayerBuilder =
+            makeLayerBuilder<1>(
+                world, gOpt.g4ToWorld, names, 
+                {quad3ZBounds}, {Acts::BinningValue::binZ});
 
         Acts::Transform3 quad3Transform = Acts::Transform3::Identity();
         quad3Transform.rotate(
@@ -138,7 +191,7 @@ makeBlueprintE320(
             std::make_unique<Acts::Experimental::Blueprint::Node>(
             "Quad3", quad3Transform,
             Acts::VolumeBounds::eCuboid,
-            gOpt.quad3Bounds, layerBuilder);
+            gOpt.quad3Bounds, quad3LayerBuilder);
 
         trackerBP->add(std::move(quad3Node));
 

@@ -26,7 +26,7 @@ int main() {
     // and the names of the volumes to be converted
     std::string gdmlPath = 
         "/home/romanurmanov/lab/LUXE/acts_LUXE_tracking/E320Pipeline_gdmls/ettgeom_magnet_pdc_tracker.gdml";
-    std::vector<std::string> names{"OPPPSensitive"};
+    std::vector<std::string> names{"OPPPSensitive", "DetChamberWindow"};
 
     std::vector<Acts::GeometryIdentifier> materialVeto{};
 
@@ -57,7 +57,7 @@ int main() {
     auto materialTrackReaderCfg = ROOTMaterialTrackReader::Config{
         "material-tracks",
         "material-tracks",
-        {"/home/romanurmanov/lab/LUXE/acts_LUXE_tracking/E320Pipeline_material/geant4_material_tracks.root"}
+        {"/home/romanurmanov/lab/LUXE/acts_LUXE_tracking/E320Pipeline_material/uniform/geant4_material_tracks.root"}
     };
 
     auto materialTrackReader = std::make_shared<ROOTMaterialTrackReader>(
@@ -72,6 +72,7 @@ int main() {
     for (auto& vol : detector->rootVolumes()) {
         for (auto& surf : vol->surfaces()) {
             surfaces.push_back(surf);
+            std::cout << "MATERIAL Surface: (" << surf->center(gctx).transpose() << ") = (" << surf->normal(gctx,surf->center(gctx),Acts::Vector3(0,1,0)).transpose() << ")" << std::endl;
         }
     }
 

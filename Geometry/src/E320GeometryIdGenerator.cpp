@@ -72,13 +72,19 @@ void E320GeometryIdGenerator::assignGeometryId(
                 std::int32_t geoIDval = 0u;
 
                 // Determine the layer
-                std::int32_t layerId;
+                std::int32_t layerId = -1;
                 for (auto [id, z] : m_cfg.gOpt.staveZ) {
                     // These are already rotated surfaces
                     if (std::abs(center.z() - z) < 1e-1) {
                         layerId = id;
                         break;
                     }
+                }
+                if (layerId == -1) {
+                    geoID.setPassive(++ccache.passiveCount);
+                    ACTS_VERBOSE("No layer. Assigning passive id " << geoID.passive());
+                    surface.assignGeometryId(geoID);
+                    return;
                 }
                 geoIDval += (layerId + 1) * 10u;
 

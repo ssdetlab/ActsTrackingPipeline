@@ -97,6 +97,14 @@ namespace E320Geometry {
             {chipX.at(8) + chipSizeX/2 + 1000_mm, 
                 chipSizeY/2 + 1000_mm, 1000_mm};
 
+        // PDC window volume
+        const Acts::Vector3 pdcWindowTranslation{
+            0_mm, 0_mm, 16549.7_mm};
+
+        const std::vector<Acts::ActsScalar> pdcWindowBounds = 
+            {chipX.at(8) + chipSizeX/2 + 1000_mm, 
+                chipSizeY/2 + 1000_mm, 2_mm};
+
         // Arm volume encapsulating the layers
         const Acts::Vector3 armTranslation{
             0_mm, 0_mm, (staveZ.at(3) + staveZ.at(0))/2};
