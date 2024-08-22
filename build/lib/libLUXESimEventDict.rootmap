@@ -1,7 +1,0 @@
-{ decls }
-namespace std { inline namespace __1 {  } }
-
-[ libLUXESimEventDict.dylib ]
-# List of selected classes
-class vector<TLorentzVector>
-class vector<TVector3>
