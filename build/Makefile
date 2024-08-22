@@ -278,6 +278,54 @@ RunTest/fast:
 	$(MAKE) $(MAKESILENT) -f Run/CMakeFiles/RunTest.dir/build.make Run/CMakeFiles/RunTest.dir/build
 .PHONY : RunTest/fast
 
+Geometry/src/E320Geometry.o: Geometry/src/E320Geometry.cpp.o
+.PHONY : Geometry/src/E320Geometry.o
+
+# target to build an object file
+Geometry/src/E320Geometry.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/ActsLUXEPipelineCore.dir/build.make CMakeFiles/ActsLUXEPipelineCore.dir/Geometry/src/E320Geometry.cpp.o
+.PHONY : Geometry/src/E320Geometry.cpp.o
+
+Geometry/src/E320Geometry.i: Geometry/src/E320Geometry.cpp.i
+.PHONY : Geometry/src/E320Geometry.i
+
+# target to preprocess a source file
+Geometry/src/E320Geometry.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/ActsLUXEPipelineCore.dir/build.make CMakeFiles/ActsLUXEPipelineCore.dir/Geometry/src/E320Geometry.cpp.i
+.PHONY : Geometry/src/E320Geometry.cpp.i
+
+Geometry/src/E320Geometry.s: Geometry/src/E320Geometry.cpp.s
+.PHONY : Geometry/src/E320Geometry.s
+
+# target to generate assembly for a file
+Geometry/src/E320Geometry.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/ActsLUXEPipelineCore.dir/build.make CMakeFiles/ActsLUXEPipelineCore.dir/Geometry/src/E320Geometry.cpp.s
+.PHONY : Geometry/src/E320Geometry.cpp.s
+
+Geometry/src/E320GeometryIdGenerator.o: Geometry/src/E320GeometryIdGenerator.cpp.o
+.PHONY : Geometry/src/E320GeometryIdGenerator.o
+
+# target to build an object file
+Geometry/src/E320GeometryIdGenerator.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/ActsLUXEPipelineCore.dir/build.make CMakeFiles/ActsLUXEPipelineCore.dir/Geometry/src/E320GeometryIdGenerator.cpp.o
+.PHONY : Geometry/src/E320GeometryIdGenerator.cpp.o
+
+Geometry/src/E320GeometryIdGenerator.i: Geometry/src/E320GeometryIdGenerator.cpp.i
+.PHONY : Geometry/src/E320GeometryIdGenerator.i
+
+# target to preprocess a source file
+Geometry/src/E320GeometryIdGenerator.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/ActsLUXEPipelineCore.dir/build.make CMakeFiles/ActsLUXEPipelineCore.dir/Geometry/src/E320GeometryIdGenerator.cpp.i
+.PHONY : Geometry/src/E320GeometryIdGenerator.cpp.i
+
+Geometry/src/E320GeometryIdGenerator.s: Geometry/src/E320GeometryIdGenerator.cpp.s
+.PHONY : Geometry/src/E320GeometryIdGenerator.s
+
+# target to generate assembly for a file
+Geometry/src/E320GeometryIdGenerator.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/ActsLUXEPipelineCore.dir/build.make CMakeFiles/ActsLUXEPipelineCore.dir/Geometry/src/E320GeometryIdGenerator.cpp.s
+.PHONY : Geometry/src/E320GeometryIdGenerator.cpp.s
+
 Geometry/src/LUXEGeometry.o: Geometry/src/LUXEGeometry.cpp.o
 .PHONY : Geometry/src/LUXEGeometry.o
 
@@ -494,6 +542,30 @@ MagneticField/src/LxBFields.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/ActsLUXEPipelineCore.dir/build.make CMakeFiles/ActsLUXEPipelineCore.dir/MagneticField/src/LxBFields.cpp.s
 .PHONY : MagneticField/src/LxBFields.cpp.s
 
+MagneticField/src/QuadrupoleMagField.o: MagneticField/src/QuadrupoleMagField.cpp.o
+.PHONY : MagneticField/src/QuadrupoleMagField.o
+
+# target to build an object file
+MagneticField/src/QuadrupoleMagField.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/ActsLUXEPipelineCore.dir/build.make CMakeFiles/ActsLUXEPipelineCore.dir/MagneticField/src/QuadrupoleMagField.cpp.o
+.PHONY : MagneticField/src/QuadrupoleMagField.cpp.o
+
+MagneticField/src/QuadrupoleMagField.i: MagneticField/src/QuadrupoleMagField.cpp.i
+.PHONY : MagneticField/src/QuadrupoleMagField.i
+
+# target to preprocess a source file
+MagneticField/src/QuadrupoleMagField.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/ActsLUXEPipelineCore.dir/build.make CMakeFiles/ActsLUXEPipelineCore.dir/MagneticField/src/QuadrupoleMagField.cpp.i
+.PHONY : MagneticField/src/QuadrupoleMagField.cpp.i
+
+MagneticField/src/QuadrupoleMagField.s: MagneticField/src/QuadrupoleMagField.cpp.s
+.PHONY : MagneticField/src/QuadrupoleMagField.s
+
+# target to generate assembly for a file
+MagneticField/src/QuadrupoleMagField.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/ActsLUXEPipelineCore.dir/build.make CMakeFiles/ActsLUXEPipelineCore.dir/MagneticField/src/QuadrupoleMagField.cpp.s
+.PHONY : MagneticField/src/QuadrupoleMagField.cpp.s
+
 Material/src/CoreMaterialMapping.o: Material/src/CoreMaterialMapping.cpp.o
 .PHONY : Material/src/CoreMaterialMapping.o
 
@@ -683,6 +755,12 @@ help:
 	@echo "... RunPathSeeding"
 	@echo "... RunTest"
 	@echo "... RunTruthTracking"
+	@echo "... Geometry/src/E320Geometry.o"
+	@echo "... Geometry/src/E320Geometry.i"
+	@echo "... Geometry/src/E320Geometry.s"
+	@echo "... Geometry/src/E320GeometryIdGenerator.o"
+	@echo "... Geometry/src/E320GeometryIdGenerator.i"
+	@echo "... Geometry/src/E320GeometryIdGenerator.s"
 	@echo "... Geometry/src/LUXEGeometry.o"
 	@echo "... Geometry/src/LUXEGeometry.i"
 	@echo "... Geometry/src/LUXEGeometry.s"
@@ -710,6 +788,9 @@ help:
 	@echo "... MagneticField/src/LxBFields.o"
 	@echo "... MagneticField/src/LxBFields.i"
 	@echo "... MagneticField/src/LxBFields.s"
+	@echo "... MagneticField/src/QuadrupoleMagField.o"
+	@echo "... MagneticField/src/QuadrupoleMagField.i"
+	@echo "... MagneticField/src/QuadrupoleMagField.s"
 	@echo "... Material/src/CoreMaterialMapping.o"
 	@echo "... Material/src/CoreMaterialMapping.i"
 	@echo "... Material/src/CoreMaterialMapping.s"

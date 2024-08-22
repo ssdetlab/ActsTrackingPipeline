@@ -1,17 +1,20 @@
 #include "ActsLUXEPipeline/LUXEROOTDataReader.hpp"
-#include "ActsLUXEPipeline/LUXEGeometry.hpp"
+#include "ActsLUXEPipeline/E320Geometry.hpp"
 #include "ActsLUXEPipeline/IdealSeeder.hpp"
 #include "ActsLUXEPipeline/TrackFitter.hpp"
 #include "ActsLUXEPipeline/ConstantBoundedField.hpp"
 #include "ActsLUXEPipeline/Sequencer.hpp"
 #include "ActsLUXEPipeline/ROOTFittedTrackWriter.hpp"
+#include "ActsLUXEPipeline/E320MagneticField.hpp"
+#include "ActsLUXEPipeline/QuadrupoleMagField.hpp"
 #include "ActsLUXEPipeline/LxBFields.hpp"
+#include "ActsLUXEPipeline/BinnedMagneticField.hpp"
 
 #include "Acts/Navigation/DetectorNavigator.hpp"
 #include "Acts/Propagator/EigenStepper.hpp"
 
 #include <filesystem>
-
+#include "Acts/MagneticField/InterpolatedBFieldMap.hpp"
 #include "Acts/Plugins/Geant4/Geant4SurfaceProvider.hpp"
 #include "Acts/Detector/LayerStructureBuilder.hpp"
 
@@ -45,88 +48,105 @@ int main() {
     Acts::GeometryContext gctx;
     Acts::MagneticFieldContext mctx;
     Acts::CalibrationContext cctx;
-    LUXEGeometry::GeometryOptions gOpt;
+    E320Geometry::GeometryOptions gOpt;
 
     // --------------------------------------------------------------
-    // LUXE detector setup
+    // Detector setup
 
     // Set the path to the gdml file
     // and the names of the volumes to be converted
-    std::string gdmlPath = 
-        "/Users/alonlevi/CLionProjects/LUXEPipeline/Zstuff/ettgeom_magnet_pdc_tracker.gdml";
+    std::string gdmlPath =
+            "/Users/alonlevi/CLionProjects/LUXEPipeline/Zstuff/ettgeom_magnet_pdc_tracker.gdml";
     std::vector<std::string> names{"OPPPSensitive"};
 
-    /// Read the gdml file and get the world volume
-    G4GDMLParser parser;
-    parser.Read(gdmlPath, false);
-    auto world = parser.GetWorldVolume();
-
-    // Default template parameters are fine
-    // when using names as identifiers
-    auto spFullCfg = Acts::Experimental::Geant4SurfaceProvider<>::Config();
-    spFullCfg.g4World = world;
-    spFullCfg.surfacePreselector =
-        std::make_shared<Acts::Geant4PhysicalVolumeSelectors::NameSelector>(names,
-                                                                            true);
-
-    auto spFull = std::make_shared<Acts::Experimental::Geant4SurfaceProvider<>>(
-        spFullCfg, Acts::Experimental::Geant4SurfaceProvider<>::kdtOptions());
-    
-    auto lbFullCfg = Acts::Experimental::LayerStructureBuilder::Config();
-    lbFullCfg.surfacesProvider = spFull;
-    
-    auto lbFull =
-        std::make_shared<Acts::Experimental::LayerStructureBuilder>(lbFullCfg);
-
-    auto [sFull, vFull, suFull, vuFull] = lbFull->construct(gctx);
+    // Build the detector
+    auto trackerBP =
+            E320Geometry::makeBlueprintE320(gdmlPath, names, gOpt);
+    auto detector =
+            E320Geometry::buildE320Detector(std::move(trackerBP), gctx, gOpt, {});
 
     Acts::ObjVisualization3D volumeObj;
     Acts::ViewConfig pConfig = Acts::s_viewSensitive;
 
-    int k = 0;
-    for (auto& surf : sFull) {
-        std::cout << k << " Surface: " << surf->center(gctx).transpose() << std::endl;
-        k++;
-        Acts::GeometryView3D::drawSurface(
-                volumeObj,*(surf),gctx,
-                Acts::Transform3::Identity(),pConfig);
+    for (auto& v : detector->volumes()) {
+        std::cout << v->name() << std::endl;
+        if (v->name()=="Dipole" || v->name()=="Tracker_gap_0") {
+            std::cout << v->volumeBounds().values()[0] << std::endl;
+            std::cout << v->center(gctx) << std::endl;
+        }
+        Acts::GeometryView3D::drawDetectorVolume(volumeObj,
+                                                 *v,gctx);
+        for (auto& s : v->surfaces()) {
+            std::cout << s->center(gctx).transpose() << "   " << s->normal(gctx, s->center(gctx), Acts::Vector3(1,0,0)).transpose() << std::endl;
+        }
     }
 
-    G4double bxval, byval, bzval;
-    bxval = byval = bzval = 0.0;
 
-    byval = -0.95*tesla;
+    Acts::ActsScalar bxval = 0.31_T;
+    std::vector<double> GridLimits =
+            detector->findDetectorVolume("Dipole")->volumeBounds().values();
 
-    std::map<std::string, std::vector<std::string>> model_params {
-            {{"x"}, {"f_fd", "-165.0 165.0 7.7 7.7 mm"}},
-            {{"y"}, {"const", "-30.0 30.0 mm"}},
-            {{"z"}, {"f_fd", "-616.0 622.0 28.66 28.91 mm"}}
+    Acts::Vector2 xParams(-30.0,30.0);
+    Acts::Vector4 yParams(-165.0,165.0,7.7,7.7);
+    Acts::Vector4 zParams(-457.0,457.0,25.0,25.0);
+    E320MagneticField dipoleFieldFunc(xParams,yParams,zParams,bxval);
+    Acts::ActsScalar quad1grad = 4_T / (1_m);
+    Acts::ActsScalar quad2grad = -7_T / (1_m);
+    Acts::ActsScalar quad3grad = 4_T / (1_m);
+    QuadrupoleMagField quad1FieldFunc(quad1grad);
+    QuadrupoleMagField quad2FieldFunc(quad2grad);
+    QuadrupoleMagField quad3FieldFunc(quad3grad);
+
+    Acts::MagneticFieldProvider::Cache dipoleCache = dipoleFieldFunc.makeCache(mctx);
+    Acts::MagneticFieldProvider::Cache quad1Cache = quad1FieldFunc.makeCache(mctx);
+    Acts::MagneticFieldProvider::Cache quad2Cache = quad2FieldFunc.makeCache(mctx);
+    Acts::MagneticFieldProvider::Cache quad3Cache = quad3FieldFunc.makeCache(mctx);
+    
+    auto transformPos = [](const Acts::Vector3& pos) {
+        E320Geometry::GeometryOptions dipoleOpt;
+        for (int i=0;i<3;i++) {
+            if (pos[i]<=-1*dipoleOpt.dipoleBounds[i] ||
+                pos[i]>dipoleOpt.dipoleBounds[i]) {
+                std::cout<<"Altered"<<std::endl;
+                return Acts::Vector3{50,0,0};
+            }
+        }
+        return pos;
+    };
+    auto dipolePos = [transformPos, gOpt](const Acts::Vector3& pos) {
+        return transformPos(pos-gOpt.dipoleTranslation);
+    };
+    auto quad1Pos = [transformPos, gOpt](const Acts::Vector3& pos) {
+        return transformPos(pos-gOpt.quad1Translation);
+    };
+    auto quad2Pos = [transformPos, gOpt](const Acts::Vector3& pos) {
+        return transformPos(pos-gOpt.quad2Translation);
+    };
+    auto quad3Pos = [transformPos, gOpt](const Acts::Vector3& pos) {
+        return transformPos(pos-gOpt.quad3Translation);
+    };
+// map (Bx,By,Bz) -> (Bx,By,Bz)
+    auto transformBField = [](const Acts::Vector3& field, const Acts::Vector3&) {
+        return field;
     };
 
-    std::vector<FieldDistribution*> bcj(9,0);
-    bcj[3] = LxBFieldAux::CreateFieldDistribution(model_params["x"][0], model_params["x"][1]);
-    bcj[4] = LxBFieldAux::CreateFieldDistribution(model_params["y"][0], model_params["y"][1]);
-    bcj[5] = LxBFieldAux::CreateFieldDistribution(model_params["z"][0], model_params["z"][1]);
-    std::for_each(bcj.begin(), bcj.end(), [](FieldDistribution* &bd) {if (!bd) bd = new FieldDistribution(); });
+    vGridOptions gridOpt;
+    gridOpt.xBins = {-1*GridLimits[0],-200,-166, 0,0.5, 164,165,166,GridLimits[0]};
+    gridOpt.yBins = {-1*GridLimits[1],-1, 0,0.5, 28,29,30,51,52,GridLimits[1]};
+    gridOpt.zBins = {-1*GridLimits[2],-2,-1, 0,0.5, 1.0,2,GridLimits[2]};
 
-    typedef VFieldComponentDistrib<FieldDistribution, FieldDistribution, FieldDistribution> LxTFieldComponent;
-    LxTFieldComponent *bx = new LxTFieldComponent(bcj[0], bcj[1], bcj[2], bxval);
-    LxTFieldComponent *by = new LxTFieldComponent(bcj[3], bcj[4], bcj[5], byval);
-    LxTFieldComponent *bz = new LxTFieldComponent(bcj[6], bcj[7], bcj[8], bzval);
+    auto DipoleField = buildBinnedBField(dipoleFieldFunc, dipolePos, transformBField, gridOpt, mctx);
+    auto DipoleFieldPtr = std::make_shared<Acts::InterpolatedBFieldMap<vGrid>>(DipoleField);
+    auto Quad1Field = buildBinnedBField(quad1FieldFunc, quad1Pos, transformBField, gridOpt, mctx);
+    auto Quad1FieldPtr = std::make_shared<Acts::InterpolatedBFieldMap<vGrid>>(Quad1Field);
+    auto Quad2Field = buildBinnedBField(quad2FieldFunc, quad2Pos, transformBField, gridOpt, mctx);
+    auto Quad2FieldPtr = std::make_shared<Acts::InterpolatedBFieldMap<vGrid>>(Quad2Field);
+    auto Quad3Field = buildBinnedBField(quad3FieldFunc, quad3Pos, transformBField, gridOpt, mctx);
+    auto Quad3FieldPtr = std::make_shared<Acts::InterpolatedBFieldMap<vGrid>>(Quad3Field);
 
-    double IPMagnetXpos = 0.0 *mm;
-    double IPMagnetYpos = 0.0 *mm;
-    double IPMagnetZpos = (150.0 + 55.0) *cm;
-
-    G4ThreeVector magpos(IPMagnetXpos, IPMagnetYpos, IPMagnetZpos);
-    LxBField *bfield = new LxBField(bx, by, bz, magpos);
-
-//////////////////////////////////////////////////////////////////
-    double MagField[6];
-    double ppos[4] = {0.0, 0.0, IPMagnetZpos, 0.0};
-    bfield->GetFieldValue(ppos, MagField);
-
-    volumeObj.write("volumes.obj");
+//    std::cout<<"FieldPtr"<<(DipoleFieldPtr->getField(Acts::Vector3{0,0,13140})).value()<<std::endl;
+//    std::cout<<bxval<<std::endl;
+    volumeObj.write("E320volumes.obj");
 
     return 0;
 

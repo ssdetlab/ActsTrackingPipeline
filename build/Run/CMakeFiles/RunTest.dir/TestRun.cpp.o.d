@@ -1497,7 +1497,8 @@ Run/CMakeFiles/RunTest.dir/TestRun.cpp.o: \
   /Users/alonlevi/CLionProjects/ACTS/install/include/Acts/EventData/TrackProxy.hpp \
   /Users/alonlevi/CLionProjects/ACTS/install/include/Acts/EventData/Utils.hpp \
   /Users/alonlevi/CLionProjects/ACTS/install/include/Acts/Utilities/Holders.hpp \
-  /Users/alonlevi/CLionProjects/LUXEPipeline/Geometry/include/ActsLUXEPipeline/LUXEGeometry.hpp \
+  /Users/alonlevi/CLionProjects/LUXEPipeline/Geometry/include/ActsLUXEPipeline/E320Geometry.hpp \
+  /Users/alonlevi/CLionProjects/LUXEPipeline/Geometry/include/ActsLUXEPipeline/E320GeometryConstraints.hpp \
   /Users/alonlevi/CLionProjects/ACTS/install/include/Acts/Detector/Blueprint.hpp \
   /Users/alonlevi/CLionProjects/ACTS/install/include/Acts/Detector/ProtoBinning.hpp \
   /Users/alonlevi/CLionProjects/ACTS/install/include/Acts/Utilities/StringHelpers.hpp \
@@ -1932,9 +1933,15 @@ Run/CMakeFiles/RunTest.dir/TestRun.cpp.o: \
   /Users/alonlevi/Programs/root_install/include/ROOT/TRWSpinLock.hxx \
   /Users/alonlevi/Programs/root_install/include/ROOT/TSpinMutex.hxx \
   /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.5.sdk/usr/include/c++/v1/condition_variable \
-  /Users/alonlevi/CLionProjects/LUXEPipeline/MagneticField/include/ActsLUXEPipeline/LxBFields.hpp \
+  /Users/alonlevi/CLionProjects/LUXEPipeline/MagneticField/include/ActsLUXEPipeline/E320MagneticField.hpp \
+  /Users/alonlevi/CLionProjects/LUXEPipeline/MagneticField/include/ActsLUXEPipeline/QuadrupoleMagField.hpp \
   /Users/alonlevi/Programs/geant4-v11.2.2-install/include/Geant4/G4MagneticField.hh \
   /Users/alonlevi/Programs/geant4-v11.2.2-install/include/Geant4/G4Field.hh \
+  /Users/alonlevi/Programs/geant4-v11.2.2-install/include/Geant4/G4RotationMatrix.hh \
+  /Users/alonlevi/CLionProjects/LUXEPipeline/MagneticField/include/ActsLUXEPipeline/LxBFields.hpp \
+  /Users/alonlevi/CLionProjects/LUXEPipeline/MagneticField/include/ActsLUXEPipeline/BinnedMagneticField.hpp \
+  /Users/alonlevi/CLionProjects/ACTS/install/include/Acts/MagneticField/InterpolatedBFieldMap.hpp \
+  /Users/alonlevi/CLionProjects/ACTS/install/include/Acts/MagneticField/MagneticFieldError.hpp \
   /Users/alonlevi/CLionProjects/ACTS/install/include/Acts/Navigation/DetectorNavigator.hpp \
   /opt/homebrew/include/boost/algorithm/string.hpp \
   /opt/homebrew/include/boost/algorithm/string/std_containers_traits.hpp \
@@ -2339,7 +2346,6 @@ Run/CMakeFiles/RunTest.dir/TestRun.cpp.o: \
   /Users/alonlevi/Programs/geant4-v11.2.2-install/include/Geant4/G4GDMLReadSolids.hh \
   /Users/alonlevi/Programs/geant4-v11.2.2-install/include/Geant4/G4GDMLReadMaterials.hh \
   /Users/alonlevi/Programs/geant4-v11.2.2-install/include/Geant4/G4GDMLReadDefine.hh \
-  /Users/alonlevi/Programs/geant4-v11.2.2-install/include/Geant4/G4RotationMatrix.hh \
   /Users/alonlevi/Programs/geant4-v11.2.2-install/include/Geant4/G4GDMLRead.hh \
   /opt/homebrew/include/xercesc/parsers/XercesDOMParser.hpp \
   /opt/homebrew/include/xercesc/parsers/AbstractDOMParser.hpp \

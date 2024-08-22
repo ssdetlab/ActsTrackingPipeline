@@ -8,6 +8,8 @@ set(CMAKE_DEPENDS_LANGUAGES
 
 # The set of dependency files which are needed:
 set(CMAKE_DEPENDS_DEPENDENCY_FILES
+  "/Users/alonlevi/CLionProjects/LUXEPipeline/Geometry/src/E320Geometry.cpp" "CMakeFiles/ActsLUXEPipelineCore.dir/Geometry/src/E320Geometry.cpp.o" "gcc" "CMakeFiles/ActsLUXEPipelineCore.dir/Geometry/src/E320Geometry.cpp.o.d"
+  "/Users/alonlevi/CLionProjects/LUXEPipeline/Geometry/src/E320GeometryIdGenerator.cpp" "CMakeFiles/ActsLUXEPipelineCore.dir/Geometry/src/E320GeometryIdGenerator.cpp.o" "gcc" "CMakeFiles/ActsLUXEPipelineCore.dir/Geometry/src/E320GeometryIdGenerator.cpp.o.d"
   "/Users/alonlevi/CLionProjects/LUXEPipeline/Geometry/src/LUXEGeometry.cpp" "CMakeFiles/ActsLUXEPipelineCore.dir/Geometry/src/LUXEGeometry.cpp.o" "gcc" "CMakeFiles/ActsLUXEPipelineCore.dir/Geometry/src/LUXEGeometry.cpp.o.d"
   "/Users/alonlevi/CLionProjects/LUXEPipeline/Geometry/src/LUXEGeometryIdGenerator.cpp" "CMakeFiles/ActsLUXEPipelineCore.dir/Geometry/src/LUXEGeometryIdGenerator.cpp.o" "gcc" "CMakeFiles/ActsLUXEPipelineCore.dir/Geometry/src/LUXEGeometryIdGenerator.cpp.o.d"
   "/Users/alonlevi/CLionProjects/LUXEPipeline/Infrastructure/src/IAlgorithm.cpp" "CMakeFiles/ActsLUXEPipelineCore.dir/Infrastructure/src/IAlgorithm.cpp.o" "gcc" "CMakeFiles/ActsLUXEPipelineCore.dir/Infrastructure/src/IAlgorithm.cpp.o.d"
@@ -17,6 +19,7 @@ set(CMAKE_DEPENDS_DEPENDENCY_FILES
   "/Users/alonlevi/CLionProjects/LUXEPipeline/Infrastructure/src/WhiteBoard.cpp" "CMakeFiles/ActsLUXEPipelineCore.dir/Infrastructure/src/WhiteBoard.cpp.o" "gcc" "CMakeFiles/ActsLUXEPipelineCore.dir/Infrastructure/src/WhiteBoard.cpp.o.d"
   "/Users/alonlevi/CLionProjects/LUXEPipeline/MagneticField/src/BinnedMagneticField.cpp" "CMakeFiles/ActsLUXEPipelineCore.dir/MagneticField/src/BinnedMagneticField.cpp.o" "gcc" "CMakeFiles/ActsLUXEPipelineCore.dir/MagneticField/src/BinnedMagneticField.cpp.o.d"
   "/Users/alonlevi/CLionProjects/LUXEPipeline/MagneticField/src/LxBFields.cpp" "CMakeFiles/ActsLUXEPipelineCore.dir/MagneticField/src/LxBFields.cpp.o" "gcc" "CMakeFiles/ActsLUXEPipelineCore.dir/MagneticField/src/LxBFields.cpp.o.d"
+  "/Users/alonlevi/CLionProjects/LUXEPipeline/MagneticField/src/QuadrupoleMagField.cpp" "CMakeFiles/ActsLUXEPipelineCore.dir/MagneticField/src/QuadrupoleMagField.cpp.o" "gcc" "CMakeFiles/ActsLUXEPipelineCore.dir/MagneticField/src/QuadrupoleMagField.cpp.o.d"
   "/Users/alonlevi/CLionProjects/LUXEPipeline/Material/src/CoreMaterialMapping.cpp" "CMakeFiles/ActsLUXEPipelineCore.dir/Material/src/CoreMaterialMapping.cpp.o" "gcc" "CMakeFiles/ActsLUXEPipelineCore.dir/Material/src/CoreMaterialMapping.cpp.o.d"
   "/Users/alonlevi/CLionProjects/LUXEPipeline/Material/src/JsonMaterialWriter.cpp" "CMakeFiles/ActsLUXEPipelineCore.dir/Material/src/JsonMaterialWriter.cpp.o" "gcc" "CMakeFiles/ActsLUXEPipelineCore.dir/Material/src/JsonMaterialWriter.cpp.o.d"
   "/Users/alonlevi/CLionProjects/LUXEPipeline/Material/src/MaterialValidation.cpp" "CMakeFiles/ActsLUXEPipelineCore.dir/Material/src/MaterialValidation.cpp.o" "gcc" "CMakeFiles/ActsLUXEPipelineCore.dir/Material/src/MaterialValidation.cpp.o.d"

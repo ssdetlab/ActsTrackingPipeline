@@ -1,11 +1,12 @@
 #include "ActsLUXEPipeline/BinnedMagneticField.hpp"
-
+#include <iostream>
 Acts::InterpolatedBFieldMap<vGrid> buildBinnedBField(
     const Acts::MagneticFieldProvider& mFieldVal,
     const posTransform& transformPos,
     const fieldTransform& transformBField,
     const vGridOptions& gridOpt,
     const Acts::MagneticFieldContext& mctx) {
+
         vAxis x(gridOpt.xBins);
         vAxis y(gridOpt.yBins);
         vAxis z(gridOpt.zBins);
@@ -14,7 +15,7 @@ Acts::InterpolatedBFieldMap<vGrid> buildBinnedBField(
 
         // magnetic field known on grid in (x,y,z)
         vGrid g(std::make_tuple(std::move(x), std::move(y), std::move(z)));
-    
+
         // set grid values
         for (std::size_t i = 1; i <= g.numLocalBins().at(0) + 1; i++) {
             for (std::size_t j = 1; j <= g.numLocalBins().at(1) + 1; j++) {
@@ -26,11 +27,9 @@ Acts::InterpolatedBFieldMap<vGrid> buildBinnedBField(
                 }
             }
         }
-    
         // create BField service
         Acts::InterpolatedBFieldMap<vGrid> 
             bField{{transformPos, transformBField, std::move(g)}};
-    
         return bField;
 }
 

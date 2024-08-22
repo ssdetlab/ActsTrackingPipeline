@@ -45,10 +45,10 @@ int main() {
     // Set the path to the gdml file
     // and the names of the volumes to be converted
     std::string gdmlPath = 
-        "/home/romanurmanov/lab/LUXE/acts_LUXE_tracking/E320Pipeline_gdmls/ettgeom_magnet_pdc_tracker.gdml";
+        "/Users/alonlevi/CLionProjects/LUXEPipeline/Zstuff/ettgeom_magnet_pdc_tracker.gdml";
     std::vector<std::string> names{"OPPPSensitive"};
 
-    std::string materialPath = "/home/romanurmanov/lab/LUXE/acts_LUXE_tracking/E320Pipeline_material/material.json";
+//    std::string materialPath = "/home/romanurmanov/lab/LUXE/acts_LUXE_tracking/E320Pipeline_material/material.json";
 
     // Build the detector
     auto trackerBP = 

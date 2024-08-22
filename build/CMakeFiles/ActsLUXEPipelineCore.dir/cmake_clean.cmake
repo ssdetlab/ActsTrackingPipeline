@@ -1,4 +1,8 @@
 file(REMOVE_RECURSE
+  "CMakeFiles/ActsLUXEPipelineCore.dir/Geometry/src/E320Geometry.cpp.o"
+  "CMakeFiles/ActsLUXEPipelineCore.dir/Geometry/src/E320Geometry.cpp.o.d"
+  "CMakeFiles/ActsLUXEPipelineCore.dir/Geometry/src/E320GeometryIdGenerator.cpp.o"
+  "CMakeFiles/ActsLUXEPipelineCore.dir/Geometry/src/E320GeometryIdGenerator.cpp.o.d"
   "CMakeFiles/ActsLUXEPipelineCore.dir/Geometry/src/LUXEGeometry.cpp.o"
   "CMakeFiles/ActsLUXEPipelineCore.dir/Geometry/src/LUXEGeometry.cpp.o.d"
   "CMakeFiles/ActsLUXEPipelineCore.dir/Geometry/src/LUXEGeometryIdGenerator.cpp.o"
@@ -17,6 +21,8 @@ file(REMOVE_RECURSE
   "CMakeFiles/ActsLUXEPipelineCore.dir/MagneticField/src/BinnedMagneticField.cpp.o.d"
   "CMakeFiles/ActsLUXEPipelineCore.dir/MagneticField/src/LxBFields.cpp.o"
   "CMakeFiles/ActsLUXEPipelineCore.dir/MagneticField/src/LxBFields.cpp.o.d"
+  "CMakeFiles/ActsLUXEPipelineCore.dir/MagneticField/src/QuadrupoleMagField.cpp.o"
+  "CMakeFiles/ActsLUXEPipelineCore.dir/MagneticField/src/QuadrupoleMagField.cpp.o.d"
   "CMakeFiles/ActsLUXEPipelineCore.dir/Material/src/CoreMaterialMapping.cpp.o"
   "CMakeFiles/ActsLUXEPipelineCore.dir/Material/src/CoreMaterialMapping.cpp.o.d"
   "CMakeFiles/ActsLUXEPipelineCore.dir/Material/src/JsonMaterialWriter.cpp.o"

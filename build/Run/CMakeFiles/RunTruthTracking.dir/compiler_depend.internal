@@ -1146,7 +1146,8 @@ Run/CMakeFiles/RunTruthTracking.dir/TruthTrackingRun.cpp.o
  /Users/alonlevi/CLionProjects/ACTS/install/include/Acts/Visualization/ViewConfig.hpp
  /Users/alonlevi/CLionProjects/LUXEPipeline/EventData/include/ActsLUXEPipeline/DataContainers.hpp
  /Users/alonlevi/CLionProjects/LUXEPipeline/EventData/include/ActsLUXEPipeline/SimpleSourceLink.hpp
- /Users/alonlevi/CLionProjects/LUXEPipeline/Geometry/include/ActsLUXEPipeline/LUXEGeometry.hpp
+ /Users/alonlevi/CLionProjects/LUXEPipeline/Geometry/include/ActsLUXEPipeline/E320Geometry.hpp
+ /Users/alonlevi/CLionProjects/LUXEPipeline/Geometry/include/ActsLUXEPipeline/E320GeometryConstraints.hpp
  /Users/alonlevi/CLionProjects/LUXEPipeline/Geometry/include/ActsLUXEPipeline/LUXEGeometryConstraints.hpp
  /Users/alonlevi/CLionProjects/LUXEPipeline/Infrastructure/include/ActsLUXEPipeline/AlgorithmContext.hpp
  /Users/alonlevi/CLionProjects/LUXEPipeline/Infrastructure/include/ActsLUXEPipeline/DataHandle.hpp

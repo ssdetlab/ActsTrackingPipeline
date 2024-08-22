@@ -1099,8 +1099,8 @@ Run/CMakeFiles/RunMaterialMapping.dir/MaterialMappingRun.cpp.o: /Users/alonlevi/
   /Users/alonlevi/CLionProjects/ACTS/install/include/Acts/Visualization/IVisualization3D.hpp \
   /Users/alonlevi/CLionProjects/ACTS/install/include/Acts/Visualization/ViewConfig.hpp \
   /Users/alonlevi/CLionProjects/ACTS/install/include/nlohmann/json.hpp \
-  /Users/alonlevi/CLionProjects/LUXEPipeline/Geometry/include/ActsLUXEPipeline/LUXEGeometry.hpp \
-  /Users/alonlevi/CLionProjects/LUXEPipeline/Geometry/include/ActsLUXEPipeline/LUXEGeometryConstraints.hpp \
+  /Users/alonlevi/CLionProjects/LUXEPipeline/Geometry/include/ActsLUXEPipeline/E320Geometry.hpp \
+  /Users/alonlevi/CLionProjects/LUXEPipeline/Geometry/include/ActsLUXEPipeline/E320GeometryConstraints.hpp \
   /Users/alonlevi/CLionProjects/LUXEPipeline/Infrastructure/include/ActsLUXEPipeline/AlgorithmContext.hpp \
   /Users/alonlevi/CLionProjects/LUXEPipeline/Infrastructure/include/ActsLUXEPipeline/DataHandle.hpp \
   /Users/alonlevi/CLionProjects/LUXEPipeline/Infrastructure/include/ActsLUXEPipeline/IAlgorithm.hpp \
@@ -2128,8 +2128,6 @@ Run/CMakeFiles/RunMaterialMapping.dir/MaterialMappingRun.cpp.o: /Users/alonlevi/
 
 /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.5.sdk/usr/include/sys/_types/_fsblkcnt_t.h:
 
-/Users/alonlevi/CLionProjects/LUXEPipeline/Geometry/include/ActsLUXEPipeline/LUXEGeometry.hpp:
-
 /opt/homebrew/include/eigen3/Eigen/src/Core/StableNorm.h:
 
 /opt/homebrew/include/boost/hana/fwd/greater_equal.hpp:
@@ -2466,6 +2464,10 @@ Run/CMakeFiles/RunMaterialMapping.dir/MaterialMappingRun.cpp.o: /Users/alonlevi/
 
 /Users/alonlevi/Programs/geant4-v11.2.2-install/include/Geant4/CLHEP/Vector/LorentzVector.h:
 
+/opt/homebrew/include/eigen3/Eigen/src/Core/VectorwiseOp.h:
+
+/Users/alonlevi/Programs/geant4-v11.2.2-install/include/Geant4/CLHEP/Vector/AxisAngle.icc:
+
 /opt/homebrew/include/eigen3/Eigen/src/Core/products/GeneralMatrixMatrixTriangular.h:
 
 /Users/alonlevi/Programs/geant4-v11.2.2-install/include/Geant4/CLHEP/Utility/defs.h:
@@ -2527,10 +2529,6 @@ Run/CMakeFiles/RunMaterialMapping.dir/MaterialMappingRun.cpp.o: /Users/alonlevi/
 /Users/alonlevi/CLionProjects/LUXEPipeline/Infrastructure/include/ActsLUXEPipeline/DataHandle.hpp:
 
 /Users/alonlevi/CLionProjects/LUXEPipeline/Infrastructure/include/ActsLUXEPipeline/AlgorithmContext.hpp:
-
-/opt/homebrew/include/eigen3/Eigen/src/Core/VectorwiseOp.h:
-
-/Users/alonlevi/Programs/geant4-v11.2.2-install/include/Geant4/CLHEP/Vector/AxisAngle.icc:
 
 /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.5.sdk/usr/include/c++/v1/__memory/allocator_destructor.h:
 
@@ -2892,8 +2890,6 @@ Run/CMakeFiles/RunMaterialMapping.dir/MaterialMappingRun.cpp.o: /Users/alonlevi/
 
 /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.5.sdk/usr/include/sys/_types/_ssize_t.h:
 
-/Users/alonlevi/CLionProjects/LUXEPipeline/Geometry/include/ActsLUXEPipeline/LUXEGeometryConstraints.hpp:
-
 /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.5.sdk/usr/include/c++/v1/__iterator/prev.h:
 
 /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.5.sdk/usr/include/sys/_types/_sigaltstack.h:
@@ -3211,6 +3207,8 @@ Run/CMakeFiles/RunMaterialMapping.dir/MaterialMappingRun.cpp.o: /Users/alonlevi/
 /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.5.sdk/usr/include/c++/v1/__algorithm/ranges_find_if_not.h:
 
 /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.5.sdk/usr/include/c++/v1/ctype.h:
+
+/Users/alonlevi/CLionProjects/LUXEPipeline/Geometry/include/ActsLUXEPipeline/E320Geometry.hpp:
 
 /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.5.sdk/usr/include/c++/v1/csignal:
 
@@ -4527,6 +4525,8 @@ Run/CMakeFiles/RunMaterialMapping.dir/MaterialMappingRun.cpp.o: /Users/alonlevi/
 /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.5.sdk/usr/include/c++/v1/__algorithm/ranges_merge.h:
 
 /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.5.sdk/usr/include/_types.h:
+
+/Users/alonlevi/CLionProjects/LUXEPipeline/Geometry/include/ActsLUXEPipeline/E320GeometryConstraints.hpp:
 
 /Users/alonlevi/CLionProjects/ACTS/install/include/Acts/Visualization/ViewConfig.hpp:
 

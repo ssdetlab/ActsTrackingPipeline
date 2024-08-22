@@ -1079,7 +1079,9 @@ Run/CMakeFiles/RunTest.dir/TestRun.cpp.o: /Users/alonlevi/CLionProjects/LUXEPipe
   /Users/alonlevi/CLionProjects/ACTS/install/include/Acts/Geometry/Volume.hpp \
   /Users/alonlevi/CLionProjects/ACTS/install/include/Acts/Geometry/VolumeBounds.hpp \
   /Users/alonlevi/CLionProjects/ACTS/install/include/Acts/Geometry/detail/Layer.ipp \
+  /Users/alonlevi/CLionProjects/ACTS/install/include/Acts/MagneticField/InterpolatedBFieldMap.hpp \
   /Users/alonlevi/CLionProjects/ACTS/install/include/Acts/MagneticField/MagneticFieldContext.hpp \
+  /Users/alonlevi/CLionProjects/ACTS/install/include/Acts/MagneticField/MagneticFieldError.hpp \
   /Users/alonlevi/CLionProjects/ACTS/install/include/Acts/MagneticField/MagneticFieldProvider.hpp \
   /Users/alonlevi/CLionProjects/ACTS/install/include/Acts/Material/IMaterialDecorator.hpp \
   /Users/alonlevi/CLionProjects/ACTS/install/include/Acts/Material/ISurfaceMaterial.hpp \
@@ -1205,7 +1207,8 @@ Run/CMakeFiles/RunTest.dir/TestRun.cpp.o: /Users/alonlevi/CLionProjects/LUXEPipe
   /Users/alonlevi/CLionProjects/ACTS/install/include/Acts/Visualization/detail/ObjVisualization3D.ipp \
   /Users/alonlevi/CLionProjects/LUXEPipeline/EventData/include/ActsLUXEPipeline/DataContainers.hpp \
   /Users/alonlevi/CLionProjects/LUXEPipeline/EventData/include/ActsLUXEPipeline/SimpleSourceLink.hpp \
-  /Users/alonlevi/CLionProjects/LUXEPipeline/Geometry/include/ActsLUXEPipeline/LUXEGeometry.hpp \
+  /Users/alonlevi/CLionProjects/LUXEPipeline/Geometry/include/ActsLUXEPipeline/E320Geometry.hpp \
+  /Users/alonlevi/CLionProjects/LUXEPipeline/Geometry/include/ActsLUXEPipeline/E320GeometryConstraints.hpp \
   /Users/alonlevi/CLionProjects/LUXEPipeline/Geometry/include/ActsLUXEPipeline/LUXEGeometryConstraints.hpp \
   /Users/alonlevi/CLionProjects/LUXEPipeline/Infrastructure/include/ActsLUXEPipeline/AlgorithmContext.hpp \
   /Users/alonlevi/CLionProjects/LUXEPipeline/Infrastructure/include/ActsLUXEPipeline/DataHandle.hpp \
@@ -1218,8 +1221,11 @@ Run/CMakeFiles/RunTest.dir/TestRun.cpp.o: /Users/alonlevi/CLionProjects/LUXEPipe
   /Users/alonlevi/CLionProjects/LUXEPipeline/Infrastructure/include/ActsLUXEPipeline/Sequencer.hpp \
   /Users/alonlevi/CLionProjects/LUXEPipeline/Infrastructure/include/ActsLUXEPipeline/WhiteBoard.hpp \
   /Users/alonlevi/CLionProjects/LUXEPipeline/Infrastructure/include/ActsLUXEPipeline/tbbWrap.hpp \
+  /Users/alonlevi/CLionProjects/LUXEPipeline/MagneticField/include/ActsLUXEPipeline/BinnedMagneticField.hpp \
   /Users/alonlevi/CLionProjects/LUXEPipeline/MagneticField/include/ActsLUXEPipeline/ConstantBoundedField.hpp \
+  /Users/alonlevi/CLionProjects/LUXEPipeline/MagneticField/include/ActsLUXEPipeline/E320MagneticField.hpp \
   /Users/alonlevi/CLionProjects/LUXEPipeline/MagneticField/include/ActsLUXEPipeline/LxBFields.hpp \
+  /Users/alonlevi/CLionProjects/LUXEPipeline/MagneticField/include/ActsLUXEPipeline/QuadrupoleMagField.hpp \
   /Users/alonlevi/CLionProjects/LUXEPipeline/Readout/include/ActsLUXEPipeline/LUXEROOTDataReader.hpp \
   /Users/alonlevi/CLionProjects/LUXEPipeline/Readout/include/ActsLUXEPipeline/ROOTDataReader.hpp \
   /Users/alonlevi/CLionProjects/LUXEPipeline/Readout/include/ActsLUXEPipeline/ROOTFittedTrackWriter.hpp \
@@ -3938,9 +3944,19 @@ Run/CMakeFiles/RunTest.dir/TestRun.cpp.o: /Users/alonlevi/CLionProjects/LUXEPipe
 
 /opt/homebrew/include/boost/container/options.hpp:
 
+/opt/homebrew/include/boost/container/detail/value_init.hpp:
+
+/opt/homebrew/include/boost/preprocessor/facilities/detail/is_empty.hpp:
+
+/opt/homebrew/include/boost/container/detail/type_traits.hpp:
+
 /opt/homebrew/include/boost/hana/detail/operators/arithmetic.hpp:
 
 /opt/homebrew/include/boost/container/detail/std_fwd.hpp:
+
+/opt/homebrew/include/boost/preprocessor/list/detail/fold_left.hpp:
+
+/opt/homebrew/include/boost/container/detail/placement_new.hpp:
 
 /opt/homebrew/include/boost/container/detail/next_capacity.hpp:
 
@@ -3949,10 +3965,6 @@ Run/CMakeFiles/RunTest.dir/TestRun.cpp.o: /Users/alonlevi/CLionProjects/LUXEPipe
 /opt/homebrew/include/boost/next_prior.hpp:
 
 /opt/homebrew/include/boost/container/detail/mpl.hpp:
-
-/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.5.sdk/usr/include/c++/v1/__algorithm/pstl_transform.h:
-
-/opt/homebrew/include/boost/container/detail/iterators.hpp:
 
 /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.5.sdk/usr/include/sys/qos.h:
 
@@ -4524,6 +4536,8 @@ Run/CMakeFiles/RunTest.dir/TestRun.cpp.o: /Users/alonlevi/CLionProjects/LUXEPipe
 
 /Users/alonlevi/Programs/geant4-v11.2.2-install/include/Geant4/CLHEP/Vector/LorentzVector.h:
 
+/Users/alonlevi/Programs/geant4-v11.2.2-install/include/Geant4/CLHEP/Vector/AxisAngle.icc:
+
 /Users/alonlevi/Programs/root_install/include/Math/GenVector/PositionVector3Dfwd.h:
 
 /Users/alonlevi/Programs/geant4-v11.2.2-install/include/Geant4/CLHEP/Utility/defs.h:
@@ -4556,6 +4570,8 @@ Run/CMakeFiles/RunTest.dir/TestRun.cpp.o: /Users/alonlevi/CLionProjects/LUXEPipe
 
 /Users/alonlevi/CLionProjects/LUXEPipeline/Readout/include/ActsLUXEPipeline/LUXEROOTDataReader.hpp:
 
+/Users/alonlevi/CLionProjects/LUXEPipeline/MagneticField/include/ActsLUXEPipeline/QuadrupoleMagField.hpp:
+
 /opt/homebrew/include/boost/hana/fwd/less.hpp:
 
 /opt/homebrew/include/boost/assert.hpp:
@@ -4563,6 +4579,10 @@ Run/CMakeFiles/RunTest.dir/TestRun.cpp.o: /Users/alonlevi/CLionProjects/LUXEPipe
 /opt/homebrew/include/eigen3/Eigen/src/Core/CwiseBinaryOp.h:
 
 /Users/alonlevi/CLionProjects/LUXEPipeline/MagneticField/include/ActsLUXEPipeline/ConstantBoundedField.hpp:
+
+/opt/homebrew/include/boost/concept/detail/backward_compatibility.hpp:
+
+/Users/alonlevi/CLionProjects/LUXEPipeline/MagneticField/include/ActsLUXEPipeline/BinnedMagneticField.hpp:
 
 /opt/homebrew/include/boost/mpl/aux_/nested_type_wknd.hpp:
 
@@ -4593,20 +4613,6 @@ Run/CMakeFiles/RunTest.dir/TestRun.cpp.o: /Users/alonlevi/CLionProjects/LUXEPipe
 /opt/homebrew/include/boost/type_traits/function_traits.hpp:
 
 /Users/alonlevi/CLionProjects/LUXEPipeline/Infrastructure/include/ActsLUXEPipeline/AlgorithmContext.hpp:
-
-/Users/alonlevi/Programs/geant4-v11.2.2-install/include/Geant4/CLHEP/Vector/AxisAngle.icc:
-
-/opt/homebrew/include/eigen3/Eigen/src/Core/StableNorm.h:
-
-/opt/homebrew/include/eigen3/Eigen/src/plugins/MatrixCwiseUnaryOps.h:
-
-/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.5.sdk/usr/include/sys/_types/_fsblkcnt_t.h:
-
-/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.5.sdk/usr/include/sys/cdefs.h:
-
-/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.5.sdk/usr/include/c++/v1/__functional/hash.h:
-
-/Users/alonlevi/CLionProjects/LUXEPipeline/Geometry/include/ActsLUXEPipeline/LUXEGeometry.hpp:
 
 /Users/alonlevi/CLionProjects/LUXEPipeline/EventData/include/ActsLUXEPipeline/SimpleSourceLink.hpp:
 
@@ -4782,8 +4788,6 @@ Run/CMakeFiles/RunTest.dir/TestRun.cpp.o: /Users/alonlevi/CLionProjects/LUXEPipe
 
 /Users/alonlevi/CLionProjects/ACTS/install/include/Acts/Propagator/detail/ParameterTraits.hpp:
 
-/opt/homebrew/include/boost/container/detail/value_init.hpp:
-
 /opt/homebrew/include/boost/utility/binary.hpp:
 
 /opt/homebrew/include/boost/hana/front.hpp:
@@ -4861,6 +4865,22 @@ Run/CMakeFiles/RunTest.dir/TestRun.cpp.o: /Users/alonlevi/CLionProjects/LUXEPipe
 /Users/alonlevi/CLionProjects/ACTS/install/include/Acts/Material/ISurfaceMaterial.hpp:
 
 /Users/alonlevi/CLionProjects/ACTS/install/include/Acts/Material/IMaterialDecorator.hpp:
+
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.5.sdk/usr/include/c++/v1/__algorithm/pstl_transform.h:
+
+/opt/homebrew/include/boost/container/detail/iterators.hpp:
+
+/opt/homebrew/include/boost/hana/fwd/value.hpp:
+
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.5.sdk/usr/include/c++/v1/__algorithm/ranges_min.h:
+
+/Users/alonlevi/CLionProjects/ACTS/install/include/Acts/MagneticField/MagneticFieldError.hpp:
+
+/opt/homebrew/include/boost/move/detail/config_begin.hpp:
+
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.5.sdk/usr/include/c++/v1/__type_traits/unwrap_ref.h:
+
+/Users/alonlevi/CLionProjects/ACTS/install/include/Acts/MagneticField/InterpolatedBFieldMap.hpp:
 
 /Users/alonlevi/CLionProjects/ACTS/install/include/Acts/Geometry/detail/Layer.ipp:
 
@@ -4961,10 +4981,6 @@ Run/CMakeFiles/RunTest.dir/TestRun.cpp.o: /Users/alonlevi/CLionProjects/LUXEPipe
 /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.5.sdk/usr/include/arm/endian.h:
 
 /Users/alonlevi/CLionProjects/ACTS/install/include/Acts/EventData/MeasurementHelpers.hpp:
-
-/opt/homebrew/include/boost/preprocessor/facilities/detail/is_empty.hpp:
-
-/opt/homebrew/include/boost/container/detail/type_traits.hpp:
 
 /opt/homebrew/include/boost/hana/concept/monad_plus.hpp:
 
@@ -5654,6 +5670,8 @@ Run/CMakeFiles/RunTest.dir/TestRun.cpp.o: /Users/alonlevi/CLionProjects/LUXEPipe
 
 /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.5.sdk/usr/include/c++/v1/ctype.h:
 
+/Users/alonlevi/CLionProjects/LUXEPipeline/Geometry/include/ActsLUXEPipeline/E320Geometry.hpp:
+
 /Users/alonlevi/CLionProjects/ACTS/install/include/Acts/Propagator/DefaultExtension.hpp:
 
 /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.5.sdk/usr/include/c++/v1/csignal:
@@ -5735,10 +5753,6 @@ Run/CMakeFiles/RunTest.dir/TestRun.cpp.o: /Users/alonlevi/CLionProjects/LUXEPipe
 /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.5.sdk/usr/include/c++/v1/__utility/convert_to_integral.h:
 
 /opt/homebrew/include/boost/config/no_tr1/memory.hpp:
-
-/opt/homebrew/include/boost/move/detail/config_begin.hpp:
-
-/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.5.sdk/usr/include/c++/v1/__type_traits/unwrap_ref.h:
 
 /Users/alonlevi/CLionProjects/ACTS/install/include/Acts/Geometry/GeometryObject.hpp:
 
@@ -6252,11 +6266,11 @@ Run/CMakeFiles/RunTest.dir/TestRun.cpp.o: /Users/alonlevi/CLionProjects/LUXEPipe
 
 /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.5.sdk/usr/include/c++/v1/__ranges/dangling.h:
 
+/Users/alonlevi/CLionProjects/LUXEPipeline/MagneticField/include/ActsLUXEPipeline/E320MagneticField.hpp:
+
 /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.5.sdk/usr/include/c++/v1/__algorithm/for_each_n.h:
 
 /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.5.sdk/usr/include/c++/v1/cctype:
-
-/opt/homebrew/include/boost/concept/detail/backward_compatibility.hpp:
 
 /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.5.sdk/usr/include/sys/_types/_pid_t.h:
 
@@ -6677,6 +6691,16 @@ Run/CMakeFiles/RunTest.dir/TestRun.cpp.o: /Users/alonlevi/CLionProjects/LUXEPipe
 /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.5.sdk/usr/include/c++/v1/__functional/invoke.h:
 
 /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.5.sdk/usr/include/c++/v1/__bit/bit_log2.h:
+
+/opt/homebrew/include/eigen3/Eigen/src/Core/StableNorm.h:
+
+/opt/homebrew/include/eigen3/Eigen/src/plugins/MatrixCwiseUnaryOps.h:
+
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.5.sdk/usr/include/sys/_types/_fsblkcnt_t.h:
+
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.5.sdk/usr/include/sys/cdefs.h:
+
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.5.sdk/usr/include/c++/v1/__functional/hash.h:
 
 /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.5.sdk/usr/include/c++/v1/__functional/binder2nd.h:
 
@@ -7370,10 +7394,6 @@ Run/CMakeFiles/RunTest.dir/TestRun.cpp.o: /Users/alonlevi/CLionProjects/LUXEPipe
 
 /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.5.sdk/usr/include/c++/v1/__memory/allocator_arg_t.h:
 
-/opt/homebrew/include/boost/hana/fwd/value.hpp:
-
-/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.5.sdk/usr/include/c++/v1/__algorithm/ranges_min.h:
-
 /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.5.sdk/usr/include/c++/v1/__algorithm/ranges_iterator_concept.h:
 
 /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.5.sdk/usr/include/c++/v1/__algorithm/ranges_replace_copy_if.h:
@@ -7400,10 +7420,6 @@ Run/CMakeFiles/RunTest.dir/TestRun.cpp.o: /Users/alonlevi/CLionProjects/LUXEPipe
 
 /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.5.sdk/usr/include/c++/v1/__filesystem/directory_iterator.h:
 
-/opt/homebrew/include/boost/preprocessor/list/detail/fold_left.hpp:
-
-/opt/homebrew/include/boost/container/detail/placement_new.hpp:
-
 /opt/homebrew/include/boost/hana/concept/integral_constant.hpp:
 
 /opt/homebrew/include/boost/hana/adjust_if.hpp:
@@ -7413,6 +7429,8 @@ Run/CMakeFiles/RunTest.dir/TestRun.cpp.o: /Users/alonlevi/CLionProjects/LUXEPipe
 /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.5.sdk/usr/include/c++/v1/__algorithm/ranges_merge.h:
 
 /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.5.sdk/usr/include/_types.h:
+
+/Users/alonlevi/CLionProjects/LUXEPipeline/Geometry/include/ActsLUXEPipeline/E320GeometryConstraints.hpp:
 
 /Users/alonlevi/CLionProjects/ACTS/install/include/Acts/Visualization/ViewConfig.hpp:
 

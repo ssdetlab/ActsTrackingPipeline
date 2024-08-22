@@ -1,7 +1,7 @@
 Run/CMakeFiles/RunMaterialMapping.dir/MaterialMappingRun.cpp.o: \
   /Users/alonlevi/CLionProjects/LUXEPipeline/Run/MaterialMappingRun.cpp \
-  /Users/alonlevi/CLionProjects/LUXEPipeline/Geometry/include/ActsLUXEPipeline/LUXEGeometry.hpp \
-  /Users/alonlevi/CLionProjects/LUXEPipeline/Geometry/include/ActsLUXEPipeline/LUXEGeometryConstraints.hpp \
+  /Users/alonlevi/CLionProjects/LUXEPipeline/Geometry/include/ActsLUXEPipeline/E320Geometry.hpp \
+  /Users/alonlevi/CLionProjects/LUXEPipeline/Geometry/include/ActsLUXEPipeline/E320GeometryConstraints.hpp \
   /Users/alonlevi/CLionProjects/ACTS/install/include/Acts/Definitions/Algebra.hpp \
   /opt/homebrew/include/eigen3/Eigen/Core \
   /opt/homebrew/include/eigen3/Eigen/src/Core/util/DisableStupidWarnings.h \

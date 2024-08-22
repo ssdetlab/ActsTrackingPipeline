@@ -1145,7 +1145,8 @@ Run/CMakeFiles/RunTruthTracking.dir/TruthTrackingRun.cpp.o: /Users/alonlevi/CLio
   /Users/alonlevi/CLionProjects/ACTS/install/include/Acts/Visualization/ViewConfig.hpp \
   /Users/alonlevi/CLionProjects/LUXEPipeline/EventData/include/ActsLUXEPipeline/DataContainers.hpp \
   /Users/alonlevi/CLionProjects/LUXEPipeline/EventData/include/ActsLUXEPipeline/SimpleSourceLink.hpp \
-  /Users/alonlevi/CLionProjects/LUXEPipeline/Geometry/include/ActsLUXEPipeline/LUXEGeometry.hpp \
+  /Users/alonlevi/CLionProjects/LUXEPipeline/Geometry/include/ActsLUXEPipeline/E320Geometry.hpp \
+  /Users/alonlevi/CLionProjects/LUXEPipeline/Geometry/include/ActsLUXEPipeline/E320GeometryConstraints.hpp \
   /Users/alonlevi/CLionProjects/LUXEPipeline/Geometry/include/ActsLUXEPipeline/LUXEGeometryConstraints.hpp \
   /Users/alonlevi/CLionProjects/LUXEPipeline/Infrastructure/include/ActsLUXEPipeline/AlgorithmContext.hpp \
   /Users/alonlevi/CLionProjects/LUXEPipeline/Infrastructure/include/ActsLUXEPipeline/DataHandle.hpp \
@@ -3208,10 +3209,6 @@ Run/CMakeFiles/RunTruthTracking.dir/TruthTrackingRun.cpp.o: /Users/alonlevi/CLio
 
 /opt/homebrew/include/boost/hana/if.hpp:
 
-/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.5.sdk/usr/include/c++/v1/unordered_set:
-
-/opt/homebrew/include/boost/hana/hash.hpp:
-
 /opt/homebrew/include/boost/hana/fwd/while.hpp:
 
 /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.5.sdk/usr/include/c++/v1/__algorithm/ranges_min.h:
@@ -3878,6 +3875,8 @@ Run/CMakeFiles/RunTruthTracking.dir/TruthTrackingRun.cpp.o: /Users/alonlevi/CLio
 
 /Users/alonlevi/Programs/geant4-v11.2.2-install/include/Geant4/CLHEP/Vector/LorentzVector.h:
 
+/Users/alonlevi/Programs/geant4-v11.2.2-install/include/Geant4/CLHEP/Vector/AxisAngle.icc:
+
 /Users/alonlevi/Programs/root_install/include/Math/GenVector/PositionVector3Dfwd.h:
 
 /Users/alonlevi/Programs/geant4-v11.2.2-install/include/Geant4/CLHEP/Utility/defs.h:
@@ -3961,20 +3960,6 @@ Run/CMakeFiles/RunTruthTracking.dir/TruthTrackingRun.cpp.o: /Users/alonlevi/CLio
 /opt/homebrew/include/boost/type_traits/function_traits.hpp:
 
 /Users/alonlevi/CLionProjects/LUXEPipeline/Infrastructure/include/ActsLUXEPipeline/AlgorithmContext.hpp:
-
-/Users/alonlevi/Programs/geant4-v11.2.2-install/include/Geant4/CLHEP/Vector/AxisAngle.icc:
-
-/opt/homebrew/include/eigen3/Eigen/src/Core/StableNorm.h:
-
-/opt/homebrew/include/eigen3/Eigen/src/plugins/MatrixCwiseUnaryOps.h:
-
-/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.5.sdk/usr/include/sys/cdefs.h:
-
-/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.5.sdk/usr/include/c++/v1/__functional/hash.h:
-
-/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.5.sdk/usr/include/sys/_types/_fsblkcnt_t.h:
-
-/Users/alonlevi/CLionProjects/LUXEPipeline/Geometry/include/ActsLUXEPipeline/LUXEGeometry.hpp:
 
 /Users/alonlevi/CLionProjects/LUXEPipeline/EventData/include/ActsLUXEPipeline/SimpleSourceLink.hpp:
 
@@ -4712,6 +4697,10 @@ Run/CMakeFiles/RunTruthTracking.dir/TruthTrackingRun.cpp.o: /Users/alonlevi/CLio
 
 /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.5.sdk/usr/include/c++/v1/utility:
 
+/opt/homebrew/include/boost/hana/hash.hpp:
+
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.5.sdk/usr/include/c++/v1/unordered_set:
+
 /opt/homebrew/include/eigen3/Eigen/src/Core/CwiseUnaryOp.h:
 
 /opt/homebrew/include/boost/mp11/detail/mp_list_v.hpp:
@@ -4815,6 +4804,8 @@ Run/CMakeFiles/RunTruthTracking.dir/TruthTrackingRun.cpp.o: /Users/alonlevi/CLio
 /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.5.sdk/usr/include/c++/v1/ctype.h:
 
 /Users/alonlevi/CLionProjects/ACTS/install/include/Acts/Propagator/DefaultExtension.hpp:
+
+/Users/alonlevi/CLionProjects/LUXEPipeline/Geometry/include/ActsLUXEPipeline/E320Geometry.hpp:
 
 /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.5.sdk/usr/include/c++/v1/csignal:
 
@@ -5183,6 +5174,16 @@ Run/CMakeFiles/RunTruthTracking.dir/TruthTrackingRun.cpp.o: /Users/alonlevi/CLio
 /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.5.sdk/usr/include/c++/v1/__numeric/transform_reduce.h:
 
 /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.5.sdk/usr/include/c++/v1/__type_traits/is_enum.h:
+
+/opt/homebrew/include/eigen3/Eigen/src/Core/StableNorm.h:
+
+/opt/homebrew/include/eigen3/Eigen/src/plugins/MatrixCwiseUnaryOps.h:
+
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.5.sdk/usr/include/sys/cdefs.h:
+
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.5.sdk/usr/include/c++/v1/__functional/hash.h:
+
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.5.sdk/usr/include/sys/_types/_fsblkcnt_t.h:
 
 /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.5.sdk/usr/include/c++/v1/__numeric/gcd_lcm.h:
 
@@ -6373,6 +6374,8 @@ Run/CMakeFiles/RunTruthTracking.dir/TruthTrackingRun.cpp.o: /Users/alonlevi/CLio
 /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.5.sdk/usr/include/c++/v1/__algorithm/ranges_merge.h:
 
 /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.5.sdk/usr/include/_types.h:
+
+/Users/alonlevi/CLionProjects/LUXEPipeline/Geometry/include/ActsLUXEPipeline/E320GeometryConstraints.hpp:
 
 /Users/alonlevi/CLionProjects/ACTS/install/include/Acts/Visualization/ViewConfig.hpp:
 

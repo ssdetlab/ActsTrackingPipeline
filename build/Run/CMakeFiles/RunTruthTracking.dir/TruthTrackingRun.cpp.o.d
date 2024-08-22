@@ -1497,7 +1497,8 @@ Run/CMakeFiles/RunTruthTracking.dir/TruthTrackingRun.cpp.o: \
   /Users/alonlevi/CLionProjects/ACTS/install/include/Acts/EventData/TrackProxy.hpp \
   /Users/alonlevi/CLionProjects/ACTS/install/include/Acts/EventData/Utils.hpp \
   /Users/alonlevi/CLionProjects/ACTS/install/include/Acts/Utilities/Holders.hpp \
-  /Users/alonlevi/CLionProjects/LUXEPipeline/Geometry/include/ActsLUXEPipeline/LUXEGeometry.hpp \
+  /Users/alonlevi/CLionProjects/LUXEPipeline/Geometry/include/ActsLUXEPipeline/E320Geometry.hpp \
+  /Users/alonlevi/CLionProjects/LUXEPipeline/Geometry/include/ActsLUXEPipeline/E320GeometryConstraints.hpp \
   /Users/alonlevi/CLionProjects/ACTS/install/include/Acts/Detector/Blueprint.hpp \
   /Users/alonlevi/CLionProjects/ACTS/install/include/Acts/Detector/ProtoBinning.hpp \
   /Users/alonlevi/CLionProjects/ACTS/install/include/Acts/Utilities/StringHelpers.hpp \
