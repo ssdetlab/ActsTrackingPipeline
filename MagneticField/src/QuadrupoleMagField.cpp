@@ -36,3 +36,4 @@ Acts::Result<Acts::Vector3> QuadrupoleMagField::getField(
 
         return Acts::Result<Acts::Vector3>::success(globalB);
 }
+

@@ -73,3 +73,4 @@ class QuadrupoleMagField : public Acts::MagneticFieldProvider {
             Acts::Vector3 m_origin = Acts::Vector3(0.0, 0.0, 0.0);
             Acts::RotationMatrix3 m_rotation = Acts::RotationMatrix3::Identity();
 };
+
