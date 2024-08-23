@@ -97,6 +97,14 @@ namespace E320Geometry {
             {chipX.at(8) + chipSizeX/2 + 1000_mm, 
                 chipSizeY/2 + 1000_mm, 1000_mm};
 
+        const std::tuple<Acts::Vector2,Acts::Vector4,Acts::Vector4> dipoleParams =
+        {
+                {-30.0_mm, 30.0_mm},
+                {-165.0_mm, 165.0_mm, 7.7_mm, 7.7_mm},
+                {-457.0_mm, 457.0_mm, 25.0_mm, 25.0_mm}
+        };
+
+        const Acts::Vector3 quadrupolesParams = {4.0_T/(1_m),-7.0_T/(1_m),4.0_T/(1_m)};
         // PDC window volume
         const Acts::Vector3 pdcWindowTranslation{
             0_mm, 0_mm, 16549.7_mm};
