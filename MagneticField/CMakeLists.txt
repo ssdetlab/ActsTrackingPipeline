@@ -16,6 +16,7 @@ target_sources(
     PRIVATE
     src/BinnedMagneticField.cpp
     src/QuadrupoleMagField.cpp
+    src/E320MagField.cpp
 )
 
 # For now we assume that the pipeline 
@@ -25,4 +26,4 @@ target_link_libraries(
     PUBLIC
     ActsCore
 )
-      
+
