@@ -218,31 +218,31 @@ int main() {
     // Add the ideal seeder to the sequencer
     IdealSeeder::Config fullMatchingSeederCfg;
 
-    // // Estimator of the IP and first hit
-    // // parameters of the track
-    // CsvLookupTableProvider::Config trackLookupCfg;
+    // Estimator of the IP and first hit
+    // parameters of the track
+    CsvLookupTableProvider::Config trackLookupCfg;
 
-    // trackLookupCfg.filePath = 
-        // "/home/romanurmanov/lab/LUXE/acts_LUXE_tracking/ActsLUXEPipeline_build/lookupTable.csv";
+    trackLookupCfg.filePath = 
+        "/home/romanurmanov/lab/LUXE/acts_LUXE_tracking/E320Pipeline_lookups/RangedUniform_05_45_Stationary_000_200k_MaterialOn_lookup.csv";
 
-    // CsvLookupTableProvider trackLookup(trackLookupCfg);
-    // fullMatchingSeederCfg.trackEstimator.connect<
-        // &CsvLookupTableProvider::operator()>(
-        // &trackLookup);
+    CsvLookupTableProvider trackLookup(trackLookupCfg);
+    fullMatchingSeederCfg.trackEstimator.connect<
+        &CsvLookupTableProvider::operator()>(
+        &trackLookup);
 
-    // // Transforms the source links to global coordinates
-    // SimpleSourceLinkCoordinateCalibrator sourceLinkCalibrator;
-    // sourceLinkCalibrator.m_surfaceAccessor.connect<
-        // &SimpleSourceLink::SurfaceAccessor::operator()>(
-        // &surfaceAccessor);
-    // fullMatchingSeederCfg.sourceLinkCalibrator.connect<
-        // &SimpleSourceLinkCoordinateCalibrator::operator()>(
-        // &sourceLinkCalibrator);
+    // Transforms the source links to global coordinates
+    SimpleSourceLinkCoordinateCalibrator sourceLinkCalibrator;
+    sourceLinkCalibrator.m_surfaceAccessor.connect<
+        &SimpleSourceLink::SurfaceAccessor::operator()>(
+        &surfaceAccessor);
+    fullMatchingSeederCfg.sourceLinkCalibrator.connect<
+        &SimpleSourceLinkCoordinateCalibrator::operator()>(
+        &sourceLinkCalibrator);
 
-    // auto firstTrackingVolume = detector->findDetectorVolume("layer0");
-    // for (const auto& s : firstTrackingVolume->surfaces()) {
-        // fullMatchingSeederCfg.firstLayerIds.push_back(s->geometryId());
-    // }
+    auto firstTrackingVolume = detector->findDetectorVolume("layer0");
+    for (const auto& s : firstTrackingVolume->surfaces()) {
+        fullMatchingSeederCfg.firstLayerIds.push_back(s->geometryId());
+    }
     
     auto fullMatchingSeeder = std::make_shared<IdealSeeder>(fullMatchingSeederCfg);
 
@@ -283,8 +283,8 @@ int main() {
         propOptions);
 
     // Reference surface for sampling the track at the IP
-    double halfX = 1000;
-    double halfY = 1000;
+    double halfX = 10000;
+    double halfY = 10000;
 
     Acts::Transform3 transform(
         Acts::Translation3(Acts::Vector3(0, 0, 0)) *
@@ -340,8 +340,9 @@ int main() {
 
     auto trackWriterCfg = ROOTFittedTrackWriter::Config{
         "Tracks",
+        "IdealSeeds",
         "fitted-tracks",
-        "fitted-tracks-ideal-material-uni-vertex.root",
+        "fitted-tracks-matched-material-on.root",
         3,
         10
     };

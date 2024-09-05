@@ -536,16 +536,16 @@ int main() {
     // Add the ideal seeder to the sequencer
     IdealSeeder::Config fullMatchingSeederCfg;
 
-    // auto firstTrackingVolume = detector->findDetectorVolume("layer0");
-    // for (const auto& s : firstTrackingVolume->surfaces()) {
-        // fullMatchingSeederCfg.firstLayerIds.push_back(s->geometryId());
-    // }
-    // fullMatchingSeederCfg.sourceLinkCalibrator.connect<
-        // &SimpleSourceLinkCoordinateCalibrator::operator()>(
-        // &sourceLinkCalibrator);
-    // fullMatchingSeederCfg.trackEstimator.connect<
-        // &CsvLookupTableProvider::operator()>(
-        // &trackLookup);
+    auto firstTrackingVolume = detector->findDetectorVolume("layer0");
+    for (const auto& s : firstTrackingVolume->surfaces()) {
+        fullMatchingSeederCfg.firstLayerIds.push_back(s->geometryId());
+    }
+    fullMatchingSeederCfg.sourceLinkCalibrator.connect<
+        &SimpleSourceLinkCoordinateCalibrator::operator()>(
+        &sourceLinkCalibrator);
+    fullMatchingSeederCfg.trackEstimator.connect<
+        &CsvLookupTableProvider::operator()>(
+        &trackLookup);
 
     auto fullMatchingSeeder = std::make_shared<IdealSeeder>(fullMatchingSeederCfg);
 
@@ -644,8 +644,9 @@ int main() {
 
     auto trackWriterCfg = ROOTFittedTrackWriter::Config{
         "SimTracks",
+        "IdealSeeds",
         "fitted-tracks",
-        "fitted-tracks-ideal-material-off.root",
+        "fitted-tracks-matched-material-off.root",
         3,
         10
     };
