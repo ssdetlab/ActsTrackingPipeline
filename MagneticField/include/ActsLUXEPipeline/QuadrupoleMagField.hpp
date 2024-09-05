@@ -22,6 +22,17 @@ class QuadrupoleMagField : public Acts::MagneticFieldProvider {
         /// @param gradient magnetic field gradient
         QuadrupoleMagField(Acts::ActsScalar gradient);
 
+        /// @brief Constructor with magnetic field gradient
+        /// quadrupole origin and orientation
+        ///
+        /// @param gradient magnetic field gradient
+        /// @param origin quadrupole origin
+        /// @param rotation quadrupole orientation
+        QuadrupoleMagField(
+            Acts::ActsScalar gradient, 
+            const Acts::Vector3& origin, 
+            const Acts::RotationMatrix3& rotation);
+
         ~QuadrupoleMagField() override;
 
         /// @brief Get the magnetic field at a given position
@@ -40,12 +51,14 @@ class QuadrupoleMagField : public Acts::MagneticFieldProvider {
         /// @param cache Cache for the magnetic field provider
         /// @return magnetic field gradient vector
         Acts::Result<Acts::Vector3> getFieldGradient(
-            const Acts::Vector3& /*position*/,
+            const Acts::Vector3& /*position*/, 
             Acts::ActsMatrix<3, 3>& /*derivative*/,
             MagneticFieldProvider::Cache& /*cache*/) const override {
-                Acts::Vector3 grad(m_gradient, m_gradient, 0);
+                Acts::Vector3 loaclGrad(m_gradient, m_gradient, 0);
 
-                return Acts::Result<Acts::Vector3>::success(grad);
+                const Acts::Vector3 globalGrad = m_rotation.inverse() * loaclGrad;
+
+                return Acts::Result<Acts::Vector3>::success(globalGrad);   
         }
 
         /// @brief Get the magnetic field cache
@@ -57,5 +70,6 @@ class QuadrupoleMagField : public Acts::MagneticFieldProvider {
 
         private:
             Acts::ActsScalar m_gradient = 0.0;
+            Acts::Vector3 m_origin = Acts::Vector3(0.0, 0.0, 0.0);
+            Acts::RotationMatrix3 m_rotation = Acts::RotationMatrix3::Identity();
 };
-

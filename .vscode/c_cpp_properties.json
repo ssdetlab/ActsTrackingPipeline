@@ -1,0 +1,40 @@
+{
+    "configurations": [
+        {
+            "name": "Linux",
+            "includePath": [
+                "${workspaceFolder}/**",
+                "${workspaceFolder}/Simulation/include",
+                
+                "/home/romanurmanov/tools/geant4/geant4_install/include/Geant4",
+                "/usr/local/include/eigen3",
+                "/home/romanurmanov/tools/root/build/include",
+                
+                "/home/romanurmanov/tools/acts/acts_telescope_geo/ActsTelescopeGeometryDevelopment/Tests/CommonHelpers",
+                "/home/romanurmanov/tools/acts/acts_telescope_geo/ActsTelescopeGeometryDevelopment/Core/include",
+                "/home/romanurmanov/tools/acts/acts_telescope_geo/ActsTelescopeGeometryDevelopment/Plugins/Geant4/include",
+                "/home/romanurmanov/tools/acts/acts_telescope_geo/ActsTelescopeGeometryDevelopment/Plugins/Json/include",
+                "/home/romanurmanov/tools/acts/acts_telescope_geo/ActsTelescopeGeometryDevelopment/Plugins/DD4hep/include",
+                "/home/romanurmanov/tools/acts/acts_telescope_geo/ActsTelescopeGeometryDevelopment/Plugins/TGeo/include",
+                "/home/romanurmanov/tools/acts/acts_telescope_geo/ActsTelescopeGeometryDevelopment/Plugins/FpeMonitoring/include",
+                "/home/romanurmanov/tools/acts/acts_telescope_geo/ActsTelescopeGeometryDevelopment/Plugins/ActSVG/include",
+                "/home/romanurmanov/tools/acts/acts_telescope_geo/ActsTelescopeGeometryDevelopment/Fatras/include",
+
+                "/home/romanurmanov/tools/acts/acts_telescope_geo/ActsTelescopeGeometryDevelopment/Tests/CommonHelpers",
+                "/home/romanurmanov/tools/acts/acts_telescope_geo/ActsTelescopeGeometryDevelopment/Core/src",
+                "/home/romanurmanov/tools/acts/acts_telescope_geo/ActsTelescopeGeometryDevelopment/Plugins/Geant4/src",
+                "/home/romanurmanov/tools/acts/acts_telescope_geo/ActsTelescopeGeometryDevelopment/Plugins/Json/src",
+                "/home/romanurmanov/tools/acts/acts_telescope_geo/ActsTelescopeGeometryDevelopment/Plugins/DD4hep/src",
+                "/home/romanurmanov/tools/acts/acts_telescope_geo/ActsTelescopeGeometryDevelopment/Plugins/TGeo/src",
+                "/home/romanurmanov/tools/acts/acts_telescope_geo/ActsTelescopeGeometryDevelopment/Plugins/FpeMonitoring/src",
+                "/home/romanurmanov/tools/acts/acts_telescope_geo/ActsTelescopeGeometryDevelopment/Plugins/ActSVG/src",
+                "/home/romanurmanov/tools/acts/acts_telescope_geo/ActsTelescopeGeometryDevelopment/Fatras/src"
+            ],
+            "defines": [],
+            "compilerPath": "/usr/bin/gcc",
+            "cStandard": "c17",
+            "intelliSenseMode": "linux-gcc-x64"
+        }
+    ],
+    "version": 4
+}

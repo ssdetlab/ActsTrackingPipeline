@@ -75,7 +75,7 @@ void E320GeometryIdGenerator::assignGeometryId(
                 std::int32_t layerId = -1;
                 for (auto [id, z] : m_cfg.gOpt.staveZ) {
                     // These are already rotated surfaces
-                    if (std::abs(center.z() - z) < 1e-1) {
+                    if (std::abs(center.y() - z) < 1e-1) {
                         layerId = id;
                         break;
                     }
@@ -90,9 +90,9 @@ void E320GeometryIdGenerator::assignGeometryId(
 
                 // Then determine the chip
                 std::int32_t chipId;
-                auto chipIDs = m_cfg.gOpt.chipX;
-                for (auto [id, x] : chipIDs) {
-                    if (std::abs(center.y() - x) < 1e-1) {
+                auto chipIDs = m_cfg.gOpt.chipY;
+                for (auto [id, y] : chipIDs) {
+                    if (std::abs(-center.z() - y) < 1e-1) {
                         chipId = id;
                         break;
                     }

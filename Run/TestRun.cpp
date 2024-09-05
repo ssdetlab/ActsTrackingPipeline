@@ -82,7 +82,7 @@ int main() {
 
     Acts::ActsScalar bxval = 0.31_T;
     std::vector<double> GridLimits =
-            detector->findDetectorVolume("Dipole")->volumeBounds().values();
+        detector->findDetectorVolume("Dipole")->volumeBounds().values();
     E320MagField MagField(bxval);
 //    Acts::Vector2 xParams(-30.0,30.0);
 //    Acts::Vector4 yParams(-165.0,165.0,7.7,7.7);

@@ -29,17 +29,23 @@ SimMeasurements MeasurementsCreator::createMeasurements(
 
         auto& creator = options.actionList.template get<MeasurementsCreatorAction>();
         creator.sourceId = id;
+        options.maxSteps = 1000;
 
         // Launch and collect the measurements
-        auto result = propagator.propagate(trackParameters, options).value();
-        auto measurements = result.template get<SimMeasurements>();
+        try {
+            auto result = propagator.propagate(trackParameters, options).value();
 
-        // Fill the true IP parameters
-        for (auto& meas : measurements) {
-            meas.ipParameters = trackParameters;
+            auto measurements = result.template get<SimMeasurements>();
+    
+            // Fill the true IP parameters
+            for (auto& meas : measurements) {
+                meas.ipParameters = trackParameters;
+            }
+            return std::move(measurements);
         }
-
-        return std::move(measurements);
+        catch (const std::runtime_error& e) {
+            return {};
+        }
 };
     
 /// @brief The execute method
@@ -71,7 +77,6 @@ ProcessCode MeasurementsCreator::execute(
             Acts::Vector3 mom = m_cfg.momentumGenerator->gen(rng);
     
             Acts::ActsScalar p = mom.norm(); 
-            Acts::ActsScalar E = std::hypot(p, me);
             Acts::ActsScalar theta = std::acos(mom.z()/p);
             Acts::ActsScalar phi = std::atan2(mom.y(), mom.x());
             
@@ -82,7 +87,7 @@ ProcessCode MeasurementsCreator::execute(
                 m_propagator, ctx,
                 TrackParameters(
                     mPos4, phi, theta,
-                    -1_e / p, ipCov, 
+                    1_e / p, ipCov, 
                     Acts::ParticleHypothesis::electron()),
                     i);
 

@@ -10,103 +10,151 @@
 /// @brief The ideal seeder for the LUXE simulation
 /// takes the the SimMeasurements and converts them 
 /// into seeds
-class IdealSeeder : public IAlgorithm {
+class IdealSeeder {
     public:
+        /// @brief Delegate to estimate the IP parameters
+        /// and the momentum direction at the first tracking layer
+        ///
+        /// @arg The geometry context to use
+        /// @arg The global position of the pivot source link
+        ///
+        /// @return Particle charge, the IP momentum magnitude, the IP vertex position,
+        /// the IP momentum direction, the momentum direction at the
+        /// first tracking layer
+        using TrackEstimator =
+            Acts::Delegate<std::tuple<
+                Acts::ActsScalar, Acts::ActsScalar, Acts::Vector3, Acts::Vector3, Acts::Vector3>(
+                    const Acts::GeometryContext&, const Acts::Vector3&)>;
+
+        /// @brief Delegate to transform the source link to the
+        /// appropriate global frame.
+        ///
+        /// @arg The geometry context to use
+        /// @arg The source link to calibrate
+        ///
+        /// @return The global position of the source link measurement
+        using SourceLinkCalibrator =
+            Acts::Delegate<Acts::Vector3(const Acts::GeometryContext&, const Acts::SourceLink&)>;
+
         /// @brief The nested configuration struct
         struct Config {
-            /// The input collection
-            std::string inputCollection = "SourceLink";
-            /// The output collection
-            std::string outputCollection = "Seed";
-            /// The minimum number of hits
-            /// for a seed to be created
-            std::uint32_t minHits = 4;
-            /// The maximum number of hits
-            /// for a seed to be created
-            std::uint32_t maxHits = 4;
+            /// Parameters estimator
+            TrackEstimator trackEstimator;
+            /// SourceLink calibrator
+            SourceLinkCalibrator sourceLinkCalibrator;
+            /// First layer IDs
+            std::vector<Acts::GeometryIdentifier> firstLayerIds;
+
         };
 
         /// @brief Constructor
-        IdealSeeder(Config config, Acts::Logging::Level level)
-            : IAlgorithm("IdealSeeder", level),
-            m_cfg(std::move(config)) {
-                m_inputMeasurements.initialize(m_cfg.inputCollection);
-                m_outputSeeds.initialize(m_cfg.outputCollection);
-        }
+        IdealSeeder(Config config) : m_cfg(std::move(config)) {}
         ~IdealSeeder() = default;
 
         /// @brief The execute method        
-        ProcessCode execute(const AlgorithmContext& ctx) const override {
-            using namespace Acts::UnitLiterals;
+        Seeds getSeeds(
+            const Acts::GeometryContext& gctx, 
+            const SimMeasurements& measurements) const {
+                using namespace Acts::UnitLiterals;
+    
+                // Create the seeds
+                Seeds seeds;
+                std::vector<Acts::SourceLink> sourceLinks;
 
-            // Get the input measurements
-            // from the context
-            auto input = m_inputMeasurements(ctx);
+                // Create IP covariance matrix from
+                // reasonable standard deviations
+                Acts::BoundVector ipStdDev;
+                ipStdDev[Acts::eBoundLoc0] = 100_um;
+                ipStdDev[Acts::eBoundLoc1] = 100_um;
+                ipStdDev[Acts::eBoundTime] = 25_ns;
+                ipStdDev[Acts::eBoundPhi] = 2_degree;
+                ipStdDev[Acts::eBoundTheta] = 2_degree;
+                ipStdDev[Acts::eBoundQOverP] = 1 / 100_GeV;
+                Acts::BoundSquareMatrix ipCov =
+                    ipStdDev.cwiseProduct(ipStdDev).asDiagonal();
 
-            if (input.empty()) {
-                m_outputSeeds(ctx, Seeds());
-                return ProcessCode::SUCCESS;
-            }
-
-            // Sort the input by track id
-            std::sort(input.begin(), input.end(),
-                [](const auto& a, const auto& b) {
-                    return a.trackId < b.trackId;
-                }
-            );
-
-            // Create the seeds
-            Seeds seeds;
-            std::vector<Acts::SourceLink> sourceLinks;
-
-            // Insert the first source link
-            sourceLinks.push_back(input.front().sourceLink);
-            for (auto it = input.begin() + 1; it != input.end(); ++it) {
-                if (it->trackId == (it - 1)->trackId && (it + 1) != input.end()) {
-                    // Add the source link to the list
-                    // if the hit is from the same track
-                    sourceLinks.push_back(it->sourceLink);
-                }
-                else {
-                    if ((it + 1) == input.end()) {
-                        // Add the last source link
+                // Insert the first source link
+                sourceLinks.push_back(measurements.front().sourceLink);
+                std::cout << "INITIAL TRACK ID: " << measurements.front().trackId << std::endl;
+                for (auto it = measurements.begin() + 1; it != measurements.end(); ++it) {
+                    if (it->trackId == (it - 1)->trackId && (it + 1) != measurements.end()) {
+                        std::cout << "SAME TRACK ID: " << it->trackId << std::endl;
+                        // Add the source link to the list
+                        // if the hit is from the same track
                         sourceLinks.push_back(it->sourceLink);
                     }
-                    if (sourceLinks.size() < m_cfg.minHits || 
-                        sourceLinks.size() > m_cfg.maxHits) {
-                            // If the seed does not have the right size
-                            // skip it
-                            sourceLinks.clear();
-                            continue;
-                    }
+                    else {
+                        std::cout << "NEW TRACK ID: " << it->trackId << std::endl;
+                        if ((it + 1) == measurements.end()) {
+                            // Add the last source link
+                            sourceLinks.push_back(it->sourceLink);
+                        }
 
-                    // Ip parameter is the same for all hits
-                    // with the same track id
-                    Acts::CurvilinearTrackParameters ipParameters =
-                        (it - 1)->ipParameters;
-
-                    // Add the seed to the list
-                    // and reset the source links
-                    seeds.push_back(Seed
-                        {sourceLinks, ipParameters, (it - 1)->trackId});
-                    sourceLinks.clear();
-                    sourceLinks.push_back(it->sourceLink);
-                }
-            }
+                        std::cout << "SOURCE LINKS SIZE: " << sourceLinks.size() << std::endl;
+    
+                        if (m_cfg.trackEstimator.connected()) {
+                            bool pivotFound = false;
+                            Acts::SourceLink pivot = sourceLinks.front();
+                            for (auto& sl : sourceLinks) {
+                                auto ssl = sl.get<SimpleSourceLink>();
+                                auto sourceLinkId = ssl.geometryId();
+                                
+                                if (std::find(
+                                        m_cfg.firstLayerIds.begin(), 
+                                        m_cfg.firstLayerIds.end(), 
+                                        sourceLinkId) != m_cfg.firstLayerIds.end()) {
+                                            pivot = sl;
+                                            pivotFound = true;
+                                            std::cout << "PIVOT FOUND " << ssl.geometryId() << std::endl;
+                                            break;
+                                }
+                            }
+                            if (pivotFound) {
+                                Acts::Vector3 globalPos = m_cfg.sourceLinkCalibrator(gctx, pivot);
             
-            m_outputSeeds(ctx, std::move(seeds));
-
-            return ProcessCode::SUCCESS;
+                                // Get the IP parameters
+                                auto [q, ipP, ipVertex, ipDir, flDir] =
+                                    m_cfg.trackEstimator(gctx, globalPos);
+            
+                                Acts::Vector4 mPos4 = {ipVertex.x(), ipVertex.y(), ipVertex.z(), 0};
+            
+                                Acts::ActsScalar p = ipP; 
+                                Acts::ActsScalar theta = std::acos(ipDir.z()/p);
+                                Acts::ActsScalar phi = std::atan2(ipDir.y(), ipDir.x());
+                
+                                Acts::CurvilinearTrackParameters ipParameters(
+                                    mPos4, phi, theta,
+                                    1_e / p, ipCov, 
+                                    Acts::ParticleHypothesis::electron());
+    
+                                // Add the seed to the list
+                                seeds.push_back(Seed{
+                                    sourceLinks, ipParameters, (it - 1)->trackId});
+                            }
+                        }
+                        else {
+                            // Ip parameter is the same for all hits
+                            // with the same track id
+                            Acts::CurvilinearTrackParameters ipParameters =
+                                (it - 1)->ipParameters;
+        
+                            // Add the seed to the list
+                            seeds.push_back(Seed{
+                                sourceLinks, ipParameters, (it - 1)->trackId});
+                        }
+                        // Reset the source links
+                        sourceLinks.clear();
+                        sourceLinks.push_back(it->sourceLink);
+                    }
+                }
+    
+                return seeds;
         }
 
         /// Get readonly access to the config parameters
         const Config& config() const { return m_cfg; }
+
     private:
+    
         Config m_cfg;
-
-        ReadDataHandle<SimMeasurements> m_inputMeasurements
-            {this, "InputMeasurements"};
-
-        WriteDataHandle<Seeds> m_outputSeeds
-            {this, "OutputSeeds"};
 };

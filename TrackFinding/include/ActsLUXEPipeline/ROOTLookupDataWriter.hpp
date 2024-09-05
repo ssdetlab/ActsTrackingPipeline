@@ -33,6 +33,9 @@ class ROOTLookupDataWriter : public IWriter {
             float xLast;
             float yLast;
             float zLast;
+            float ipPx;
+            float ipPy;
+            float ipPz;
             float E;
         };
 
@@ -75,6 +78,9 @@ class ROOTLookupDataWriter : public IWriter {
                 m_tree->Branch("xLast", &m_ld.xLast);
                 m_tree->Branch("yLast", &m_ld.yLast);
                 m_tree->Branch("zLast", &m_ld.zLast);
+                m_tree->Branch("ipPx", &m_ld.ipPx);
+                m_tree->Branch("ipPy", &m_ld.ipPy);
+                m_tree->Branch("ipPz", &m_ld.ipPz);
                 m_tree->Branch("E", &m_ld.E);
 
                 m_inputMeasurements.initialize(m_cfg.inputCollection);
@@ -163,6 +169,9 @@ class ROOTLookupDataWriter : public IWriter {
                 m_ld.xLast = globLastHit.x();
                 m_ld.yLast = globLastHit.y();
                 m_ld.zLast = globLastHit.z();
+                m_ld.ipPx = firstHit.ipParameters.momentum().x();
+                m_ld.ipPy = firstHit.ipParameters.momentum().y();
+                m_ld.ipPz = firstHit.ipParameters.momentum().z();
                 m_ld.E = std::hypot(
                     1/firstHit.truthParameters[Acts::eBoundQOverP], me);
                 m_tree->Fill();

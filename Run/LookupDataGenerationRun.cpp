@@ -1,7 +1,9 @@
 #include "ActsLUXEPipeline/Sequencer.hpp"
-#include "ActsLUXEPipeline/LUXEGeometry.hpp"
+#include "ActsLUXEPipeline/E320Geometry.hpp"
 #include "ActsLUXEPipeline/BinnedMagneticField.hpp"
-#include "ActsLUXEPipeline/ConstantBoundedField.hpp"
+#include "ActsLUXEPipeline/DipoleMagField.hpp"
+#include "ActsLUXEPipeline/QuadrupoleMagField.hpp"
+#include "ActsLUXEPipeline/CompositeMagField.hpp"
 #include "ActsLUXEPipeline/MeasurementsCreator.hpp"
 #include "ActsLUXEPipeline/AlgorithmContext.hpp"
 #include "ActsLUXEPipeline/ROOTLookupDataWriter.hpp"
@@ -30,53 +32,120 @@ int main() {
     Acts::GeometryContext gctx;
     Acts::MagneticFieldContext mctx;
     Acts::CalibrationContext cctx;
-    LUXEGeometry::GeometryOptions gOpt;
+    E320Geometry::GeometryOptions gOpt;
 
     // --------------------------------------------------------------
-    // LUXE detector setup
+    // Detector setup
 
     // Set the path to the gdml file
     // and the names of the volumes to be converted
     std::string gdmlPath = 
-        "/home/romanurmanov/lab/LUXE/acts_LUXE_tracking/ActsLUXEPipeline_gdmls/lxgeomdump_stave_positron.gdml";
-    std::vector<std::string> names{"OPPPSensitive"};
+        "/home/romanurmanov/lab/LUXE/acts_LUXE_tracking/E320Pipeline_gdmls/ettgeom_magnet_pdc_tracker.gdml";
+    std::vector<std::string> names{"OPPPSensitive", "DetChamberWindow"};
 
-    std::string materialPath = "/home/romanurmanov/lab/LUXE/acts_LUXE_tracking/ActsLUXEPipeline_material/material_uniform_binned_16X_8Y.json";
+    std::string materialPath = "/home/romanurmanov/lab/LUXE/acts_LUXE_tracking/E320Pipeline_material/uniform/material.json";
 
-    // Build the LUXE detector
+    // Build the detector
     auto trackerBP = 
-        LUXEGeometry::makeBlueprintLUXE(gdmlPath, names, gOpt);
+        E320Geometry::makeBlueprintE320(gdmlPath, names, gOpt);
     auto detector =
-        LUXEGeometry::buildLUXEDetector(std::move(trackerBP), gctx, gOpt, materialPath, {});
+        E320Geometry::buildE320Detector(std::move(trackerBP), gctx, gOpt, {});
 
     // --------------------------------------------------------------
     // The magnetic field setup
 
     // Extent in already rotated frame
+    Acts::Extent quad1Extent;
+    quad1Extent.set(
+        Acts::BinningValue::binX, 
+        gOpt.quad1Translation[0] - gOpt.quad1Bounds[0],
+        gOpt.quad1Translation[0] + gOpt.quad1Bounds[0]);
+    quad1Extent.set(
+        Acts::BinningValue::binZ,
+        gOpt.quad1Translation[1] - gOpt.quad1Bounds[1],
+        gOpt.quad1Translation[1] + gOpt.quad1Bounds[1]);
+    quad1Extent.set(
+        Acts::BinningValue::binY,
+        gOpt.quad1Translation[2] - gOpt.quad1Bounds[2],
+        gOpt.quad1Translation[2] + gOpt.quad1Bounds[2]);
+
+    Acts::Extent quad2Extent;
+    quad2Extent.set(
+        Acts::BinningValue::binX, 
+        gOpt.quad2Translation[0] - gOpt.quad2Bounds[0],
+        gOpt.quad2Translation[0] + gOpt.quad2Bounds[0]);
+    quad2Extent.set(
+        Acts::BinningValue::binZ,
+        gOpt.quad2Translation[1] - gOpt.quad2Bounds[1],
+        gOpt.quad2Translation[1] + gOpt.quad2Bounds[1]);
+    quad2Extent.set(
+        Acts::BinningValue::binY,
+        gOpt.quad2Translation[2] - gOpt.quad2Bounds[2],
+        gOpt.quad2Translation[2] + gOpt.quad2Bounds[2]);
+
+    Acts::Extent quad3Extent;
+    quad3Extent.set(
+        Acts::BinningValue::binX, 
+        gOpt.quad3Translation[0] - gOpt.quad3Bounds[0],
+        gOpt.quad3Translation[0] + gOpt.quad3Bounds[0]);
+    quad3Extent.set(
+        Acts::BinningValue::binZ,
+        gOpt.quad3Translation[1] - gOpt.quad3Bounds[1],
+        gOpt.quad3Translation[1] + gOpt.quad3Bounds[1]);
+    quad3Extent.set(
+        Acts::BinningValue::binY,
+        gOpt.quad3Translation[2] - gOpt.quad3Bounds[2],
+        gOpt.quad3Translation[2] + gOpt.quad3Bounds[2]);
+
     Acts::Extent dipoleExtent;
     dipoleExtent.set(
         Acts::BinningValue::binX, 
-        gOpt.dipoleTranslation[0] - gOpt.dipoleBounds[0] + gOpt.constantFieldDelta[0],
-        gOpt.dipoleTranslation[0] + gOpt.dipoleBounds[0] - gOpt.constantFieldDelta[0]);
+        gOpt.dipoleTranslation.x() - gOpt.dipoleBounds[0],
+        gOpt.dipoleTranslation.x() + gOpt.dipoleBounds[0]);
     dipoleExtent.set(
         Acts::BinningValue::binZ,
-        gOpt.dipoleTranslation[1] - gOpt.dipoleBounds[1] + gOpt.constantFieldDelta[1],
-        gOpt.dipoleTranslation[1] + gOpt.dipoleBounds[1] - gOpt.constantFieldDelta[1]);
+        gOpt.dipoleTranslation.y() - gOpt.dipoleBounds[1],
+        gOpt.dipoleTranslation.y() + gOpt.dipoleBounds[1]);
     dipoleExtent.set(
         Acts::BinningValue::binY,
-        gOpt.dipoleTranslation[2] - gOpt.dipoleBounds[2] + gOpt.constantFieldDelta[2],
-        gOpt.dipoleTranslation[2] + gOpt.dipoleBounds[2] - gOpt.constantFieldDelta[2]);
+        gOpt.dipoleTranslation.z() - gOpt.dipoleBounds[2],
+        gOpt.dipoleTranslation.z() + gOpt.dipoleBounds[2]);
 
-    auto field = std::make_shared<ConstantBoundedField>(
-        Acts::Vector3(0., 0., -1.2_T),
-        dipoleExtent);
+    QuadrupoleMagField quad1Field(
+        gOpt.quadrupolesParams[0], 
+        gOpt.actsToWorldRotation.inverse() * gOpt.quad1Translation, 
+        gOpt.actsToWorldRotation);
+    QuadrupoleMagField quad2Field(
+        gOpt.quadrupolesParams[1], 
+        gOpt.actsToWorldRotation.inverse() * gOpt.quad2Translation, 
+        gOpt.actsToWorldRotation);
+    QuadrupoleMagField quad3Field(
+        gOpt.quadrupolesParams[2], 
+        gOpt.actsToWorldRotation.inverse() * gOpt.quad3Translation, 
+        gOpt.actsToWorldRotation);
+    
+    Acts::ActsScalar dipoleB = 0.31_T;
+    DipoleMagField dipoleField(
+        gOpt.dipoleParams, 
+        dipoleB,
+        gOpt.actsToWorldRotation, 
+        gOpt.actsToWorldRotation.inverse() * gOpt.dipoleTranslation);
+    
+    CompositeMagField::FieldComponents fieldComponents = {
+        {quad1Extent, &quad1Field},
+        {quad2Extent, &quad2Field},
+        {quad3Extent, &quad3Field},
+        {dipoleExtent, &dipoleField}
+    };
+
+    auto field = std::make_shared<CompositeMagField>(fieldComponents);
 
     // --------------------------------------------------------------
     // Event creation 
 
     // Setup the sequencer
     Sequencer::Config seqCfg;
-    seqCfg.events = 100000;
+    seqCfg.events = 200000;
     seqCfg.numThreads = 1;
     seqCfg.trackFpes = false;
     Sequencer sequencer(seqCfg);
@@ -98,16 +167,36 @@ int main() {
     auto propagator = 
         Propagator(std::move(stepper), std::move(navigator));
 
+    RangedUniformMomentumGenerator momGen;
+    momGen.Pranges = {
+        {0.5_GeV, 1.0_GeV},
+        {1.0_GeV, 1.5_GeV},
+        {1.5_GeV, 2.0_GeV},
+        {2.0_GeV, 2.5_GeV},
+        {2.5_GeV, 3.0_GeV},
+        {3.0_GeV, 3.5_GeV},
+        {3.5_GeV, 4.0_GeV},
+        {4.0_GeV, 4.5_GeV}};
+
+    // UniformVertexGenerator vertexGen;
+    // vertexGen.mins = {-100_um, -100_um, -100_um};
+    // vertexGen.maxs = {100_um, 100_um, 100_um};
+
+    // GaussianMomentumGenerator momGen; 
+    // momGen.pMagRange = {0.5_GeV, 4.5_GeV};
+    // momGen.thetaRange = {-M_PI / 4, M_PI / 4};
+    // momGen.phiRange = {0, 2 * M_PI};
+
     MeasurementsCreator::Config mcCfg;
     mcCfg.outputCollection = "Measurements";
     mcCfg.vertexGenerator = std::make_shared<StationaryVertexGenerator>();
-    mcCfg.momentumGenerator = std::make_shared<LUXESimParticle::LUXEMomentumGenerator>();
+    mcCfg.momentumGenerator = std::make_shared<RangedUniformMomentumGenerator>(momGen);
     mcCfg.randomNumberSvc = std::make_shared<RandomNumbers>(RandomNumbers::Config());
     mcCfg.nTracks = 1;
 
     sequencer.addAlgorithm(
         std::make_shared<MeasurementsCreator>(
-                propagator, mcCfg, logLevel));
+            propagator, mcCfg, logLevel));
 
     // --------------------------------------------------------------
     // Lookup data generation 
@@ -126,16 +215,16 @@ int main() {
     Acts::Extent firstLayerExtent;
     firstLayerExtent.set(
         Acts::BinningValue::binX, 
-        gOpt.chipXEven.at(0) - gOpt.chipSizeX,
-        gOpt.chipXOdd.at(8) + gOpt.chipSizeX);
+        gOpt.chipX - gOpt.chipSizeX/2 - 1_mm,
+        gOpt.chipX + gOpt.chipSizeX/2 + 1_mm);
     firstLayerExtent.set(
         Acts::BinningValue::binZ,
-        -gOpt.chipY - gOpt.chipSizeY/2,
-        -gOpt.chipY + gOpt.chipSizeY/2);
+        -gOpt.chipY.at(8) - gOpt.chipSizeY/2 - 1_mm,
+        -gOpt.chipY.at(0) + gOpt.chipSizeY/2 + 1_mm);
     firstLayerExtent.set(
         Acts::BinningValue::binY,
-        gOpt.layerZPositions.at(0) - gOpt.layerBounds.at(2),
-        gOpt.layerZPositions.at(0) + gOpt.layerBounds.at(2));
+        gOpt.layerZPositions.at(0) - gOpt.layerBounds.at(2) - 1_mm,
+        gOpt.layerZPositions.at(0) + gOpt.layerBounds.at(2) + 1_mm);
 
     lookupWriterCfg.firstLayerExtent = firstLayerExtent;
 
@@ -144,18 +233,21 @@ int main() {
 
     auto lookupMakerCfg = CsvLookupTableWriter::Config();
 
+    lookupMakerCfg.filePath = "lookupTable.csv";
+
     // Grid parameters
+    lookupMakerCfg.YFirst = {
+        1000, 
+        -gOpt.chipY.at(8) - gOpt.chipSizeY/2 - 1_mm, 
+        -gOpt.chipY.at(0) + gOpt.chipSizeY/2 + 1_mm};
     lookupMakerCfg.XFirst = {
-        5000, 
-        gOpt.chipXEven.at(0) - gOpt.chipSizeX/2, 
-        gOpt.chipXOdd.at(8) + gOpt.chipSizeX/2};
-    lookupMakerCfg.ZFirst = {
-        500, 
-        -gOpt.chipY - gOpt.chipSizeY/2,
-        -gOpt.chipY + gOpt.chipSizeY/2};
+        100, 
+        gOpt.chipX - gOpt.chipSizeX/2 - 1_mm,
+        gOpt.chipX + gOpt.chipSizeX/2 + 1_mm};
     lookupMakerCfg.surfaceAccessor.connect<
         &SimpleSourceLink::SurfaceAccessor::operator()>(
         &surfaceAccessor);
+    lookupMakerCfg.firstLayerExtent = firstLayerExtent;
 
     auto lookupMaker = std::make_shared<CsvLookupTableWriter>(lookupMakerCfg, logLevel);
 

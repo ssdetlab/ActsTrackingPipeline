@@ -18,12 +18,12 @@ namespace E320Geometry {
     struct GeometryOptions {
         /// Constants for the translation 
         /// to the local coordinates
-        const float chipSizeX = 29.94176_mm;
-        const float chipSizeY = 13.76256_mm;
+        const float chipSizeY = 29.94176_mm;
+        const float chipSizeX = 13.76256_mm;
 
         // Chip Id to the translation in the x direction
         const std::map<std::int32_t, Acts::ActsScalar> 
-        chipX{ 
+        chipY{ 
             {0,  90.3_mm}, 
             {1, 120.4_mm}, 
             {2, 150.5_mm}, 
@@ -45,7 +45,7 @@ namespace E320Geometry {
         };
 
         // All the staves are at the same y position
-        Acts::ActsScalar chipY = -0.61872_mm;
+        Acts::ActsScalar chipX = -0.61872_mm;
 
         // Positions of the volumes
         // encapsulating the layers
@@ -61,57 +61,75 @@ namespace E320Geometry {
         const Acts::Vector3 trackerTranslation{
             0_mm, 0_mm, 8550_mm};
 
-        const std::vector<Acts::ActsScalar> trackerBounds = 
-            {chipX.at(8) + chipSizeX/2 + 1000_mm, 
-                chipSizeY/2 + 1000_mm, 8600_mm};
+        const std::vector<Acts::ActsScalar> trackerBounds = {
+            chipSizeX/2 + 1000_mm, 
+            chipY.at(8) + chipSizeY/2 + 1000_mm,
+            8600_mm
+        };
 
         // Dipole volume encapsulating the
         // magnetic field
         const Acts::Vector3 dipoleTranslation{
             0_mm, 0_mm, 13140_mm};
 
-        const std::vector<Acts::ActsScalar> dipoleBounds = 
-            {chipX.at(8) + chipSizeX/2 + 1000_mm, 
-                chipSizeY/2 + 1000_mm, 1000_mm};
+        const std::vector<Acts::ActsScalar> dipoleBounds = {
+            chipSizeX/2 + 1000_mm, 
+            chipY.at(8) + chipSizeY/2 + 1000_mm,
+            1000_mm
+        };
 
         // Quadrupole volume encapsulating the
         // magnetic field
         const Acts::Vector3 quad1Translation{
             0_mm, 0_mm, 4182.49_mm};
 
-        const std::vector<Acts::ActsScalar> quad1Bounds = 
-            {chipX.at(8) + chipSizeX/2 + 1000_mm, 
-                chipSizeY/2 + 1000_mm, 1000_mm};
+        const std::vector<Acts::ActsScalar> quad1Bounds = {
+            chipSizeX/2 + 1000_mm, 
+            chipY.at(8) + chipSizeY/2 + 1000_mm,
+            1000_mm
+        };
 
         const Acts::Vector3 quad2Translation{
             0_mm, 0_mm, 6406.62_mm};
 
-        const std::vector<Acts::ActsScalar> quad2Bounds = 
-            {chipX.at(8) + chipSizeX/2 + 1000_mm, 
-                chipSizeY/2 + 1000_mm, 1000_mm};
+        const std::vector<Acts::ActsScalar> quad2Bounds = {
+            chipSizeX/2 + 1000_mm, 
+            chipY.at(8) + chipSizeY/2 + 1000_mm,
+            1000_mm
+        };
 
         const Acts::Vector3 quad3Translation{
             0_mm, 0_mm, 8631.05_mm};
 
-        const std::vector<Acts::ActsScalar> quad3Bounds = 
-            {chipX.at(8) + chipSizeX/2 + 1000_mm, 
-                chipSizeY/2 + 1000_mm, 1000_mm};
-
-        const std::tuple<Acts::Vector2,Acts::Vector4,Acts::Vector4> dipoleParams =
-        {
-                {-30.0_mm, 30.0_mm},
-                {-165.0_mm, 165.0_mm, 7.7_mm, 7.7_mm},
-                {-457.0_mm, 457.0_mm, 25.0_mm, 25.0_mm}
+        const std::vector<Acts::ActsScalar> quad3Bounds = {
+            chipSizeX/2 + 1000_mm, 
+            chipY.at(8) + chipSizeY/2 + 1000_mm,
+            1000_mm
         };
 
-        const Acts::Vector3 quadrupolesParams = {4.0_T/(1_m),-7.0_T/(1_m),4.0_T/(1_m)};
+        // Dipole and quadrupole field parameters
+        const std::tuple<Acts::Vector2,Acts::Vector4,Acts::Vector4> 
+        dipoleParams = {
+            {-30.0_mm, 30.0_mm},
+            {-165.0_mm, 165.0_mm, 7.7_mm, 7.7_mm},
+            {-457.0_mm, 457.0_mm, 25.0_mm, 25.0_mm}
+        };
+
+        const Acts::Vector3 quadrupolesParams = {
+            4.0_T / 1_m, 
+            -7.0_T / 1_m,
+            4.0_T / 1_m
+        };
+
         // PDC window volume
         const Acts::Vector3 pdcWindowTranslation{
             0_mm, 0_mm, 16549.7_mm};
 
-        const std::vector<Acts::ActsScalar> pdcWindowBounds = 
-            {chipX.at(8) + chipSizeX/2 + 1000_mm, 
-                chipSizeY/2 + 1000_mm, 2_mm};
+        const std::vector<Acts::ActsScalar> pdcWindowBounds = {
+            chipSizeX/2 + 1000_mm, 
+            chipY.at(8) + chipSizeY/2 + 1000_mm, 
+            2_mm
+        };
 
         // Arm volume encapsulating the layers
         const Acts::Vector3 armTranslation{
@@ -121,14 +139,16 @@ namespace E320Geometry {
         const Acts::ActsScalar deltaZ = 
             (staveZ.at(1) - staveZ.at(0))/10 + 1_mm;
 
-        const std::vector<Acts::ActsScalar> layerBounds = 
-            {chipX.at(8) + chipSizeX/2 + 1000_mm, 
-                chipSizeY/2 + 1000_mm, deltaZ};
+        const std::vector<Acts::ActsScalar> layerBounds = {
+            chipSizeX/2 + 1000_mm, 
+            chipY.at(8) + chipSizeY/2 + 1000_mm, 
+            deltaZ
+        };
 
         /// Global rotation of the world volume
         /// in the Acts format for volumes
         const Acts::RotationMatrix3 actsToWorldRotation = 
-            Acts::AngleAxis3(0,
+            Acts::AngleAxis3(M_PI_2,
                 Acts::Vector3(1., 0., 0.)).toRotationMatrix();
         
         /// Global translation of the world volume
@@ -143,23 +163,23 @@ namespace E320Geometry {
         /// Global rotation of the world volume
         /// in the Geant4 format for surfaces
         const G4Transform3D g4ToWorld = G4Transform3D(
-            CLHEP::HepRotationX(0), 
+            CLHEP::HepRotationX(M_PI_2), 
             G4ThreeVector(0, 0, 0));
 
         // Material binning for the surfaces
         const Acts::BinUtility materialBinningX = 
             Acts::BinUtility(
-                16, 
-                -chipSizeX/2, 
-                chipSizeX/2, 
+                128, 
+                -chipSizeY/2, 
+                chipSizeY/2, 
                 Acts::closed, 
                 Acts::BinningValue::binX);
 
         const Acts::BinUtility materialBinningY = 
             Acts::BinUtility(
-                8, 
-                -chipSizeY/2, 
-                chipSizeY/2, 
+                64, 
+                -chipSizeX/2, 
+                chipSizeX/2, 
                 Acts::closed, 
                 Acts::BinningValue::binY);
     };

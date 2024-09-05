@@ -2,6 +2,7 @@
 
 #include "ActsLUXEPipeline/RandomNumbers.hpp"
 #include"ActsLUXEPipeline/LUXEGeometryConstraints.hpp"
+#include"ActsLUXEPipeline/E320GeometryConstraints.hpp"
 
 #include "Acts/Definitions/Algebra.hpp"
 #include "Acts/Definitions/Units.hpp"
@@ -40,6 +41,47 @@ struct IMomentumGenerator {
     virtual Acts::Vector3 gen(RandomEngine rng) const = 0;
 };
 
+/// @brief Gaussian momentum generator
+struct GaussianMomentumGenerator : public IMomentumGenerator {
+    std::pair<Acts::ActsScalar, Acts::ActsScalar> pMagRange;
+    std::pair<Acts::ActsScalar, Acts::ActsScalar> thetaRange;
+    std::pair<Acts::ActsScalar, Acts::ActsScalar> phiRange;
+
+    Acts::Vector3 gen(RandomEngine rng) const override {
+        std::uniform_real_distribution<Acts::ActsScalar> uniform(0, 1);
+
+        Acts::ActsScalar pMag = pMagRange.first + (pMagRange.second - pMagRange.first) * uniform(rng);
+
+        Acts::ActsScalar theta = std::acos(
+            1 - (std::cos(thetaRange.first) - std::cos(thetaRange.second)) * uniform(rng));
+
+        Acts::ActsScalar phi = phiRange.first + (phiRange.second - phiRange.first) * uniform(rng);
+
+        return pMag * Acts::Vector3(
+            std::sin(theta) * std::cos(phi),
+            std::cos(theta),
+            -std::sin(theta) * std::sin(phi));
+    }
+};
+
+/// @brief Uniform momentum generator
+struct RangedUniformMomentumGenerator : public IMomentumGenerator {
+    std::vector<std::pair<Acts::ActsScalar, Acts::ActsScalar>> Pranges;
+
+    Acts::Vector3 gen(RandomEngine rng) const override {
+        std::uniform_int_distribution<int> range_select(0, Pranges.size() - 1);
+        int range = range_select(rng);
+
+        Acts::ActsScalar Pmin = Pranges.at(range).first;
+        Acts::ActsScalar Pmax = Pranges.at(range).second;
+
+        std::uniform_real_distribution<Acts::ActsScalar> uniform(Pmin, Pmax);
+        Acts::ActsScalar p = uniform(rng);
+
+        return p * Acts::Vector3(0, 1, 0);
+    }
+};
+
 /// @brief LUXE specific generators
 namespace LUXESimParticle {
     using namespace Acts::UnitLiterals;
@@ -72,28 +114,4 @@ namespace LUXESimParticle {
         }
     };
 
-    /// @brief Uniform momentum generator
-    struct RangedUniformMomentumGenerator : public IMomentumGenerator {
-        std::vector<std::pair<Acts::ActsScalar, Acts::ActsScalar>> Eranges {
-            std::make_pair(1_GeV, 3_GeV),
-            std::make_pair(3_GeV, 6_GeV),
-            std::make_pair(6_GeV, 9_GeV),
-            std::make_pair(9_GeV, 12_GeV)};
-    
-        Acts::ActsScalar m = 0.511 * Acts::UnitConstants::MeV;
-    
-        Acts::Vector3 gen(RandomEngine rng) const override {
-            std::uniform_int_distribution<int> range_select(0, Eranges.size() - 1);
-            int range = range_select(rng);
-    
-            Acts::ActsScalar Emin = Eranges.at(range).first;
-            Acts::ActsScalar Emax = Eranges.at(range).second;
-    
-            std::uniform_real_distribution<Acts::ActsScalar> uniform(Emin, Emax);
-            Acts::ActsScalar E = uniform(rng);
-            Acts::ActsScalar p = std::sqrt(E * E - m * m);
-    
-            return p * Acts::Vector3(0, 1, 0);
-        }
-    };
-}
+} // namespace LUXESimParticle

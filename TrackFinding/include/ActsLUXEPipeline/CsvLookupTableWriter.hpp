@@ -14,8 +14,15 @@
 #include <fstream>
 
 class CsvLookupTableWriter : public IWriter {
-    using eAxis = Acts::Axis<Acts::AxisType::Equidistant, Acts::AxisBoundaryType::Open>;
-    using eGrid = Acts::Grid<std::vector<Acts::ActsScalar>, eAxis>;
+    using TrackParameters = std::tuple<
+        Acts::ActsScalar, 
+        Acts::ActsScalar, 
+        Acts::Vector3, 
+        Acts::Vector3, 
+        Acts::Vector3>;
+
+    using Axis = Acts::Axis<Acts::AxisType::Equidistant, Acts::AxisBoundaryType::Open>;
+    using Grid = Acts::Grid<std::vector<TrackParameters>, Axis, Axis>;
 
     public:
         struct BinningParameters {
@@ -32,13 +39,11 @@ class CsvLookupTableWriter : public IWriter {
             Acts::SourceLinkSurfaceAccessor surfaceAccessor;
             /// First layer extent
             Acts::Extent firstLayerExtent;
-            /// Last layer extent
-            Acts::Extent lastLayerExtent;
             /// The output file name
             std::string filePath = "";
             /// The binning parameters
             BinningParameters XFirst;
-            BinningParameters ZFirst;
+            BinningParameters YFirst;
         };
 
         CsvLookupTableWriter() = delete;
@@ -48,38 +53,79 @@ class CsvLookupTableWriter : public IWriter {
             : m_cfg(config) {
                 // Construct a binned grid for each 
                 // parameter pair
-                eAxis XFirstAxisE(
+                Axis XFirstAxis(
                     m_cfg.XFirst.min, 
                     m_cfg.XFirst.max, 
                     m_cfg.XFirst.nBins);
-                m_EXFirstGrid = std::make_shared<eGrid>(XFirstAxisE);
 
-                eAxis XFirstAxisX(
-                    m_cfg.XFirst.min, 
-                    m_cfg.XFirst.max, 
-                    m_cfg.XFirst.nBins);
-                m_XFirstXLastGrid = std::make_shared<eGrid>(XFirstAxisX);
+                Axis YFirstAxis(
+                    m_cfg.YFirst.min, 
+                    m_cfg.YFirst.max, 
+                    m_cfg.YFirst.nBins);
 
-                eAxis XFirstAxisY(
-                    m_cfg.XFirst.min, 
-                    m_cfg.XFirst.max, 
-                    m_cfg.XFirst.nBins);
-                m_XFirstYLastGrid = std::make_shared<eGrid>(XFirstAxisY);
-
-                eAxis ZFirstAxis(
-                    m_cfg.ZFirst.min, 
-                    m_cfg.ZFirst.max, 
-                    m_cfg.ZFirst.nBins);
-                m_ZFirstZLastGrid = std::make_shared<eGrid>(ZFirstAxis);
+                m_TrackGrid = std::make_shared<Grid>(
+                    std::make_tuple(XFirstAxis, YFirstAxis));
 
                 m_inputMeasurements.initialize(m_cfg.inputCollection);
         }
 
         ~CsvLookupTableWriter() {
-            storeLookUp(m_EXFirstGrid, m_cfg.filePath + "XFirstE_lookup_table.csv");
-            storeLookUp(m_XFirstXLastGrid, m_cfg.filePath + "XFirstXLast_lookup_table.csv");
-            storeLookUp(m_XFirstYLastGrid, m_cfg.filePath + "XFirstYLast_lookup_table.csv");
-            storeLookUp(m_ZFirstZLastGrid, m_cfg.filePath + "ZFirstZLast_lookup_table.csv");
+            auto mean = [](const std::vector<TrackParameters>& values) {
+                TrackParameters meanTrack = {
+                    0, 
+                    0, 
+                    Acts::Vector3(0,0,0), 
+                    Acts::Vector3(0,0,0), 
+                    Acts::Vector3(0,0,0)};
+                
+                for (const auto& track : values) {
+                    std::get<0>(meanTrack) += std::get<0>(track);
+                    std::get<1>(meanTrack) += std::get<1>(track);
+                    std::get<2>(meanTrack) += std::get<2>(track);
+                    std::get<3>(meanTrack) += std::get<3>(track);
+                    std::get<4>(meanTrack) += std::get<4>(track);
+                }
+
+                std::get<0>(meanTrack) /= values.size();
+                std::get<1>(meanTrack) /= values.size();
+                std::get<2>(meanTrack) /= values.size();
+                std::get<3>(meanTrack) /= values.size();
+                std::get<4>(meanTrack) /= values.size();
+
+                return meanTrack;
+            };
+
+            std::map<
+                std::pair<Acts::ActsScalar, Acts::ActsScalar>, 
+                TrackParameters> lookupTable{{}};
+            auto nBinsX = m_TrackGrid->numLocalBins().at(0);
+            auto nBinsY = m_TrackGrid->numLocalBins().at(1);
+            // Loop over bins to build the lookup table
+            for (std::size_t binx = 0; binx < nBinsX; binx++) {
+                for (std::size_t biny = 0; biny < nBinsY; biny++) {
+                    auto values = m_TrackGrid->atLocalBins({binx,biny});
+                    if (values.empty()) {
+                        continue;
+                    }
+
+                    TrackParameters meanTrack = mean(values);
+
+                    auto [x,y] = m_TrackGrid->binCenter({binx,biny});
+
+                    lookupTable[{x,y}] = meanTrack;
+                }
+            }
+            std::fstream file;
+            file.open(m_cfg.filePath, std::ios::out);
+            for (const auto& entry : lookupTable) {
+                auto [x,y] = entry.first;
+                auto [charge, P, vertex, dirIp, dirFTL] = entry.second;
+                file << x << "," << y << "," << charge << "," << P << "," 
+                    << vertex.x() << "," << vertex.y() << "," << vertex.z() << ","
+                    << dirIp.x() << "," << dirIp.y() << "," << dirIp.z() << ","
+                    << dirFTL.x() << "," << dirFTL.y() << "," << dirFTL.z() << std::endl;
+            }
+            file.close();
         };
 
         ProcessCode finalize(const AlgorithmContext &ctx) const {
@@ -87,30 +133,6 @@ class CsvLookupTableWriter : public IWriter {
         }
 
         std::string name() const override { return "CsvLookupTableWriter"; };
-
-        void storeLookUp(std::shared_ptr<eGrid> grid, std::string filename) const {
-            std::unordered_map<Acts::ActsScalar, Acts::ActsScalar> lookupTable;
-            auto nBins = grid->numLocalBins().at(0);
-            std::cout << "Number of bins: " << nBins << std::endl;
-            // Loop over bins to build the lookup table
-            for (std::size_t binx = 0; binx < nBins; binx++) {
-                std::vector<Acts::ActsScalar> values = grid->atLocalBins({binx});
-                if (values.empty()) {
-                    continue;
-                }
-                std::sort(values.begin(), values.end());
-                Acts::ActsScalar median = values[values.size()/2];
-                Acts::ActsScalar x = grid->binCenter({binx}).at(0);
-                
-                lookupTable[x] = median;
-            }
-            std::fstream file;
-            file.open(filename, std::ios::out);
-            for (const auto& entry : lookupTable) {
-                file << entry.first << "," << entry.second << "\n";
-            }
-            file.close();
-        }
 
         /// @brief The execute method        
         ProcessCode write(const AlgorithmContext &ctx) override {
@@ -158,7 +180,6 @@ class CsvLookupTableWriter : public IWriter {
                     locFirstHit, 
                     Acts::Vector3(0, 1, 0));
 
-            auto me = 0.511 * Acts::UnitConstants::MeV;
             if (m_cfg.firstLayerExtent.contains(globFirstHit)) {
                 auto lastHit = input.back();
 
@@ -172,21 +193,16 @@ class CsvLookupTableWriter : public IWriter {
                         locLastHit, 
                         Acts::Vector3(0, 1, 0));
 
-                Acts::ActsScalar E = std::hypot(
-                    1/firstHit.truthParameters[Acts::eBoundQOverP], me);
+                Acts::Vector3 direction = (globLastHit - globFirstHit).normalized();
 
-                m_EXFirstGrid->atPosition(
-                    std::array<double,1>{
-                        globFirstHit.x()}).push_back(E);
-                m_XFirstXLastGrid->atPosition(
-                    std::array<double,1>{
-                        globFirstHit.x()}).push_back(globLastHit.x());
-                m_XFirstYLastGrid->atPosition(
-                    std::array<double,1>{
-                        globFirstHit.x()}).push_back(globLastHit.y());
-                m_ZFirstZLastGrid->atPosition(
-                    std::array<double,1>{
-                        globFirstHit.z()}).push_back(globLastHit.z());
+                m_TrackGrid->atPosition(
+                    std::array<double,2>{
+                        globFirstHit.x(), globFirstHit.z()}).push_back(
+                            {firstHit.ipParameters.charge(), 
+                             firstHit.ipParameters.absoluteMomentum(),
+                             firstHit.ipParameters.position(),
+                             firstHit.ipParameters.direction(), 
+                             direction});
             }
 
             return ProcessCode::SUCCESS;
@@ -208,10 +224,7 @@ class CsvLookupTableWriter : public IWriter {
             {this, "InputMeasurements"};
 
         /// Histograms to handle the binning
-        std::shared_ptr<eGrid> m_EXFirstGrid;
-        std::shared_ptr<eGrid> m_XFirstXLastGrid;
-        std::shared_ptr<eGrid> m_XFirstYLastGrid;
-        std::shared_ptr<eGrid> m_ZFirstZLastGrid;
+        std::shared_ptr<Grid> m_TrackGrid;
 
         std::unique_ptr<const Acts::Logger> m_logger;
 };

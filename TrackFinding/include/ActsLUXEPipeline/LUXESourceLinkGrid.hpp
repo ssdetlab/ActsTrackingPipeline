@@ -1,6 +1,5 @@
 #pragma once
 
-#include "ActsLUXEPipeline/ISourceLinkBinner.hpp"
 #include "ActsLUXEPipeline/LUXEGeometryConstraints.hpp"
 #include "ActsLUXEPipeline/DataContainers.hpp"
 #include "ActsLUXEPipeline/SimpleSourceLink.hpp"
@@ -10,10 +9,12 @@
 
 namespace LUXETrackFinding {
 
-class LUXESourceLinkBinner : public ISourceLinkBinner {
+using namespace Acts::UnitLiterals;
+
+class LUXESourceLinkGrid {
     public:
-        using eAxis = Acts::Axis<Acts::AxisType::Equidistant, Acts::AxisBoundaryType::Open>;
-        using eGrid = Acts::Grid<std::vector<Acts::SourceLink>, eAxis, eAxis>;
+        using AxisType = Acts::Axis<Acts::AxisType::Equidistant, Acts::AxisBoundaryType::Open>;
+        using GridType = Acts::Grid<std::vector<Acts::SourceLink>, AxisType, AxisType>;
 
         /// @brief The nested configuration struct
         struct Config {
@@ -26,16 +27,16 @@ class LUXESourceLinkBinner : public ISourceLinkBinner {
         };
         
         /// @brief Constructor
-        LUXESourceLinkBinner(const Config& config) : m_cfg(config) {};
+        LUXESourceLinkGrid(const Config& config) : m_cfg(config) {};
 
         /// @brief Destructor
-        ~LUXESourceLinkBinner() = default;
+        ~LUXESourceLinkGrid() = default;
 
         /// @brief Bin the source links
         void initialize(
             const Acts::GeometryContext& gctx, 
-            std::vector<Acts::SourceLink> sourceLinks) override {
-                std::unordered_map<int,eGrid> lookupTable;
+            std::vector<Acts::SourceLink> sourceLinks) {
+                std::unordered_map<int,GridType> lookupTable;
     
                 // Construct a binned grid for each layer
                 for (int i = 0; i < m_cfg.gOpt.staveZ.size(); i++) {
@@ -51,10 +52,10 @@ class LUXESourceLinkBinner : public ISourceLinkBinner {
                     double yMin = - m_cfg.gOpt.chipSizeY/2;
                     double yMax = m_cfg.gOpt.chipSizeY/2;
         
-                    eAxis xAxis(xMin, xMax, m_cfg.bins.first);
-                    eAxis yAxis(yMin, yMax, m_cfg.bins.second);
+                    AxisType xAxis(xMin, xMax, m_cfg.bins.first);
+                    AxisType yAxis(yMin, yMax, m_cfg.bins.second);
     
-                    eGrid grid(std::make_tuple(xAxis, yAxis));
+                    GridType grid(std::make_tuple(xAxis, yAxis));
                     lookupTable.insert({i, grid});
                 }
                 // Fill the grid with source links
@@ -76,18 +77,17 @@ class LUXESourceLinkBinner : public ISourceLinkBinner {
                 m_lookupTables = lookupTable;
         }
 
-        eGrid getLookupTable(const Acts::GeometryIdentifier& geoId) const override {
+        GridType operator()(const Acts::GeometryIdentifier& geoId) const {
             return m_lookupTables.at(static_cast<int>(geoId.sensitive()-1));
         }
-
 
     private:
         /// Configuration
         Config m_cfg;
 
         /// Lookup table collection
-        std::unordered_map<int,eGrid> m_lookupTables;
+        std::unordered_map<int,GridType> m_lookupTables;
 
 };
 
-} // namespace LUXESourceLinkBinner
+} // namespace LUXESourceLinkGrid

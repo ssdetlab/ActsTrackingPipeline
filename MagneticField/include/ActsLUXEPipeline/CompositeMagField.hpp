@@ -2,12 +2,18 @@
 
 #include "Acts/MagneticField/MagneticFieldProvider.hpp"
 #include "Acts/Geometry/Extent.hpp"
-#include "ActsLUXEPipeline/E320GeometryConstraints.hpp"
 
 /// @brief Constant magnetic field with bounded region
-class E320MagField : public Acts::MagneticFieldProvider {
+///
+/// This class provides a constant magnetic field within a
+/// bounded region. The magnetic field is zero outside the
+/// bounded region.
+class CompositeMagField : public Acts::MagneticFieldProvider {
     public:
-
+        using FieldComponent = std::pair<
+            Acts::Extent, 
+            const Acts::MagneticFieldProvider*>;
+        using FieldComponents = std::vector<FieldComponent>;
 
         /// @brief Cache for the magnetic field provider
         ///
@@ -22,9 +28,9 @@ class E320MagField : public Acts::MagneticFieldProvider {
         ///
         /// @param params magnetic field parameters for Bx,By,Bz
         /// @param BFieldExtent magnetic field extent
-        E320MagField(const Acts::ActsScalar fieldS);
+        CompositeMagField(const FieldComponents& fieldComponents);
     
-        ~E320MagField() override;
+        ~CompositeMagField() override;
     
         /// @brief Get the magnetic field cache
         ///
@@ -32,21 +38,6 @@ class E320MagField : public Acts::MagneticFieldProvider {
         /// @return magnetic field cache
         Acts::MagneticFieldProvider::Cache makeCache(
                 const Acts::MagneticFieldContext& mctx) const override;
-    
-        /// @brief helper function
-        const Acts::ActsScalar decayFunction(
-                const Acts::ActsScalar x, const Acts::Vector4 params) const;
-    
-        /// @brief calculate the dipole part of the magnetic field
-        ///
-        /// @param pos position in space
-        /// @param dipoleParams tuple<xParams,yParams,zParams>
-        /// @return value of dipole in the x-direction
-        const Acts::Vector3 getDipole(
-                const Acts::Vector3& pos,
-                const std::tuple<Acts::Vector2,
-                                Acts::Vector4,
-                                Acts::Vector4>& dipoleParams) const;
     
         /// @brief Get the magnetic field at a given position
         ///
@@ -67,7 +58,6 @@ class E320MagField : public Acts::MagneticFieldProvider {
                 const Acts::Vector3& position, Acts::ActsMatrix<3, 3>& derivative,
                 MagneticFieldProvider::Cache& cache) const override;
 
-private:
-    /// dipole field strength
-    Acts::ActsScalar m_fieldS;
+    private:
+        FieldComponents m_fieldComponents;
 };
