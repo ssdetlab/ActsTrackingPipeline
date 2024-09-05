@@ -12,7 +12,6 @@
 
 namespace E320Geometry {
 
-// TODO: Add the vacuum exit window
 std::unique_ptr<Acts::Experimental::Blueprint::Node> 
 makeBlueprintE320(
     const std::string& gdmlPath,
@@ -54,7 +53,7 @@ makeBlueprintE320(
             auto layerBuilder =
                 makeLayerBuilder<1>(
                     world, gOpt.g4ToWorld, names, 
-                    {zBounds}, {Acts::BinningValue::binZ});
+                    {zBounds}, {Acts::BinningValue::binY});
 
             // Convention is that the transformations
             // are with respect to the global frame
@@ -88,7 +87,7 @@ makeBlueprintE320(
         auto pdcWindowLayerBuilder =
             makeLayerBuilder<1>(
                 world, gOpt.g4ToWorld, names, 
-                {pdcWindowZBounds}, {Acts::BinningValue::binZ});
+                {pdcWindowZBounds}, {Acts::BinningValue::binY});
 
         Acts::Transform3 pdcWindowTransform = Acts::Transform3::Identity();
         pdcWindowTransform.rotate(

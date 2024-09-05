@@ -16,6 +16,7 @@ target_sources(
     PRIVATE
     src/BinnedMagneticField.cpp
     src/QuadrupoleMagField.cpp
+    src/CompositeMagField.cpp
     src/E320MagField.cpp
 )
 

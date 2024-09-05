@@ -21,6 +21,8 @@
 #include "TMatrix.h" 
 #include "TLorentzVector.h" 
 
+using namespace Acts::UnitLiterals;
+
 /// @brief Intermediate generalization of the 
 /// ROOT file reader to be inhereted from by the
 /// readers for the specific tree structures,
@@ -82,9 +84,18 @@ class ROOTFittedTrackWriter : public IWriter {
                 m_tree->Branch("filteredResiduals", &m_filteredResiduals, buf_size, split_lvl);
                 m_tree->Branch("smoothedResiduals", &m_smoothedResiduals, buf_size, split_lvl);
 
+                m_tree->Branch("predictedDistances", &m_predictedDistances, buf_size, split_lvl);
+                m_tree->Branch("filteredDistances", &m_filteredDistances, buf_size, split_lvl);
+                m_tree->Branch("smoothedDistances", &m_smoothedDistances, buf_size, split_lvl);
+
                 m_tree->Branch("predictedPulls", &m_predictedPulls, buf_size, split_lvl);
                 m_tree->Branch("filteredPulls", &m_filteredPulls, buf_size, split_lvl);
                 m_tree->Branch("smoothedPulls", &m_smoothedPulls, buf_size, split_lvl);
+
+                m_tree->Branch("ipMomentum", &m_ipMomentum);
+                m_tree->Branch("vertex", &m_vertex);
+
+                m_tree->Branch("chi2", &m_chi2, "chi2/D");
 
                 m_inputTracks.initialize(m_cfg.inputTrackCollection);
         }
@@ -106,11 +117,9 @@ class ROOTFittedTrackWriter : public IWriter {
             auto inputTracks = m_inputTracks(ctx);
 
             auto tracks = inputTracks.tracks;
-            auto ids = inputTracks.trackIds;
 
-            for (int idx = 0; idx < inputTracks.size() - 10; idx++) {
+            for (int idx = 0; idx < inputTracks.size(); idx++) {
                 auto [id,track] = inputTracks.getByIndex(idx);
-                std::cout << "WRITE ID = " << id << std::endl;
 
                 std::vector<TVector3> trackHits;
 
@@ -121,6 +130,10 @@ class ROOTFittedTrackWriter : public IWriter {
                 std::vector<TVector3> predictedResiduals;
                 std::vector<TVector3> filteredResiduals;
                 std::vector<TVector3> smoothedResiduals;
+
+                std::vector<double> predictedDistances;
+                std::vector<double> filteredDistances;
+                std::vector<double> smoothedDistances;
 
                 std::vector<TVector3> predictedPulls;
                 std::vector<TVector3> filteredPulls;
@@ -143,46 +156,102 @@ class ROOTFittedTrackWriter : public IWriter {
                     auto filteredDistance = filteredResidual.norm();
                     auto smoothedDistance = smoothedResidual.norm();
 
-                    trackHits.push_back(TVector3(hit[0], hit[1], 0));
+                    predictedDistances.push_back(predictedDistance);
+                    filteredDistances.push_back(filteredDistance);
+                    smoothedDistances.push_back(smoothedDistance);
 
-                    predictedTrackHits.push_back(TVector3(predictedHit[0], predictedHit[1], 0));
-                    filteredTrackHits.push_back(TVector3(filteredHit[0], filteredHit[1], 0));
-                    smoothedTrackHits.push_back(TVector3(smoothedHit[0], smoothedHit[1], 0));
+                    std::cout << "HIT: " << hit.transpose() << std::endl;
 
-                    predictedResiduals.push_back(TVector3(predictedResidual[0], predictedResidual[1], 0));
-                    filteredResiduals.push_back(TVector3(filteredResidual[0], filteredResidual[1], 0));
-                    smoothedResiduals.push_back(TVector3(smoothedResidual[0], smoothedResidual[1], 0));
+                    auto hitGlobal = state.referenceSurface().localToGlobal(
+                        ctx.geoContext, hit, Acts::Vector3(1, 0, 0));
+                    auto predictedHitGlobal = state.referenceSurface().localToGlobal(
+                        ctx.geoContext, predictedHit, Acts::Vector3(1, 0, 0));
+                    auto filteredHitGlobal = state.referenceSurface().localToGlobal(
+                        ctx.geoContext, filteredHit, Acts::Vector3(1, 0, 0));
+                    auto smoothedHitGlobal = state.referenceSurface().localToGlobal(
+                        ctx.geoContext, smoothedHit, Acts::Vector3(1, 0, 0));
 
-                    // auto predictedCovariance =
-                        // state.effectiveProjector() * 
-                        // state.predictedCovariance() * 
-                        // state.effectiveProjector().transpose();
-                    // auto predictedPull = predictedResidual.transpose() * predictedCovariance.inverse() * predictedResidual;
+                    auto predictedResGlobal = state.referenceSurface().localToGlobal(
+                        ctx.geoContext, predictedResidual, Acts::Vector3(1, 0, 0));
+                    auto filteredResGlobal = state.referenceSurface().localToGlobal(
+                        ctx.geoContext, filteredResidual, Acts::Vector3(1, 0, 0));
+                    auto smoothedResGlobal = state.referenceSurface().localToGlobal(
+                        ctx.geoContext, smoothedResidual, Acts::Vector3(1, 0, 0));
 
-                    // auto filteredCovariance =
-                        // state.effectiveProjector() * 
-                        // state.filteredCovariance() * 
-                        // state.effectiveProjector().transpose();
-                    // auto filteredPull = filteredResidual.transpose() * filteredCovariance.inverse() * filteredResidual;
+                    trackHits.push_back(
+                        TVector3(hitGlobal.x(), hitGlobal.y(), hitGlobal.z()));
 
-                    // auto smoothedCovariance =
-                        // state.effectiveProjector() * 
-                        // state.smoothedCovariance() * 
-                        // state.effectiveProjector().transpose();
-                    // auto smoothedPull = smoothedResidual.transpose() * smoothedCovariance.inverse() * smoothedResidual;
+                    predictedTrackHits.push_back(
+                        TVector3(predictedHitGlobal.x(), predictedHitGlobal.y(), predictedHitGlobal.z()));
+                    filteredTrackHits.push_back(
+                        TVector3(filteredHitGlobal.x(), filteredHitGlobal.y(), filteredHitGlobal.z()));
+                    smoothedTrackHits.push_back(
+                        TVector3(smoothedHitGlobal.x(), smoothedHitGlobal.y(), smoothedHitGlobal.z()));
 
-                    // predictedPulls.push_back(TVector3(predictedPull[0], predictedPull[1], 0));
-                    // filteredPulls.push_back(TVector3(filteredPull[0], filteredPull[1], 0));
-                    // smoothedPulls.push_back(TVector3(smoothedPull[0], smoothedPull[1], 0));
+                    predictedResiduals.push_back(
+                        TVector3(predictedResGlobal.x(), predictedResGlobal.y(), predictedResGlobal.z()));
+                    filteredResiduals.push_back(
+                        TVector3(filteredResGlobal.x(), filteredResGlobal.y(), filteredResGlobal.z()));
+                    smoothedResiduals.push_back(
+                        TVector3(smoothedResGlobal.x(), smoothedResGlobal.y(), smoothedResGlobal.z()));
+
+                    auto predictedCovariance =
+                        state.effectiveProjector() * 
+                        state.predictedCovariance() * 
+                        state.effectiveProjector().transpose();
+                    auto predictedPull = predictedCovariance.inverse().cwiseSqrt() * predictedResidual;
+
+                    auto filteredCovariance =
+                        state.effectiveProjector() * 
+                        state.filteredCovariance() * 
+                        state.effectiveProjector().transpose();
+                    auto filteredPull = filteredCovariance.inverse().cwiseSqrt() * filteredResidual;
+
+                    auto smoothedCovariance =
+                        state.effectiveProjector() * 
+                        state.smoothedCovariance() * 
+                        state.effectiveProjector().transpose();
+                    auto smoothedPull = smoothedCovariance.inverse().cwiseSqrt() * smoothedResidual;
+
+                    predictedPulls.push_back(
+                        TVector3(predictedPull.x(), predictedPull.z(), -predictedPull.y()));
+                    filteredPulls.push_back(
+                        TVector3(filteredPull.x(), filteredPull.z(), -filteredPull.y()));
+                    smoothedPulls.push_back(
+                        TVector3(smoothedPull.x(), smoothedPull.z(), -smoothedPull.y()));
                 }
                 m_trackHits = trackHits;
+                
                 m_predictedTrackHits = predictedTrackHits;
                 m_filteredTrackHits = filteredTrackHits;
                 m_smoothedTrackHits = smoothedTrackHits;
+                
                 m_predictedResiduals = predictedResiduals;
                 m_filteredResiduals = filteredResiduals;
                 m_smoothedResiduals = smoothedResiduals;
-                m_tree->Fill();
+
+                m_predictedDistances = predictedDistances;
+                m_filteredDistances = filteredDistances;
+                m_smoothedDistances = smoothedDistances;
+
+                m_predictedPulls = predictedPulls;
+                m_filteredPulls = filteredPulls;
+                m_smoothedPulls = smoothedPulls;
+
+                m_chi2 = track.chi2();
+
+                double me = 0.511 * Acts::UnitConstants::MeV;
+                Acts::Vector3 pVec = track.momentum();
+                double pMag = pVec.norm();
+                m_ipMomentum.SetPxPyPzE(pVec.x(), pVec.y(), pVec.z(), std::hypot(pMag, me));
+                
+                Acts::Vector3 vertex = {track.loc0(), 0, -track.loc1()};
+                m_vertex = TVector3(vertex.x(), vertex.y(), vertex.z());
+
+                {
+                    std::lock_guard<std::mutex> lock(m_mutex);
+                    m_tree->Fill();
+                }
             }
 
             // Return success flag
@@ -227,12 +296,19 @@ class ROOTFittedTrackWriter : public IWriter {
         std::vector<TVector3> m_filteredResiduals;
         std::vector<TVector3> m_smoothedResiduals;
 
+        std::vector<double> m_predictedDistances;
+        std::vector<double> m_filteredDistances;
+        std::vector<double> m_smoothedDistances;
+
         std::vector<TVector3> m_predictedPulls;
         std::vector<TVector3> m_filteredPulls;
         std::vector<TVector3> m_smoothedPulls;
 
+        double m_chi2;
 
-        // std::vector<TMatrix> m_predictedCovariances;
-        // std::vector<TMatrix> m_filteredCovariances;
-        // std::vector<TMatrix> m_smoothedCovariances;
+        TLorentzVector m_ipMomentum;
+        TVector3 m_vertex;
+
+        std::mutex m_mutex;
+
 };

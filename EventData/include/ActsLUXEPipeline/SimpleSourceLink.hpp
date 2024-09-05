@@ -116,3 +116,19 @@ void simpleSourceLinkCalibrator(
         simpleSourceLinkCalibratorReturn<trajectory_t>(
             gctx, cctx, sourceLink, trackState);
 }
+
+// Calibrator to transform the source links
+// to global coordinates
+class SimpleSourceLinkCoordinateCalibrator {
+    public:
+        Acts::SourceLinkSurfaceAccessor m_surfaceAccessor;
+
+        Acts::Vector3 operator()(
+            const Acts::GeometryContext& geoCtx,
+            const Acts::SourceLink& sourceLink) const {
+                auto ssl = sourceLink.get<SimpleSourceLink>();
+                auto res = m_surfaceAccessor(sourceLink)->localToGlobal(
+                    geoCtx, ssl.parameters, Acts::Vector3{0, 1, 0});
+                return res;
+        }
+};

@@ -53,7 +53,7 @@ class TrackFitter : public IAlgorithm {
             for (const auto& seed : input) {
                 auto start = seed.ipParameters;
                 auto sourceLinks = seed.sourceLinks;
-                
+
                 auto res = m_cfg.fitter.fit(sourceLinks.begin(), sourceLinks.end(), 
                     start, m_cfg.kfOptions, tracks);
                 

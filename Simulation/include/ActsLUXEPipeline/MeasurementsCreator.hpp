@@ -142,7 +142,7 @@ struct MeasurementsCreatorAction {
             Acts::CurvilinearTrackParameters ipParameters(
                 Acts::Vector4::Zero(),
                 Acts::Vector3::Zero(),
-                1/1_GeV,
+                1_e / 1_GeV,
                 Acts::BoundSquareMatrix::Identity(),
                 Acts::ParticleHypothesis::electron());
 

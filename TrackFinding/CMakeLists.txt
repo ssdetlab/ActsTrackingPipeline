@@ -12,7 +12,6 @@ target_include_directories(
 target_sources(
     ActsLUXEPipelineCore
     PRIVATE
-    src/PathSeeder.cpp
 )
 
 target_link_libraries(
