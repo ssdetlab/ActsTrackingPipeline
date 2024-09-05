@@ -75,41 +75,36 @@ class IdealSeeder {
 
                 // Insert the first source link
                 sourceLinks.push_back(measurements.front().sourceLink);
-                std::cout << "INITIAL TRACK ID: " << measurements.front().trackId << std::endl;
                 for (auto it = measurements.begin() + 1; it != measurements.end(); ++it) {
                     if (it->trackId == (it - 1)->trackId && (it + 1) != measurements.end()) {
-                        std::cout << "SAME TRACK ID: " << it->trackId << std::endl;
                         // Add the source link to the list
                         // if the hit is from the same track
                         sourceLinks.push_back(it->sourceLink);
                     }
                     else {
-                        std::cout << "NEW TRACK ID: " << it->trackId << std::endl;
                         if ((it + 1) == measurements.end()) {
                             // Add the last source link
                             sourceLinks.push_back(it->sourceLink);
                         }
 
-                        std::cout << "SOURCE LINKS SIZE: " << sourceLinks.size() << std::endl;
-    
-                        if (m_cfg.trackEstimator.connected()) {
-                            bool pivotFound = false;
-                            Acts::SourceLink pivot = sourceLinks.front();
-                            for (auto& sl : sourceLinks) {
-                                auto ssl = sl.get<SimpleSourceLink>();
-                                auto sourceLinkId = ssl.geometryId();
-                                
-                                if (std::find(
-                                        m_cfg.firstLayerIds.begin(), 
-                                        m_cfg.firstLayerIds.end(), 
-                                        sourceLinkId) != m_cfg.firstLayerIds.end()) {
-                                            pivot = sl;
-                                            pivotFound = true;
-                                            std::cout << "PIVOT FOUND " << ssl.geometryId() << std::endl;
-                                            break;
-                                }
+                        bool pivotFound = false;
+                        Acts::SourceLink pivot = sourceLinks.front();
+                        for (auto& sl : sourceLinks) {
+                            auto ssl = sl.get<SimpleSourceLink>();
+                            auto sourceLinkId = ssl.geometryId();
+                            
+                            if (std::find(
+                                    m_cfg.firstLayerIds.begin(), 
+                                    m_cfg.firstLayerIds.end(), 
+                                    sourceLinkId) != m_cfg.firstLayerIds.end()) {
+                                        pivot = sl;
+                                        pivotFound = true;
+                                        break;
                             }
-                            if (pivotFound) {
+                        }
+
+                        if (pivotFound) {
+                            if (m_cfg.trackEstimator.connected()) {
                                 Acts::Vector3 globalPos = m_cfg.sourceLinkCalibrator(gctx, pivot);
             
                                 // Get the IP parameters
@@ -131,16 +126,16 @@ class IdealSeeder {
                                 seeds.push_back(Seed{
                                     sourceLinks, ipParameters, (it - 1)->trackId});
                             }
-                        }
-                        else {
-                            // Ip parameter is the same for all hits
-                            // with the same track id
-                            Acts::CurvilinearTrackParameters ipParameters =
-                                (it - 1)->ipParameters;
-        
-                            // Add the seed to the list
-                            seeds.push_back(Seed{
-                                sourceLinks, ipParameters, (it - 1)->trackId});
+                            else {
+                                // Ip parameter is the same for all hits
+                                // with the same track id
+                                Acts::CurvilinearTrackParameters ipParameters =
+                                    (it - 1)->ipParameters;
+            
+                                // Add the seed to the list
+                                seeds.push_back(Seed{
+                                    sourceLinks, ipParameters, (it - 1)->trackId});
+                            }
                         }
                         // Reset the source links
                         sourceLinks.clear();

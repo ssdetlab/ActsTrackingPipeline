@@ -39,8 +39,10 @@ class ROOTFittedTrackWriter : public IWriter {
     public:
         /// @brief The nested configuration struct
         struct Config {
-            /// name of the fitted track collection
+            /// Name of the fitted track collection
             std::string inputTrackCollection;
+            /// Name of the seed collection
+            std::string inputSeedCollection;
             /// Name of the input tree
             std::string treeName;
             /// The names of the input files
@@ -95,9 +97,14 @@ class ROOTFittedTrackWriter : public IWriter {
                 m_tree->Branch("ipMomentum", &m_ipMomentum);
                 m_tree->Branch("vertex", &m_vertex);
 
+                m_tree->Branch("ipMomentumTruth", &m_ipMomentumTruth);
+                m_tree->Branch("vertexTruth", &m_vertexTruth);
+
                 m_tree->Branch("chi2", &m_chi2, "chi2/D");
 
                 m_inputTracks.initialize(m_cfg.inputTrackCollection);
+
+                m_inputSeeds.initialize(m_cfg.inputSeedCollection);
         }
 
         /// Destructor
@@ -115,6 +122,8 @@ class ROOTFittedTrackWriter : public IWriter {
         /// Write out data to the input stream
         ProcessCode write(const AlgorithmContext &ctx) override {
             auto inputTracks = m_inputTracks(ctx);
+
+            auto inputSeeds = m_inputSeeds(ctx);
 
             auto tracks = inputTracks.tracks;
 
@@ -148,20 +157,6 @@ class ROOTFittedTrackWriter : public IWriter {
                     auto filteredHit = state.effectiveProjector() * state.filtered();
                     auto smoothedHit = state.effectiveProjector() * state.smoothed();
 
-                    auto predictedResidual = (hit - predictedHit).eval();
-                    auto filteredResidual = (hit - filteredHit).eval();
-                    auto smoothedResidual = (hit - smoothedHit).eval();
-
-                    auto predictedDistance = predictedResidual.norm();
-                    auto filteredDistance = filteredResidual.norm();
-                    auto smoothedDistance = smoothedResidual.norm();
-
-                    predictedDistances.push_back(predictedDistance);
-                    filteredDistances.push_back(filteredDistance);
-                    smoothedDistances.push_back(smoothedDistance);
-
-                    std::cout << "HIT: " << hit.transpose() << std::endl;
-
                     auto hitGlobal = state.referenceSurface().localToGlobal(
                         ctx.geoContext, hit, Acts::Vector3(1, 0, 0));
                     auto predictedHitGlobal = state.referenceSurface().localToGlobal(
@@ -171,12 +166,17 @@ class ROOTFittedTrackWriter : public IWriter {
                     auto smoothedHitGlobal = state.referenceSurface().localToGlobal(
                         ctx.geoContext, smoothedHit, Acts::Vector3(1, 0, 0));
 
-                    auto predictedResGlobal = state.referenceSurface().localToGlobal(
-                        ctx.geoContext, predictedResidual, Acts::Vector3(1, 0, 0));
-                    auto filteredResGlobal = state.referenceSurface().localToGlobal(
-                        ctx.geoContext, filteredResidual, Acts::Vector3(1, 0, 0));
-                    auto smoothedResGlobal = state.referenceSurface().localToGlobal(
-                        ctx.geoContext, smoothedResidual, Acts::Vector3(1, 0, 0));
+                    auto predictedResidual = hitGlobal - predictedHitGlobal;
+                    auto filteredResidual = hitGlobal - filteredHitGlobal;
+                    auto smoothedResidual = hitGlobal - smoothedHitGlobal;
+
+                    auto predictedDistance = predictedResidual.norm();
+                    auto filteredDistance = filteredResidual.norm();
+                    auto smoothedDistance = smoothedResidual.norm();
+
+                    predictedDistances.push_back(predictedDistance);
+                    filteredDistances.push_back(filteredDistance);
+                    smoothedDistances.push_back(smoothedDistance);
 
                     trackHits.push_back(
                         TVector3(hitGlobal.x(), hitGlobal.y(), hitGlobal.z()));
@@ -189,36 +189,36 @@ class ROOTFittedTrackWriter : public IWriter {
                         TVector3(smoothedHitGlobal.x(), smoothedHitGlobal.y(), smoothedHitGlobal.z()));
 
                     predictedResiduals.push_back(
-                        TVector3(predictedResGlobal.x(), predictedResGlobal.y(), predictedResGlobal.z()));
+                        TVector3(predictedResidual.x(), predictedResidual.y(), predictedResidual.z()));
                     filteredResiduals.push_back(
-                        TVector3(filteredResGlobal.x(), filteredResGlobal.y(), filteredResGlobal.z()));
+                        TVector3(filteredResidual.x(), filteredResidual.y(), filteredResidual.z()));
                     smoothedResiduals.push_back(
-                        TVector3(smoothedResGlobal.x(), smoothedResGlobal.y(), smoothedResGlobal.z()));
+                        TVector3(smoothedResidual.x(), smoothedResidual.y(), smoothedResidual.z()));
 
-                    auto predictedCovariance =
-                        state.effectiveProjector() * 
-                        state.predictedCovariance() * 
-                        state.effectiveProjector().transpose();
-                    auto predictedPull = predictedCovariance.inverse().cwiseSqrt() * predictedResidual;
+                    // auto predictedCovariance =
+                        // state.effectiveProjector() * 
+                        // state.predictedCovariance() * 
+                        // state.effectiveProjector().transpose();
+                    // auto predictedPull = predictedCovariance.inverse().cwiseSqrt() * predictedResidual;
 
-                    auto filteredCovariance =
-                        state.effectiveProjector() * 
-                        state.filteredCovariance() * 
-                        state.effectiveProjector().transpose();
-                    auto filteredPull = filteredCovariance.inverse().cwiseSqrt() * filteredResidual;
+                    // auto filteredCovariance =
+                        // state.effectiveProjector() * 
+                        // state.filteredCovariance() * 
+                        // state.effectiveProjector().transpose();
+                    // auto filteredPull = filteredCovariance.inverse().cwiseSqrt() * filteredResidual;
 
-                    auto smoothedCovariance =
-                        state.effectiveProjector() * 
-                        state.smoothedCovariance() * 
-                        state.effectiveProjector().transpose();
-                    auto smoothedPull = smoothedCovariance.inverse().cwiseSqrt() * smoothedResidual;
+                    // auto smoothedCovariance =
+                        // state.effectiveProjector() * 
+                        // state.smoothedCovariance() * 
+                        // state.effectiveProjector().transpose();
+                    // auto smoothedPull = smoothedCovariance.inverse().cwiseSqrt() * smoothedResidual;
 
-                    predictedPulls.push_back(
-                        TVector3(predictedPull.x(), predictedPull.z(), -predictedPull.y()));
-                    filteredPulls.push_back(
-                        TVector3(filteredPull.x(), filteredPull.z(), -filteredPull.y()));
-                    smoothedPulls.push_back(
-                        TVector3(smoothedPull.x(), smoothedPull.z(), -smoothedPull.y()));
+                    // predictedPulls.push_back(
+                        // TVector3(predictedPull.x(), 0, -predictedPull.y()));
+                    // filteredPulls.push_back(
+                        // TVector3(filteredPull.x(), 0, -filteredPull.y()));
+                    // smoothedPulls.push_back(
+                        // TVector3(smoothedPull.x(), 0, -smoothedPull.y()));
                 }
                 m_trackHits = trackHits;
                 
@@ -248,6 +248,23 @@ class ROOTFittedTrackWriter : public IWriter {
                 Acts::Vector3 vertex = {track.loc0(), 0, -track.loc1()};
                 m_vertex = TVector3(vertex.x(), vertex.y(), vertex.z());
 
+                for (auto& seed : inputSeeds) {
+                    if (seed.trackId == id) {
+                        Acts::Vector3 pVecTruth = seed.ipParameters.momentum();
+                        double pMagTruth = pVecTruth.norm();
+                        m_ipMomentumTruth.SetPxPyPzE(
+                            pVecTruth.x(), pVecTruth.y(), pVecTruth.z(), std::hypot(pMagTruth, me));
+                        
+                        Acts::Vector3 vertexTruth = {
+                            seed.ipParameters.position().x(),
+                            seed.ipParameters.position().y(),
+                            seed.ipParameters.position().z()};
+                        m_vertexTruth = TVector3(vertexTruth.x(), vertexTruth.y(), vertexTruth.z());
+
+                        break;
+                    }
+                }
+
                 {
                     std::lock_guard<std::mutex> lock(m_mutex);
                     m_tree->Fill();
@@ -272,6 +289,9 @@ class ROOTFittedTrackWriter : public IWriter {
             Acts::VectorTrackContainer,
             Acts::VectorMultiTrajectory>>
                 m_inputTracks{this, "InputTracks"};  
+
+        ReadDataHandle<Seeds>
+            m_inputSeeds{this, "InputSeeds"};  
 
         std::unique_ptr<const Acts::Logger> m_logger;
 
@@ -308,6 +328,9 @@ class ROOTFittedTrackWriter : public IWriter {
 
         TLorentzVector m_ipMomentum;
         TVector3 m_vertex;
+
+        TLorentzVector m_ipMomentumTruth;
+        TVector3 m_vertexTruth;
 
         std::mutex m_mutex;
 

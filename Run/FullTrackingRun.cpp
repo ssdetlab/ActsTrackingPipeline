@@ -646,6 +646,7 @@ int main() {
 
     auto trackWriterCfg = ROOTFittedTrackWriter::Config{
         "SimTracks",
+        "IdealSeeds",
         "fitted-tracks",
         "fitted-tracks.root",
         3,
