@@ -53,8 +53,6 @@ class IdealSeedingAlgorithm : public IAlgorithm {
             );
 
             Seeds seeds = m_cfg.seeder->getSeeds(ctx.geoContext, input);
-            
-            // std::cout << "IDEAL SEEDS SIZE: " << seeds.size() << std::endl;
 
             m_outputSeeds(ctx, std::move(seeds));
 

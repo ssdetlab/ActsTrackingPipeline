@@ -1,6 +1,6 @@
 #include "ActsLUXEPipeline/E320ROOTDataReader.hpp"
 #include "ActsLUXEPipeline/E320Geometry.hpp"
-#include "ActsLUXEPipeline/TrackFitter.hpp"
+#include "ActsLUXEPipeline/TrackFittingAlgorithm.hpp"
 #include "ActsLUXEPipeline/QuadrupoleMagField.hpp"
 #include "ActsLUXEPipeline/DipoleMagField.hpp"
 #include "ActsLUXEPipeline/CompositeMagField.hpp"
@@ -12,15 +12,22 @@
 #include "ActsLUXEPipeline/E320PathWidthProvider.hpp"
 #include "ActsLUXEPipeline/PathSeedingAlgorithm.hpp"
 #include "ActsLUXEPipeline/IdealSeedingAlgorithm.hpp"
+#include "ActsLUXEPipeline/TryAllTrackFindingAlgorithm.hpp"
+#include "ActsLUXEPipeline/CKFTrackFindingAlgorithm.hpp"
+#include "ActsLUXEPipeline/Generators.hpp"
+#include "ActsLUXEPipeline/NoiseEmbeddingAlgorithm.hpp"
+#include "ActsLUXEPipeline/PhoenixTrackWriter.hpp"
 
 #include "Acts/Seeding/PathSeeder.hpp"
 #include "Acts/Utilities/Logger.hpp"
-#include "Acts/Surfaces/PlaneSurface.hpp"
-#include "Acts/Surfaces/RectangleBounds.hpp"
 #include "Acts/Propagator/EigenStepper.hpp"
 #include "Acts/Navigation/DetectorNavigator.hpp"
 #include "Acts/Surfaces/RectangleBounds.hpp"
 #include "Acts/Surfaces/PlaneSurface.hpp"
+#include "Acts/EventData/VectorTrackContainer.hpp"
+#include "Acts/EventData/VectorMultiTrajectory.hpp"
+#include "Acts/TrackFinding/MeasurementSelector.hpp"
+#include "Acts/TrackFitting/GainMatrixUpdater.hpp"
 
 #include <filesystem>
 
@@ -36,8 +43,16 @@ using PropagatorOptions =
     typename Propagator::template Options<ActionList, AbortList>;
 
 using Trajectory = Acts::VectorMultiTrajectory;
-using TrackContainer = Acts::VectorTrackContainer;
+using KFTrackContainer = Acts::VectorTrackContainer;
 using KF = Acts::KalmanFitter<Propagator, Trajectory>;
+
+using CKFTrackContainer = Acts::TrackContainer<
+    Acts::VectorTrackContainer,
+    Acts::VectorMultiTrajectory,
+    Acts::detail::ValueHolder>;
+
+using TrackStateContainerBackend =
+    typename CKFTrackContainer::TrackStateContainerBackend;
 
 using namespace Acts::UnitLiterals;
 
@@ -65,12 +80,12 @@ class SeedComparer : public IAlgorithm {
             auto idealSeeds = m_inputIdealSeeds(context);
             auto pathSeeds = m_inputPathSeeds(context);
 
+            std::cout << "Ideal seeds size: " << idealSeeds.size() << std::endl;
+            std::cout << "Path seeds size: " << pathSeeds.size() << std::endl;
+
             if (idealSeeds.empty() || pathSeeds.empty()) {
                 return ProcessCode::SUCCESS;
             }
-
-            std::cout << "Ideal seeds size: " << idealSeeds.size() << std::endl;
-            std::cout << "Path seeds size: " << pathSeeds.size() << std::endl;
 
             // Path seeds that contain the pivot
             // from the ideal seeds
@@ -90,7 +105,11 @@ class SeedComparer : public IAlgorithm {
 
             // Path seeds that have one or more
             // measurements lost from the ideal seeds
-            int lostSeeds = 0;
+            int lostSeeds23 = 0;
+            int lostSeeds34 = 0;
+
+            double seeds23 = 0;
+            double seeds34 = 0;
 
             // Normalization
             int idealPivots = idealSeeds.size();
@@ -203,6 +222,14 @@ class SeedComparer : public IAlgorithm {
                 
                 // Compare the source links
                 auto idealSeed = *idealSeedIt;
+                if (idealSeed.ipParameters.absoluteMomentum() > 2 && 
+                    idealSeed.ipParameters.absoluteMomentum() < 3) {
+                        seeds23++;
+                }
+                else if (idealSeed.ipParameters.absoluteMomentum() > 3 &&
+                    idealSeed.ipParameters.absoluteMomentum() < 4) {
+                        seeds34++;
+                }
                 bool seedMatched = true;
                 for (int i = 0; i < idealSeed.sourceLinks.size(); i++) {
                     auto sl = idealSeed.sourceLinks.at(i);
@@ -215,7 +242,13 @@ class SeedComparer : public IAlgorithm {
                             return ssl == psSsl;
                     });
                     if (psIt == pathSeed.sourceLinks.end()) {
-                        lostSeeds++;
+                        double E = idealSeed.ipParameters.absoluteMomentum();
+                        if (E > 2 && E < 3) {
+                            lostSeeds23++;
+                        }
+                        else if (E > 3 && E < 4) {
+                            lostSeeds34++;
+                        }
                         seedMatched = false;
                         break;
                     }
@@ -229,7 +262,8 @@ class SeedComparer : public IAlgorithm {
             std::cout << "Fake pivots: " << fakePivots << std::endl;
             std::cout << "Lost pivots: " << lostPivots << std::endl;
             std::cout << "Matched seeds: " << matchedSeeds << " / " << idealPivots << std::endl;
-            std::cout << "Lost seeds: " << lostSeeds << std::endl;
+            std::cout << "Lost seeds 23: " << 1 - lostSeeds23 / seeds23 << std::endl;
+            std::cout << "Lost seeds 34: " << 1 - lostSeeds34 / seeds34 << std::endl;
             std::cout << "Path seed size: " << pathSeedSize/pathSeeds.size() << std::endl;
 
             return ProcessCode::SUCCESS;
@@ -247,7 +281,7 @@ class SeedComparer : public IAlgorithm {
 
 int main() {
     // Set the log level
-    Acts::Logging::Level logLevel = Acts::Logging::INFO;
+    Acts::Logging::Level logLevel = Acts::Logging::FATAL;
 
     // Dummy context and options
     Acts::GeometryContext gctx;
@@ -373,41 +407,44 @@ int main() {
 
     // Setup the sequencer
     Sequencer::Config seqCfg;
-    seqCfg.events = 1;
-    seqCfg.numThreads = 1;
+    seqCfg.events = 100;
+    seqCfg.numThreads = -1;
     seqCfg.trackFpes = false;
     Sequencer sequencer(seqCfg);
 
     // Add the sim data reader
-    E320ROOTReader::E320ROOTSimDataReader::Config readerCfg = 
-        E320ROOTReader::defaultSimConfig();
-    readerCfg.dataCollection = "Measurements";
+    E320ROOTReader::E320ROOTSimSplitDataReader::Config readerCfg = 
+        E320ROOTReader::defaultSimSplitConfig();
+    readerCfg.dataCollection = "SimMeasurements";
     std::string pathToDir = 
-        "/home/romanurmanov/lab/LUXE/acts_LUXE_tracking/E320Pipeline_dataInRootFormat/Signal_E320lp_10.0";
+        "/home/romanurmanov/lab/LUXE/acts_LUXE_tracking/E320Pipeline_dataInRootFormat/Signal_E320lp_10.0_split";
 
     // Get the paths to the files in the directory
     for (const auto & entry : std::filesystem::directory_iterator(pathToDir)) {
         std::string pathToFile = entry.path();
         readerCfg.filePaths.push_back(pathToFile);
+        std::cout << pathToFile << std::endl;
     }
 
-    // The events are not sorted in the directory
-    // but we need to process them in order
-    std::sort(readerCfg.filePaths.begin(), readerCfg.filePaths.end(),
-        [] (const std::string& a, const std::string& b) {
-            std::size_t idxRootA = a.find_last_of('.');
-            std::size_t idxEventA = a.find_last_of('t', idxRootA);
-            std::string eventSubstrA = a.substr(idxEventA + 1, idxRootA - idxEventA);
+    std::cout << "Number of files: " << readerCfg.filePaths.size() << std::endl;
+
+    // // The events are not sorted in the directory
+    // // but we need to process them in order
+    // std::sort(readerCfg.filePaths.begin(), readerCfg.filePaths.end(),
+        // [] (const std::string& a, const std::string& b) {
+            // std::size_t idxRootA = a.find_last_of('.');
+            // std::size_t idxEventA = a.find_last_of('t', idxRootA);
+            // std::string eventSubstrA = a.substr(idxEventA + 1, idxRootA - idxEventA);
             
-            std::size_t idxRootB = b.find_last_of('.');
-            std::size_t idxEventB = b.find_last_of('t', idxRootB);
-            std::string eventSubstrB = b.substr(idxEventB + 1, idxRootB - idxEventB);
+            // std::size_t idxRootB = b.find_last_of('.');
+            // std::size_t idxEventB = b.find_last_of('t', idxRootB);
+            // std::string eventSubstrB = b.substr(idxEventB + 1, idxRootB - idxEventB);
 
-            return std::stoul(eventSubstrA) < std::stoul(eventSubstrB);
-        }
-    );
+            // return std::stoul(eventSubstrA) < std::stoul(eventSubstrB);
+        // }
+    // );
 
-    readerCfg.energyCuts = {0_GeV, 100_GeV};
+    readerCfg.energyCuts = {2_GeV, 4_GeV};
 
     // Vertex position extent in the already rotated frame
     Acts::Extent vertexExtent;
@@ -422,20 +459,35 @@ int main() {
 
     // Add the reader to the sequencer
     sequencer.addReader(
-        std::make_shared<E320ROOTReader::E320ROOTSimDataReader>(readerCfg, logLevel));
+        std::make_shared<E320ROOTReader::E320ROOTSimSplitDataReader>(readerCfg, logLevel));
+
+    // --------------------------------------------------------------
+    // Backgorund generation
+    auto noiseGenerator = std::make_shared<UniformNoiseGenerator>();
+    noiseGenerator->numberOfHits = 500;
+
+    NoiseEmbeddingAlgorithm::Config noiseCfg {
+        .noiseGenerator = noiseGenerator,
+        .detector = detector.get(),
+        .inputCollection = "SimMeasurements",
+        .outputCollection = "Measurements"
+    };
+
+    sequencer.addAlgorithm(
+        std::make_shared<NoiseEmbeddingAlgorithm>(noiseCfg, logLevel));
 
     // --------------------------------------------------------------
     // The path seeding setup
     SimpleSourceLink::SurfaceAccessor surfaceAccessor{*detector};
 
-    auto pathSeederCfg = Acts::Experimental::PathSeeder<Grid>::Config();
+    auto pathSeederCfg = Acts::Experimental::PathSeeder::Config();
 
     // Estimator of the IP and first hit
     // parameters of the track
     CsvLookupTableProvider::Config trackLookupCfg;
 
     trackLookupCfg.filePath = 
-        "/home/romanurmanov/lab/LUXE/acts_LUXE_tracking/ActsLUXEPipeline_build/lookupTable.csv";
+        "/home/romanurmanov/lab/LUXE/acts_LUXE_tracking/E320Pipeline_lookups/RangedUniform_05_45_Stationary_000_200k_1000x100_MaterialOn_lookup.csv";
 
     CsvLookupTableProvider trackLookup(trackLookupCfg);
     pathSeederCfg.trackEstimator.connect<
@@ -494,14 +546,17 @@ int main() {
     pathSeederCfg.intersectionFinder.connect<
         &ForwardOrderedIntersectionFinder::operator()>(&intersectionFinder);
 
+    pathSeederCfg.minE = 1.8_GeV;
+    pathSeederCfg.maxE = 4.2_GeV;
+
     // Path width provider
     std::map<std::int32_t, std::pair<
         Acts::ActsScalar,Acts::ActsScalar>> 
             pathWidths = {
                 {0, {100_um, 100_um}},
                 {1, {200_um, 200_um}},
-                {2, {300_um, 300_um}},
-                {3, {350_um, 350_um}},
+                {2, {450_um, 450_um}},
+                {3, {700_um, 700_um}},
     };
 
     E320TrackFinding::E320PathWidthProvider pathWidthProvider(
@@ -517,7 +572,7 @@ int main() {
     // Grid to bin the source links
     E320TrackFinding::E320SourceLinkGridConstructor::Config gridConstructorCfg{
         .gOpt = gOpt,
-        .bins = std::make_pair(1000, 100),
+        .bins = std::make_pair(1000, 10),
     };
     gridConstructorCfg.surfaceAccessor.connect<
         &SimpleSourceLink::SurfaceAccessor::operator()>(
@@ -526,14 +581,98 @@ int main() {
     auto gridConstructor = std::make_shared<E320TrackFinding::E320SourceLinkGridConstructor>(gridConstructorCfg); 
 
     // Create the path seeder algorithm
-    auto seedingAlgoCfg = PathSeedingAlgorithm<Grid>::Config();
-    seedingAlgoCfg.seeder = std::make_shared<Acts::Experimental::PathSeeder<Grid>>(pathSeederCfg);
+    auto seedingAlgoCfg = PathSeedingAlgorithm::Config();
+    seedingAlgoCfg.seeder = std::make_shared<Acts::Experimental::PathSeeder>(pathSeederCfg);
     seedingAlgoCfg.sourceLinkGridConstructor = gridConstructor;
     seedingAlgoCfg.inputCollection = "Measurements";
     seedingAlgoCfg.outputCollection = "PathSeeds";
 
     sequencer.addAlgorithm(
-        std::make_shared<PathSeedingAlgorithm<Grid>>(seedingAlgoCfg, logLevel));
+        std::make_shared<PathSeedingAlgorithm>(seedingAlgoCfg, logLevel));
+
+    // --------------------------------------------------------------
+    // Track finding
+    // TryAllTrackFindingAlgorithm::Config trackFindingCfg;
+    // trackFindingCfg.inputCollection = "PathSeeds";
+    // trackFindingCfg.outputCollection = "TrackCandidates";
+    // trackFindingCfg.minSourceLinks = 3;
+
+    // sequencer.addAlgorithm(
+        // std::make_shared<TryAllTrackFindingAlgorithm>(trackFindingCfg, logLevel));
+
+    Acts::Experimental::DetectorNavigator::Config ckfNavigatorCfg;
+    ckfNavigatorCfg.detector = detector.get();
+    ckfNavigatorCfg.resolvePassive = false;
+    ckfNavigatorCfg.resolveMaterial = true;
+    ckfNavigatorCfg.resolveSensitive = true;
+    Acts::Experimental::DetectorNavigator ckfNavigator(
+        ckfNavigatorCfg, Acts::getDefaultLogger("DetectorNavigator", logLevel));
+
+    Acts::EigenStepper<> ckfStepper(field);
+    auto ckfPropagator = Propagator(
+        std::move(ckfStepper), std::move(ckfNavigator),
+        Acts::getDefaultLogger("Propagator", logLevel));
+
+    Acts::CombinatorialKalmanFilter<Propagator,CKFTrackContainer> ckf(
+        ckfPropagator, Acts::getDefaultLogger("CombinatorialKalmanFilter", logLevel));
+
+    // Configuration for the measurement selector
+    std::vector<std::pair<
+        Acts::GeometryIdentifier, Acts::MeasurementSelectorCuts>> cuts;
+    for (auto& vol : detector->volumes()) {
+        for (auto& surf : vol->surfaces()) {
+            if (vol->name() == "layer0") {
+                cuts.push_back(
+                    {
+                        surf->geometryId(), 
+                        {
+                            {}, 
+                            {std::numeric_limits<Acts::ActsScalar>::max()}, 
+                            {1000u}
+                        }
+                    });
+            }
+            else {
+                cuts.push_back(
+                    {
+                        surf->geometryId(), 
+                        {
+                            {}, 
+                            {10}, 
+                            {10u}
+                        }
+                    });
+            }
+        }
+    }
+    Acts::MeasurementSelector::Config measurementSelectorCfg(cuts);
+
+    Acts::MeasurementSelector measSel{measurementSelectorCfg};
+
+    // CKF extensions
+    Acts::GainMatrixUpdater ckfUpdater;
+
+    Acts::CombinatorialKalmanFilterExtensions<CKFTrackContainer> ckfExtensions;
+        ckfExtensions.calibrator.template connect<
+            &simpleSourceLinkCalibrator<TrackStateContainerBackend>>();
+    ckfExtensions.updater.template connect<
+        &Acts::GainMatrixUpdater::operator()<TrackStateContainerBackend>>(&ckfUpdater);
+    ckfExtensions.measurementSelector.template connect<
+        &Acts::MeasurementSelector::select<TrackStateContainerBackend>>(
+        &measSel);
+
+    CKFTrackFindingAlgorithm<Propagator, CKFTrackContainer>::Config trackFindingCfg{
+        .ckf = ckf,
+    };
+    trackFindingCfg.extensions = ckfExtensions;
+    trackFindingCfg.inputCollection = "PathSeeds";
+    trackFindingCfg.outputCollection = "TrackCandidates";
+    trackFindingCfg.minSourceLinks = 4;
+    trackFindingCfg.maxSourceLinks = 4;
+
+    auto trackFindingAlgorithm = 
+        std::make_shared<CKFTrackFindingAlgorithm<Propagator, CKFTrackContainer>>(trackFindingCfg, logLevel);
+    sequencer.addAlgorithm(trackFindingAlgorithm);
 
     // --------------------------------------------------------------
     // Track fitting
@@ -559,14 +698,14 @@ int main() {
     auto propOptions = 
         PropagatorOptions(gctx, mctx);
 
-    propOptions.maxSteps = 1000;
+    propOptions.maxSteps = 300;
 
     auto options = Acts::KalmanFitterOptions(gctx, mctx, cctx, extensions,
         propOptions);
 
     // Reference surface for sampling the track at the IP
-    double halfX = 10000;
-    double halfY = 10000;
+    double halfX = std::numeric_limits<double>::max();
+    double halfY = std::numeric_limits<double>::max();
 
     Acts::Transform3 transform(
         Acts::Translation3(Acts::Vector3(0, 0, 0)) *
@@ -601,21 +740,21 @@ int main() {
             Acts::getDefaultLogger("DetectorKalmanFilter", logLevel));
 
     // Add the track fitting algorithm to the sequencer
-    TrackFitter<
+    TrackFittingAlgorithm<
         Propagator, 
         Trajectory, 
-        TrackContainer>::Config fitterCfg{
-            .inputCollection = "PathSeeds",
-            .outputCollection = "SimTracks",
+        KFTrackContainer>::Config fitterCfg{
+            .inputCollection = "TrackCandidates",
+            .outputCollection = "Tracks",
             .fitter = fitter,
             .kfOptions = options};
 
     sequencer.addAlgorithm(
         std::make_shared<
-            TrackFitter<
+            TrackFittingAlgorithm<
             Propagator, 
             Trajectory, 
-            TrackContainer>>(fitterCfg, logLevel));
+            KFTrackContainer>>(fitterCfg, logLevel));
 
     // --------------------------------------------------------------
     // Ideal seeder for the truth comparison
@@ -623,13 +762,19 @@ int main() {
     // Add the ideal seeder to the sequencer
     IdealSeeder::Config fullMatchingSeederCfg;
 
-    fullMatchingSeederCfg.firstLayerIds = pathSeederCfg.firstLayerIds;
-    fullMatchingSeederCfg.sourceLinkCalibrator.connect<
-        &SimpleSourceLinkCoordinateCalibrator::operator()>(
-        &sourceLinkCalibrator);
-    fullMatchingSeederCfg.trackEstimator.connect<
-        &CsvLookupTableProvider::operator()>(
-        &trackLookup);
+    fullMatchingSeederCfg.minSourceLinks = 4;
+    fullMatchingSeederCfg.maxSourceLinks = 4;
+
+    auto firstTrackingVolume = detector->findDetectorVolume("layer0");
+    for (const auto& s : firstTrackingVolume->surfaces()) {
+        fullMatchingSeederCfg.firstLayerIds.push_back(s->geometryId());
+    }
+    // fullMatchingSeederCfg.sourceLinkCalibrator.connect<
+        // &SimpleSourceLinkCoordinateCalibrator::operator()>(
+        // &sourceLinkCalibrator);
+    // fullMatchingSeederCfg.trackEstimator.connect<
+        // &CsvLookupTableProvider::operator()>(
+        // &trackLookup);
 
     auto fullMatchingSeeder = std::make_shared<IdealSeeder>(fullMatchingSeederCfg);
 
@@ -640,21 +785,31 @@ int main() {
 
     sequencer.addAlgorithm(
         std::make_shared<IdealSeedingAlgorithm>(idealSeederCfg, logLevel));
-
+        
     // --------------------------------------------------------------
     // Event write out
 
-    auto trackWriterCfg = ROOTFittedTrackWriter::Config{
-        "SimTracks",
-        "IdealSeeds",
-        "fitted-tracks",
-        "fitted-tracks.root",
-        3,
-        10
-    };
+    auto trackWriterCfg = ROOTFittedTrackWriter::Config();
+    trackWriterCfg.surfaceAccessor.connect<
+        &SimpleSourceLink::SurfaceAccessor::operator()>(
+            &surfaceAccessor);
+
+    trackWriterCfg.inputTrackCollection = "Tracks";
+    trackWriterCfg.inputSeedCollection = "IdealSeeds";
+    trackWriterCfg.treeName = "fitted-tracks";
+    trackWriterCfg.filePath = "fitted-tracks-signal-bkg.root";
 
     sequencer.addWriter(
         std::make_shared<ROOTFittedTrackWriter>(trackWriterCfg, logLevel));
+
+    // // --------------------------------------------------------------
+    // // Phoenix write out
+    // PhoenixTrackWriter::Config phoenixWriterCfg;
+    // phoenixWriterCfg.inputTrackCollection = "Tracks";
+    // phoenixWriterCfg.fileName = "test-tracks";
+
+    // sequencer.addWriter(
+        // std::make_shared<PhoenixTrackWriter>(phoenixWriterCfg, logLevel));
 
     // // --------------------------------------------------------------
     // // Seed comparison

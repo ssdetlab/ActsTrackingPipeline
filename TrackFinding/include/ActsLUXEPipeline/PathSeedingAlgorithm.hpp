@@ -10,42 +10,12 @@
 #include "Acts/EventData/SourceLink.hpp"
 #include "Acts/Seeding/PathSeeder.hpp"
 
-struct TryAllTracks {
-    void tryAllTracks(
-        std::shared_ptr<Acts::Experimental::SeedTree::Node> root,
-        std::vector<Acts::SourceLink> track) {
-            auto parentPars = root->m_sourceLink.get<SimpleSourceLink>().parameters;
-
-            if (root->children.size() == 0) {
-                // std::cout << "Parent: (" << parentPars[0] << " " << parentPars[1]
-                // << ") -----> NO CHILDREN" << std::endl;
-
-                track.push_back(root->m_sourceLink);
-                tracks.push_back(track);
-            }
-
-            track.push_back(root->m_sourceLink);
-            for (auto& child : root->children) {
-                auto childPars = child->m_sourceLink.get<SimpleSourceLink>().parameters;
-                // std::cout << "Parent: (" << parentPars[0] << " " << parentPars[1]
-                // << ") -----> THE CHILD: (" << childPars[0] << " " << childPars[1] << ")" << std::endl;
-
-                tryAllTracks(child, track);
-            }    
-    }
-
-    std::vector<std::vector<Acts::SourceLink>> tracks;
-};
-
-template <typename grid_t>
 class PathSeedingAlgorithm : public IAlgorithm {
     public:
-        using GridType = grid_t;
-
         /// @brief The nested configuration struct
         struct Config {
             /// Path seeder
-            std::shared_ptr<Acts::Experimental::PathSeeder<GridType>> seeder;
+            std::shared_ptr<Acts::Experimental::PathSeeder> seeder;
             /// SourceLink grid
             std::shared_ptr<E320TrackFinding::E320SourceLinkGridConstructor> sourceLinkGridConstructor;
             /// The input collection
@@ -91,14 +61,25 @@ class PathSeedingAlgorithm : public IAlgorithm {
                 sourceLinks.push_back(meas.sourceLink);
             }
 
+            // auto start = std::chrono::system_clock::now();
+
             auto gridLookup = m_cfg.sourceLinkGridConstructor->constructGrid(ctx.geoContext, sourceLinks);
 
-            std::vector<typename Acts::Experimental::SeedTree> pathSeeds = 
-                m_cfg.seeder->getSeeds(ctx.geoContext, gridLookup);
+            std::vector<Acts::Experimental::PathSeeder::Seed> pathSeeds;
+            m_cfg.seeder->getSeeds(ctx.geoContext, gridLookup, pathSeeds);
 
+            // auto end = std::chrono::system_clock::now();
+
+            // std::cout << "PATH SEEDING: Path seeding took "
+                // << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count()
+                // << "ms" << std::endl;
+
+            // start = std::chrono::system_clock::now();
+            
             Seeds outSeeds;
             auto me = 0.511 * Acts::UnitConstants::MeV;
-            for (const auto& seed : pathSeeds) {
+            for (int i = 0; i < pathSeeds.size(); i++) {
+                const auto& seed = pathSeeds.at(i);
                 Acts::Vector4 mPos4 = {seed.ipVertex.x(), seed.ipVertex.y(), seed.ipVertex.z(), 0};
 
                 Acts::ActsScalar p = seed.ipP; 
@@ -110,21 +91,35 @@ class PathSeedingAlgorithm : public IAlgorithm {
                     1_e / p, ipCov, 
                     Acts::ParticleHypothesis::electron());
 
-                // Traverse the seed tree and collect the source links
-                TryAllTracks tryAll;
-                tryAll.tryAllTracks(seed.root, {});
+                auto pivotSl = seed.sourceLinks.at(0);
+                auto pivotSsl = pivotSl.get<SimpleSourceLink>();
 
-                for (const auto& track : tryAll.tracks) {
-                    outSeeds.push_back(Seed{
-                        track,
-                        ipParameters,
-                        outSeeds.size()});
+                int trackId = 0;
+                for (auto meas : input) {
+                    auto sl = meas.sourceLink;
+                    auto ssl = sl.get<SimpleSourceLink>();
+
+                    if (pivotSsl == ssl) {
+                        trackId = meas.trackId;
+                        break;
+                    }
                 }
+
+                outSeeds.push_back(Seed{
+                    seed.sourceLinks,
+                    ipParameters,
+                    trackId});
             }
 
-            std::cout << "PATH SEEDS SIZE: " << outSeeds.size() << std::endl;
+            // std::cout << "OUT SEEDS SIZE: " << outSeeds.size() << std::endl;
 
             m_outputSeeds(ctx, std::move(outSeeds));
+            
+            // end = std::chrono::system_clock::now();
+
+            // std::cout << "PATH SEEDING: Conversion took "
+                // << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count()
+                // << "ms" << std::endl;
 
             return ProcessCode::SUCCESS;
         }

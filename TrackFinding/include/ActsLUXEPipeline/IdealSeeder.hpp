@@ -44,7 +44,10 @@ class IdealSeeder {
             SourceLinkCalibrator sourceLinkCalibrator;
             /// First layer IDs
             std::vector<Acts::GeometryIdentifier> firstLayerIds;
-
+            /// Minimum number of source links
+            int minSourceLinks = 3;
+            /// Maximum number of source links
+            int maxSourceLinks = 10;
         };
 
         /// @brief Constructor
@@ -85,6 +88,15 @@ class IdealSeeder {
                         if ((it + 1) == measurements.end()) {
                             // Add the last source link
                             sourceLinks.push_back(it->sourceLink);
+                        }
+
+                        if (sourceLinks.size() < m_cfg.minSourceLinks ||
+                            sourceLinks.size() > m_cfg.maxSourceLinks) {
+                                // Reset the source links
+                                sourceLinks.clear();
+                                sourceLinks.push_back(it->sourceLink);
+
+                                continue;
                         }
 
                         bool pivotFound = false;

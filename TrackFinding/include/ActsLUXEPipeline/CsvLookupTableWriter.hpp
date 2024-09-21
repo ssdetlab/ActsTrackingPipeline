@@ -195,14 +195,17 @@ class CsvLookupTableWriter : public IWriter {
 
                 Acts::Vector3 direction = (globLastHit - globFirstHit).normalized();
 
-                m_TrackGrid->atPosition(
-                    std::array<double,2>{
-                        globFirstHit.x(), globFirstHit.z()}).push_back(
-                            {firstHit.ipParameters.charge(), 
-                             firstHit.ipParameters.absoluteMomentum(),
-                             firstHit.ipParameters.position(),
-                             firstHit.ipParameters.direction(), 
-                             direction});
+                {
+                    std::lock_guard<std::mutex> lock(m_mutex);
+                    m_TrackGrid->atPosition(
+                        std::array<double,2>{
+                            globFirstHit.x(), globFirstHit.z()}).push_back(
+                                {firstHit.ipParameters.charge(), 
+                                firstHit.ipParameters.absoluteMomentum(),
+                                firstHit.ipParameters.position(),
+                                firstHit.ipParameters.direction(), 
+                                direction});
+                }
             }
 
             return ProcessCode::SUCCESS;
@@ -227,4 +230,6 @@ class CsvLookupTableWriter : public IWriter {
         std::shared_ptr<Grid> m_TrackGrid;
 
         std::unique_ptr<const Acts::Logger> m_logger;
+
+        std::mutex m_mutex;
 };

@@ -42,7 +42,8 @@ target_link_libraries(
     LUXESimEventDict 
     PRIVATE 
     ROOT::RIO
-    ROOT::Physics)
+    ROOT::Physics
+    ROOT::GeomPainter)
 
 target_link_libraries(
     ActsLUXEPipelineCore
@@ -50,5 +51,6 @@ target_link_libraries(
     ActsCore
     ROOT::Tree
     ROOT::Physics
+    ROOT::GeomPainter
     G__LUXESimEventDict)
       
