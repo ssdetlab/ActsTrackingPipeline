@@ -526,7 +526,7 @@ int main() {
                 halfX, halfY));
 
         Acts::GeometryIdentifier geoId;
-        geoId.setSensitive(i+1);
+        geoId.setSensitive(i + 1);
         surface->assignGeometryId(std::move(geoId));
         surfacePtrs.push_back(surface);
 
@@ -572,7 +572,7 @@ int main() {
     // Grid to bin the source links
     E320TrackFinding::E320SourceLinkGridConstructor::Config gridConstructorCfg{
         .gOpt = gOpt,
-        .bins = std::make_pair(1000, 10),
+        .bins = std::make_pair(20, 1000),
     };
     gridConstructorCfg.surfaceAccessor.connect<
         &SimpleSourceLink::SurfaceAccessor::operator()>(

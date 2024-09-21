@@ -39,7 +39,7 @@ class NoiseEmbeddingAlgorithm : public IAlgorithm {
             // Get the input seeds
             // from the context
             
-            // auto start = std::chrono::system_clock::now();
+            auto start = std::chrono::system_clock::now();
 
             auto input = m_inputMeasurement(ctx);
             // SimMeasurements input;
@@ -70,11 +70,11 @@ class NoiseEmbeddingAlgorithm : public IAlgorithm {
                 }
             }
 
-            // auto end = std::chrono::system_clock::now();
+            auto end = std::chrono::system_clock::now();
 
-            // std::cout << "Noise embedding took "
-                // << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count()
-                // << "ms" << std::endl;
+            std::cout << "Noise embedding took "
+                << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count()
+                << "ms" << std::endl;
 
             m_outputMeasurements(ctx, std::move(input));
 
