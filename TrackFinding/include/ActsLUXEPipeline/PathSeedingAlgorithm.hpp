@@ -61,21 +61,29 @@ class PathSeedingAlgorithm : public IAlgorithm {
                 sourceLinks.push_back(meas.sourceLink);
             }
 
-            // auto start = std::chrono::system_clock::now();
+            auto start = std::chrono::system_clock::now();
 
             auto gridLookup = m_cfg.sourceLinkGridConstructor->constructGrid(ctx.geoContext, sourceLinks);
+
+            auto end = std::chrono::system_clock::now();
+
+            std::cout << "PATH SEEDING: CONSTRUCT GRID seeding took "
+                << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count()
+                << "ms" << std::endl;
+
+            start = std::chrono::system_clock::now();
 
             std::vector<Acts::Experimental::PathSeeder::Seed> pathSeeds;
             m_cfg.seeder->getSeeds(ctx.geoContext, gridLookup, pathSeeds);
 
-            // auto end = std::chrono::system_clock::now();
+            end = std::chrono::system_clock::now();
 
-            // std::cout << "PATH SEEDING: Path seeding took "
-                // << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count()
-                // << "ms" << std::endl;
+            std::cout << "PATH SEEDING: GET SEEDS seeding took "
+                << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count()
+                << "ms" << std::endl;
 
-            // start = std::chrono::system_clock::now();
-            
+            start = std::chrono::system_clock::now();
+
             Seeds outSeeds;
             auto me = 0.511 * Acts::UnitConstants::MeV;
             for (int i = 0; i < pathSeeds.size(); i++) {
@@ -111,16 +119,14 @@ class PathSeedingAlgorithm : public IAlgorithm {
                     trackId});
             }
 
-            // std::cout << "OUT SEEDS SIZE: " << outSeeds.size() << std::endl;
+            std::cout << "SEEDED " << outSeeds.size() << " TRACKS" << std::endl;
+
+            std::cout << "PATH SEEDING: SEED CONVERSION seeding took "
+                << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count()
+                << "ms" << std::endl;
 
             m_outputSeeds(ctx, std::move(outSeeds));
             
-            // end = std::chrono::system_clock::now();
-
-            // std::cout << "PATH SEEDING: Conversion took "
-                // << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count()
-                // << "ms" << std::endl;
-
             return ProcessCode::SUCCESS;
         }
 

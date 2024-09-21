@@ -160,6 +160,8 @@ class ROOTFittedTrackWriter : public IWriter {
 
             auto inputSeeds = m_inputSeeds(ctx);
 
+            std::lock_guard<std::mutex> lock(m_mutex);
+
             int nSkippedStates = 0;
 
             // Iterate over the fitted tracks
@@ -553,10 +555,7 @@ class ROOTFittedTrackWriter : public IWriter {
                 m_matchingDegree = matchingDegree / norm;
 
                 // Fill the tree
-                {
-                    std::lock_guard<std::mutex> lock(m_mutex);
-                    m_tree->Fill();
-                }
+                m_tree->Fill();
             }
 
             // Return success flag
