@@ -12,17 +12,25 @@
 #include "ActsLUXEPipeline/CsvLookupTableProvider.hpp"
 #include "ActsLUXEPipeline/ForwardOrderedIntersectionFinder.hpp"
 #include "ActsLUXEPipeline/E320PathWidthProvider.hpp"
-#include "ActsLUXEPipeline/TrackFitter.hpp"
+#include "ActsLUXEPipeline/TrackFittingAlgorithm.hpp"
 #include "ActsLUXEPipeline/ROOTFittedTrackWriter.hpp"
 #include "ActsLUXEPipeline/IAlgorithm.hpp"
 #include "ActsLUXEPipeline/SimpleSourceLink.hpp"
 #include "ActsLUXEPipeline/PathSeedingAlgorithm.hpp"
 #include "ActsLUXEPipeline/IdealSeedingAlgorithm.hpp"
+#include "ActsLUXEPipeline/TryAllTrackFindingAlgorithm.hpp"
+#include "ActsLUXEPipeline/CKFTrackFindingAlgorithm.hpp"
+
+#include "ActsLUXEPipeline/PhoenixTrackWriter.hpp"
 
 #include "Acts/Seeding/PathSeeder.hpp"
 #include "Acts/Utilities/Logger.hpp"
 #include "Acts/Surfaces/PlaneSurface.hpp"
 #include "Acts/Surfaces/RectangleBounds.hpp"
+#include "Acts/EventData/VectorTrackContainer.hpp"
+#include "Acts/EventData/VectorMultiTrajectory.hpp"
+#include "Acts/TrackFinding/MeasurementSelector.hpp"
+#include "Acts/TrackFitting/GainMatrixUpdater.hpp"
 
 #include <filesystem>
 
@@ -40,8 +48,16 @@ using PropagatorOptions =
     typename Propagator::template Options<ActionList, AbortList>;
 
 using Trajectory = Acts::VectorMultiTrajectory;
-using TrackContainer = Acts::VectorTrackContainer;
+using KFTrackContainer = Acts::VectorTrackContainer;
 using KF = Acts::KalmanFitter<Propagator, Trajectory>;
+
+using CKFTrackContainer = Acts::TrackContainer<
+    Acts::VectorTrackContainer,
+    Acts::VectorMultiTrajectory,
+    Acts::detail::ValueHolder>;
+
+using TrackStateContainerBackend =
+    typename CKFTrackContainer::TrackStateContainerBackend;
 
 using TrackParameters = Acts::CurvilinearTrackParameters;
 
@@ -252,7 +268,7 @@ class SeedComparer : public IAlgorithm {
 /// the results
 int main() {
     // Set the log level
-    Acts::Logging::Level logLevel = Acts::Logging::INFO;
+    Acts::Logging::Level logLevel = Acts::Logging::VERBOSE;
 
     // Dummy context and options
     Acts::GeometryContext gctx;
@@ -379,7 +395,7 @@ int main() {
 
     // Setup the sequencer
     Sequencer::Config seqCfg;
-    seqCfg.events = 10000;
+    seqCfg.events = 1;
     seqCfg.numThreads = 16;
     seqCfg.trackFpes = false;
     Sequencer sequencer(seqCfg);
@@ -403,17 +419,17 @@ int main() {
 
     RangedUniformMomentumGenerator momGen;
     momGen.Pranges = {
-        {2.0_GeV, 2.5_GeV},
+        // {2.0_GeV, 2.5_GeV},
         {2.5_GeV, 3.0_GeV},
-        {3.0_GeV, 3.5_GeV},
-        {3.5_GeV, 4.0_GeV}};
+        {3.0_GeV, 3.5_GeV}};
+        // {3.5_GeV, 4.0_GeV}};
 
     MeasurementsCreator::Config mcCfg;
     mcCfg.outputCollection = "Measurements";
     mcCfg.vertexGenerator = std::make_shared<StationaryVertexGenerator>();
     mcCfg.momentumGenerator = std::make_shared<RangedUniformMomentumGenerator>(momGen);
     mcCfg.randomNumberSvc = std::make_shared<RandomNumbers>(RandomNumbers::Config());
-    mcCfg.nTracks = 1;
+    mcCfg.nTracks = 2;
 
     sequencer.addAlgorithm(
         std::make_shared<MeasurementsCreator>(
@@ -423,14 +439,14 @@ int main() {
     // The path seeding setup
     SimpleSourceLink::SurfaceAccessor surfaceAccessor{*detector};
 
-    auto pathSeederCfg = Acts::Experimental::PathSeeder<Grid>::Config();
+    auto pathSeederCfg = Acts::Experimental::PathSeeder::Config();
 
     // Estimator of the IP and first hit
     // parameters of the track
     CsvLookupTableProvider::Config trackLookupCfg;
 
     trackLookupCfg.filePath = 
-        "/home/romanurmanov/lab/LUXE/acts_LUXE_tracking/E320Pipeline_lookups/RangedUniform_05_45_Stationary_000_200k_MaterialOn_lookup.csv";
+        "/home/romanurmanov/lab/LUXE/acts_LUXE_tracking/E320Pipeline_lookups/RangedUniform_05_45_Stationary_000_200k_1000x100_MaterialOn_lookup.csv";
 
     CsvLookupTableProvider trackLookup(trackLookupCfg);
     pathSeederCfg.trackEstimator.connect<
@@ -493,10 +509,10 @@ int main() {
     std::map<std::int32_t, std::pair<
         Acts::ActsScalar,Acts::ActsScalar>> 
             pathWidths = {
-                {0, {7000_um, 7000_um}},
-                {1, {7000_um, 7000_um}},
-                {2, {7000_um, 7000_um}},
-                {3, {7000_um, 7000_um}},
+                {0, {200_um, 200_um}},
+                {1, {200_um, 200_um}},
+                {2, {200_um, 200_um}},
+                {3, {200_um, 200_um}},
     };
 
     E320TrackFinding::E320PathWidthProvider pathWidthProvider(
@@ -521,14 +537,14 @@ int main() {
     auto gridConstructor = std::make_shared<E320TrackFinding::E320SourceLinkGridConstructor>(gridConstructorCfg); 
 
     // Create the path seeder algorithm
-    auto seedingAlgoCfg = PathSeedingAlgorithm<Grid>::Config();
-    seedingAlgoCfg.seeder = std::make_shared<Acts::Experimental::PathSeeder<Grid>>(pathSeederCfg);
+    auto seedingAlgoCfg = PathSeedingAlgorithm::Config();
+    seedingAlgoCfg.seeder = std::make_shared<Acts::Experimental::PathSeeder>(pathSeederCfg);
     seedingAlgoCfg.sourceLinkGridConstructor = gridConstructor;
     seedingAlgoCfg.inputCollection = "Measurements";
     seedingAlgoCfg.outputCollection = "PathSeeds";
 
-    // sequencer.addAlgorithm(
-        // std::make_shared<PathSeedingAlgorithm<Grid>>(seedingAlgoCfg, logLevel));
+    sequencer.addAlgorithm(
+        std::make_shared<PathSeedingAlgorithm>(seedingAlgoCfg, logLevel));
 
     // --------------------------------------------------------------
     // Ideal seeder for the truth comparison
@@ -540,12 +556,12 @@ int main() {
     for (const auto& s : firstTrackingVolume->surfaces()) {
         fullMatchingSeederCfg.firstLayerIds.push_back(s->geometryId());
     }
-    fullMatchingSeederCfg.sourceLinkCalibrator.connect<
-        &SimpleSourceLinkCoordinateCalibrator::operator()>(
-        &sourceLinkCalibrator);
-    fullMatchingSeederCfg.trackEstimator.connect<
-        &CsvLookupTableProvider::operator()>(
-        &trackLookup);
+    // fullMatchingSeederCfg.sourceLinkCalibrator.connect<
+        // &SimpleSourceLinkCoordinateCalibrator::operator()>(
+        // &sourceLinkCalibrator);
+    // fullMatchingSeederCfg.trackEstimator.connect<
+        // &CsvLookupTableProvider::operator()>(
+        // &trackLookup);
 
     auto fullMatchingSeeder = std::make_shared<IdealSeeder>(fullMatchingSeederCfg);
 
@@ -558,32 +574,96 @@ int main() {
         std::make_shared<IdealSeedingAlgorithm>(idealSeederCfg, logLevel));
 
     // --------------------------------------------------------------
+    // Track finding
+    // TryAllTrackFindingAlgorithm::Config trackFindingCfg;
+    // trackFindingCfg.inputCollection = "PathSeeds";
+    // trackFindingCfg.outputCollection = "TrackCandidates";
+    // trackFindingCfg.minSourceLinks = 3;
+
+    // sequencer.addAlgorithm(
+        // std::make_shared<TryAllTrackFindingAlgorithm>(trackFindingCfg, logLevel));
+
+    Acts::Experimental::DetectorNavigator::Config ckfNavigatorCfg;
+    ckfNavigatorCfg.detector = detector.get();
+    ckfNavigatorCfg.resolvePassive = false;
+    ckfNavigatorCfg.resolveMaterial = true;
+    ckfNavigatorCfg.resolveSensitive = true;
+    Acts::Experimental::DetectorNavigator ckfNavigator(
+        ckfNavigatorCfg, Acts::getDefaultLogger("DetectorNavigator", logLevel));
+
+    Acts::EigenStepper<> ckfStepper(field);
+    auto ckfPropagator = Propagator(
+        std::move(ckfStepper), std::move(ckfNavigator),
+        Acts::getDefaultLogger("Propagator", logLevel));
+
+    Acts::CombinatorialKalmanFilter<Propagator,CKFTrackContainer> ckf(
+        ckfPropagator, Acts::getDefaultLogger("CombinatorialKalmanFilter", logLevel));
+
+    // Configuration for the measurement selector
+    Acts::MeasurementSelector::Config measurementSelectorCfg = {
+        {Acts::GeometryIdentifier(),
+            {
+                {}, 
+                {1000}, 
+                {1000u}
+            }
+        },
+    };
+
+    Acts::MeasurementSelector measSel{measurementSelectorCfg};
+
+    // CKF extensions
+    Acts::GainMatrixUpdater ckfUpdater;
+
+    Acts::CombinatorialKalmanFilterExtensions<CKFTrackContainer> ckfExtensions;
+        ckfExtensions.calibrator.template connect<
+            &simpleSourceLinkCalibrator<TrackStateContainerBackend>>();
+    ckfExtensions.updater.template connect<
+        &Acts::GainMatrixUpdater::operator()<TrackStateContainerBackend>>(&ckfUpdater);
+    ckfExtensions.measurementSelector.template connect<
+        &Acts::MeasurementSelector::select<TrackStateContainerBackend>>(
+        &measSel);
+
+    CKFTrackFindingAlgorithm<Propagator, CKFTrackContainer>::Config trackFindingCfg{
+        .ckf = ckf,
+    };
+    trackFindingCfg.extensions = ckfExtensions;
+    trackFindingCfg.inputCollection = "PathSeeds";
+    trackFindingCfg.outputCollection = "TrackCandidates";
+    trackFindingCfg.minSourceLinks = 3;
+
+    auto trackFindingAlgorithm = 
+        std::make_shared<CKFTrackFindingAlgorithm<Propagator, CKFTrackContainer>>(trackFindingCfg, logLevel);
+    sequencer.addAlgorithm(trackFindingAlgorithm);
+    
+    // --------------------------------------------------------------
     // Track fitting
 
     Acts::GainMatrixUpdater kfUpdater;
     Acts::GainMatrixSmoother kfSmoother;
 
     // Initialize track fitter options
-    Acts::KalmanFitterExtensions<Trajectory> extensions;
+    Acts::KalmanFitterExtensions<Trajectory> kfExtensions;
     // Add calibrator
-    extensions.calibrator.connect<&simpleSourceLinkCalibrator<Trajectory>>();
+    kfExtensions.calibrator.connect<&simpleSourceLinkCalibrator<Trajectory>>();
     // Add the updater
-    extensions.updater.connect<
+    kfExtensions.updater.connect<
         &Acts::GainMatrixUpdater::operator()<Trajectory>>(&kfUpdater);
     // Add the smoother
-    extensions.smoother.connect<
+    kfExtensions.smoother.connect<
         &Acts::GainMatrixSmoother::operator()<Trajectory>>(&kfSmoother);
     // Add the surface accessor
-    extensions.surfaceAccessor.connect<
+    kfExtensions.surfaceAccessor.connect<
         &SimpleSourceLink::SurfaceAccessor::operator()>(
         &surfaceAccessor);
 
     auto propOptions = 
         PropagatorOptions(gctx, mctx);
 
-    propOptions.maxSteps = 1000;
+    propOptions.maxSteps = 100000;
+    propOptions.stepping.maxStepSize = 100_mm;
 
-    auto options = Acts::KalmanFitterOptions(gctx, mctx, cctx, extensions,
+    auto options = Acts::KalmanFitterOptions(gctx, mctx, cctx, kfExtensions,
         propOptions);
 
     // Reference surface for sampling the track at the IP
@@ -605,13 +685,13 @@ int main() {
 
     options.referenceSurface = refSurface.get();
 
-    Acts::Experimental::DetectorNavigator::Config cfg;
-    cfg.detector = detector.get();
-    cfg.resolvePassive = false;
-    cfg.resolveMaterial = true;
-    cfg.resolveSensitive = true;
+    Acts::Experimental::DetectorNavigator::Config kfNavigatorCfg;
+    kfNavigatorCfg.detector = detector.get();
+    kfNavigatorCfg.resolvePassive = false;
+    kfNavigatorCfg.resolveMaterial = true;
+    kfNavigatorCfg.resolveSensitive = true;
     Acts::Experimental::DetectorNavigator kfNavigator(
-        cfg, Acts::getDefaultLogger("DetectorNavigator", logLevel));
+        kfNavigatorCfg, Acts::getDefaultLogger("DetectorNavigator", logLevel));
 
     Acts::EigenStepper<> kfStepper(std::move(field));
     auto kfPropagator = Propagator(
@@ -623,50 +703,60 @@ int main() {
             Acts::getDefaultLogger("DetectorKalmanFilter", logLevel));
 
     // Add the track fitting algorithm to the sequencer
-    TrackFitter<
+    TrackFittingAlgorithm<
         Propagator, 
         Trajectory, 
-        TrackContainer>::Config fitterCfg{
-            .inputCollection = "IdealSeeds",
-            .outputCollection = "SimTracks",
+        KFTrackContainer>::Config fitterCfg{
+            .inputCollection = "TrackCandidates",
+            .outputCollection = "Tracks",
             .fitter = fitter,
             .kfOptions = options};
 
     sequencer.addAlgorithm(
         std::make_shared<
-            TrackFitter<
+            TrackFittingAlgorithm<
             Propagator, 
             Trajectory, 
-            TrackContainer>>(fitterCfg, logLevel));
+            KFTrackContainer>>(fitterCfg, logLevel));
 
     // --------------------------------------------------------------
     // Event write out
 
-    auto trackWriterCfg = ROOTFittedTrackWriter::Config{
-        "SimTracks",
-        "IdealSeeds",
-        "fitted-tracks",
-        "fitted-tracks-matched-material-off.root",
-        3,
-        10
-    };
+    auto trackWriterCfg = ROOTFittedTrackWriter::Config();
+    trackWriterCfg.surfaceAccessor.connect<
+        &SimpleSourceLink::SurfaceAccessor::operator()>(
+            &surfaceAccessor);
+
+    trackWriterCfg.inputTrackCollection = "Tracks";
+    trackWriterCfg.inputSeedCollection = "IdealSeeds";
+    trackWriterCfg.treeName = "fitted-tracks";
+    trackWriterCfg.filePath = "fitted-tracks.root";
 
     sequencer.addWriter(
         std::make_shared<ROOTFittedTrackWriter>(trackWriterCfg, logLevel));
 
-    // // --------------------------------------------------------------
-    // // Seed comparison
+    // --------------------------------------------------------------
+    // Phoenix write out
+    PhoenixTrackWriter::Config phoenixWriterCfg;
+    phoenixWriterCfg.inputTrackCollection = "Tracks";
+    phoenixWriterCfg.fileName = "test-tracks";
 
-    // SeedComparer::Config comparerCfg{
-        // .inputIdealCollection = "IdealSeeds",
-        // .inputPathCollection = "PathSeeds"};
+    sequencer.addWriter(
+        std::make_shared<PhoenixTrackWriter>(phoenixWriterCfg, logLevel));
 
-    // comparerCfg.surfaceAccessor.connect<
-        // &SimpleSourceLink::SurfaceAccessor::operator()>(
-        // &surfaceAccessor);
+    // --------------------------------------------------------------
+    // Seed comparison
 
-    // sequencer.addAlgorithm(
-        // std::make_shared<SeedComparer>(comparerCfg, logLevel));
+    SeedComparer::Config comparerCfg{
+        .inputIdealCollection = "IdealSeeds",
+        .inputPathCollection = "PathSeeds"};
+
+    comparerCfg.surfaceAccessor.connect<
+        &SimpleSourceLink::SurfaceAccessor::operator()>(
+        &surfaceAccessor);
+
+    sequencer.addAlgorithm(
+        std::make_shared<SeedComparer>(comparerCfg, logLevel));
 
     return sequencer.run();
 }

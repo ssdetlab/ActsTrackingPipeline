@@ -1,15 +1,19 @@
 #pragma once
 
 #include "ActsLUXEPipeline/RandomNumbers.hpp"
-#include"ActsLUXEPipeline/LUXEGeometryConstraints.hpp"
-#include"ActsLUXEPipeline/E320GeometryConstraints.hpp"
+#include "ActsLUXEPipeline/LUXEGeometryConstraints.hpp"
+#include "ActsLUXEPipeline/E320GeometryConstraints.hpp"
+#include "ActsLUXEPipeline/SimpleSourceLink.hpp"
 
 #include "Acts/Definitions/Algebra.hpp"
 #include "Acts/Definitions/Units.hpp"
+#include "Acts/EventData/SourceLink.hpp"
+#include "Acts/Surfaces/Surface.hpp"
+#include "Acts/Surfaces/PlaneSurface.hpp"
 
 /// @brief Interface for generating vertex positions
 struct IVertexGenerator {
-    virtual Acts::Vector3 gen(RandomEngine rng) const = 0;
+    virtual Acts::Vector3 gen(RandomEngine& rng) const = 0;
 };
 
 /// @brief Uniform vertex generator
@@ -17,7 +21,7 @@ struct UniformVertexGenerator : public IVertexGenerator {
     Acts::Vector3 mins{0., 0., 0.};
     Acts::Vector3 maxs{0., 0., 0.};
 
-    Acts::Vector3 gen(RandomEngine rng) const override {
+    Acts::Vector3 gen(RandomEngine& rng) const override {
         std::uniform_real_distribution<Acts::ActsScalar> uniform;
         Acts::Vector3 vertex{
             uniform(rng),
@@ -31,14 +35,14 @@ struct UniformVertexGenerator : public IVertexGenerator {
 struct StationaryVertexGenerator : public IVertexGenerator {
     Acts::Vector3 vertex{0., 0., 0.};
 
-    Acts::Vector3 gen(RandomEngine /*rng*/) const override {
+    Acts::Vector3 gen(RandomEngine& /*rng*/) const override {
         return vertex;
     }
 };
 
 /// @brief Interface for generating momentum vectors
 struct IMomentumGenerator {
-    virtual Acts::Vector3 gen(RandomEngine rng) const = 0;
+    virtual Acts::Vector3 gen(RandomEngine& rng) const = 0;
 };
 
 /// @brief Gaussian momentum generator
@@ -47,7 +51,7 @@ struct GaussianMomentumGenerator : public IMomentumGenerator {
     std::pair<Acts::ActsScalar, Acts::ActsScalar> thetaRange;
     std::pair<Acts::ActsScalar, Acts::ActsScalar> phiRange;
 
-    Acts::Vector3 gen(RandomEngine rng) const override {
+    Acts::Vector3 gen(RandomEngine& rng) const override {
         std::uniform_real_distribution<Acts::ActsScalar> uniform(0, 1);
 
         Acts::ActsScalar pMag = pMagRange.first + (pMagRange.second - pMagRange.first) * uniform(rng);
@@ -68,7 +72,7 @@ struct GaussianMomentumGenerator : public IMomentumGenerator {
 struct RangedUniformMomentumGenerator : public IMomentumGenerator {
     std::vector<std::pair<Acts::ActsScalar, Acts::ActsScalar>> Pranges;
 
-    Acts::Vector3 gen(RandomEngine rng) const override {
+    Acts::Vector3 gen(RandomEngine& rng) const override {
         std::uniform_int_distribution<int> range_select(0, Pranges.size() - 1);
         int range = range_select(rng);
 
@@ -79,6 +83,50 @@ struct RangedUniformMomentumGenerator : public IMomentumGenerator {
         Acts::ActsScalar p = uniform(rng);
 
         return p * Acts::Vector3(0, 1, 0);
+    }
+};
+
+/// @brief Interface for generating random noise hits
+struct INoiseGenerator {
+    virtual std::vector<Acts::SourceLink> gen(
+        RandomEngine& rng, const Acts::Surface* surface) const = 0;
+};
+
+/// @brief Uniform noise generator
+struct UniformNoiseGenerator : public INoiseGenerator {
+    Acts::ActsScalar numberOfHits = 10;
+
+    std::vector<Acts::SourceLink> gen(
+        RandomEngine& rng, const Acts::Surface* surface) const override {
+            if (surface->type() != Acts::Surface::SurfaceType::Plane) {
+                throw std::runtime_error("Only plane surfaces are supported");
+            }
+            if (surface->geometryId().sensitive() == 0) {
+                return {};
+            }
+            std::uniform_real_distribution<Acts::ActsScalar> uniform(0, 1);
+    
+            auto surfaceBounds = surface->bounds().values();
+            Acts::ActsScalar area = 
+                (surfaceBounds.at(3) - surfaceBounds.at(1)) * 
+                (surfaceBounds.at(2) - surfaceBounds.at(0));
+            
+            std::vector<Acts::SourceLink> noiseHits;    
+            while (noiseHits.size() < numberOfHits) {
+                Acts::ActsScalar x = 
+                    surfaceBounds.at(0) + (surfaceBounds.at(2) - surfaceBounds.at(0)) * uniform(rng);
+                Acts::ActsScalar y = 
+                    surfaceBounds.at(1) + (surfaceBounds.at(3) - surfaceBounds.at(1)) * uniform(rng);
+                Acts::Vector2 loc{x, y};
+
+                Acts::Vector2 stddev(5  * Acts::UnitConstants::um,
+                    5  * Acts::UnitConstants::um);
+                Acts::SquareMatrix2 cov = stddev.cwiseProduct(stddev).asDiagonal();
+                SimpleSourceLink simpleSL(loc, cov, surface->geometryId(), 0);
+                noiseHits.push_back(Acts::SourceLink(simpleSL));
+            }
+
+            return noiseHits;
     }
 };
 
@@ -98,7 +146,7 @@ namespace LUXESimParticle {
         Acts::ActsScalar shapeZ = 3_GeV;
         Acts::ActsScalar scaleZ = 1.2_GeV;
 
-        Acts::Vector3 gen(RandomEngine rng) const override {
+        Acts::Vector3 gen(RandomEngine& rng) const override {
             std::normal_distribution<Acts::ActsScalar> pDisP(meanP, sigmaP);
             std::normal_distribution<Acts::ActsScalar> pDisM(meanM, sigmaM);
             std::gamma_distribution<Acts::ActsScalar> pzDis(shapeZ, scaleZ);

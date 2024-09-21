@@ -145,8 +145,8 @@ int main() {
 
     // Setup the sequencer
     Sequencer::Config seqCfg;
-    seqCfg.events = 200000;
-    seqCfg.numThreads = 1;
+    seqCfg.events = 100000;
+    seqCfg.numThreads = 16;
     seqCfg.trackFpes = false;
     Sequencer sequencer(seqCfg);
 
@@ -237,7 +237,7 @@ int main() {
 
     // Grid parameters
     lookupMakerCfg.YFirst = {
-        1000, 
+        10, 
         -gOpt.chipY.at(8) - gOpt.chipSizeY/2 - 1_mm, 
         -gOpt.chipY.at(0) + gOpt.chipSizeY/2 + 1_mm};
     lookupMakerCfg.XFirst = {

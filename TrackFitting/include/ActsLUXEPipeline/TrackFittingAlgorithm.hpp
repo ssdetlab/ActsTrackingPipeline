@@ -15,7 +15,7 @@
 template <typename propagator_t,
 typename trajectory_t = Acts::VectorMultiTrajectory,
 typename container_t = Acts::VectorTrackContainer>
-class TrackFitter : public IAlgorithm {
+class TrackFittingAlgorithm : public IAlgorithm {
     public:
         /// @brief The nested configuration struct
         struct Config {
@@ -30,16 +30,18 @@ class TrackFitter : public IAlgorithm {
         };
 
         /// @brief Constructor
-        TrackFitter(Config config, Acts::Logging::Level level)
-            : IAlgorithm("TrackFitter", level),
+        TrackFittingAlgorithm(Config config, Acts::Logging::Level level)
+            : IAlgorithm("TrackFittingAlgorithm", level),
             m_cfg(std::move(config)) {
                 m_inputSeeds.initialize(m_cfg.inputCollection);
                 m_outputTracks.initialize(m_cfg.outputCollection);
         }
-        ~TrackFitter() = default;
+        ~TrackFittingAlgorithm() = default;
 
         /// @brief The execute method        
         ProcessCode execute(const AlgorithmContext& ctx) const override {
+            // auto start = std::chrono::system_clock::now();
+
             // Get the input seeds
             // from the context
             auto input = m_inputSeeds(ctx);
@@ -59,7 +61,7 @@ class TrackFitter : public IAlgorithm {
                 
                 if (!res.ok()) {
                     ACTS_ERROR("Track fitting failed");
-                    return ProcessCode::ABORT;
+                    continue;
                 }
 
                 trackIds.push_back(seed.trackId);
@@ -68,6 +70,12 @@ class TrackFitter : public IAlgorithm {
                 tracks, trackIds};
 
             m_outputTracks(ctx, std::move(outTracks));
+
+            // auto end = std::chrono::system_clock::now();
+
+            // std::cout << "Track fitting took "
+                // << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count()
+                // << "ms" << std::endl;
 
             return ProcessCode::SUCCESS;
         }

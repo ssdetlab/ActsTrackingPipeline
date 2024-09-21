@@ -98,9 +98,10 @@ void simpleSourceLinkCalibratorReturn(
         trackState.allocateCalibrated(2);
         trackState.template calibrated<2>() = sl.parameters;
         trackState.template calibratedCovariance<2>() = sl.covariance;
-        trackState.setProjector(Acts::detail::FixedSizeSubspace<Acts::BoundIndices::eBoundSize, 2>(
-                                    std::array{sl.indices[0], sl.indices[1]})
-                                    .projector<double>());
+        trackState.setProjector(
+            Acts::detail::FixedSizeSubspace<Acts::BoundIndices::eBoundSize, 2>(
+                std::array{sl.indices[0], sl.indices[1]})
+                    .projector<double>());
 }
 
 /// Extract the measurement from a SimpleSourceLink.

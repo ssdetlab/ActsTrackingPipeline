@@ -62,6 +62,8 @@ class CsvLookupTableProvider {
         std::pair<Acts::ActsScalar,Acts::ActsScalar> findClosestValue(
             const Acts::ActsScalar& par_1, 
             const Acts::ActsScalar& par_2) const {
+                auto start = std::chrono::system_clock::now();
+
                 std::pair<Acts::ActsScalar,Acts::ActsScalar> closestValue;
                 Acts::ActsScalar minDistance = std::numeric_limits<Acts::ActsScalar>::max();
                 for (const auto& [key, value] : m_lookupTable) {
@@ -73,6 +75,8 @@ class CsvLookupTableProvider {
                         closestValue = {key.first, key.second};
                     }
                 }
+
+                auto end = std::chrono::system_clock::now();
                 return closestValue;
             };
 

@@ -162,19 +162,23 @@ class ROOTLookupDataWriter : public IWriter {
                         locLastHit, 
                         Acts::Vector3(0, 1, 0));
 
-                m_ld.id = firstHit.trackId;
-                m_ld.xFirst = globFirstHit.x();
-                m_ld.yFirst = globFirstHit.y();
-                m_ld.zFirst = globFirstHit.z();
-                m_ld.xLast = globLastHit.x();
-                m_ld.yLast = globLastHit.y();
-                m_ld.zLast = globLastHit.z();
-                m_ld.ipPx = firstHit.ipParameters.momentum().x();
-                m_ld.ipPy = firstHit.ipParameters.momentum().y();
-                m_ld.ipPz = firstHit.ipParameters.momentum().z();
-                m_ld.E = std::hypot(
-                    1/firstHit.truthParameters[Acts::eBoundQOverP], me);
-                m_tree->Fill();
+                {
+                    std::lock_guard<std::mutex> lock(m_mutex);
+
+                    m_ld.id = firstHit.trackId;
+                    m_ld.xFirst = globFirstHit.x();
+                    m_ld.yFirst = globFirstHit.y();
+                    m_ld.zFirst = globFirstHit.z();
+                    m_ld.xLast = globLastHit.x();
+                    m_ld.yLast = globLastHit.y();
+                    m_ld.zLast = globLastHit.z();
+                    m_ld.ipPx = firstHit.ipParameters.momentum().x();
+                    m_ld.ipPy = firstHit.ipParameters.momentum().y();
+                    m_ld.ipPz = firstHit.ipParameters.momentum().z();
+                    m_ld.E = std::hypot(
+                        1/firstHit.truthParameters[Acts::eBoundQOverP], me);
+                    m_tree->Fill();
+                }
             }
 
             return ProcessCode::SUCCESS;
@@ -203,4 +207,6 @@ class ROOTLookupDataWriter : public IWriter {
         ROOTLookupData m_ld;
 
         std::unique_ptr<const Acts::Logger> m_logger;
+
+        std::mutex m_mutex;
 };

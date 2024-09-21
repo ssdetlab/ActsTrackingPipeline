@@ -149,40 +149,40 @@ class ROOTDataReader : public IReader {
                 m_eventMap.begin(), m_eventMap.end(),
                 [&](const auto& a) { return std::get<0>(a) == context.eventNumber; });
         
-                if (it == m_eventMap.end()) {
-                    // explicitly warn if it happens for the first or last event as that might
-                    // indicate a human error
-                    if ((context.eventNumber == availableEvents().first) &&
-                        (context.eventNumber == availableEvents().second - 1)) {
-                            ACTS_WARNING("Reading empty event: " << context.eventNumber);
-                    } else {
-                        ACTS_DEBUG("Reading empty event: " << context.eventNumber);
-                    }
-                
-                    m_outputData(context, {});
-                
-                    // Return success flag
-                    return ProcessCode::SUCCESS;
+            if (it == m_eventMap.end()) {
+                // explicitly warn if it happens for the first or last event as that might
+                // indicate a human error
+                if ((context.eventNumber == availableEvents().first) &&
+                    (context.eventNumber == availableEvents().second - 1)) {
+                        ACTS_WARNING("Reading empty event: " << context.eventNumber);
+                } else {
+                    ACTS_DEBUG("Reading empty event: " << context.eventNumber);
                 }
-                
-                // lock the mutex
-                std::lock_guard<std::mutex> lock(m_read_mutex);
-                
-                ACTS_DEBUG("Reading event: " << std::get<0>(*it)
-                    << " stored in entries: " << std::get<1>(*it)
-                    << " - " << std::get<2>(*it));
-        
-                // Create the measurements
-                measurementContainer_t measurements;
-                for (auto entry = std::get<1>(*it); entry < std::get<2>(*it); entry++) {
-                    m_chain->GetEntry(entry);
-                    prepareMeasurements(context, &measurements);
-                }
-                
-                m_outputData(context, std::move(measurements));
-                
+            
+                m_outputData(context, {});
+            
                 // Return success flag
                 return ProcessCode::SUCCESS;
+            }
+                
+            // lock the mutex
+            std::lock_guard<std::mutex> lock(m_read_mutex);
+            
+            ACTS_DEBUG("Reading event: " << std::get<0>(*it)
+                << " stored in entries: " << std::get<1>(*it)
+                << " - " << std::get<2>(*it));
+    
+            // Create the measurements
+            measurementContainer_t measurements;
+            for (auto entry = std::get<1>(*it); entry < std::get<2>(*it); entry++) {
+                m_chain->GetEntry(entry);
+                prepareMeasurements(context, &measurements);
+            }
+            
+            m_outputData(context, std::move(measurements));
+            
+            // Return success flag
+            return ProcessCode::SUCCESS;
         }
     
         /// Readonly access to the config

@@ -1,7 +1,7 @@
 #include "ActsLUXEPipeline/E320ROOTDataReader.hpp"
 #include "ActsLUXEPipeline/E320Geometry.hpp"
 #include "ActsLUXEPipeline/IdealSeedingAlgorithm.hpp"
-#include "ActsLUXEPipeline/TrackFitter.hpp"
+#include "ActsLUXEPipeline/TrackFittingAlgorithm.hpp"
 #include "ActsLUXEPipeline/QuadrupoleMagField.hpp"
 #include "ActsLUXEPipeline/DipoleMagField.hpp"
 #include "ActsLUXEPipeline/CompositeMagField.hpp"
@@ -57,7 +57,7 @@ int main() {
     auto trackerBP = 
         E320Geometry::makeBlueprintE320(gdmlPath, names, gOpt);
     auto detector =
-        E320Geometry::buildE320Detector(std::move(trackerBP), gctx, gOpt, materialPath, {});
+        E320Geometry::buildE320Detector(std::move(trackerBP), gctx, gOpt, {});
 
     for (auto& v : detector->volumes()) {
         std::cout << v->name() << std::endl;
@@ -223,7 +223,7 @@ int main() {
     CsvLookupTableProvider::Config trackLookupCfg;
 
     trackLookupCfg.filePath = 
-        "/home/romanurmanov/lab/LUXE/acts_LUXE_tracking/E320Pipeline_lookups/RangedUniform_05_45_Stationary_000_200k_MaterialOn_lookup.csv";
+        "/home/romanurmanov/lab/LUXE/acts_LUXE_tracking/E320Pipeline_lookups/RangedUniform_05_45_Stationary_000_200k_1000x100_MaterialOn_lookup.csv";
 
     CsvLookupTableProvider trackLookup(trackLookupCfg);
     fullMatchingSeederCfg.trackEstimator.connect<
@@ -319,7 +319,7 @@ int main() {
             Acts::getDefaultLogger("DetectorKalmanFilter", logLevel));
 
     // Add the track fitting algorithm to the sequencer
-    TrackFitter<
+    TrackFittingAlgorithm<
         Propagator, 
         Trajectory, 
         TrackContainer>::Config fitterCfg{
@@ -330,7 +330,7 @@ int main() {
 
     sequencer.addAlgorithm(
         std::make_shared<
-            TrackFitter<
+            TrackFittingAlgorithm<
             Propagator, 
             Trajectory, 
             TrackContainer>>(fitterCfg, logLevel));
@@ -338,14 +338,14 @@ int main() {
     // --------------------------------------------------------------
     // Event write out
 
-    auto trackWriterCfg = ROOTFittedTrackWriter::Config{
-        "Tracks",
-        "IdealSeeds",
-        "fitted-tracks",
-        "fitted-tracks-matched-material-on.root",
-        3,
-        10
-    };
+    auto trackWriterCfg = ROOTFittedTrackWriter::Config();
+    trackWriterCfg.surfaceAccessor.connect<
+        &SimpleSourceLink::SurfaceAccessor::operator()>(
+            &surfaceAccessor);
+    trackWriterCfg.inputTrackCollection = "Tracks";
+    trackWriterCfg.inputSeedCollection = "IdealSeeds";
+    trackWriterCfg.treeName = "fitted-tracks";
+    trackWriterCfg.filePath = "fitted-tracks.root";
 
     sequencer.addWriter(
         std::make_shared<ROOTFittedTrackWriter>(trackWriterCfg, logLevel));
