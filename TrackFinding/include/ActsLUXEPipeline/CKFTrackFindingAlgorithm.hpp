@@ -99,7 +99,7 @@ class CKFTrackFindingAlgorithm : public IAlgorithm {
 
         /// @brief The execute method
         ProcessCode execute(const AlgorithmContext& ctx) const override {
-            auto start = std::chrono::system_clock::now();
+            // auto start = std::chrono::system_clock::now();
             
             // Get the input seeds
             // from the context
@@ -165,15 +165,15 @@ class CKFTrackFindingAlgorithm : public IAlgorithm {
                 }
             }
 
-            std::cout << "Track candidates: " << trackCandidates.size() << std::endl;
+            // std::cout << "Track candidates: " << trackCandidates.size() << std::endl;
 
             m_outputSeeds(ctx, std::move(trackCandidates));
 
-            auto end = std::chrono::system_clock::now();
+            // auto end = std::chrono::system_clock::now();
 
-            std::cout << "Track finding took "
-                << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count()
-                << "ms" << std::endl;
+            // std::cout << "Track finding took "
+                // << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count()
+                // << "ms" << std::endl;
 
             return ProcessCode::SUCCESS;
         }
