@@ -407,7 +407,7 @@ int main() {
 
     // Setup the sequencer
     Sequencer::Config seqCfg;
-    seqCfg.events = 100;
+    seqCfg.events = 1000;
     seqCfg.numThreads = -1;
     seqCfg.trackFpes = false;
     Sequencer sequencer(seqCfg);
@@ -555,8 +555,8 @@ int main() {
             pathWidths = {
                 {0, {100_um, 100_um}},
                 {1, {200_um, 200_um}},
-                {2, {450_um, 450_um}},
-                {3, {700_um, 700_um}},
+                {2, {250_um, 250_um}},
+                {3, {300_um, 300_um}},
     };
 
     E320TrackFinding::E320PathWidthProvider pathWidthProvider(
@@ -638,8 +638,8 @@ int main() {
                         surf->geometryId(), 
                         {
                             {}, 
-                            {10}, 
-                            {10u}
+                            {1}, 
+                            {1u}
                         }
                     });
             }
@@ -797,7 +797,7 @@ int main() {
     trackWriterCfg.inputTrackCollection = "Tracks";
     trackWriterCfg.inputSeedCollection = "IdealSeeds";
     trackWriterCfg.treeName = "fitted-tracks";
-    trackWriterCfg.filePath = "fitted-tracks-signal-bkg.root";
+    trackWriterCfg.filePath = "fitted-tracks-bkg-500.root";
 
     sequencer.addWriter(
         std::make_shared<ROOTFittedTrackWriter>(trackWriterCfg, logLevel));

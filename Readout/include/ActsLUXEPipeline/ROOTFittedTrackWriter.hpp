@@ -138,6 +138,9 @@ class ROOTFittedTrackWriter : public IWriter {
                 // Track ID
                 m_tree->Branch("trackId", &m_trackId, "trackId/I");
 
+                // Event ID
+                m_tree->Branch("eventId", &m_eventId, "eventId/I");
+
                 m_inputTracks.initialize(m_cfg.inputTrackCollection);
                 m_inputSeeds.initialize(m_cfg.inputSeedCollection);
         }
@@ -551,6 +554,8 @@ class ROOTFittedTrackWriter : public IWriter {
 
                 m_trackId = id;
 
+                m_eventId = ctx.eventNumber;
+
                 // Matching degree
                 m_matchingDegree = matchingDegree / norm;
 
@@ -648,6 +653,9 @@ class ROOTFittedTrackWriter : public IWriter {
 
         /// TrackId
         int m_trackId;
+
+        /// EventId
+        int m_eventId;
 
         /// KF predicted momentum at the IP
         TLorentzVector m_ipMomentum;
