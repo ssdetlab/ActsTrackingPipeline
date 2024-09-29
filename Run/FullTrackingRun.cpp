@@ -464,7 +464,7 @@ int main() {
     // --------------------------------------------------------------
     // Backgorund generation
     auto noiseGenerator = std::make_shared<UniformNoiseGenerator>();
-    noiseGenerator->numberOfHits = 500;
+    noiseGenerator->numberOfHits = 100;
 
     NoiseEmbeddingAlgorithm::Config noiseCfg {
         .noiseGenerator = noiseGenerator,
@@ -546,9 +546,6 @@ int main() {
     pathSeederCfg.intersectionFinder.connect<
         &ForwardOrderedIntersectionFinder::operator()>(&intersectionFinder);
 
-    pathSeederCfg.minE = 1.8_GeV;
-    pathSeederCfg.maxE = 4.2_GeV;
-
     // Path width provider
     std::map<std::int32_t, std::pair<
         Acts::ActsScalar,Acts::ActsScalar>> 
@@ -594,7 +591,7 @@ int main() {
     // Track finding
     // TryAllTrackFindingAlgorithm::Config trackFindingCfg;
     // trackFindingCfg.inputCollection = "PathSeeds";
-    // trackFindingCfg.outputCollection = "TrackCandidates";
+    // trackFindingCfg.outputCollection = "TrackCandidatesNDF";
     // trackFindingCfg.minSourceLinks = 3;
 
     // sequencer.addAlgorithm(
@@ -666,6 +663,7 @@ int main() {
     };
     trackFindingCfg.extensions = ckfExtensions;
     trackFindingCfg.inputCollection = "PathSeeds";
+    trackFindingCfg.outputCollectionNDF = "TrackCandidatesNDF";
     trackFindingCfg.outputCollection = "TrackCandidates";
     trackFindingCfg.minSourceLinks = 4;
     trackFindingCfg.maxSourceLinks = 4;
@@ -744,7 +742,7 @@ int main() {
         Propagator, 
         Trajectory, 
         KFTrackContainer>::Config fitterCfg{
-            .inputCollection = "TrackCandidates",
+            .inputCollection = "TrackCandidatesNDF",
             .outputCollection = "Tracks",
             .fitter = fitter,
             .kfOptions = options};
@@ -794,10 +792,13 @@ int main() {
         &SimpleSourceLink::SurfaceAccessor::operator()>(
             &surfaceAccessor);
 
-    trackWriterCfg.inputTrackCollection = "Tracks";
-    trackWriterCfg.inputSeedCollection = "IdealSeeds";
+    trackWriterCfg.inputKFTracks = "Tracks";
+    trackWriterCfg.inputCKFTracksNDF = "TrackCandidatesNDF";
+    trackWriterCfg.inputCKFTracks = "TrackCandidates";
+    trackWriterCfg.inputPathSeeds = "PathSeeds";
+    trackWriterCfg.inputIdealSeeds = "IdealSeeds";
     trackWriterCfg.treeName = "fitted-tracks";
-    trackWriterCfg.filePath = "fitted-tracks-bkg-500.root";
+    trackWriterCfg.filePath = "fitted-tracks-bkg-100.root";
 
     sequencer.addWriter(
         std::make_shared<ROOTFittedTrackWriter>(trackWriterCfg, logLevel));
