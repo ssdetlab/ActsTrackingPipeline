@@ -40,8 +40,6 @@ class TrackFittingAlgorithm : public IAlgorithm {
 
         /// @brief The execute method        
         ProcessCode execute(const AlgorithmContext& ctx) const override {
-            // auto start = std::chrono::system_clock::now();
-
             // Get the input seeds
             // from the context
             auto input = m_inputSeeds(ctx);
@@ -70,12 +68,6 @@ class TrackFittingAlgorithm : public IAlgorithm {
                 tracks, trackIds};
 
             m_outputTracks(ctx, std::move(outTracks));
-
-            // auto end = std::chrono::system_clock::now();
-
-            // std::cout << "Track fitting took "
-                // << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count()
-                // << "ms" << std::endl;
 
             return ProcessCode::SUCCESS;
         }

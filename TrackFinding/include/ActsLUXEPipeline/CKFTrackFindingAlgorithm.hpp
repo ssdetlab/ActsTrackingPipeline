@@ -79,7 +79,9 @@ class CKFTrackFindingAlgorithm : public IAlgorithm {
             /// The input collection
             std::string inputCollection = "Seed";
             /// The output collection
-            std::string outputCollection = "Seed";
+            std::string outputCollectionNDF = "Seed";
+            /// The output collection before filtering
+            std::string outputCollection = "SeedPreFilter";
             /// Minimum number of source links
             int minSourceLinks = 3;
             /// Maximum number of source links
@@ -91,6 +93,7 @@ class CKFTrackFindingAlgorithm : public IAlgorithm {
             : IAlgorithm("CKFTrackFindingAlgorithm", level),
             m_cfg(std::move(config)) {
                 m_inputSeeds.initialize(m_cfg.inputCollection);
+                m_outputSeedsNDF.initialize(m_cfg.outputCollectionNDF);
                 m_outputSeeds.initialize(m_cfg.outputCollection);
         }
         ~CKFTrackFindingAlgorithm() = default;
@@ -99,8 +102,6 @@ class CKFTrackFindingAlgorithm : public IAlgorithm {
 
         /// @brief The execute method
         ProcessCode execute(const AlgorithmContext& ctx) const override {
-            // auto start = std::chrono::system_clock::now();
-            
             // Get the input seeds
             // from the context
             auto input = m_inputSeeds(ctx);
@@ -115,6 +116,7 @@ class CKFTrackFindingAlgorithm : public IAlgorithm {
             options.sourcelinkAccessor.template connect<&SimpleSourceLinkAccessor::range>(
                 &slAccessor);
 
+            Seeds trackCandidatesNDF;
             Seeds trackCandidates;
             for (const auto& seed : input) {
                 SimpleSourceLinkContainer ckfSourceLinks;
@@ -153,27 +155,25 @@ class CKFTrackFindingAlgorithm : public IAlgorithm {
                         sourceLinks.push_back(sl);
                     }
 
+                    trackCandidates.push_back(Seed{
+                        sourceLinks,
+                        ipParameters,
+                        seed.trackId});
+
                     if (sourceLinks.size() < m_cfg.minSourceLinks ||
                         sourceLinks.size() > m_cfg.maxSourceLinks) {
                             continue;
                     }
 
-                    trackCandidates.push_back(Seed{
+                    trackCandidatesNDF.push_back(Seed{
                         sourceLinks,
                         ipParameters,
                         seed.trackId});
                 }
             }
 
-            // std::cout << "Track candidates: " << trackCandidates.size() << std::endl;
-
+            m_outputSeedsNDF(ctx, std::move(trackCandidatesNDF));
             m_outputSeeds(ctx, std::move(trackCandidates));
-
-            // auto end = std::chrono::system_clock::now();
-
-            // std::cout << "Track finding took "
-                // << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count()
-                // << "ms" << std::endl;
 
             return ProcessCode::SUCCESS;
         }
@@ -184,6 +184,9 @@ class CKFTrackFindingAlgorithm : public IAlgorithm {
         ReadDataHandle<Seeds> m_inputSeeds
             {this, "InputSeeds"};
 
-        WriteDataHandle<Seeds> m_outputSeeds
+        WriteDataHandle<Seeds> m_outputSeedsNDF
             {this, "OutputSeeds"};
+
+        WriteDataHandle<Seeds> m_outputSeeds
+            {this, "OutputSeedsPreFilter"};
 };

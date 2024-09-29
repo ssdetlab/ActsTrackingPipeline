@@ -41,10 +41,16 @@ class ROOTFittedTrackWriter : public IWriter {
         struct Config {
             /// Surface accessor
             Acts::SourceLinkSurfaceAccessor surfaceAccessor;
-            /// Name of the fitted track collection
-            std::string inputTrackCollection;
+            /// Fitted track collection
+            std::string inputKFTracks;
+            /// CKFNDF track candidates collection
+            std::string inputCKFTracksNDF;
+            /// CKFNDF track candidates collection pre filter
+            std::string inputCKFTracks;
+            /// Path seeds collection
+            std::string inputPathSeeds;
             /// Name of the seed collection
-            std::string inputSeedCollection;
+            std::string inputIdealSeeds;
             /// Name of the input tree
             std::string treeName;
             /// The names of the input files
@@ -67,82 +73,102 @@ class ROOTFittedTrackWriter : public IWriter {
                 }
 
                 m_file = new TFile(m_cfg.filePath.c_str(), "RECREATE");
-                m_tree = new TTree(m_cfg.treeName.c_str(), 
+                m_trackTree = new TTree(m_cfg.treeName.c_str(), 
                     m_cfg.treeName.c_str());
 
+                std::string flowTreeName = m_cfg.treeName + "_flow";
+                m_flowTree = new TTree(flowTreeName.c_str(), 
+                    flowTreeName.c_str());
+
+                //------------------------------------------------------------------
+                // Track tree branches
                 int buf_size  = 32000;
                 int split_lvl = 0;
 
                 // True hits
-                m_tree->Branch("trueTrackHits", &m_trueTrackHits, buf_size, split_lvl);
+                m_trackTree->Branch("trueTrackHits", &m_trueTrackHits, buf_size, split_lvl);
             
                 // Measurement hits 
-                m_tree->Branch("trackHits", &m_trackHits, buf_size, split_lvl);
+                m_trackTree->Branch("trackHits", &m_trackHits, buf_size, split_lvl);
 
                 // KF predicted track hits
-                m_tree->Branch("predictedTrackHits", &m_predictedTrackHits, buf_size, split_lvl);
-                m_tree->Branch("filteredTrackHits", &m_filteredTrackHits, buf_size, split_lvl);
-                m_tree->Branch("smoothedTrackHits", &m_smoothedTrackHits, buf_size, split_lvl);
+                m_trackTree->Branch("predictedTrackHits", &m_predictedTrackHits, buf_size, split_lvl);
+                m_trackTree->Branch("filteredTrackHits", &m_filteredTrackHits, buf_size, split_lvl);
+                m_trackTree->Branch("smoothedTrackHits", &m_smoothedTrackHits, buf_size, split_lvl);
 
                 // KF residuals with respect to the true hits
-                m_tree->Branch("truePredictedResiduals", &m_truePredictedResiduals, buf_size, split_lvl);
-                m_tree->Branch("trueFilteredResiduals", &m_trueFilteredResiduals, buf_size, split_lvl);
-                m_tree->Branch("trueSmoothedResiduals", &m_trueSmoothedResiduals, buf_size, split_lvl);
+                m_trackTree->Branch("truePredictedResiduals", &m_truePredictedResiduals, buf_size, split_lvl);
+                m_trackTree->Branch("trueFilteredResiduals", &m_trueFilteredResiduals, buf_size, split_lvl);
+                m_trackTree->Branch("trueSmoothedResiduals", &m_trueSmoothedResiduals, buf_size, split_lvl);
 
                 // KF residuals with respect to the measurements
-                m_tree->Branch("predictedResiduals", &m_predictedResiduals, buf_size, split_lvl);
-                m_tree->Branch("filteredResiduals", &m_filteredResiduals, buf_size, split_lvl);
-                m_tree->Branch("smoothedResiduals", &m_smoothedResiduals, buf_size, split_lvl);
+                m_trackTree->Branch("predictedResiduals", &m_predictedResiduals, buf_size, split_lvl);
+                m_trackTree->Branch("filteredResiduals", &m_filteredResiduals, buf_size, split_lvl);
+                m_trackTree->Branch("smoothedResiduals", &m_smoothedResiduals, buf_size, split_lvl);
 
                 // KF distances with respect to the true hits
-                m_tree->Branch("truePredictedDistances", &m_truePredictedDistances, buf_size, split_lvl);
-                m_tree->Branch("trueFilteredDistances", &m_trueFilteredDistances, buf_size, split_lvl);
-                m_tree->Branch("trueSmoothedDistances", &m_trueSmoothedDistances, buf_size, split_lvl);
+                m_trackTree->Branch("truePredictedDistances", &m_truePredictedDistances, buf_size, split_lvl);
+                m_trackTree->Branch("trueFilteredDistances", &m_trueFilteredDistances, buf_size, split_lvl);
+                m_trackTree->Branch("trueSmoothedDistances", &m_trueSmoothedDistances, buf_size, split_lvl);
 
                 // KF distances with respect to the measurements
-                m_tree->Branch("predictedDistances", &m_predictedDistances, buf_size, split_lvl);
-                m_tree->Branch("filteredDistances", &m_filteredDistances, buf_size, split_lvl);
-                m_tree->Branch("smoothedDistances", &m_smoothedDistances, buf_size, split_lvl);
+                m_trackTree->Branch("predictedDistances", &m_predictedDistances, buf_size, split_lvl);
+                m_trackTree->Branch("filteredDistances", &m_filteredDistances, buf_size, split_lvl);
+                m_trackTree->Branch("smoothedDistances", &m_smoothedDistances, buf_size, split_lvl);
 
                 // KF pulls with respect to the true hits
-                m_tree->Branch("truePredictedPulls", &m_truePredictedPulls, buf_size, split_lvl);
-                m_tree->Branch("trueFilteredPulls", &m_trueFilteredPulls, buf_size, split_lvl);
-                m_tree->Branch("trueSmoothedPulls", &m_trueSmoothedPulls, buf_size, split_lvl);
+                m_trackTree->Branch("truePredictedPulls", &m_truePredictedPulls, buf_size, split_lvl);
+                m_trackTree->Branch("trueFilteredPulls", &m_trueFilteredPulls, buf_size, split_lvl);
+                m_trackTree->Branch("trueSmoothedPulls", &m_trueSmoothedPulls, buf_size, split_lvl);
 
                 // KF pulls with respect to the measurements
-                m_tree->Branch("predictedPulls", &m_predictedPulls, buf_size, split_lvl);
-                m_tree->Branch("filteredPulls", &m_filteredPulls, buf_size, split_lvl);
-                m_tree->Branch("smoothedPulls", &m_smoothedPulls, buf_size, split_lvl);
+                m_trackTree->Branch("predictedPulls", &m_predictedPulls, buf_size, split_lvl);
+                m_trackTree->Branch("filteredPulls", &m_filteredPulls, buf_size, split_lvl);
+                m_trackTree->Branch("smoothedPulls", &m_smoothedPulls, buf_size, split_lvl);
 
                 // KF predicted momentum at the IP
-                m_tree->Branch("ipMomentum", &m_ipMomentum);
-                m_tree->Branch("ipMomentumError", &m_ipMomentumError);
-                m_tree->Branch("vertex", &m_vertex);
-                m_tree->Branch("vertexError", &m_vertexError);
+                m_trackTree->Branch("ipMomentum", &m_ipMomentum);
+                m_trackTree->Branch("ipMomentumError", &m_ipMomentumError);
+                m_trackTree->Branch("vertex", &m_vertex);
+                m_trackTree->Branch("vertexError", &m_vertexError);
 
                 // True momentum at the IP
-                m_tree->Branch("ipMomentumTruth", &m_ipMomentumTruth);
-                m_tree->Branch("vertexTruth", &m_vertexTruth);
+                m_trackTree->Branch("ipMomentumTruth", &m_ipMomentumTruth);
+                m_trackTree->Branch("vertexTruth", &m_vertexTruth);
 
                 // Chi2 and ndf of the fitted track
-                m_tree->Branch("chi2", &m_chi2, "chi2/D");
-                m_tree->Branch("ndf", &m_ndf, "ndf/I");
+                m_trackTree->Branch("chi2", &m_chi2, "chi2/D");
+                m_trackTree->Branch("ndf", &m_ndf, "ndf/I");
 
                 // Matching degree between the true and the fitted track
-                m_tree->Branch("matchingDegree", &m_matchingDegree, "matchingDegree/D");
+                m_trackTree->Branch("matchingDegree", &m_matchingDegree, "matchingDegree/D");
 
                 // Flag indicating if the number of measurements
                 // and the number of true source links are different
-                m_tree->Branch("mismatch", &m_mismatch, "mismatch/I");
+                m_trackTree->Branch("mismatch", &m_mismatch, "mismatch/I");
 
                 // Track ID
-                m_tree->Branch("trackId", &m_trackId, "trackId/I");
+                m_trackTree->Branch("trackId", &m_trackId, "trackId/I");
 
                 // Event ID
-                m_tree->Branch("eventId", &m_eventId, "eventId/I");
+                m_trackTree->Branch("eventId", &m_eventId, "eventId/I");
 
-                m_inputTracks.initialize(m_cfg.inputTrackCollection);
-                m_inputSeeds.initialize(m_cfg.inputSeedCollection);
+                //------------------------------------------------------------------
+                // Flow tree branches
+                m_flowTree->Branch("eventId", &m_eventId, "eventId/I");
+                m_flowTree->Branch("Truth", &m_truth, "Truth/D");
+                m_flowTree->Branch("PathSeed", &m_pathSeed, "PathSeed/D");
+                m_flowTree->Branch("CKFNDF", &m_CKFNDF, "CKFNDF/D");
+                m_flowTree->Branch("CKF", &m_CKF, "CKF/D");
+                m_flowTree->Branch("KF", &m_KF, "KF/D");
+
+                //------------------------------------------------------------------
+                // Initialize the data handles
+                m_KFTracks.initialize(m_cfg.inputKFTracks);
+                m_CKFTrackCandidates.initialize(m_cfg.inputCKFTracksNDF);
+                m_CKFTrackCandidatesPreFilter.initialize(m_cfg.inputCKFTracks);
+                m_pathSeeds.initialize(m_cfg.inputPathSeeds);
+                m_idealSeeds.initialize(m_cfg.inputIdealSeeds);
         }
 
         /// Destructor
@@ -159,18 +185,30 @@ class ROOTFittedTrackWriter : public IWriter {
     
         /// Write out data to the input stream
         ProcessCode write(const AlgorithmContext &ctx) override {
-            auto inputTracks = m_inputTracks(ctx);
+            auto inputKFTracks = m_KFTracks(ctx);
 
-            auto inputSeeds = m_inputSeeds(ctx);
+            auto inputIdealSeeds = m_idealSeeds(ctx);
+
+            auto inputCKFTracksNDF = m_CKFTrackCandidates(ctx);
+
+            auto inputCKFTracks = m_CKFTrackCandidatesPreFilter(ctx);
+
+            auto inputPathSeeds = m_pathSeeds(ctx);
 
             std::lock_guard<std::mutex> lock(m_mutex);
 
-            int nSkippedStates = 0;
+            m_truth = inputIdealSeeds.size();
+            m_pathSeed = inputPathSeeds.size();
+            m_CKFNDF = inputCKFTracksNDF.size();
+            m_CKF = inputCKFTracks.size();
+            m_KF = inputKFTracks.size();
+            m_eventId = ctx.eventNumber;
+            m_flowTree->Fill();
 
             // Iterate over the fitted tracks
-            for (int idx = 0; idx < inputTracks.size(); idx++) {
+            for (int idx = 0; idx < inputKFTracks.size(); idx++) {
                 // Get the track object and the track id
-                auto [id,track] = inputTracks.getByIndex(idx);
+                auto [id,track] = inputKFTracks.getByIndex(idx);
 
                 // KF predicted momentum at the IP
                 double me = 0.511 * Acts::UnitConstants::MeV;
@@ -199,7 +237,7 @@ class ROOTFittedTrackWriter : public IWriter {
                 // Iterate over the true seed information
                 // and find the true source links
                 std::vector<Acts::SourceLink> trueSourceLinks;
-                for (auto& seed : inputSeeds) {
+                for (auto& seed : inputIdealSeeds) {
                     if (seed.trackId == id) {
                         for (auto& sl : seed.sourceLinks) {
                             trueSourceLinks.push_back(sl);
@@ -338,7 +376,7 @@ class ROOTFittedTrackWriter : public IWriter {
                             continue;
                         }
                         // Do nothing if the mismatch happened in the same layer
-                        // as it is a regular CKF mismatch
+                        // as it is a regular CKFNDF mismatch
                         trueSourceLinks.pop_back();
                     }
                     else if (track.nMeasurements() < norm) {
@@ -371,7 +409,7 @@ class ROOTFittedTrackWriter : public IWriter {
                             continue;
                         }
                         // Do nothing if the mismatch happened in the same layer
-                        // as it is a regular CKF mismatch
+                        // as it is a regular CKFNDF mismatch
                         trueSourceLinks.pop_back();
                     }
                     else {
@@ -554,13 +592,11 @@ class ROOTFittedTrackWriter : public IWriter {
 
                 m_trackId = id;
 
-                m_eventId = ctx.eventNumber;
-
                 // Matching degree
                 m_matchingDegree = matchingDegree / norm;
 
                 // Fill the tree
-                m_tree->Fill();
+                m_trackTree->Fill();
             }
 
             // Return success flag
@@ -580,10 +616,19 @@ class ROOTFittedTrackWriter : public IWriter {
         ReadDataHandle<Tracks<
             Acts::VectorTrackContainer,
             Acts::VectorMultiTrajectory>>
-                m_inputTracks{this, "InputTracks"};  
+                m_KFTracks{this, "KFTracks"};  
 
-        ReadDataHandle<Seeds>
-            m_inputSeeds{this, "InputSeeds"};  
+        ReadDataHandle<Seeds> m_CKFTrackCandidates
+            {this, "CKFTrackCandidates"};
+
+        ReadDataHandle<Seeds> m_CKFTrackCandidatesPreFilter
+            {this, "CKFTrackCandidatesPreFilter"};
+
+        ReadDataHandle<Seeds> m_pathSeeds
+            {this, "PathSeeds"};
+
+        ReadDataHandle<Seeds> m_idealSeeds
+            {this, "IdealSeeds"};  
 
         std::unique_ptr<const Acts::Logger> m_logger;
 
@@ -594,7 +639,10 @@ class ROOTFittedTrackWriter : public IWriter {
         TFile *m_file = nullptr;
 
         /// The output tree
-        TTree *m_tree = nullptr;
+        TTree *m_trackTree = nullptr;
+
+        /// Cut flow tree
+        TTree *m_flowTree = nullptr;
 
     protected:
         /// True hits
@@ -666,6 +714,26 @@ class ROOTFittedTrackWriter : public IWriter {
         /// True momentum at the IP
         TLorentzVector m_ipMomentumTruth;
         TVector3 m_vertexTruth;
+
+        /// Number of true tracks prior to 
+        /// applying the cuts
+        double m_truth;
+
+        /// Number of (fully matched) true tracks
+        /// within the path seed collection
+        double m_pathSeed;
+
+        /// Number of (fully matched) true tracks
+        /// within the CKFNDF track candidates collection
+        double m_CKFNDF;
+
+        /// Number of (fully matched) true tracks
+        /// within the CKFNDF track collection pre filter
+        double m_CKF;
+
+        /// Number of (fully matched) true tracks
+        /// within the KF track collection
+        double m_KF;
 
         /// Mutex to protect the tree filling
         std::mutex m_mutex;

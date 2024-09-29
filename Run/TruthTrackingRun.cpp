@@ -338,17 +338,17 @@ int main() {
     // --------------------------------------------------------------
     // Event write out
 
-    auto trackWriterCfg = ROOTFittedTrackWriter::Config();
-    trackWriterCfg.surfaceAccessor.connect<
-        &SimpleSourceLink::SurfaceAccessor::operator()>(
-            &surfaceAccessor);
-    trackWriterCfg.inputTrackCollection = "Tracks";
-    trackWriterCfg.inputSeedCollection = "IdealSeeds";
-    trackWriterCfg.treeName = "fitted-tracks";
-    trackWriterCfg.filePath = "fitted-tracks.root";
+    // auto trackWriterCfg = ROOTFittedTrackWriter::Config();
+    // trackWriterCfg.surfaceAccessor.connect<
+        // &SimpleSourceLink::SurfaceAccessor::operator()>(
+            // &surfaceAccessor);
+    // trackWriterCfg.inputTrackCollection = "Tracks";
+    // trackWriterCfg.inputSeedCollection = "IdealSeeds";
+    // trackWriterCfg.treeName = "fitted-tracks";
+    // trackWriterCfg.filePath = "fitted-tracks.root";
 
-    sequencer.addWriter(
-        std::make_shared<ROOTFittedTrackWriter>(trackWriterCfg, logLevel));
+    // sequencer.addWriter(
+        // std::make_shared<ROOTFittedTrackWriter>(trackWriterCfg, logLevel));
 
     // --------------------------------------------------------------
     // Run all configured algorithms and return the appropriate status.

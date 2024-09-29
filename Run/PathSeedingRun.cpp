@@ -419,17 +419,17 @@ int main() {
 
     RangedUniformMomentumGenerator momGen;
     momGen.Pranges = {
-        // {2.0_GeV, 2.5_GeV},
+        {2.0_GeV, 2.5_GeV},
         {2.5_GeV, 3.0_GeV},
-        {3.0_GeV, 3.5_GeV}};
-        // {3.5_GeV, 4.0_GeV}};
+        {3.0_GeV, 3.5_GeV},
+        {3.5_GeV, 4.0_GeV}};
 
     MeasurementsCreator::Config mcCfg;
     mcCfg.outputCollection = "Measurements";
     mcCfg.vertexGenerator = std::make_shared<StationaryVertexGenerator>();
     mcCfg.momentumGenerator = std::make_shared<RangedUniformMomentumGenerator>(momGen);
     mcCfg.randomNumberSvc = std::make_shared<RandomNumbers>(RandomNumbers::Config());
-    mcCfg.nTracks = 2;
+    mcCfg.nTracks = 20;
 
     sequencer.addAlgorithm(
         std::make_shared<MeasurementsCreator>(
@@ -505,6 +505,9 @@ int main() {
     pathSeederCfg.intersectionFinder.connect<
         &ForwardOrderedIntersectionFinder::operator()>(&intersectionFinder);
 
+    // pathSeederCfg.minE = 0_GeV;
+    // pathSeederCfg.maxE = 10_GeV;
+
     // Path width provider
     std::map<std::int32_t, std::pair<
         Acts::ActsScalar,Acts::ActsScalar>> 
@@ -528,7 +531,7 @@ int main() {
     // Grid to bin the source links
     E320TrackFinding::E320SourceLinkGridConstructor::Config gridConstructorCfg{
         .gOpt = gOpt,
-        .bins = std::make_pair(1000, 100),
+        .bins = std::make_pair(100, 1000),
     };
     gridConstructorCfg.surfaceAccessor.connect<
         &SimpleSourceLink::SurfaceAccessor::operator()>(
@@ -604,7 +607,7 @@ int main() {
         {Acts::GeometryIdentifier(),
             {
                 {}, 
-                {1000}, 
+                {10}, 
                 {1000u}
             }
         },
@@ -719,21 +722,21 @@ int main() {
             Trajectory, 
             KFTrackContainer>>(fitterCfg, logLevel));
 
-    // --------------------------------------------------------------
-    // Event write out
+    // // --------------------------------------------------------------
+    // // Event write out
 
-    auto trackWriterCfg = ROOTFittedTrackWriter::Config();
-    trackWriterCfg.surfaceAccessor.connect<
-        &SimpleSourceLink::SurfaceAccessor::operator()>(
-            &surfaceAccessor);
+    // auto trackWriterCfg = ROOTFittedTrackWriter::Config();
+    // trackWriterCfg.surfaceAccessor.connect<
+        // &SimpleSourceLink::SurfaceAccessor::operator()>(
+            // &surfaceAccessor);
 
-    trackWriterCfg.inputTrackCollection = "Tracks";
-    trackWriterCfg.inputSeedCollection = "IdealSeeds";
-    trackWriterCfg.treeName = "fitted-tracks";
-    trackWriterCfg.filePath = "fitted-tracks.root";
+    // trackWriterCfg.inputTrackCollection = "Tracks";
+    // trackWriterCfg.inputSeedCollection = "IdealSeeds";
+    // trackWriterCfg.treeName = "fitted-tracks";
+    // trackWriterCfg.filePath = "fitted-tracks.root";
 
-    sequencer.addWriter(
-        std::make_shared<ROOTFittedTrackWriter>(trackWriterCfg, logLevel));
+    // sequencer.addWriter(
+        // std::make_shared<ROOTFittedTrackWriter>(trackWriterCfg, logLevel));
 
     // --------------------------------------------------------------
     // Phoenix write out
