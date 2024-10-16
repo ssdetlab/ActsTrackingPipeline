@@ -29,18 +29,16 @@ class NoiseEmbeddingAlgorithm : public IAlgorithm {
                 if (m_cfg.detector == nullptr) {
                     throw std::invalid_argument("Detector is not set");
                 }
-                m_inputMeasurement.initialize(m_cfg.inputCollection);
-                m_outputMeasurements.initialize(m_cfg.outputCollection);
+                m_inputSourceLinks.initialize(m_cfg.inputCollection);
+                m_outputSourceLinks.initialize(m_cfg.outputCollection);
         }
         ~NoiseEmbeddingAlgorithm() = default;
 
         /// @brief The execute method        
         ProcessCode execute(const AlgorithmContext& ctx) const override {
-            // Get the input seeds
-            // from the context
-
-            // auto input = m_inputMeasurement(ctx);
-            SimMeasurements input;
+            // Get the inputs from the context
+            auto inputSourceLinks = m_inputSourceLinks(ctx);
+            auto inputSimHits = m_inputSimClusters(ctx);
 
             std::random_device rd;
             std::mt19937 gen(rd());
@@ -58,17 +56,23 @@ class NoiseEmbeddingAlgorithm : public IAlgorithm {
                 for (auto surf : vol->surfaces()) {
                     auto noiseHits = m_cfg.noiseGenerator->gen(gen, surf);
                     for (auto& hit : noiseHits) {
-                        SimMeasurement sm{
-                            hit, 
-                            Acts::BoundVector::Zero(),  
+                        hit.setIndex(inputSourceLinks.size());
+                        inputSourceLinks.push_back(Acts::SourceLink(hit));
+
+                        SimHit sm{
+                            Acts::SourceLink(hit), 
+                            Acts::BoundVector::Zero(), 
                             ipParameters,
+                            -1,
+                            id--,
                             id--};
-                        input.push_back(sm);
+                        inputSimHits.push_back(sm);
                     }
                 }
             }
 
-            m_outputMeasurements(ctx, std::move(input));
+            m_outputSourceLinks(ctx, std::move(inputSourceLinks));
+            m_outputSimClusters(ctx, std::move(inputSimHits));
 
             return ProcessCode::SUCCESS;
         }
@@ -78,9 +82,15 @@ class NoiseEmbeddingAlgorithm : public IAlgorithm {
     private:
         Config m_cfg;
 
-        ReadDataHandle<SimMeasurements> m_inputMeasurement{
-            this, "InputMeasurement"};
+        ReadDataHandle<std::vector<Acts::SourceLink>> m_inputSourceLinks{
+            this, "InputSourceLinks"};
 
-        WriteDataHandle<SimMeasurements> m_outputMeasurements{
-            this, "OutputMeasurements"};
+        ReadDataHandle<SimHits> m_inputSimClusters{
+            this, "InputSimClusters"};
+
+        WriteDataHandle<std::vector<Acts::SourceLink>> m_outputSourceLinks{
+            this, "OutputSourceLinks"};
+
+        WriteDataHandle<SimHits> m_outputSimClusters{
+            this, "OutputSimClusters"};
 };

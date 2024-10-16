@@ -1,5 +1,7 @@
 #pragma once 
 
+#include "ActsLUXEPipeline/SimpleSourceLink.hpp" 
+
 #include "Acts/EventData/SourceLink.hpp"
 #include "Acts/EventData/TrackParameters.hpp"
 #include "Acts/Definitions/TrackParametrization.hpp"
@@ -7,36 +9,63 @@
 #include "Acts/EventData/TrackProxy.hpp"
 
 #include <vector>
+#include <map>  
 
-/// @brief Measurement for the LUXE simulation
-/// storing the source link and the truth parameters
-struct SimMeasurement {
-    /// Source link to be used in the
-    /// subsequent algorithms
+///-----------------------------------------------
+/// Simulated and truth data containers
+
+struct SimHit {
+    /// Source link for compatibility
+    /// with some algorithms
     Acts::SourceLink sourceLink;
-    /// The truth parameters 
+    /// Truth parameters 
     Acts::BoundVector truthParameters;
     /// True IP parameters
     Acts::CurvilinearTrackParameters ipParameters;
-    /// The true track Ids
+    /// True track Ids
     std::int32_t trackId;
+    /// True parent track Ids
+    std::int32_t parentTrackId;
+    /// Run ID for unique identification
+    std::int32_t runId;
 };
 
-/// @brief A collection of SimMeasurements
-using SimMeasurements = std::vector<SimMeasurement>;
+/// @brief Collection of SimHits
+using SimHits = std::vector<SimHit>;
 
+/// @brief Cluster with truth information
+struct SimCluster {
+    /// Observable parameters
+    SimpleSourceLink sourceLink;
+    /// Truth parameters
+    std::vector<SimHit> truthHits;
+    /// Is Signal flag
+    bool isSignal;
+    /// Index for global matching
+    std::int32_t index;
+};
+
+/// @brief Collection of SimClusters
+using SimClusters = std::vector<SimCluster>;
+
+///-----------------------------------------------
+/// Obserbable data containers
+
+/// @brief Seed to be passed to the KF
 struct Seed {
     /// Source links related
     /// to the seed measurements
     std::vector<Acts::SourceLink> sourceLinks;
     /// IP parameters
     Acts::CurvilinearTrackParameters ipParameters;
-    /// The track Ids
+    /// Track Id
     std::int32_t trackId;
 };
 
+/// @brief Collection of Seeds
 using Seeds = std::vector<Seed>;
 
+/// @brief A track with observables and uncertainties
 template <typename container_t, typename trajectory_t>
 struct Tracks {
     using TrackContainer =
@@ -46,7 +75,6 @@ struct Tracks {
 
     using ConstTrackProxy = 
         Acts::TrackProxy<container_t, trajectory_t, std::shared_ptr, true>;
-
 
     TrackContainer tracks;
     IdContainer trackIds;

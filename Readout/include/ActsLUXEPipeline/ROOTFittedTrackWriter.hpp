@@ -23,6 +23,8 @@
 
 using namespace Acts::UnitLiterals;
 
+using TrackID = std::tuple<std::int32_t, std::int32_t, std::int32_t>;
+
 /// @brief Intermediate generalization of the 
 /// ROOT file reader to be inhereted from by the
 /// readers for the specific tree structures,
@@ -43,14 +45,8 @@ class ROOTFittedTrackWriter : public IWriter {
             Acts::SourceLinkSurfaceAccessor surfaceAccessor;
             /// Fitted track collection
             std::string inputKFTracks;
-            /// CKFNDF track candidates collection
-            std::string inputCKFTracksNDF;
-            /// CKFNDF track candidates collection pre filter
-            std::string inputCKFTracks;
-            /// Path seeds collection
-            std::string inputPathSeeds;
-            /// Name of the seed collection
-            std::string inputIdealSeeds;
+            /// Truth cluster data
+            std::string inputTruthClusters;
             /// Name of the input tree
             std::string treeName;
             /// The names of the input files
@@ -106,16 +102,6 @@ class ROOTFittedTrackWriter : public IWriter {
                 m_trackTree->Branch("filteredResiduals", &m_filteredResiduals, buf_size, split_lvl);
                 m_trackTree->Branch("smoothedResiduals", &m_smoothedResiduals, buf_size, split_lvl);
 
-                // KF distances with respect to the true hits
-                m_trackTree->Branch("truePredictedDistances", &m_truePredictedDistances, buf_size, split_lvl);
-                m_trackTree->Branch("trueFilteredDistances", &m_trueFilteredDistances, buf_size, split_lvl);
-                m_trackTree->Branch("trueSmoothedDistances", &m_trueSmoothedDistances, buf_size, split_lvl);
-
-                // KF distances with respect to the measurements
-                m_trackTree->Branch("predictedDistances", &m_predictedDistances, buf_size, split_lvl);
-                m_trackTree->Branch("filteredDistances", &m_filteredDistances, buf_size, split_lvl);
-                m_trackTree->Branch("smoothedDistances", &m_smoothedDistances, buf_size, split_lvl);
-
                 // KF pulls with respect to the true hits
                 m_trackTree->Branch("truePredictedPulls", &m_truePredictedPulls, buf_size, split_lvl);
                 m_trackTree->Branch("trueFilteredPulls", &m_trueFilteredPulls, buf_size, split_lvl);
@@ -143,10 +129,6 @@ class ROOTFittedTrackWriter : public IWriter {
                 // Matching degree between the true and the fitted track
                 m_trackTree->Branch("matchingDegree", &m_matchingDegree, "matchingDegree/D");
 
-                // Flag indicating if the number of measurements
-                // and the number of true source links are different
-                m_trackTree->Branch("mismatch", &m_mismatch, "mismatch/I");
-
                 // Track ID
                 m_trackTree->Branch("trackId", &m_trackId, "trackId/I");
 
@@ -156,19 +138,13 @@ class ROOTFittedTrackWriter : public IWriter {
                 //------------------------------------------------------------------
                 // Flow tree branches
                 m_flowTree->Branch("eventId", &m_eventId, "eventId/I");
-                m_flowTree->Branch("Truth", &m_truth, "Truth/D");
-                m_flowTree->Branch("PathSeed", &m_pathSeed, "PathSeed/D");
-                m_flowTree->Branch("CKFNDF", &m_CKFNDF, "CKFNDF/D");
-                m_flowTree->Branch("CKF", &m_CKF, "CKF/D");
-                m_flowTree->Branch("KF", &m_KF, "KF/D");
+                m_flowTree->Branch("TruthSig", &m_truthSig, "TruthSig/I");
+                m_flowTree->Branch("KFReco", &m_KFReco, buf_size, split_lvl);
 
                 //------------------------------------------------------------------
                 // Initialize the data handles
                 m_KFTracks.initialize(m_cfg.inputKFTracks);
-                m_CKFTrackCandidates.initialize(m_cfg.inputCKFTracksNDF);
-                m_CKFTrackCandidatesPreFilter.initialize(m_cfg.inputCKFTracks);
-                m_pathSeeds.initialize(m_cfg.inputPathSeeds);
-                m_idealSeeds.initialize(m_cfg.inputIdealSeeds);
+                m_truthClusters.initialize(m_cfg.inputTruthClusters);
         }
 
         /// Destructor
@@ -187,23 +163,46 @@ class ROOTFittedTrackWriter : public IWriter {
         ProcessCode write(const AlgorithmContext &ctx) override {
             auto inputKFTracks = m_KFTracks(ctx);
 
-            auto inputIdealSeeds = m_idealSeeds(ctx);
-
-            auto inputCKFTracksNDF = m_CKFTrackCandidates(ctx);
-
-            auto inputCKFTracks = m_CKFTrackCandidatesPreFilter(ctx);
-
-            auto inputPathSeeds = m_pathSeeds(ctx);
+            auto inputTruthClusters = m_truthClusters(ctx);
 
             std::lock_guard<std::mutex> lock(m_mutex);
 
-            m_truth = inputIdealSeeds.size();
-            m_pathSeed = inputPathSeeds.size();
-            m_CKFNDF = inputCKFTracksNDF.size();
-            m_CKF = inputCKFTracks.size();
-            m_KF = inputKFTracks.size();
+            std::cout << "ROOTFITTEDTRACKWRITER " << ctx.eventNumber << ": EVENT: " << ctx.eventNumber << std::endl;
+            std::cout << "ROOTFITTEDTRACKWRITER " << ctx.eventNumber << ": KFTRACKS: " << inputKFTracks.size() << std::endl;
+            std::cout << "ROOTFITTEDTRACKWRITER " << ctx.eventNumber << ": TRUTHCLUSTERS: " << inputTruthClusters.size() << std::endl;
+
+            // Collect true track statistics
+            std::map<TrackID, std::int32_t> trueTracksSig;
+            std::map<TrackID, std::int32_t> trueTracksBkg;
+            for (auto& cluster : inputTruthClusters) {
+                for (int i = 0; i < cluster.truthHits.size(); i++) {
+                    SimHit truthHit = cluster.truthHits.at(i);
+
+                    TrackID trueTrackId = 
+                        std::make_tuple(
+                            truthHit.trackId, 
+                            truthHit.parentTrackId,
+                            truthHit.runId);
+                    
+                    if (truthHit.trackId == 1) {
+                        if (trueTracksSig.find(trueTrackId) == trueTracksSig.end()) {
+                            trueTracksSig.insert({trueTrackId, 1});
+                        } else {
+                            trueTracksSig.at(trueTrackId)++;
+                        }
+                    }
+                    else {
+                        if (trueTracksBkg.find(trueTrackId) == trueTracksBkg.end()) {
+                            trueTracksBkg.insert({trueTrackId, 1});
+                        } else {
+                            trueTracksBkg.at(trueTrackId)++;
+                        }
+                    }
+                }
+            }
+
+            m_truthSig = trueTracksSig.size();
             m_eventId = ctx.eventNumber;
-            m_flowTree->Fill();
 
             // Iterate over the fitted tracks
             for (int idx = 0; idx < inputKFTracks.size(); idx++) {
@@ -234,32 +233,6 @@ class ROOTFittedTrackWriter : public IWriter {
                     std::sqrt(track.covariance().diagonal().head<2>()[1])};
                 m_vertexError = TVector3(vertexError.x(), vertexError.y(), vertexError.z());
 
-                // Iterate over the true seed information
-                // and find the true source links
-                std::vector<Acts::SourceLink> trueSourceLinks;
-                for (auto& seed : inputIdealSeeds) {
-                    if (seed.trackId == id) {
-                        for (auto& sl : seed.sourceLinks) {
-                            trueSourceLinks.push_back(sl);
-                        }
-
-                        // True momentum at the IP
-                        Acts::Vector3 pVecTruth = seed.ipParameters.momentum();
-                        double pMagTruth = pVecTruth.norm();
-                        m_ipMomentumTruth.SetPxPyPzE(
-                            pVecTruth.x(), pVecTruth.y(), pVecTruth.z(), std::hypot(pMagTruth, me));
-
-                        // True vertex position                        
-                        Acts::Vector3 vertexTruth = {
-                            seed.ipParameters.position().x(),
-                            seed.ipParameters.position().y(),
-                            seed.ipParameters.position().z()};
-                        m_vertexTruth = TVector3(vertexTruth.x(), vertexTruth.y(), vertexTruth.z());
-
-                        break;
-                    }
-                }
-
                 // Track hits from the true information
                 std::vector<TVector3> trueTrackHits;
 
@@ -281,16 +254,6 @@ class ROOTFittedTrackWriter : public IWriter {
                 std::vector<TVector3> filteredResiduals;
                 std::vector<TVector3> smoothedResiduals;
 
-                // KF distances with respect to the true hits
-                std::vector<double> truePredictedDistances;
-                std::vector<double> trueFilteredDistances;
-                std::vector<double> trueSmoothedDistances;
-
-                // KF distances with respect to the measurements
-                std::vector<double> predictedDistances;
-                std::vector<double> filteredDistances;
-                std::vector<double> smoothedDistances;
-
                 // KF pulls with respect to the true hits
                 std::vector<TVector3> truePredictedPulls;
                 std::vector<TVector3> trueFilteredPulls;
@@ -305,119 +268,53 @@ class ROOTFittedTrackWriter : public IWriter {
                 // between the true and the fitted track
                 double matchingDegree = 0;
 
-                // Flag indicating if the number of measurements
-                // and the number of true source links are different
-                m_mismatch = 0;
-
-                // Order true source links by the order of the track states
-                std::sort(trueSourceLinks.begin(), trueSourceLinks.end(),
-                    [](const Acts::SourceLink& a, const Acts::SourceLink& b) {
-                        std::uint64_t aLayerId = 
-                            a.get<SimpleSourceLink>().geometryId().sensitive() / 10;
-                        std::uint64_t bLayerId = 
-                            b.get<SimpleSourceLink>().geometryId().sensitive() / 10;
-                        return aLayerId < bLayerId;
-                    });
-
-                int norm = trueSourceLinks.size();
-
                 // Iterate over the track states
+                std::vector<std::pair<TrackID, std::int32_t>> trackStateIds;
                 for (auto state : track.trackStatesReversed()) {
                     // Skip the states without meaningful information
                     if (!state.hasProjector()) {
                         continue;
                     }
-                    if (trueSourceLinks.empty()) {
-                        break;
-                    }
-                    // Get the true source link
-                    auto trueSl = trueSourceLinks.back();
-                    auto trueSsl = trueSl.get<SimpleSourceLink>();
 
                     // Get the measurements source link
                     auto sl = state.getUncalibratedSourceLink();
                     auto ssl = sl.get<SimpleSourceLink>();
-                    
-                    // Check if the source link is in the true source links
-                    if (trueSsl == ssl) {
-                        matchingDegree++;
-                        trueSourceLinks.pop_back();
-                    }
-                    else if (track.nMeasurements() == norm) {
-                        // Mismatch in the same layer
-                        trueSourceLinks.pop_back();
-                    }
-                    else if (track.nMeasurements() > norm) {
-                        // Virtually means that there are three true source links
-                        // and four measurements passed to the KF
-                        // True source link can either occupy the last three
-                        // layers (mismatched the pivot) or the first three
-                        // layers (fake hit in the last layer)
-                        
-                        std::uint64_t trueLayerId = 
-                            trueSsl.geometryId().sensitive() / 10;
-                        std::uint64_t layerId =
-                            ssl.geometryId().sensitive() / 10;
-                        
-                        // If the layer id of the true source link is less than
-                        // the layer id of the measurement source link
-                        // it means that the last measurement is a fake hit
-                        // Skip the last measurement
-                        if (trueLayerId < layerId) {
-                            m_mismatch = 1;
-                            continue;
-                        }
-                        // If the layer id of the true source link is greater than
-                        // the layer id of the measurement source link
-                        // it means that the pivot is mismatched
-                        else if (trueLayerId > layerId) {
-                            trueSourceLinks.pop_back();
-                            m_mismatch = 2;
-                            continue;
-                        }
-                        // Do nothing if the mismatch happened in the same layer
-                        // as it is a regular CKFNDF mismatch
-                        trueSourceLinks.pop_back();
-                    }
-                    else if (track.nMeasurements() < norm) {
-                        // Virtually means that there are four true source links
-                        // and three measurements passed to the KF
-                        // Measurements can either occupy the first three
-                        // layers (missed the last measurement) or the last three
-                        // layers (mismatched the pivot)
-                        
-                        std::uint64_t trueLayerId = 
-                            trueSsl.geometryId().sensitive() / 10;
-                        std::uint64_t layerId =
-                            ssl.geometryId().sensitive() / 10;
-                        
-                        // If the layer id of the true source link is less than
-                        // the layer id of the measurement source link
-                        // it means that the pivot is mismatched
-                        if (trueLayerId < layerId) {
-                            m_mismatch = 3;
-                            norm--;
-                            continue;
-                        }
-                        // If the layer id of the true source link is greater than
-                        // the layer id of the measurement source link
-                        // it means that the last measurement is missed
-                        else if (trueLayerId > layerId) {
-                            m_mismatch = 4;
-                            trueSourceLinks.pop_back();
-                            norm--;
-                            continue;
-                        }
-                        // Do nothing if the mismatch happened in the same layer
-                        // as it is a regular CKFNDF mismatch
-                        trueSourceLinks.pop_back();
-                    }
-                    else {
-                        m_mismatch = 5;
-                    }
+
+                    auto cluster = inputTruthClusters.at(ssl.index());
 
                     // Get the true hit
-                    auto trueHit = trueSsl.parameters;
+                    Acts::Vector2 trueHit;
+                    for (int i = 0; i < cluster.truthHits.size(); i++) {
+                        SimHit truthHit = cluster.truthHits.at(i);
+                        if (!cluster.isSignal || truthHit.trackId == 1) {
+                            trueHit = truthHit.truthParameters.head<2>();
+                            
+                            TrackID currentTrackId = 
+                                std::make_tuple(
+                                    truthHit.trackId, 
+                                    truthHit.parentTrackId,
+                                    truthHit.runId);
+
+                            trackStateIds.push_back(
+                                {currentTrackId, ssl.index()});
+                            break;
+                        }
+                    }
+                    if (cluster.truthHits.size() == 0) {
+                        trueHit = ssl.parameters();
+
+                        TrackID currentTrackId = 
+                            std::make_tuple(
+                                -1, 
+                                -1,
+                                -1);
+
+                        trackStateIds.push_back(
+                            {currentTrackId, ssl.index()});
+                    }
+
+                    // Get the true source link
+                    auto trueSl = Acts::SourceLink(cluster.sourceLink);
 
                     // Get the measurements hit
                     auto hit = state.effectiveCalibrated();
@@ -449,16 +346,6 @@ class ROOTFittedTrackWriter : public IWriter {
                     auto filteredResidual = hitGlobal - filteredHitGlobal;
                     auto smoothedResidual = hitGlobal - smoothedHitGlobal;
 
-                    // Get the distances between the true and the predicted hits
-                    auto truePredictedDistance = truePredictedResidual.norm();
-                    auto trueFilteredDistance = trueFilteredResidual.norm();
-                    auto trueSmoothedDistance = trueSmoothedResidual.norm();
-
-                    // Get the distances between the measurements and the predicted hits
-                    auto predictedDistance = predictedResidual.norm();
-                    auto filteredDistance = filteredResidual.norm();
-                    auto smoothedDistance = smoothedResidual.norm();
-
                     // KF predicted covariances
                     auto predictedCovariance =
                         state.effectiveProjector() * 
@@ -475,15 +362,15 @@ class ROOTFittedTrackWriter : public IWriter {
                         state.smoothedCovariance() * 
                         state.effectiveProjector().transpose();
 
-                    // // KF pulls with respect to the true hits
-                    // auto truePredictedPull = predictedCovariance.inverse().cwiseSqrt() * truePredictedResidual;
-                    // auto trueFilteredPull = filteredCovariance.inverse().cwiseSqrt() * trueFilteredResidual;
-                    // auto trueSmoothedPull = smoothedCovariance.inverse().cwiseSqrt() * trueSmoothedResidual;
+                    // KF pulls with respect to the true hits
+                    auto truePredictedPull = predictedCovariance.inverse().cwiseSqrt() * (trueHit - predictedHit);
+                    auto trueFilteredPull = filteredCovariance.inverse().cwiseSqrt() * (trueHit - filteredHit);
+                    auto trueSmoothedPull = smoothedCovariance.inverse().cwiseSqrt() * (trueHit - smoothedHit);
 
-                    // // KF pulls with respect to the measurements
-                    // auto predictedPull = predictedCovariance.inverse().cwiseSqrt() * predictedResidual;
-                    // auto filteredPull = filteredCovariance.inverse().cwiseSqrt() * filteredResidual;
-                    // auto smoothedPull = smoothedCovariance.inverse().cwiseSqrt() * smoothedResidual;
+                    // KF pulls with respect to the measurements
+                    auto predictedPull = predictedCovariance.inverse().cwiseSqrt() * (hit - predictedHit);
+                    auto filteredPull = filteredCovariance.inverse().cwiseSqrt() * (hit - filteredHit);
+                    auto smoothedPull = smoothedCovariance.inverse().cwiseSqrt() * (hit - smoothedHit);
 
                     // Store the true hits
                     trueTrackHits.push_back(
@@ -503,11 +390,11 @@ class ROOTFittedTrackWriter : public IWriter {
 
                     // Store the residuals with respect to the true hits
                     truePredictedResiduals.push_back(
-                        TVector3(predictedResidual.x(), predictedResidual.y(), predictedResidual.z()));
+                        TVector3(truePredictedResidual.x(), truePredictedResidual.y(), truePredictedResidual.z()));
                     trueFilteredResiduals.push_back(
-                        TVector3(filteredResidual.x(), filteredResidual.y(), filteredResidual.z()));
+                        TVector3(trueFilteredResidual.x(), trueFilteredResidual.y(), trueFilteredResidual.z()));
                     trueSmoothedResiduals.push_back(
-                        TVector3(smoothedResidual.x(), smoothedResidual.y(), smoothedResidual.z()));
+                        TVector3(trueSmoothedResidual.x(), trueSmoothedResidual.y(), trueSmoothedResidual.z()));
 
                     // Store the residuals with respect to the measurements
                     predictedResiduals.push_back(
@@ -517,32 +404,89 @@ class ROOTFittedTrackWriter : public IWriter {
                     smoothedResiduals.push_back(
                         TVector3(smoothedResidual.x(), smoothedResidual.y(), smoothedResidual.z()));
 
-                    // Store the distances with respect to the true hits
-                    truePredictedDistances.push_back(truePredictedDistance);
-                    trueFilteredDistances.push_back(trueFilteredDistance);
-                    trueSmoothedDistances.push_back(trueSmoothedDistance);
+                    // Store the pulls with respect to the true hits
+                    truePredictedPulls.push_back(
+                        TVector3(predictedPull.x(), 0, -predictedPull.y()));
+                    trueFilteredPulls.push_back(
+                        TVector3(filteredPull.x(), 0, -filteredPull.y()));
+                    trueSmoothedPulls.push_back(
+                        TVector3(smoothedPull.x(), 0, -smoothedPull.y()));
 
-                    // Store the distances with respect to the measurements
-                    predictedDistances.push_back(predictedDistance);
-                    filteredDistances.push_back(filteredDistance);
-                    smoothedDistances.push_back(smoothedDistance);
-
-                    // // Store the pulls with respect to the true hits
-                    // truePredictedPulls.push_back(
-                        // TVector3(predictedPull.x(), 0, -predictedPull.y()));
-                    // trueFilteredPulls.push_back(
-                        // TVector3(filteredPull.x(), 0, -filteredPull.y()));
-                    // trueSmoothedPulls.push_back(
-                        // TVector3(smoothedPull.x(), 0, -smoothedPull.y()));
-
-                    // // Store the pulls with respect to the measurements
-                    // predictedPulls.push_back(
-                        // TVector3(predictedPull.x(), 0, -predictedPull.y()));
-                    // filteredPulls.push_back(
-                        // TVector3(filteredPull.x(), 0, -filteredPull.y()));
-                    // smoothedPulls.push_back(
-                        // TVector3(smoothedPull.x(), 0, -smoothedPull.y()));
+                    // Store the pulls with respect to the measurements
+                    predictedPulls.push_back(
+                        TVector3(predictedPull.x(), 0, -predictedPull.y()));
+                    filteredPulls.push_back(
+                        TVector3(filteredPull.x(), 0, -filteredPull.y()));
+                    smoothedPulls.push_back(
+                        TVector3(smoothedPull.x(), 0, -smoothedPull.y()));
                 }
+                if (trackStateIds.size() != 4) {
+                    throw std::runtime_error("Track does not have 4 hits");
+                }
+
+                // Count the number of track ID occurrences
+                std::map<TrackID, std::int32_t> trackIDcount;
+                for (auto [currentTrackId, index] : trackStateIds) {
+                    if (trackIDcount.find(currentTrackId) == trackIDcount.end()) {
+                        trackIDcount.insert({currentTrackId, 1});
+                    } else {
+                        trackIDcount.at(currentTrackId)++;
+                    }
+                }
+                // Find the track ID with the highest occurrence rate
+                TrackID refTrackId;
+                std::int32_t refCount = 0;
+                for (auto [currentTrackId, count] : trackIDcount) {
+                    if (count > refCount && std::get<0>(currentTrackId) == 1) {
+                        refTrackId = currentTrackId;
+                        refCount = count;
+                    }
+                }
+                if (refCount == 0) {
+                    matchingDegree = 0;
+                }
+                else {
+                    // Extract the index of the reference track ID
+                    std::int32_t refIndex = 0;
+                    for (auto [currentTrackId, index] : trackStateIds) {
+                        if (currentTrackId == refTrackId) {
+                            refIndex = index;
+                            break;
+                        }
+                    }
+    
+                    // Get the true IP parameters
+                    auto cluster = inputTruthClusters.at(refIndex);
+                    for (int j = 0; j < cluster.truthHits.size(); j++) {
+                        SimHit truthHit = cluster.truthHits.at(j);
+    
+                        TrackID pivotTrackId = std::make_tuple(
+                            truthHit.trackId, 
+                            truthHit.parentTrackId,
+                            truthHit.runId);
+    
+                        if (pivotTrackId == refTrackId) {
+                            m_ipMomentumTruth.SetPxPyPzE(
+                                truthHit.ipParameters.momentum().x(),
+                                truthHit.ipParameters.momentum().y(),
+                                truthHit.ipParameters.momentum().z(),
+                                std::hypot(truthHit.ipParameters.absoluteMomentum(), me));
+                        }
+                    }
+                    for (auto [currentTrackId, index] : trackStateIds) {
+                        if (currentTrackId == refTrackId) {
+                            matchingDegree += 1;
+                        }
+                    }
+                    matchingDegree /= trackStateIds.size();
+                }
+
+                if (m_KFReco.find(matchingDegree) == m_KFReco.end()) {
+                    m_KFReco.insert({matchingDegree, 1});
+                } else {
+                    m_KFReco.at(matchingDegree)++;
+                }
+
                 // True hits
                 m_trueTrackHits = trueTrackHits;
 
@@ -564,16 +508,6 @@ class ROOTFittedTrackWriter : public IWriter {
                 m_filteredResiduals = filteredResiduals;
                 m_smoothedResiduals = smoothedResiduals;
 
-                // KF distances with respect to the true hits
-                m_truePredictedDistances = truePredictedDistances;
-                m_trueFilteredDistances = trueFilteredDistances;
-                m_trueSmoothedDistances = trueSmoothedDistances;
-
-                // KF distances with respect to the measurements
-                m_predictedDistances = predictedDistances;
-                m_filteredDistances = filteredDistances;
-                m_smoothedDistances = smoothedDistances;
-
                 // KF pulls with respect to the true hits
                 m_truePredictedPulls = truePredictedPulls;
                 m_trueFilteredPulls = trueFilteredPulls;
@@ -590,14 +524,19 @@ class ROOTFittedTrackWriter : public IWriter {
                 // Number of degrees of freedom
                 m_ndf = track.nDoF();
 
+                // Track Id
                 m_trackId = id;
 
                 // Matching degree
-                m_matchingDegree = matchingDegree / norm;
+                m_matchingDegree = matchingDegree;
 
                 // Fill the tree
                 m_trackTree->Fill();
             }
+
+            m_flowTree->Fill();
+
+            m_KFReco.clear();
 
             // Return success flag
             return ProcessCode::SUCCESS;
@@ -618,22 +557,10 @@ class ROOTFittedTrackWriter : public IWriter {
             Acts::VectorMultiTrajectory>>
                 m_KFTracks{this, "KFTracks"};  
 
-        ReadDataHandle<Seeds> m_CKFTrackCandidates
-            {this, "CKFTrackCandidates"};
+        ReadDataHandle<SimClusters> m_truthClusters{this, "TruthClusters"};
 
-        ReadDataHandle<Seeds> m_CKFTrackCandidatesPreFilter
-            {this, "CKFTrackCandidatesPreFilter"};
-
-        ReadDataHandle<Seeds> m_pathSeeds
-            {this, "PathSeeds"};
-
-        ReadDataHandle<Seeds> m_idealSeeds
-            {this, "IdealSeeds"};  
 
         std::unique_ptr<const Acts::Logger> m_logger;
-
-        /// mutex used to protect multi-threaded reads
-        std::mutex m_write_mutex;
 
         /// The output file
         TFile *m_file = nullptr;
@@ -666,16 +593,6 @@ class ROOTFittedTrackWriter : public IWriter {
         std::vector<TVector3> m_filteredResiduals;
         std::vector<TVector3> m_smoothedResiduals;
 
-        /// KF distances with respect to the true hits
-        std::vector<double> m_truePredictedDistances;
-        std::vector<double> m_trueFilteredDistances;
-        std::vector<double> m_trueSmoothedDistances;
-
-        /// KF distances with respect to the measurements
-        std::vector<double> m_predictedDistances;
-        std::vector<double> m_filteredDistances;
-        std::vector<double> m_smoothedDistances;
-
         /// KF pulls with respect to the true hits
         std::vector<TVector3> m_truePredictedPulls;
         std::vector<TVector3> m_trueFilteredPulls;
@@ -696,9 +613,6 @@ class ROOTFittedTrackWriter : public IWriter {
         /// Matching degree
         double m_matchingDegree;
 
-        /// Flag indicating the number of states mismatch
-        int m_mismatch;        
-
         /// TrackId
         int m_trackId;
 
@@ -717,23 +631,11 @@ class ROOTFittedTrackWriter : public IWriter {
 
         /// Number of true tracks prior to 
         /// applying the cuts
-        double m_truth;
+        std::int32_t m_truthSig;
 
-        /// Number of (fully matched) true tracks
-        /// within the path seed collection
-        double m_pathSeed;
-
-        /// Number of (fully matched) true tracks
-        /// within the CKFNDF track candidates collection
-        double m_CKFNDF;
-
-        /// Number of (fully matched) true tracks
-        /// within the CKFNDF track collection pre filter
-        double m_CKF;
-
-        /// Number of (fully matched) true tracks
-        /// within the KF track collection
-        double m_KF;
+        /// Number of KF reconstructed tracks
+        /// sorted by the matching degree
+        std::map<double, std::int32_t> m_KFReco;
 
         /// Mutex to protect the tree filling
         std::mutex m_mutex;

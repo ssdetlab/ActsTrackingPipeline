@@ -34,7 +34,7 @@ class CsvLookupTableWriter : public IWriter {
         /// @brief The nested configuration struct
         struct Config {
             /// The input collection
-            std::string inputCollection = "Measurements";
+            std::string inputSimHits = "Hits";
             /// Surface accessor
             Acts::SourceLinkSurfaceAccessor surfaceAccessor;
             /// First layer extent
@@ -66,7 +66,7 @@ class CsvLookupTableWriter : public IWriter {
                 m_TrackGrid = std::make_shared<Grid>(
                     std::make_tuple(XFirstAxis, YFirstAxis));
 
-                m_inputMeasurements.initialize(m_cfg.inputCollection);
+                m_inputHits.initialize(m_cfg.inputSimHits);
         }
 
         ~CsvLookupTableWriter() {
@@ -136,16 +136,16 @@ class CsvLookupTableWriter : public IWriter {
 
         /// @brief The execute method        
         ProcessCode write(const AlgorithmContext &ctx) override {
-            // Get the input measurements
+            // Get the input Hits
             // from the context
-            auto input = m_inputMeasurements(ctx);
+            auto input = m_inputHits(ctx);
 
             if (input.empty()) {
                 return ProcessCode::SUCCESS;
             }
 
             std::sort(input.begin(), input.end(), 
-                [&](const SimMeasurement& a, const SimMeasurement& b) {
+                [&](const SimHit& a, const SimHit& b) {
                     Acts::Vector2 aHitLoc(
                         a.truthParameters[Acts::eBoundLoc0],
                         a.truthParameters[Acts::eBoundLoc1]);
@@ -223,8 +223,8 @@ class CsvLookupTableWriter : public IWriter {
         /// Private access to the logging instance
         const Acts::Logger &logger() const { return *m_logger; }
 
-        ReadDataHandle<SimMeasurements> m_inputMeasurements
-            {this, "InputMeasurements"};
+        ReadDataHandle<SimHits> m_inputHits
+            {this, "InputHits"};
 
         /// Histograms to handle the binning
         std::shared_ptr<Grid> m_TrackGrid;

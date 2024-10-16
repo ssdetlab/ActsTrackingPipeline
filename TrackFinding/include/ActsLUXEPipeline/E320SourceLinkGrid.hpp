@@ -69,7 +69,7 @@ class E320SourceLinkGridConstructor {
                     Acts::Vector3 globalPos = m_cfg.surfaceAccessor(
                         sl)->localToGlobal(
                             gctx, 
-                            ssl.parameters, 
+                            ssl.parameters(), 
                             Acts::Vector3{0, 1, 0});
 
                     auto bin = lookupTable.at(layerId).localBinsFromPosition(

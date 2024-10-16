@@ -112,7 +112,7 @@ class ROOTLookupDataWriter : public IWriter {
 
             // Sort the input by y coordinate
             std::sort(input.begin(), input.end(), 
-                [&](const SimMeasurement& a, const SimMeasurement& b) {
+                [&](const SimHit& a, const SimHit& b) {
                     Acts::Vector2 aHitLoc(
                         a.truthParameters[Acts::eBoundLoc0],
                         a.truthParameters[Acts::eBoundLoc1]);
@@ -194,7 +194,7 @@ class ROOTLookupDataWriter : public IWriter {
         /// Private access to the logging instance
         const Acts::Logger &logger() const { return *m_logger; }
 
-        ReadDataHandle<SimMeasurements> m_inputMeasurements
+        ReadDataHandle<SimHits> m_inputMeasurements
             {this, "InputMeasurements"};
 
         /// The output file

@@ -89,7 +89,7 @@ class PhoenixTrackWriter : public IWriter {
                         auto sl = state.getUncalibratedSourceLink();
                         auto ssl = sl.get<SimpleSourceLink>();
 
-                        Acts::Vector2 hitLocalPos = ssl.parameters;
+                        Acts::Vector2 hitLocalPos = ssl.parameters();
                         Acts::Vector3 hitGlobalPos = state.referenceSurface().localToGlobal(
                             ctx.geoContext, hitLocalPos, Acts::Vector3(1, 0, 0));
 

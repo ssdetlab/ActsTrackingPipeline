@@ -44,6 +44,9 @@ class TrackFittingAlgorithm : public IAlgorithm {
             // from the context
             auto input = m_inputSeeds(ctx);
 
+            std::cout << "TRACKFITTING " << ctx.eventNumber << ": EVENT: " << ctx.eventNumber << std::endl;
+            std::cout << "TRACKFITTING " << ctx.eventNumber << ": CANDIDATES: " << input.size() << std::endl;
+
             auto trackContainer = std::make_shared<container_t>();
             auto trackStateContainer = std::make_shared<trajectory_t>();
             Acts::TrackContainer tracks(trackContainer, trackStateContainer);
@@ -66,6 +69,8 @@ class TrackFittingAlgorithm : public IAlgorithm {
             }
             auto outTracks = Tracks<container_t, trajectory_t>{
                 tracks, trackIds};
+
+            std::cout << "TRACKFITTING " << ctx.eventNumber << ": TRACKS: " << outTracks.size() << std::endl;
 
             m_outputTracks(ctx, std::move(outTracks));
 

@@ -4,6 +4,7 @@
 #include "ActsLUXEPipeline/ProcessCode.hpp"
 #include "ActsLUXEPipeline/AlgorithmContext.hpp"
 #include "ActsLUXEPipeline/DataHandle.hpp"
+#include "ActsLUXEPipeline/DataContainers.hpp"
 
 #include "Acts/Utilities/Logger.hpp"
 #include "Acts/EventData/SourceLink.hpp"
@@ -40,35 +41,34 @@ inline void setBranches(
 /// readers for the specific tree structures,
 /// data types and geometries
 ///
-/// @tparam measurementContainer_t container type 
-/// for the measurements to be implemented 
-///
 /// @note The events are assumed to be ordered
-template <typename measurementContainer_t>
-class ROOTDataReader : public IReader {
+class ROOTSimDataReader : public IReader {
     public:
         /// @brief The nested configuration struct
         struct Config {
-            /// name of the whiteboard entry
-            std::string dataCollection;
+            /// Collection with the measurement data
+            std::string outputSourceLinks;
+            /// Collection with the sim clusters data
+            std::string outputSimClusters;
             /// Name of the input tree
             std::string treeName = "clusters";
             /// The names of the input files
             std::vector<std::string> filePaths;
             /// The keys we have in the ROOT file
+            std::vector<const char*> vVector3Keys;
             std::vector<const char*> vector3Keys;
-            std::vector<const char*> lorentzKeys;
-            std::vector<const char*> vectorIntKeys;
-            std::vector<const char*> vectorDoubleKeys;
+            std::vector<const char*> vLorentzKeys;
+            std::vector<const char*> vIntKeys;
+            std::vector<const char*> vDoubleKeys;
             std::vector<const char*> intKeys;
         };
 
-        ROOTDataReader(const ROOTDataReader &) = delete;
-        ROOTDataReader(const ROOTDataReader &&) = delete;
+        ROOTSimDataReader(const ROOTSimDataReader &) = delete;
+        ROOTSimDataReader(const ROOTSimDataReader &&) = delete;
     
         /// Constructor
         /// @param config The Configuration struct
-        ROOTDataReader(const Config &config, Acts::Logging::Level level)
+        ROOTSimDataReader(const Config &config, Acts::Logging::Level level)
             : IReader(),
             m_cfg(config),
             m_logger(Acts::getDefaultLogger(name(), level)) {
@@ -81,13 +81,15 @@ class ROOTDataReader : public IReader {
                     throw std::invalid_argument("Missing tree name");
                 }
         
-                m_outputData.initialize(m_cfg.dataCollection);
-        
+                m_outputSourceLinks.initialize(m_cfg.outputSourceLinks);
+                m_outputSimClusters.initialize(m_cfg.outputSimClusters);
+
                 // Set the branches
+                setBranches(m_chain, m_cfg.vVector3Keys, m_vVector3Columns);
                 setBranches(m_chain, m_cfg.vector3Keys, m_vector3Columns);
-                setBranches(m_chain, m_cfg.lorentzKeys, m_lorentzColumns);
-                setBranches(m_chain, m_cfg.vectorIntKeys, m_vectorIntColumns);
-                setBranches(m_chain, m_cfg.vectorDoubleKeys, m_vectorDoubleColumns);
+                setBranches(m_chain, m_cfg.vLorentzKeys, m_vLorentzColumns);
+                setBranches(m_chain, m_cfg.vIntKeys, m_vIntColumns);
+                setBranches(m_chain, m_cfg.vDoubleKeys, m_vDoubleColumns);
                 setBranches(m_chain, m_cfg.intKeys, m_intColumns);
 
                 // Add the files to the chain
@@ -134,7 +136,7 @@ class ROOTDataReader : public IReader {
         }
     
         /// Reader name() method
-        virtual std::string name() const { return "ROOTDataReader"; }
+        virtual std::string name() const { return "ROOTSimDataReader"; }
     
         /// Return the available events range.
         std::pair<std::size_t, std::size_t> 
@@ -159,8 +161,8 @@ class ROOTDataReader : public IReader {
                     ACTS_DEBUG("Reading empty event: " << context.eventNumber);
                 }
             
-                m_outputData(context, {});
-            
+                m_outputSourceLinks(context, {});
+
                 // Return success flag
                 return ProcessCode::SUCCESS;
             }
@@ -173,14 +175,23 @@ class ROOTDataReader : public IReader {
                 << " - " << std::get<2>(*it));
     
             // Create the measurements
-            measurementContainer_t measurements;
+            std::vector<Acts::SourceLink> sourceLinks;
+            SimClusters clusters;
             for (auto entry = std::get<1>(*it); entry < std::get<2>(*it); entry++) {
                 m_chain->GetEntry(entry);
-                prepareMeasurements(context, &measurements);
+                prepareMeasurements(
+                    context, 
+                    &sourceLinks,
+                    &clusters);
             }
-            
-            m_outputData(context, std::move(measurements));
-            
+
+            std::cout << "ROOTDATAREADER " << context.eventNumber << ": EVENT: " << context.eventNumber << std::endl;
+            std::cout << "ROOTDATAREADER " << context.eventNumber << ": SOURCELINKS: " << sourceLinks.size() << std::endl;
+            std::cout << "ROOTDATAREADER " << context.eventNumber << ": CLUSTERS: " << clusters.size() << std::endl;
+
+            m_outputSourceLinks(context, std::move(sourceLinks));
+            m_outputSimClusters(context, std::move(clusters));
+
             // Return success flag
             return ProcessCode::SUCCESS;
         }
@@ -198,9 +209,17 @@ class ROOTDataReader : public IReader {
         /// Prepare the measurements
         virtual inline void prepareMeasurements(
             const AlgorithmContext &context, 
-            measurementContainer_t* measurements) const = 0;
+            std::vector<Acts::SourceLink>* sourceLinks,
+            SimClusters* clusters) const = 0;
 
-        WriteDataHandle<measurementContainer_t> m_outputData{this, "OutputData"};
+        /// WriteDataHandle for the observable data
+        WriteDataHandle<std::vector<Acts::SourceLink>> m_outputSourceLinks
+            {this, "OutputObsData"};
+        
+        /// WriteDataHandle for the simulation data
+        WriteDataHandle<SimClusters> m_outputSimClusters
+            {this, "OutputSimClusters"};
+
         std::unique_ptr<const Acts::Logger> m_logger;
 
         /// mutex used to protect multi-threaded reads
@@ -215,13 +234,22 @@ class ROOTDataReader : public IReader {
     protected:
         /// The exausitive list of columns
         std::unordered_map<std::string_view, 
-            std::vector<std::int32_t>*> m_vectorIntColumns;
-        std::unordered_map<std::string_view, 
-            std::vector<std::double_t>*> m_vectorDoubleColumns;
-        std::unordered_map<std::string_view, 
             std::int32_t> m_intColumns;
         std::unordered_map<std::string_view, 
-            std::vector<TVector3>*> m_vector3Columns;
+            std::vector<std::int32_t>*> m_vIntColumns;
+
         std::unordered_map<std::string_view, 
-            std::vector<TLorentzVector>*> m_lorentzColumns;
+            std::double_t> m_doubleColumns;
+        std::unordered_map<std::string_view, 
+            std::vector<std::double_t>*> m_vDoubleColumns;
+
+        std::unordered_map<std::string_view, 
+            TVector3*> m_vector3Columns;
+        std::unordered_map<std::string_view, 
+            std::vector<TVector3>*> m_vVector3Columns;
+
+        std::unordered_map<std::string_view, 
+            TLorentzVector*> m_lorentzColumns;
+        std::unordered_map<std::string_view, 
+            std::vector<TLorentzVector>*> m_vLorentzColumns;
 };

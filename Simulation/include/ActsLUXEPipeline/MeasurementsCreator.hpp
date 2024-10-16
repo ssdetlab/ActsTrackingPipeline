@@ -3,7 +3,6 @@
 #include "ActsLUXEPipeline/SimpleSourceLink.hpp"
 #include "ActsLUXEPipeline/IAlgorithm.hpp"
 #include "ActsLUXEPipeline/LUXEEffectiveMaterial.hpp"
-#include "ActsLUXEPipeline/SimMeasurementBoostIO.hpp"
 #include "ActsLUXEPipeline/DataHandle.hpp"
 #include "ActsLUXEPipeline/DataContainers.hpp"
 #include "ActsLUXEPipeline/Generators.hpp"
@@ -39,8 +38,9 @@
 using namespace Acts::UnitLiterals;
 
 struct MeasurementsCreatorAction {
-    using result_type = SimMeasurements;
-    std::size_t sourceId = 0;
+    using result_type = 
+        std::pair<std::vector<Acts::SourceLink>,SimHits>;
+    std::int32_t sourceId = 0;
 
     /// @brief Operator that is callable by an ActionList. The function
     /// collects the surfaces
@@ -130,7 +130,12 @@ struct MeasurementsCreatorAction {
 
             // Create the source link
             Acts::SquareMatrix2 cov = Acts::SquareMatrix2::Identity();
-            SimpleSourceLink simpleSL(loc, cov, geoId, sourceId);
+            SimpleSourceLink simpleSL(
+                loc, 
+                cov, 
+                geoId, 
+                sourceId,
+                result.first.size());
             
             // Reset the state
             Acts::BoundSquareMatrix resetCov = Acts::BoundSquareMatrix::Identity();
@@ -148,12 +153,17 @@ struct MeasurementsCreatorAction {
 
             // Create the measurement
             Acts::SourceLink sl(simpleSL);
-            SimMeasurement sm{
-                sl, 
+            result.first.push_back(sl);
+
+            SimHit sm{
+                sl,
                 scatteredParameters,
                 ipParameters,
-                static_cast<int>(sourceId)};
-            result.push_back(sm);
+                1,
+                sourceId,
+                1};
+            
+            result.second.push_back(sm);
     }
 };
 
@@ -168,8 +178,10 @@ class MeasurementsCreator : public IAlgorithm {
 
         /// @brief The nested configuration struct
         struct Config {
-            /// The output collection
-            std::string outputCollection = "Measurements";
+            /// The output source links
+            std::string outputSourceLinks = "Measurements";
+            /// The output sim clusters
+            std::string outputSimHits = "SimHits";
             /// Vertex generator
             std::shared_ptr<IVertexGenerator> vertexGenerator;
             /// Momentum generator
@@ -188,7 +200,8 @@ class MeasurementsCreator : public IAlgorithm {
         
         ~MeasurementsCreator() = default;
     
-        SimMeasurements createMeasurements(
+        std::pair<std::vector<Acts::SourceLink>,SimHits>
+        createMeasurements(
             const Propagator& propagator,
             const AlgorithmContext& ctx,
             const TrackParameters& trackParameters,
@@ -204,6 +217,9 @@ class MeasurementsCreator : public IAlgorithm {
     
         Propagator m_propagator;
     
-        WriteDataHandle<SimMeasurements> m_outputMeasurements
-            {this, "OutputMeasurements"};
+        WriteDataHandle<std::vector<Acts::SourceLink>> m_outputSourceLinks
+            {this, "OutputSourceLinks"};
+
+        WriteDataHandle<SimHits> m_outputSimHits{
+            this, "OutputSimClusters"};
 };

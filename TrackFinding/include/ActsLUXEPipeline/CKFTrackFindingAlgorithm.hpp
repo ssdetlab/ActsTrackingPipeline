@@ -77,11 +77,9 @@ class CKFTrackFindingAlgorithm : public IAlgorithm {
             /// CKF extensions
             Acts::CombinatorialKalmanFilterExtensions<candidate_container_t> extensions;
             /// The input collection
-            std::string inputCollection = "Seed";
-            /// The output collection
-            std::string outputCollectionNDF = "Seed";
+            std::string inputSeeds = "Seed";
             /// The output collection before filtering
-            std::string outputCollection = "SeedPreFilter";
+            std::string outputTrackCandidates = "TrackCandidates";
             /// Minimum number of source links
             int minSourceLinks = 3;
             /// Maximum number of source links
@@ -92,9 +90,8 @@ class CKFTrackFindingAlgorithm : public IAlgorithm {
         CKFTrackFindingAlgorithm(Config config, Acts::Logging::Level level)
             : IAlgorithm("CKFTrackFindingAlgorithm", level),
             m_cfg(std::move(config)) {
-                m_inputSeeds.initialize(m_cfg.inputCollection);
-                m_outputSeedsNDF.initialize(m_cfg.outputCollectionNDF);
-                m_outputSeeds.initialize(m_cfg.outputCollection);
+                m_inputSeeds.initialize(m_cfg.inputSeeds);
+                m_outputTrackCandidates.initialize(m_cfg.outputTrackCandidates);
         }
         ~CKFTrackFindingAlgorithm() = default;
 
@@ -106,6 +103,9 @@ class CKFTrackFindingAlgorithm : public IAlgorithm {
             // from the context
             auto input = m_inputSeeds(ctx);
 
+            std::cout << "CKFTRACKFINDING " << ctx.eventNumber << ": EVENT: " << ctx.eventNumber << std::endl;
+            std::cout << "CKFTRACKFINDING " << ctx.eventNumber << ": SEEDS: " << input.size() << std::endl;
+
             auto options = CombinatorialKalmanFilterOptions(
                 ctx.geoContext, ctx.magFieldContext, ctx.calibContext,
                 Acts::SourceLinkAccessorDelegate<SimpleSourceLinkAccessor::Iterator>{},
@@ -116,13 +116,12 @@ class CKFTrackFindingAlgorithm : public IAlgorithm {
             options.sourcelinkAccessor.template connect<&SimpleSourceLinkAccessor::range>(
                 &slAccessor);
 
-            Seeds trackCandidatesNDF;
             Seeds trackCandidates;
             for (const auto& seed : input) {
                 SimpleSourceLinkContainer ckfSourceLinks;
                 for (auto& sl : seed.sourceLinks) {
                     auto ssl = sl.get<SimpleSourceLink>();
-                    ckfSourceLinks.insert({ssl.m_geometryId, ssl});
+                    ckfSourceLinks.insert({ssl.geometryId(), ssl});
                 }
     
                 slAccessor.container = &ckfSourceLinks;
@@ -140,7 +139,7 @@ class CKFTrackFindingAlgorithm : public IAlgorithm {
                 if (!res.ok()) {
                     continue;
                 }
-        
+
                 for (std::size_t tid = 0u; tid < tc.size(); ++tid) {
                     const auto track = tc.getTrack(tid);
                 
@@ -155,25 +154,21 @@ class CKFTrackFindingAlgorithm : public IAlgorithm {
                         sourceLinks.push_back(sl);
                     }
 
-                    trackCandidates.push_back(Seed{
-                        sourceLinks,
-                        ipParameters,
-                        seed.trackId});
-
                     if (sourceLinks.size() < m_cfg.minSourceLinks ||
                         sourceLinks.size() > m_cfg.maxSourceLinks) {
                             continue;
                     }
 
-                    trackCandidatesNDF.push_back(Seed{
+                    trackCandidates.push_back(Seed{
                         sourceLinks,
                         ipParameters,
                         seed.trackId});
                 }
             }
 
-            m_outputSeedsNDF(ctx, std::move(trackCandidatesNDF));
-            m_outputSeeds(ctx, std::move(trackCandidates));
+            std::cout << "CKFTRACKFINDING " << ctx.eventNumber << ": TRACKCANDIDATES: " << trackCandidates.size() << std::endl;
+
+            m_outputTrackCandidates(ctx, std::move(trackCandidates));
 
             return ProcessCode::SUCCESS;
         }
@@ -184,9 +179,6 @@ class CKFTrackFindingAlgorithm : public IAlgorithm {
         ReadDataHandle<Seeds> m_inputSeeds
             {this, "InputSeeds"};
 
-        WriteDataHandle<Seeds> m_outputSeedsNDF
-            {this, "OutputSeeds"};
-
-        WriteDataHandle<Seeds> m_outputSeeds
-            {this, "OutputSeedsPreFilter"};
+        WriteDataHandle<Seeds> m_outputTrackCandidates
+            {this, "OutputTrackCandidates"};
 };
