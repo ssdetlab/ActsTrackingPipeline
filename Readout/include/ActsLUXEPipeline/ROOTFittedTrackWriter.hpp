@@ -167,10 +167,6 @@ class ROOTFittedTrackWriter : public IWriter {
 
             std::lock_guard<std::mutex> lock(m_mutex);
 
-            std::cout << "ROOTFITTEDTRACKWRITER " << ctx.eventNumber << ": EVENT: " << ctx.eventNumber << std::endl;
-            std::cout << "ROOTFITTEDTRACKWRITER " << ctx.eventNumber << ": KFTRACKS: " << inputKFTracks.size() << std::endl;
-            std::cout << "ROOTFITTEDTRACKWRITER " << ctx.eventNumber << ": TRUTHCLUSTERS: " << inputTruthClusters.size() << std::endl;
-
             // Collect true track statistics
             std::map<TrackID, std::int32_t> trueTracksSig;
             std::map<TrackID, std::int32_t> trueTracksBkg;
@@ -419,9 +415,6 @@ class ROOTFittedTrackWriter : public IWriter {
                         TVector3(filteredPull.x(), 0, -filteredPull.y()));
                     smoothedPulls.push_back(
                         TVector3(smoothedPull.x(), 0, -smoothedPull.y()));
-                }
-                if (trackStateIds.size() != 4) {
-                    throw std::runtime_error("Track does not have 4 hits");
                 }
 
                 // Count the number of track ID occurrences
