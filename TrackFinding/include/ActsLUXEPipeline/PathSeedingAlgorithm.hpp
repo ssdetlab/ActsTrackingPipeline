@@ -41,9 +41,6 @@ class PathSeedingAlgorithm : public IAlgorithm {
             // from the context
             auto input = m_inputSourceLinks(ctx);
 
-            std::cout << "PATHSEEDING " << ctx.eventNumber << ": EVENT: " << ctx.eventNumber << std::endl;
-            std::cout << "PATHSEEDING " << ctx.eventNumber << ": SOURCELINKS: " << input.size() << std::endl;
-
             if (input.empty()) {
                 m_outputSeeds(ctx, Seeds());
                 return ProcessCode::SUCCESS;
@@ -86,8 +83,6 @@ class PathSeedingAlgorithm : public IAlgorithm {
                     ipParameters,
                     i});
             }
-
-            std::cout << "PATHSEEDING " << ctx.eventNumber << ": SEEDS: " << outSeeds.size() << std::endl;
 
             m_outputSeeds(ctx, std::move(outSeeds));
             

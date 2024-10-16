@@ -103,9 +103,6 @@ class CKFTrackFindingAlgorithm : public IAlgorithm {
             // from the context
             auto input = m_inputSeeds(ctx);
 
-            std::cout << "CKFTRACKFINDING " << ctx.eventNumber << ": EVENT: " << ctx.eventNumber << std::endl;
-            std::cout << "CKFTRACKFINDING " << ctx.eventNumber << ": SEEDS: " << input.size() << std::endl;
-
             auto options = CombinatorialKalmanFilterOptions(
                 ctx.geoContext, ctx.magFieldContext, ctx.calibContext,
                 Acts::SourceLinkAccessorDelegate<SimpleSourceLinkAccessor::Iterator>{},
@@ -165,8 +162,6 @@ class CKFTrackFindingAlgorithm : public IAlgorithm {
                         seed.trackId});
                 }
             }
-
-            std::cout << "CKFTRACKFINDING " << ctx.eventNumber << ": TRACKCANDIDATES: " << trackCandidates.size() << std::endl;
 
             m_outputTrackCandidates(ctx, std::move(trackCandidates));
 

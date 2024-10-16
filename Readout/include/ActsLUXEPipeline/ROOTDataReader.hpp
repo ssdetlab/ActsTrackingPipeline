@@ -185,10 +185,6 @@ class ROOTSimDataReader : public IReader {
                     &clusters);
             }
 
-            std::cout << "ROOTDATAREADER " << context.eventNumber << ": EVENT: " << context.eventNumber << std::endl;
-            std::cout << "ROOTDATAREADER " << context.eventNumber << ": SOURCELINKS: " << sourceLinks.size() << std::endl;
-            std::cout << "ROOTDATAREADER " << context.eventNumber << ": CLUSTERS: " << clusters.size() << std::endl;
-
             m_outputSourceLinks(context, std::move(sourceLinks));
             m_outputSimClusters(context, std::move(clusters));
 
