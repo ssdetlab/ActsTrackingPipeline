@@ -188,7 +188,8 @@ int main() {
     // momGen.phiRange = {0, 2 * M_PI};
 
     MeasurementsCreator::Config mcCfg;
-    mcCfg.outputCollection = "Measurements";
+    mcCfg.outputSourceLinks = "Measurements";
+    mcCfg.outputSimHits = "SimHits";
     mcCfg.vertexGenerator = std::make_shared<StationaryVertexGenerator>();
     mcCfg.momentumGenerator = std::make_shared<RangedUniformMomentumGenerator>(momGen);
     mcCfg.randomNumberSvc = std::make_shared<RandomNumbers>(RandomNumbers::Config());
@@ -204,9 +205,9 @@ int main() {
     // Add the lookup data writers
     ROOTLookupDataWriter::Config lookupWriterCfg;
         
-    lookupWriterCfg.inputCollection = mcCfg.outputCollection;
+    lookupWriterCfg.inputCollection = mcCfg.outputSimHits;
 
-    SimpleSourceLink::SurfaceAccessor surfaceAccessor{*detector};
+    SimpleSourceLink::SurfaceAccessor surfaceAccessor{detector.get()};
     lookupWriterCfg.surfaceAccessor.connect<
         &SimpleSourceLink::SurfaceAccessor::operator()>(
         &surfaceAccessor);
@@ -254,4 +255,6 @@ int main() {
     sequencer.addWriter(lookupMaker);
 
     return sequencer.run();
+
+    return 0;
 }

@@ -10,10 +10,12 @@ MeasurementsCreator::MeasurementsCreator(
         : IAlgorithm("MeasurementsCreator", level),
         m_cfg(config), 
         m_propagator(std::move(propagator)) {
-            m_outputMeasurements.initialize(m_cfg.outputCollection);
+            m_outputSourceLinks.initialize(m_cfg.outputSourceLinks);
+            m_outputSimHits.initialize(m_cfg.outputSimHits);
 };
         
-SimMeasurements MeasurementsCreator::createMeasurements(
+std::pair<std::vector<Acts::SourceLink>,SimHits>
+MeasurementsCreator::createMeasurements(
     const Propagator& propagator,
     const AlgorithmContext& ctx,
     const TrackParameters& trackParameters,
@@ -35,13 +37,14 @@ SimMeasurements MeasurementsCreator::createMeasurements(
         try {
             auto result = propagator.propagate(trackParameters, options).value();
 
-            auto measurements = result.template get<SimMeasurements>();
+            auto [sourceLinks,clusters] = result.template get<
+                std::pair<std::vector<Acts::SourceLink>,SimHits>>();
     
             // Fill the true IP parameters
-            for (auto& meas : measurements) {
-                meas.ipParameters = trackParameters;
+            for (auto& cl : clusters) {
+                cl.ipParameters = {trackParameters};
             }
-            return std::move(measurements);
+            return {std::move(sourceLinks), std::move(clusters)};
         }
         catch (const std::runtime_error& e) {
             return {};
@@ -71,7 +74,8 @@ ProcessCode MeasurementsCreator::execute(
     
         // Create the measurements
         auto me = 0.511 * Acts::UnitConstants::MeV;
-        SimMeasurements results;
+        std::vector<Acts::SourceLink> sourceLinks;
+        SimHits clusters;
         for (int i = 0; i < m_cfg.nTracks; i++) {
             rng.seed(std::chrono::system_clock::now().time_since_epoch().count());
             Acts::Vector3 mom = m_cfg.momentumGenerator->gen(rng);
@@ -83,7 +87,7 @@ ProcessCode MeasurementsCreator::execute(
             Acts::Vector3 spatial = m_cfg.vertexGenerator->gen(rng);
             Acts::Vector4 mPos4 = {spatial.x(), spatial.y(), spatial.z(), 0};
 
-            SimMeasurements res = createMeasurements(
+            auto [sls, cls] = createMeasurements(
                 m_propagator, ctx,
                 TrackParameters(
                     mPos4, phi, theta,
@@ -91,9 +95,12 @@ ProcessCode MeasurementsCreator::execute(
                     Acts::ParticleHypothesis::electron()),
                     i);
 
-            results.insert(results.end(), res.begin(), res.end());
+            sourceLinks.insert(sourceLinks.end(), sls.begin(), sls.end());
+            clusters.insert(clusters.end(), cls.begin(), cls.end());
         }
 
-        m_outputMeasurements(ctx, std::move(results));
+        m_outputSourceLinks(ctx, std::move(sourceLinks));
+        m_outputSimHits(ctx, std::move(clusters));
+
         return ProcessCode::SUCCESS;
 }

@@ -88,7 +88,7 @@ struct RangedUniformMomentumGenerator : public IMomentumGenerator {
 
 /// @brief Interface for generating random noise hits
 struct INoiseGenerator {
-    virtual std::vector<Acts::SourceLink> gen(
+    virtual std::vector<SimpleSourceLink> gen(
         RandomEngine& rng, const Acts::Surface* surface) const = 0;
 };
 
@@ -96,7 +96,7 @@ struct INoiseGenerator {
 struct UniformNoiseGenerator : public INoiseGenerator {
     Acts::ActsScalar numberOfHits = 10;
 
-    std::vector<Acts::SourceLink> gen(
+    std::vector<SimpleSourceLink> gen(
         RandomEngine& rng, const Acts::Surface* surface) const override {
             if (surface->type() != Acts::Surface::SurfaceType::Plane) {
                 throw std::runtime_error("Only plane surfaces are supported");
@@ -111,7 +111,7 @@ struct UniformNoiseGenerator : public INoiseGenerator {
                 (surfaceBounds.at(3) - surfaceBounds.at(1)) * 
                 (surfaceBounds.at(2) - surfaceBounds.at(0));
             
-            std::vector<Acts::SourceLink> noiseHits;    
+            std::vector<SimpleSourceLink> noiseHits;    
             while (noiseHits.size() < numberOfHits) {
                 Acts::ActsScalar x = 
                     surfaceBounds.at(0) + (surfaceBounds.at(2) - surfaceBounds.at(0)) * uniform(rng);
@@ -122,8 +122,8 @@ struct UniformNoiseGenerator : public INoiseGenerator {
                 Acts::Vector2 stddev(5  * Acts::UnitConstants::um,
                     5  * Acts::UnitConstants::um);
                 Acts::SquareMatrix2 cov = stddev.cwiseProduct(stddev).asDiagonal();
-                SimpleSourceLink simpleSL(loc, cov, surface->geometryId(), 0);
-                noiseHits.push_back(Acts::SourceLink(simpleSL));
+                SimpleSourceLink simpleSL(loc, cov, surface->geometryId(), -1, -1);
+                noiseHits.push_back(simpleSL);
             }
 
             return noiseHits;

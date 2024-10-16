@@ -32,12 +32,12 @@ struct SeedTree {
         };
 
         Acts::GeometryIdentifier layerId = getLayerID(
-            seed.sourceLinks.at(1).get<SimpleSourceLink>().m_geometryId); 
+            seed.sourceLinks.at(1).get<SimpleSourceLink>().geometryId()); 
 
         std::vector<Acts::SourceLink> layerSourceLinks;
         for (auto it = seed.sourceLinks.begin() + 1; it != seed.sourceLinks.end(); ++it) {
             Acts::GeometryIdentifier id = getLayerID(
-                it->get<SimpleSourceLink>().m_geometryId);
+                it->get<SimpleSourceLink>().geometryId());
             if (id == layerId) {
                 layerSourceLinks.push_back(*it);
             }

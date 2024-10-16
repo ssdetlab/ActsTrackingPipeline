@@ -11,6 +11,56 @@ namespace E320ROOTReader {
 
 using namespace Acts::UnitLiterals;
 
+// Filter that classifies clusters as signal or background
+// based on their position in the x-y plane
+struct HourglassFilter {
+    // Horizontal line
+    double a0 = 0.0;
+    double b0 = 210.0;
+
+    // Diagonal hourglass lines
+    double a1 = 5.4;
+    double b1 = 110.0;
+
+    double a2 = -5.4;
+    double b2 = 110.0;
+
+    // Tunnel in the center
+    double tunnel = 2.0;
+
+    // Filter operator
+    //
+    // @par x: x-coordinate of the point
+    // @par y: y-coordinate of the point
+    // 
+    // @return: true if the point is inside the 
+    // hourglass shape, false otherwise
+    bool operator()(double x, double y) const{
+        // Filter out the top part of the tracking plane
+        bool cond0 = y < a0 * x + b0;
+
+        // Conditions alternate between the two sides of
+        // the hourglass shape
+        if (x < -tunnel) {
+            bool cond1 = y < a1 * x + b1;
+            bool cond2 = y > a2 * x + b2;
+
+            return cond0 && (cond1 || cond2);
+        }
+        if (x > tunnel) {
+            bool cond1 = y > a1 * x + b1;
+            bool cond2 = y < a2 * x + b2;
+
+            return cond0 && (cond1 || cond2);
+        }
+        else {
+            // Tunnel in the center
+            return cond0;
+        }
+    }
+};
+
+
 /// @brief Global to local conversion
 /// for the LUXE geometry
 Acts::Vector2 convertToLoc(
@@ -30,413 +80,254 @@ Acts::Vector2 convertToLoc(
 ///
 /// @note Covariance is implemented as a diagonal matrix
 /// of ALPIDE intrinsic resolutions
-class E320ROOTSimDataReader : 
-    public ROOTDataReader<SimMeasurements> {
-        public:
-            /// @brief The configuration struct
-            struct Config 
-                : public ROOTDataReader<SimMeasurements>::Config{
-                    /// The geometry options
-                    E320Geometry::GeometryOptions gOpt;
-                    /// Vertex cuts
-                    Acts::Extent vertexPosExtent;
-                    /// Energy cuts
-                    std::pair<Acts::ActsScalar, Acts::ActsScalar> energyCuts = 
-                        {8 * Acts::UnitConstants::GeV, 100 * Acts::UnitConstants::GeV};
-            };
-
-            E320ROOTSimDataReader(const Config &config, Acts::Logging::Level level) 
-                : ROOTDataReader(config, level), m_cfg(config) {
-                    m_actsToWorld = 
-                        m_cfg.gOpt.actsToWorld.rotation().inverse();
-                    
-                    m_energyCuts = m_cfg.energyCuts;
-                }
-    
-            std::string name() const override { return "E320ROOTSimDataReader"; }
-
-        private:
-            Config m_cfg;
-
-            Acts::RotationMatrix3 m_actsToWorld;
-
-            std::pair<Acts::ActsScalar, Acts::ActsScalar> m_energyCuts;
-
-            inline void prepareMeasurements(
-                const AlgorithmContext &context, 
-                SimMeasurements* measurements) const override {
-                    // Check if the event number is correct
-                    auto eventId = m_intColumns.at("eventId");
-                    if (eventId != context.eventNumber) {
-                        return;
-                    }
-    
-                    // Get the columns with the event data
-                    std::int32_t geoIdval; 
-                    std::vector<std::int32_t>* trackId;
-                    std::vector<std::int32_t>* parentTrackId;
-                    std::vector<TVector3>* hits;
-                    std::vector<TVector3>* trueHits;
-                    std::vector<TVector3>* vertices;
-                    std::vector<TLorentzVector>* mom;
-                    std::vector<TLorentzVector>* momIP;
-                    try {
-                        geoIdval = m_intColumns.at("geoId");
-                        trackId = m_vectorIntColumns.at("tru_trackId");
-                        parentTrackId = m_vectorIntColumns.at("tru_parenttrackId");
-                        
-                        // TODO: We need proper clustering algorithm
-                        hits = m_vector3Columns.at("tru_hit");
-                        
-                        trueHits = m_vector3Columns.at("tru_hit");
-                        vertices = m_vector3Columns.at("tru_vertex");
-                        mom = m_lorentzColumns.at("tru_p");
-                        momIP = m_lorentzColumns.at("tru_p_ip");
-                    } 
-                    catch (const std::out_of_range& e) {
-                        throw std::runtime_error("Missing columns in the ROOT file");
-                    }
-
-                    // This is per the LUXE convention
-                    Acts::GeometryIdentifier geoId;
-                    geoId.setSensitive(geoIdval + 11);
-                    
-                    // Create IP covariance matrix from 
-                    // reasonable standard deviations
-                    Acts::BoundVector ipStdDev;
-                    ipStdDev[Acts::eBoundLoc0] = 100_um;
-                    ipStdDev[Acts::eBoundLoc1] = 100_um;
-                    ipStdDev[Acts::eBoundTime] = 25_ns;
-                    ipStdDev[Acts::eBoundPhi] = 2_degree;
-                    ipStdDev[Acts::eBoundTheta] = 2_degree;
-                    ipStdDev[Acts::eBoundQOverP] = 1 / 100_GeV;
-                    Acts::BoundSquareMatrix ipCov = 
-                        ipStdDev.cwiseProduct(ipStdDev).asDiagonal();
-
-                    // Create the measurements
-                    Acts::ActsScalar me = 0.511 * Acts::UnitConstants::MeV;
-                    for (int idx = 0; idx < trueHits->size(); idx++) {
-                        auto hitMom = mom->at(idx); 
-
-                        // Apply the cuts
-                        if (hitMom.E() < m_energyCuts.first || 
-                            hitMom.E() > m_energyCuts.second) {
-                            continue;
-                        }
-
-                        // Convert the vertex
-                        Acts::Vector3 trueVertex3 = 
-                            {vertices->at(idx).X() * Acts::UnitConstants::mm, 
-                            vertices->at(idx).Y() * Acts::UnitConstants::mm, 
-                            vertices->at(idx).Z() * Acts::UnitConstants::mm};
-                        trueVertex3 = 
-                            m_actsToWorld * trueVertex3;
-
-                        if (!m_cfg.vertexPosExtent.contains(trueVertex3)) {
-                            continue;
-                        }
-
-                        // KF accepts 4D vectors
-                        Acts::Vector4 trueVertex = 
-                            {trueVertex3.x(), 
-                            trueVertex3.y(), 
-                            trueVertex3.z(), 0};
-
-                        // Convert the cluster geometrical center
-                        // to the local coordinates
-                        Acts::Vector3 hitGlob = 
-                            {hits->at(idx).X() * Acts::UnitConstants::mm, 
-                            hits->at(idx).Y() * Acts::UnitConstants::mm, 
-                            hits->at(idx).Z() * Acts::UnitConstants::mm};
-                        
-                        const Acts::Vector2 hitLoc =
-                            convertToLoc(hitGlob, geoId, m_cfg.gOpt);
-
-                        // Convert the true hit to the local coordinates
-                        Acts::Vector3 trueHitGlob = 
-                            {trueHits->at(idx).X() * Acts::UnitConstants::mm, 
-                            trueHits->at(idx).Y() * Acts::UnitConstants::mm, 
-                            trueHits->at(idx).Z() * Acts::UnitConstants::mm};
-
-                        const Acts::Vector2 trueHitLoc = 
-                            convertToLoc(trueHitGlob, geoId, m_cfg.gOpt);
-
-                        // Set up the truth parameters
-                        Acts::BoundVector truthPars = Acts::BoundVector::Zero();
-                        truthPars[Acts::eBoundLoc0] = trueHitLoc[Acts::eBoundLoc0];
-                        truthPars[Acts::eBoundLoc1] = trueHitLoc[Acts::eBoundLoc1];
-
-                        // Get the momentum at the first hit
-                        Acts::Vector3 trueP = 
-                            {hitMom.Px(), hitMom.Py(), hitMom.Pz()};
-
-                        Acts::Vector3 dir = trueP.normalized();
-
-                        Acts::Vector3 dirRotated = 
-                            m_actsToWorld * dir;
-
-                        truthPars[Acts::eBoundPhi] = Acts::VectorHelpers::phi(dirRotated);
-                        truthPars[Acts::eBoundTheta] = Acts::VectorHelpers::theta(dirRotated);
-                        truthPars[Acts::eBoundQOverP] = 
-                            1_e/(hitMom.P() * Acts::UnitConstants::GeV);
-                        truthPars[Acts::eBoundTime] = hitMom.T();
-
-                        // Set up IP information
-                        TLorentzVector ipMom = momIP->at(idx);
-
-                        Acts::Vector3 ipMom3 = 
-                            {ipMom.Px(), ipMom.Py(), ipMom.Pz()};
-                        Acts::Vector3 dirIP = ipMom3.normalized();
-
-                        Acts::Vector3 dirIPRotated = 
-                            m_actsToWorld * dirIP;
-
-                        Acts::CurvilinearTrackParameters ipParameters(
-                            trueVertex, 
-                            Acts::VectorHelpers::phi(dirIPRotated),
-                            Acts::VectorHelpers::theta(dirIPRotated),
-                            1_e/(ipMom.P() * Acts::UnitConstants::GeV),
-                            ipCov,
-                            Acts::ParticleHypothesis::electron());
-
-                        // Covariance is filled with the intrinsic resolution
-                        Acts::Vector2 stddev(5  * Acts::UnitConstants::um,
-                            5  * Acts::UnitConstants::um);
-                        Acts::SquareMatrix2 cov = stddev.cwiseProduct(stddev).asDiagonal();
-        
-                        // Create the source link
-                        SimpleSourceLink ssl(hitLoc, cov, geoId, eventId);
-                        Acts::SourceLink sl{ssl};
-
-                        // Fill the measurement
-                        SimMeasurement measurement{
-                            .sourceLink = sl,
-                            .truthParameters = truthPars,
-                            .ipParameters = ipParameters,
-                            .trackId = parentTrackId->at(idx)
-                        };
-
-                        measurements->push_back(measurement);
-                    }
+class E320ROOTSimDataReader : public ROOTSimDataReader {
+    public:
+        /// @brief The configuration struct
+        struct Config 
+            : public ROOTSimDataReader::Config{
+                /// The geometry options
+                E320Geometry::GeometryOptions gOpt;
         };
-};
 
-/// @brief The ROOT file reader for the LUXE simulation
-/// that knows about the true trueHits and the true momenta
-///
-/// @note Covariance is implemented as a diagonal matrix
-/// of ALPIDE intrinsic resolutions
-class E320ROOTSimSplitDataReader : 
-    public ROOTDataReader<SimMeasurements> {
-        public:
-            /// @brief The configuration struct
-            struct Config 
-                : public ROOTDataReader<SimMeasurements>::Config{
-                    /// The geometry options
-                    E320Geometry::GeometryOptions gOpt;
-                    /// Vertex cuts
-                    Acts::Extent vertexPosExtent;
-                    /// Energy cuts
-                    std::pair<Acts::ActsScalar, Acts::ActsScalar> energyCuts = 
-                        {8 * Acts::UnitConstants::GeV, 100 * Acts::UnitConstants::GeV};
-            };
+        E320ROOTSimDataReader(const Config &config, Acts::Logging::Level level) 
+            : ROOTSimDataReader(config, level), m_cfg(config) {
+                m_actsToWorld = 
+                    m_cfg.gOpt.actsToWorld.rotation().inverse();
+            }
 
-            E320ROOTSimSplitDataReader(const Config &config, Acts::Logging::Level level) 
-                : ROOTDataReader(config, level), m_cfg(config) {
-                    m_actsToWorld = 
-                        m_cfg.gOpt.actsToWorld.rotation().inverse();
-                    
-                    m_energyCuts = m_cfg.energyCuts;
+        std::string name() const override { return "E320ROOTSimDataReader"; }
+
+    private:
+        Config m_cfg;
+
+        Acts::RotationMatrix3 m_actsToWorld;
+
+        // Prepare the measurements
+        // for the Sequencer pipeline
+        inline void prepareMeasurements(
+            const AlgorithmContext &context, 
+            std::vector<Acts::SourceLink>* sourceLinks,
+            SimClusters* clusters) const override {
+                // Check if the event number is correct
+                auto eventId = m_intColumns.at("eventId");
+                if (eventId != context.eventNumber) {
+                    return;
                 }
-    
-            std::string name() const override { return "E320ROOTSimSplitDataReader"; }
 
-        private:
-            Config m_cfg;
+                // Columns with the measurable quantities
+                std::int32_t geoIdval; 
+                std::int32_t sizeX;
+                std::int32_t sizeY;
+                TVector3* geoCenter;
 
-            Acts::RotationMatrix3 m_actsToWorld;
+                // Columns with the truth quantities
+                std::vector<std::int32_t>* trackId;
+                std::vector<std::int32_t>* parentTrackId;
+                std::vector<std::int32_t>* runId;
+                std::vector<TVector3>* trueHits;
+                std::vector<TVector3>* vertices;
+                std::vector<TLorentzVector>* mom;
+                std::vector<TLorentzVector>* momIP;
+                try {
+                    //--------------------------------
+                    // Measurable quantities
 
-            std::pair<Acts::ActsScalar, Acts::ActsScalar> m_energyCuts;
+                    // Geometry ID of the chip where
+                    // the cluster occured
+                    geoIdval = m_intColumns.at("geoId");
 
-            inline void prepareMeasurements(
-                const AlgorithmContext &context, 
-                SimMeasurements* measurements) const override {
-                    // Check if the event number is correct
-                    auto eventId = m_intColumns.at("eventId");
-                    if (eventId != context.eventNumber) {
-                        return;
-                    }
-    
-                    // Get the columns with the event data
-                    std::vector<std::int32_t>* geoIdval; 
-                    std::int32_t trackId;
-                    std::int32_t parentTrackId;
-                    std::vector<TVector3>* hits;
-                    std::vector<TVector3>* trueHits;
-                    std::vector<TVector3>* vertex;
-                    std::vector<TLorentzVector>* mom;
-                    std::vector<TLorentzVector>* momIP;
-                    try {
-                        geoIdval = m_vectorIntColumns.at("geoId");
-                        trackId = m_intColumns.at("tru_trackId");
-                        parentTrackId = m_intColumns.at("tru_parenttrackId");
-                        
-                        // TODO: We need proper clustering algorithm
-                        hits = m_vector3Columns.at("tru_hit");
-                        
-                        trueHits = m_vector3Columns.at("tru_hit");
-                        vertex = m_vector3Columns.at("tru_vertex");
-                        mom = m_lorentzColumns.at("tru_p");
-                        momIP = m_lorentzColumns.at("tru_p_ip");
-                    } 
-                    catch (const std::out_of_range& e) {
-                        throw std::runtime_error("Missing columns in the ROOT file");
-                    }
+                    // The cluster geometrical center
+                    // in the global coordinates
+                    geoCenter = m_vector3Columns.at("rglobal_geo");
 
-                    // Apply the cuts
-                    if (momIP->at(0).E() < m_energyCuts.first || 
-                        momIP->at(0).E() > m_energyCuts.second) {
-                            return;
-                    }
+                    // The cluster size in X
+                    sizeX = m_intColumns.at("xsize");
 
-                    if (hits->size() < 4) {
-                        return;
-                    }
+                    // The cluster size in Y
+                    sizeY = m_intColumns.at("ysize");
 
-                    // Create IP covariance matrix from 
-                    // reasonable standard deviations
-                    Acts::BoundVector ipStdDev;
-                    ipStdDev[Acts::eBoundLoc0] = 100_um;
-                    ipStdDev[Acts::eBoundLoc1] = 100_um;
-                    ipStdDev[Acts::eBoundTime] = 25_ns;
-                    ipStdDev[Acts::eBoundPhi] = 2_degree;
-                    ipStdDev[Acts::eBoundTheta] = 2_degree;
-                    ipStdDev[Acts::eBoundQOverP] = 1 / 100_GeV;
-                    Acts::BoundSquareMatrix ipCov = 
-                        ipStdDev.cwiseProduct(ipStdDev).asDiagonal();
+                    //--------------------------------
+                    // Truth quantities
 
-                    // Create the measurements
-                    Acts::ActsScalar me = 0.511 * Acts::UnitConstants::MeV;
-                    for (int idx = 0; idx < trueHits->size(); idx++) {
-                        Acts::GeometryIdentifier geoId;
-                        geoId.setSensitive(geoIdval->at(idx) + 11);
+                    // Track IDs of the particles 
+                    // that created the cluster
+                    trackId = m_vIntColumns.at("tru_trackId");
 
-                        auto hitMom = mom->at(0); 
+                    // Parent track IDs of the particles
+                    // that created the cluster
+                    parentTrackId = m_vIntColumns.at("tru_parenttrackId");
 
-                        // Convert the vertex
-                        Acts::Vector3 trueVertex3 = 
-                            {vertex->at(0).X() * Acts::UnitConstants::mm, 
-                            vertex->at(0).Y() * Acts::UnitConstants::mm, 
-                            vertex->at(0).Z() * Acts::UnitConstants::mm};
-                        trueVertex3 = 
-                            m_actsToWorld * trueVertex3;
+                    // Ptarmigan run ID of the particles
+                    // that created the cluster
+                    runId = m_vIntColumns.at("tru_runId");
 
-                        if (!m_cfg.vertexPosExtent.contains(trueVertex3)) {
-                            continue;
-                        }
+                    // The true hit positions of the particles
+                    // that created the cluster
+                    trueHits = m_vVector3Columns.at("tru_hit");
 
-                        // KF accepts 4D vectors
-                        Acts::Vector4 trueVertex = 
-                            {trueVertex3.x(), 
-                            trueVertex3.y(), 
-                            trueVertex3.z(), 0};
+                    // The true vertex positions of the particles
+                    // that created the cluster
+                    vertices = m_vVector3Columns.at("tru_vertex");
 
-                        // Convert the cluster geometrical center
-                        // to the local coordinates
-                        Acts::Vector3 hitGlob = 
-                            {hits->at(idx).X() * Acts::UnitConstants::mm, 
-                            hits->at(idx).Y() * Acts::UnitConstants::mm, 
-                            hits->at(idx).Z() * Acts::UnitConstants::mm};
-                        
-                        const Acts::Vector2 hitLoc =
-                            convertToLoc(hitGlob, geoId, m_cfg.gOpt);
+                    // The true momenta of the particles
+                    // that created the cluster
+                    mom = m_vLorentzColumns.at("tru_p");
 
-                        // Convert the true hit to the local coordinates
-                        Acts::Vector3 trueHitGlob = 
-                            {trueHits->at(idx).X() * Acts::UnitConstants::mm, 
-                            trueHits->at(idx).Y() * Acts::UnitConstants::mm, 
-                            trueHits->at(idx).Z() * Acts::UnitConstants::mm};
+                    // The true momenta of the particles
+                    // that created the cluster at the IP
+                    momIP = m_vLorentzColumns.at("tru_p_ip");
+                } 
+                catch (const std::out_of_range& e) {
+                    throw std::runtime_error("Missing columns in the ROOT file");
+                }
 
-                        const Acts::Vector2 trueHitLoc = 
-                            convertToLoc(trueHitGlob, geoId, m_cfg.gOpt);
+                //-------------------------------
+                // Measurable quantities
 
-                        // Set up the truth parameters
-                        Acts::BoundVector truthPars = Acts::BoundVector::Zero();
-                        truthPars[Acts::eBoundLoc0] = trueHitLoc[Acts::eBoundLoc0];
-                        truthPars[Acts::eBoundLoc1] = trueHitLoc[Acts::eBoundLoc1];
+                // Apply the Geometry ID convention
+                Acts::GeometryIdentifier geoId;
+                geoId.setSensitive(geoIdval + 11);
+                
+                // Create IP covariance matrix from 
+                // reasonable standard deviations
+                Acts::BoundVector ipStdDev;
+                ipStdDev[Acts::eBoundLoc0] = 100_um;
+                ipStdDev[Acts::eBoundLoc1] = 100_um;
+                ipStdDev[Acts::eBoundTime] = 25_ns;
+                ipStdDev[Acts::eBoundPhi] = 2_degree;
+                ipStdDev[Acts::eBoundTheta] = 2_degree;
+                ipStdDev[Acts::eBoundQOverP] = 1 / 100_GeV;
+                Acts::BoundSquareMatrix ipCov = 
+                    ipStdDev.cwiseProduct(ipStdDev).asDiagonal();
 
-                        // Get the momentum at the first hit
-                        Acts::Vector3 trueP = 
-                            {hitMom.Px(), hitMom.Py(), hitMom.Pz()};
+                // Convert the cluster geometrical center
+                // to the local coordinates
+                Acts::Vector3 hitGlob = 
+                    {geoCenter->X() * Acts::UnitConstants::mm, 
+                    geoCenter->Y() * Acts::UnitConstants::mm, 
+                    geoCenter->Z() * Acts::UnitConstants::mm};
+                
+                const Acts::Vector2 hitLoc =
+                    convertToLoc(hitGlob, geoId, m_cfg.gOpt);
 
-                        Acts::Vector3 dir = trueP.normalized();
+                HourglassFilter filter;
+                if (!filter(hitLoc[Acts::eBoundLoc0], hitLoc[Acts::eBoundLoc1])) {
+                    return;
+                }                
 
-                        Acts::Vector3 dirRotated = 
-                            m_actsToWorld * dir;
+                // Estimate error from the cluster size
+                double pixSizeX = 27_um;
+                double pixSizeY = 29_um;
 
-                        truthPars[Acts::eBoundPhi] = Acts::VectorHelpers::phi(dirRotated);
-                        truthPars[Acts::eBoundTheta] = Acts::VectorHelpers::theta(dirRotated);
-                        truthPars[Acts::eBoundQOverP] = 
-                            1_e/(hitMom.P() * Acts::UnitConstants::GeV);
-                        truthPars[Acts::eBoundTime] = hitMom.T();
+                Acts::Vector2 stddev(sizeX * pixSizeX, sizeY * pixSizeY);
+                Acts::SquareMatrix2 cov = stddev.cwiseProduct(stddev).asDiagonal();
 
-                        // Set up IP information
-                        TLorentzVector ipMom = momIP->at(0);
+                // Fill the measurement
+                SimpleSourceLink ssl(hitLoc, cov, geoId, eventId, sourceLinks->size());
+                sourceLinks->push_back(Acts::SourceLink(ssl));
 
-                        Acts::Vector3 ipMom3 = 
-                            {ipMom.Px(), ipMom.Py(), ipMom.Pz()};
-                        Acts::Vector3 dirIP = ipMom3.normalized();
+                //-------------------------------
+                // Truth quantities
 
-                        Acts::Vector3 dirIPRotated = 
-                            m_actsToWorld * dirIP;
+                // Fill the cluster data
+                SimCluster cluster{
+                    .sourceLink = ssl
+                };
 
-                        Acts::CurvilinearTrackParameters ipParameters(
-                            trueVertex, 
-                            Acts::VectorHelpers::phi(dirIPRotated),
-                            Acts::VectorHelpers::theta(dirIPRotated),
-                            1_e/(ipMom.P() * Acts::UnitConstants::GeV),
-                            ipCov,
-                            Acts::ParticleHypothesis::electron());
+                Acts::ActsScalar me = 0.511 * Acts::UnitConstants::MeV;
+                for (int idx = 0; idx < trueHits->size(); idx++) {
+                    auto hitMom = mom->at(idx); 
 
-                        // Covariance is filled with the intrinsic resolution
-                        Acts::Vector2 stddev(5  * Acts::UnitConstants::um,
-                            5  * Acts::UnitConstants::um);
-                        Acts::SquareMatrix2 cov = stddev.cwiseProduct(stddev).asDiagonal();
-        
-                        // Create the source link
-                        SimpleSourceLink ssl(hitLoc, cov, geoId, eventId);
-                        Acts::SourceLink sl{ssl};
+                    // Convert the vertex
+                    Acts::Vector3 trueVertex3 = 
+                        {vertices->at(idx).X() * Acts::UnitConstants::mm, 
+                        vertices->at(idx).Y() * Acts::UnitConstants::mm, 
+                        vertices->at(idx).Z() * Acts::UnitConstants::mm};
+                    trueVertex3 = 
+                        m_actsToWorld * trueVertex3;
 
-                        // Fill the measurement
-                        SimMeasurement measurement{
-                            .sourceLink = sl,
-                            .truthParameters = truthPars,
-                            .ipParameters = ipParameters,
-                            .trackId = parentTrackId
-                        };
+                    // KF accepts 4D vectors
+                    Acts::Vector4 trueVertex = 
+                        {trueVertex3.x(), 
+                        trueVertex3.y(), 
+                        trueVertex3.z(), 0};
 
-                        measurements->push_back(measurement);
-                    }
+                    // Convert the true hit to the local coordinates
+                    Acts::Vector3 trueHitGlob = 
+                        {trueHits->at(idx).X() * Acts::UnitConstants::mm, 
+                        trueHits->at(idx).Y() * Acts::UnitConstants::mm, 
+                        trueHits->at(idx).Z() * Acts::UnitConstants::mm};
+
+                    const Acts::Vector2 trueHitLoc = 
+                        convertToLoc(trueHitGlob, geoId, m_cfg.gOpt);
+
+                    // Set up the truth parameters
+                    Acts::BoundVector truthPars = Acts::BoundVector::Zero();
+                    truthPars[Acts::eBoundLoc0] = trueHitLoc[Acts::eBoundLoc0];
+                    truthPars[Acts::eBoundLoc1] = trueHitLoc[Acts::eBoundLoc1];
+
+                    // Get the momentum at the first hit
+                    Acts::Vector3 trueP = 
+                        {hitMom.Px(), hitMom.Py(), hitMom.Pz()};
+
+                    Acts::Vector3 dir = trueP.normalized();
+
+                    Acts::Vector3 dirRotated = 
+                        m_actsToWorld * dir;
+
+                    truthPars[Acts::eBoundPhi] = Acts::VectorHelpers::phi(dirRotated);
+                    truthPars[Acts::eBoundTheta] = Acts::VectorHelpers::theta(dirRotated);
+                    truthPars[Acts::eBoundQOverP] = 
+                        1_e/(hitMom.P() * Acts::UnitConstants::GeV);
+                    truthPars[Acts::eBoundTime] = hitMom.T();
+
+                    // Set up IP information
+                    TLorentzVector ipMom = momIP->at(idx);
+
+                    Acts::Vector3 ipMom3 = 
+                        {ipMom.Px(), ipMom.Py(), ipMom.Pz()};
+                    Acts::Vector3 dirIP = ipMom3.normalized();
+
+                    Acts::Vector3 dirIPRotated = 
+                        m_actsToWorld * dirIP;
+
+                    Acts::CurvilinearTrackParameters ipParameters(
+                        trueVertex, 
+                        Acts::VectorHelpers::phi(dirIPRotated),
+                        Acts::VectorHelpers::theta(dirIPRotated),
+                        1_e/(ipMom.P() * Acts::UnitConstants::GeV),
+                        ipCov,
+                        Acts::ParticleHypothesis::electron());
+
+                    SimpleSourceLink truthSsl(
+                        trueHitLoc, cov, geoId, eventId, clusters->size());
+
+                    // Fill the cluster data
+                    cluster.truthHits.push_back(
+                        SimHit(
+                            Acts::SourceLink(truthSsl),
+                            truthPars,
+                            ipParameters,
+                            trackId->at(idx),
+                            parentTrackId->at(idx),
+                            runId->at(idx)
+                        ));
+                    cluster.isSignal = m_intColumns.at("isSignal");
+                    cluster.index = ssl.index();
+                }
+                
+                clusters->push_back(cluster);
         };
 };
 
 auto defaultSimConfig() {
     E320ROOTSimDataReader::Config config;
     config.treeName = "clusters";
-    config.vector3Keys = {"tru_hit", "tru_vertex"};
-    config.lorentzKeys = {"tru_p", "tru_p_ip"};
-    config.vectorIntKeys = {"tru_trackId", "tru_parenttrackId"};
-    config.intKeys = {"eventId", "geoId"};
-    return config;
-}
-
-auto defaultSimSplitConfig() {
-    E320ROOTSimSplitDataReader::Config config;
-    config.treeName = "clusters";
-    config.vector3Keys = {"tru_hit", "tru_vertex"};
-    config.lorentzKeys = {"tru_p", "tru_p_ip"};
-    config.vectorIntKeys = {"geoId"};
-    config.intKeys = {"eventId", "tru_trackId", "tru_parenttrackId"};
+    config.vVector3Keys = {"tru_hit", "tru_vertex"};
+    config.vector3Keys = {"rglobal_geo"};
+    config.vLorentzKeys = {"tru_p", "tru_p_ip"};
+    config.vIntKeys = {"tru_trackId", "tru_parenttrackId", "tru_runId"};
+    config.intKeys = {"eventId", "geoId", "xsize", "ysize", "isSignal"};
     return config;
 }
 
