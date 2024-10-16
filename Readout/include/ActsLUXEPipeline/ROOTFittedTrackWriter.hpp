@@ -416,9 +416,6 @@ class ROOTFittedTrackWriter : public IWriter {
                     smoothedPulls.push_back(
                         TVector3(smoothedPull.x(), 0, -smoothedPull.y()));
                 }
-                if (trackStateIds.size() != 4) {
-                    throw std::runtime_error("Track does not have 4 hits");
-                }
 
                 // Count the number of track ID occurrences
                 std::map<TrackID, std::int32_t> trackIDcount;
