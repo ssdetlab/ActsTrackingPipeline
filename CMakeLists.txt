@@ -5,9 +5,9 @@ cmake_minimum_required(VERSION 3.14)
 # target_include_directories call, resulting in the desired -isystem flag.
 unset(ENV{CPATH})
 
-project(ActsLUXEPipeline LANGUAGES CXX)
+project(TrackingPipeline LANGUAGES CXX)
 
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 
 # set the install directories
 # to be placed in the build directory
@@ -18,23 +18,46 @@ set(CMAKE_INSTALL_LIBDIR lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/${CMAKE_INSTALL_BINDIR}")
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/${CMAKE_INSTALL_LIBDIR}")
 
-# build options
-option(LUXEPipeline_BUILD_EVERYTHING
-    "Build with all options enabled" OFF)
-option(LUXEPipeline_BUILD_GEOMETRY
-    "Build the Geometry component" ON)
-option(LUXEPipeline_BUILD_LUXE_READOUT
-    "Build the LUXE-specific readout component" OFF)
-
 # TBB, ROOT::Core are required for the
 # algorithm execution
-find_package(TBB COMPONENTS tbb REQUIRED)
-find_package(ROOT COMPONENTS Core REQUIRED)
+find_package(
+    TBB 
+    COMPONENTS 
+    tbb 
+    REQUIRED)
+find_package(
+    ROOT 
+    COMPONENTS 
+    Core 
+    RIO
+    Tree
+    Hist
+    Gpad
+    Net
+    Physics
+    GeomPainter
+    REQUIRED)
+
+# Dictionary for the sim data
+add_library(SimEventDict SHARED)
+include_directories(
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/TrackingPipeline/Io/detail)
+ROOT_GENERATE_DICTIONARY(
+    G__SimEventDict
+    ./include/TrackingPipeline/Io/detail/ROOTDictDefs.h
+    MODULE 
+    SimEventDict 
+    LINKDEF 
+    ./include/TrackingPipeline/Io/detail/LinkDef.h)
+target_link_libraries(
+    SimEventDict 
+    PRIVATE 
+    ROOT::RIO
+    ROOT::Physics
+    ROOT::GeomPainter)
 
 # Geant4 is required for the geometry
-if (LUXEPipeline_BUILD_GEOMETRY)
-    find_package(Geant4 REQUIRED)
-endif()
+find_package(Geant4 REQUIRED)
 
 # The core components and the Algo
 # infrastructure are required
@@ -42,32 +65,47 @@ find_package(
     Acts
     COMPONENTS
     Core
+    Fatras
+    PluginGeant4
+    PluginJson
     PluginFpeMonitoring
     REQUIRED)
 
 # source files will be added later
 add_library(
-    ActsLUXEPipelineCore SHARED "")
+    TrackingPipelineCore SHARED "")
 
-if (LUXEPipeline_BUILD_EVERYTHING)
-    set(LUXEPipeline_BUILD_GEOMETRY ON)
-    set(LUXEPipeline_BUILD_LUXE_READOUT ON)
-endif()
+target_link_libraries(
+    TrackingPipelineCore
+    PUBLIC
+    TBB::tbb
+    ROOT::Core
+    ROOT::RIO
+    ROOT::Tree
+    ROOT::Physics
+    ROOT::Hist
+    ROOT::Gpad
+    ROOT::Net
+    G__SimEventDict
+    ActsCore
+    ActsFatras
+    ActsPluginGeant4
+    ActsPluginJson
+    ActsPluginFpeMonitoring)
+
+target_include_directories(
+    TrackingPipelineCore
+    PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+)
 
 # collect the library dependencies
-add_subdirectory(Infrastructure)
-add_subdirectory(TrackFinding)
-add_subdirectory(TrackFitting)
-add_subdirectory(MagneticField)
-add_subdirectory(Material)
-add_subdirectory(EventData)
-add_subdirectory(Simulation)
-if (LUXEPipeline_BUILD_GEOMETRY)
-    add_subdirectory(Geometry)
-endif()
-if (LUXEPipeline_BUILD_LUXE_READOUT)
-    add_subdirectory(Readout)
-endif()
+add_subdirectory(src/Geometry)
+add_subdirectory(src/Infrastructure)
+add_subdirectory(src/Io)
+add_subdirectory(src/MagneticField)
+add_subdirectory(src/Material)
+add_subdirectory(src/Simulation)
 
 # macro to add a run executables
 macro(add_run _name _source)
@@ -79,7 +117,7 @@ macro(add_run _name _source)
     target_link_libraries(
         ${_target}
         PRIVATE
-        ActsLUXEPipelineCore)
+        TrackingPipelineCore)
 endmacro()
 
 # run has to be last, so that it can be 
