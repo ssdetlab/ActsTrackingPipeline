@@ -1,21 +1,20 @@
-#include "ActsLUXEPipeline/E320ROOTDataReader.hpp"
-#include "ActsLUXEPipeline/E320Geometry.hpp"
-#include "ActsLUXEPipeline/TrackFittingAlgorithm.hpp"
-#include "ActsLUXEPipeline/QuadrupoleMagField.hpp"
-#include "ActsLUXEPipeline/DipoleMagField.hpp"
-#include "ActsLUXEPipeline/CompositeMagField.hpp"
-#include "ActsLUXEPipeline/Sequencer.hpp"
-#include "ActsLUXEPipeline/ROOTFittedTrackWriter.hpp"
-#include "ActsLUXEPipeline/E320SourceLinkGrid.hpp"
-#include "ActsLUXEPipeline/CsvLookupTableProvider.hpp"
-#include "ActsLUXEPipeline/ForwardOrderedIntersectionFinder.hpp"
-#include "ActsLUXEPipeline/E320PathWidthProvider.hpp"
-#include "ActsLUXEPipeline/PathSeedingAlgorithm.hpp"
-#include "ActsLUXEPipeline/TryAllTrackFindingAlgorithm.hpp"
-#include "ActsLUXEPipeline/CKFTrackFindingAlgorithm.hpp"
-#include "ActsLUXEPipeline/Generators.hpp"
-#include "ActsLUXEPipeline/NoiseEmbeddingAlgorithm.hpp"
-#include "ActsLUXEPipeline/PhoenixTrackWriter.hpp"
+#include "TrackingPipeline/Io/E320RootDataReader.hpp"
+#include "TrackingPipeline/Io/RootFittedTrackWriter.hpp"
+#include "TrackingPipeline/Io/PhoenixTrackWriter.hpp"
+#include "TrackingPipeline/Io/CsvLookupTableProvider.hpp"
+#include "TrackingPipeline/Geometry/E320Geometry.hpp"
+#include "TrackingPipeline/TrackFitting/TrackFittingAlgorithm.hpp"
+#include "TrackingPipeline/MagneticField/QuadrupoleMagField.hpp"
+#include "TrackingPipeline/MagneticField/DipoleMagField.hpp"
+#include "TrackingPipeline/MagneticField/CompositeMagField.hpp"
+#include "TrackingPipeline/Infrastructure/Sequencer.hpp"
+#include "TrackingPipeline/TrackFinding/E320SourceLinkGrid.hpp"
+#include "TrackingPipeline/TrackFinding/ForwardOrderedIntersectionFinder.hpp"
+#include "TrackingPipeline/TrackFinding/E320PathWidthProvider.hpp"
+#include "TrackingPipeline/TrackFinding/PathSeedingAlgorithm.hpp"
+#include "TrackingPipeline/TrackFinding/CKFTrackFindingAlgorithm.hpp"
+#include "TrackingPipeline/Simulation/Generators.hpp"
+#include "TrackingPipeline/Simulation/NoiseEmbeddingAlgorithm.hpp"
 
 #include "Acts/Seeding/PathSeeder.hpp"
 #include "Acts/Utilities/Logger.hpp"
@@ -72,10 +71,10 @@ int main() {
     // Set the path to the gdml file
     // and the names of the volumes to be converted
     std::string gdmlPath = 
-        "/home/romanurmanov/lab/LUXE/acts_LUXE_tracking/E320Pipeline_gdmls/ettgeom_magnet_pdc_tracker.gdml";
+        "/home/romanurmanov/lab/LUXE/acts_tracking/E320Pipeline_gdmls/ettgeom_magnet_pdc_tracker.gdml";
     std::vector<std::string> names{"OPPPSensitive", "DetChamberWindow"};
 
-    std::string materialPath = "/home/romanurmanov/lab/LUXE/acts_LUXE_tracking/E320Pipeline_material/uniform/material.json";
+    std::string materialPath = "/home/romanurmanov/lab/LUXE/acts_tracking/E320Pipeline_material/uniform/material.json";
 
     // Build the detector
     auto trackerBP = 
@@ -190,12 +189,12 @@ int main() {
     Sequencer sequencer(seqCfg);
 
     // Add the sim data reader
-    E320ROOTReader::E320ROOTSimDataReader::Config readerCfg = 
-        E320ROOTReader::defaultSimConfig();
+    E320Io::E320RootSimDataReader::Config readerCfg = 
+        E320Io::defaultSimConfig();
     readerCfg.outputSourceLinks = "Measurements";
     readerCfg.outputSimClusters = "SimClusters";
     std::string pathToDir = 
-        "/home/romanurmanov/lab/LUXE/acts_LUXE_tracking/E320Pipeline_dataInRootFormat/Signal_E320lp_10.0_12BX_All/Signal_E320lp_10.0_12BX_10us_integration_time";
+        "/home/romanurmanov/lab/LUXE/acts_tracking/E320Pipeline_dataInRootFormat/Background_E320lp_10.0_12BX_All/Background_E320lp_10.0_12BX";
 
     // Get the paths to the files in the directory
     for (const auto & entry : std::filesystem::directory_iterator(pathToDir)) {
@@ -221,7 +220,7 @@ int main() {
 
     // Add the reader to the sequencer
     sequencer.addReader(
-        std::make_shared<E320ROOTReader::E320ROOTSimDataReader>(readerCfg, logLevel));
+        std::make_shared<E320Io::E320RootSimDataReader>(readerCfg, logLevel));
 
     // --------------------------------------------------------------
     // The path seeding setup
@@ -234,7 +233,7 @@ int main() {
     CsvLookupTableProvider::Config trackLookupCfg;
 
     trackLookupCfg.filePath = 
-        "/home/romanurmanov/lab/LUXE/acts_LUXE_tracking/E320Pipeline_lookups/RangedUniform_05_45_Stationary_000_200k_1000x100_MaterialOn_lookup.csv";
+        "/home/romanurmanov/lab/LUXE/acts_tracking/E320Pipeline_lookups/RangedUniform_05_45_Stationary_000_200k_1000x100_MaterialOn_lookup.csv";
 
     CsvLookupTableProvider trackLookup(trackLookupCfg);
     pathSeederCfg.trackEstimator.connect<
@@ -495,7 +494,7 @@ int main() {
     // --------------------------------------------------------------
     // Event write out
 
-    auto trackWriterCfg = ROOTFittedTrackWriter::Config();
+    auto trackWriterCfg = RootFittedTrackWriter::Config();
     trackWriterCfg.surfaceAccessor.connect<
         &SimpleSourceLink::SurfaceAccessor::operator()>(
             &surfaceAccessor);
@@ -503,10 +502,10 @@ int main() {
     trackWriterCfg.inputKFTracks = "Tracks";
     trackWriterCfg.inputTruthClusters = "SimClusters";
     trackWriterCfg.treeName = "fitted-tracks";
-    trackWriterCfg.filePath = "fitted-tracks-sig-2k.root";
+    trackWriterCfg.filePath = "fitted-tracks-bkg-2k.root";
 
     sequencer.addWriter(
-        std::make_shared<ROOTFittedTrackWriter>(trackWriterCfg, logLevel));
+        std::make_shared<RootFittedTrackWriter>(trackWriterCfg, logLevel));
 
     // // --------------------------------------------------------------
     // // Phoenix write out

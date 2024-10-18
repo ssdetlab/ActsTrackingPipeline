@@ -1,14 +1,12 @@
-#include "ActsLUXEPipeline/Sequencer.hpp"
-#include "ActsLUXEPipeline/E320Geometry.hpp"
-#include "ActsLUXEPipeline/BinnedMagneticField.hpp"
-#include "ActsLUXEPipeline/DipoleMagField.hpp"
-#include "ActsLUXEPipeline/QuadrupoleMagField.hpp"
-#include "ActsLUXEPipeline/CompositeMagField.hpp"
-#include "ActsLUXEPipeline/MeasurementsCreator.hpp"
-#include "ActsLUXEPipeline/AlgorithmContext.hpp"
-#include "ActsLUXEPipeline/ROOTLookupDataWriter.hpp"
-#include "ActsLUXEPipeline/CsvLookupTableWriter.hpp"
-#include "ActsLUXEPipeline/Generators.hpp"
+#include "TrackingPipeline/Geometry/E320Geometry.hpp"
+#include "TrackingPipeline/MagneticField/DipoleMagField.hpp"
+#include "TrackingPipeline/MagneticField/QuadrupoleMagField.hpp"
+#include "TrackingPipeline/MagneticField/CompositeMagField.hpp"
+#include "TrackingPipeline/Infrastructure/Sequencer.hpp"
+#include "TrackingPipeline/Io/RootLookupDataWriter.hpp"
+#include "TrackingPipeline/Io/CsvLookupTableWriter.hpp"
+#include "TrackingPipeline/Simulation/MeasurementsCreator.hpp"
+#include "TrackingPipeline/Simulation/Generators.hpp"
 
 #include "Acts/Utilities/Logger.hpp"
 
@@ -40,10 +38,10 @@ int main() {
     // Set the path to the gdml file
     // and the names of the volumes to be converted
     std::string gdmlPath = 
-        "/home/romanurmanov/lab/LUXE/acts_LUXE_tracking/E320Pipeline_gdmls/ettgeom_magnet_pdc_tracker.gdml";
+        "/home/romanurmanov/lab/LUXE/acts_tracking/E320Pipeline_gdmls/ettgeom_magnet_pdc_tracker.gdml";
     std::vector<std::string> names{"OPPPSensitive", "DetChamberWindow"};
 
-    std::string materialPath = "/home/romanurmanov/lab/LUXE/acts_LUXE_tracking/E320Pipeline_material/uniform/material.json";
+    std::string materialPath = "/home/romanurmanov/lab/LUXE/acts_tracking/E320Pipeline_material/uniform/material.json";
 
     // Build the detector
     auto trackerBP = 
@@ -203,7 +201,7 @@ int main() {
     // Lookup data generation 
 
     // Add the lookup data writers
-    ROOTLookupDataWriter::Config lookupWriterCfg;
+    RootLookupDataWriter::Config lookupWriterCfg;
         
     lookupWriterCfg.inputCollection = mcCfg.outputSimHits;
 
@@ -230,7 +228,7 @@ int main() {
     lookupWriterCfg.firstLayerExtent = firstLayerExtent;
 
     sequencer.addWriter(
-        std::make_shared<ROOTLookupDataWriter>(lookupWriterCfg, logLevel));
+        std::make_shared<RootLookupDataWriter>(lookupWriterCfg, logLevel));
 
     auto lookupMakerCfg = CsvLookupTableWriter::Config();
 
