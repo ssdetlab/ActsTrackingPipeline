@@ -60,7 +60,7 @@ target_link_libraries(
 find_package(Geant4 REQUIRED)
 
 # Boost is required for the Acts
-find_package(Boost COMPONENTS boost REQUIRED)
+find_package(Boost REQUIRED)
 
 # The core components and the Algo
 # infrastructure are required
