@@ -59,6 +59,9 @@ target_link_libraries(
 # Geant4 is required for the geometry
 find_package(Geant4 REQUIRED)
 
+# Boost is required for the Acts
+find_package(Boost COMPONENTS boost REQUIRED)
+
 # The core components and the Algo
 # infrastructure are required
 find_package(
