@@ -79,6 +79,8 @@ class SimpleSourceLink {
 
         void setIndex(std::int32_t idx) { m_index = idx; }
 
+        void setEventId(std::int32_t eid) { m_eventId = eid; }
+
     private:
         /// Geometry identifier
         Acts::GeometryIdentifier m_geometryId;

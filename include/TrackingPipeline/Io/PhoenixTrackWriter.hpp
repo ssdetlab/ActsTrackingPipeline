@@ -19,38 +19,44 @@
 /// @class Json writer abiding the Phoenix format
 ///
 /// @brief Writes out KF tracks in the Phoenix format
-class PhoenixTrackWriter : public IWriter {
+class PhoenixWriter : public IWriter {
     public:
         struct Config {
-            /// Name of the fitted track collection
-            std::string inputTrackCollection;
+            /// Surface accessor
+            Acts::SourceLinkSurfaceAccessor surfaceAccessor;
+            /// Fitted track collection
+            std::string inputTracks;
+            /// Input clusters
+            std::string inputClusters;
             /// Name of the output file
             std::string fileName;
         };
 
-        PhoenixTrackWriter(const PhoenixTrackWriter &) = delete;
-        PhoenixTrackWriter(const PhoenixTrackWriter &&) = delete;
+        PhoenixWriter(const PhoenixWriter &) = delete;
+        PhoenixWriter(const PhoenixWriter &&) = delete;
 
         /// Constructor
         ///
         /// @param config The configuration struct of the writer
         /// @param level The log level
-        PhoenixTrackWriter(const Config& config, Acts::Logging::Level level)
+        PhoenixWriter(const Config& config, Acts::Logging::Level level)
             : m_cfg(config),
             m_logger(Acts::getDefaultLogger(name(), level)) {
                 if (m_cfg.fileName.empty()) {
                     throw std::invalid_argument("Missing filename");
                 }
 
-                m_inputTracks.initialize(m_cfg.inputTrackCollection);
+                m_inputTracks.initialize(m_cfg.inputTracks);
+                m_clusters.initialize(m_cfg.inputClusters);
         }
 
         /// Writer name() method
-        std::string name() const { return "PhoenixTrackWriter"; }
+        std::string name() const { return "PhoenixWriter"; }
 
         /// Write out the tracks
         ProcessCode write(const AlgorithmContext &ctx) override {
             auto inputTracks = m_inputTracks(ctx);
+            auto inputClusters = m_clusters(ctx);
 
             nlohmann::json jsonTracks = nlohmann::json::object();
 
@@ -61,6 +67,26 @@ class PhoenixTrackWriter : public IWriter {
 
             jsonTracks["E320Event"]["Tracks"] = nlohmann::json::object();
             jsonTracks["E320Event"]["Tracks"]["TrackerTracks"] = nlohmann::json::array();
+
+            // Iterate over the clusters
+            for (auto cluster : inputClusters) {
+                nlohmann::json jsonHit = nlohmann::json::object();
+
+                auto ssl = cluster.sourceLink;
+                Acts::Vector3 globalPos = m_cfg.surfaceAccessor(
+                    Acts::SourceLink(ssl))->localToGlobal(
+                    ctx.geoContext, 
+                    ssl.parameters(), 
+                    Acts::Vector3{0, 1, 0});
+
+                jsonHit["type"] = "Box";
+                jsonHit["pos"] = {
+                    globalPos.x(),
+                    -globalPos.z(), 
+                    globalPos.y(),
+                    1, 1, 1};
+                jsonTracks["E320Event"]["Hits"]["ClusterHits"].push_back(jsonHit);
+            }
 
             // Iterate over the fitted tracks
             for (int idx = 0; idx < inputTracks.size(); idx++) {
@@ -99,7 +125,7 @@ class PhoenixTrackWriter : public IWriter {
                             hitGlobalPos.x(), 
                             -hitGlobalPos.z(), 
                             hitGlobalPos.y(),
-                            10, 10, 10};    
+                            1, 1, 1};    
                         jsonTracks["E320Event"]["Hits"]["TrackerHits"].push_back(jsonHit);
                     }
                 }
@@ -131,4 +157,6 @@ class PhoenixTrackWriter : public IWriter {
             Acts::VectorTrackContainer,
             Acts::VectorMultiTrajectory>>
                 m_inputTracks{this, "InputTracks"};  
+
+        ReadDataHandle<SimClusters> m_clusters{this, "Clusters"};
 };

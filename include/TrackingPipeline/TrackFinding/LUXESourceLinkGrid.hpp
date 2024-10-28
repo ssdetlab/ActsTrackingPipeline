@@ -1,8 +1,8 @@
 #pragma once
 
-#include "ActsLUXEPipeline/LUXEGeometryConstraints.hpp"
-#include "ActsLUXEPipeline/DataContainers.hpp"
-#include "ActsLUXEPipeline/SimpleSourceLink.hpp"
+#include "TrackingPipeline/Geometry/LUXEGeometryConstraints.hpp"
+#include "TrackingPipeline/EventData/DataContainers.hpp"
+#include "TrackingPipeline/EventData/SimpleSourceLink.hpp"
 
 #include "Acts/Utilities/Axis.hpp"
 #include "Acts/Utilities/Grid.hpp"
@@ -67,7 +67,7 @@ class LUXESourceLinkGrid {
                     Acts::Vector3 globalPos = m_cfg.surfaceAccessor(
                         sl)->localToGlobal(
                             gctx, 
-                            ssl.parameters, 
+                            ssl.parameters(), 
                             Acts::Vector3{0, 1, 0});
 
                     auto bin = lookupTable.at(layer).localBinsFromPosition(

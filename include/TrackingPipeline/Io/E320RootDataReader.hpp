@@ -9,56 +9,6 @@
 
 using namespace Acts::UnitLiterals;
 
-// Filter that classifies clusters as signal or background
-// based on their position in the x-y plane
-struct HourglassFilter {
-    // Horizontal line
-    double a0 = 0.0;
-    double b0 = 210.0;
-
-    // Diagonal hourglass lines
-    double a1 = 5.4;
-    double b1 = 110.0;
-
-    double a2 = -5.4;
-    double b2 = 110.0;
-
-    // Tunnel in the center
-    double tunnel = 2.0;
-
-    // Filter operator
-    //
-    // @par x: x-coordinate of the point
-    // @par y: y-coordinate of the point
-    // 
-    // @return: true if the point is inside the 
-    // hourglass shape, false otherwise
-    bool operator()(double x, double y) const{
-        // Filter out the top part of the tracking plane
-        bool cond0 = y < a0 * x + b0;
-
-        // Conditions alternate between the two sides of
-        // the hourglass shape
-        if (x < -tunnel) {
-            bool cond1 = y < a1 * x + b1;
-            bool cond2 = y > a2 * x + b2;
-
-            return cond0 && (cond1 || cond2);
-        }
-        if (x > tunnel) {
-            bool cond1 = y > a1 * x + b1;
-            bool cond2 = y < a2 * x + b2;
-
-            return cond0 && (cond1 || cond2);
-        }
-        else {
-            // Tunnel in the center
-            return cond0;
-        }
-    }
-};
-
-
 /// @brief Global to local conversion
 /// for the LUXE geometry
 Acts::Vector2 convertToLoc(
@@ -210,11 +160,6 @@ class E320RootSimDataReader : public RootSimDataReader {
                 const Acts::Vector2 hitLoc =
                     convertToLoc(hitGlob, geoId, m_cfg.gOpt);
 
-                HourglassFilter filter;
-                if (!filter(hitLoc[Acts::eBoundLoc0], hitLoc[Acts::eBoundLoc1])) {
-                    return;
-                }                
-
                 // Estimate error from the cluster size
                 double pixSizeX = 27_um;
                 double pixSizeY = 29_um;
@@ -224,7 +169,6 @@ class E320RootSimDataReader : public RootSimDataReader {
 
                 // Fill the measurement
                 SimpleSourceLink ssl(hitLoc, cov, geoId, eventId, sourceLinks->size());
-                sourceLinks->push_back(Acts::SourceLink(ssl));
 
                 //-------------------------------
                 // Truth quantities
@@ -234,6 +178,12 @@ class E320RootSimDataReader : public RootSimDataReader {
                     .sourceLink = ssl
                 };
 
+                if(!m_cfg.clusterFilter->operator()(
+                    context.geoContext, cluster)) {
+                        return;
+                }
+
+                sourceLinks->push_back(Acts::SourceLink(ssl));
                 Acts::ActsScalar me = 0.511 * Acts::UnitConstants::MeV;
                 for (int idx = 0; idx < trueHits->size(); idx++) {
                     auto hitMom = mom->at(idx); 

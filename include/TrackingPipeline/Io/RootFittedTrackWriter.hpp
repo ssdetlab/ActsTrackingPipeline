@@ -72,10 +72,6 @@ class RootFittedTrackWriter : public IWriter {
                 m_trackTree = new TTree(m_cfg.treeName.c_str(), 
                     m_cfg.treeName.c_str());
 
-                std::string flowTreeName = m_cfg.treeName + "_flow";
-                m_flowTree = new TTree(flowTreeName.c_str(), 
-                    flowTreeName.c_str());
-
                 //------------------------------------------------------------------
                 // Track tree branches
                 int buf_size  = 32000;
@@ -134,12 +130,6 @@ class RootFittedTrackWriter : public IWriter {
 
                 // Event ID
                 m_trackTree->Branch("eventId", &m_eventId, "eventId/I");
-
-                //------------------------------------------------------------------
-                // Flow tree branches
-                m_flowTree->Branch("eventId", &m_eventId, "eventId/I");
-                m_flowTree->Branch("TruthSig", &m_truthSig, "TruthSig/I");
-                m_flowTree->Branch("KFReco", &m_KFReco, buf_size, split_lvl);
 
                 //------------------------------------------------------------------
                 // Initialize the data handles
@@ -474,12 +464,6 @@ class RootFittedTrackWriter : public IWriter {
                     matchingDegree /= trackStateIds.size();
                 }
 
-                if (m_KFReco.find(matchingDegree) == m_KFReco.end()) {
-                    m_KFReco.insert({matchingDegree, 1});
-                } else {
-                    m_KFReco.at(matchingDegree)++;
-                }
-
                 // True hits
                 m_trueTrackHits = trueTrackHits;
 
@@ -527,10 +511,6 @@ class RootFittedTrackWriter : public IWriter {
                 m_trackTree->Fill();
             }
 
-            m_flowTree->Fill();
-
-            m_KFReco.clear();
-
             // Return success flag
             return ProcessCode::SUCCESS;
         }
@@ -552,7 +532,6 @@ class RootFittedTrackWriter : public IWriter {
 
         ReadDataHandle<SimClusters> m_truthClusters{this, "TruthClusters"};
 
-
         std::unique_ptr<const Acts::Logger> m_logger;
 
         /// The output file
@@ -560,9 +539,6 @@ class RootFittedTrackWriter : public IWriter {
 
         /// The output tree
         TTree *m_trackTree = nullptr;
-
-        /// Cut flow tree
-        TTree *m_flowTree = nullptr;
 
     protected:
         /// True hits
@@ -625,10 +601,6 @@ class RootFittedTrackWriter : public IWriter {
         /// Number of true tracks prior to 
         /// applying the cuts
         std::int32_t m_truthSig;
-
-        /// Number of KF reconstructed tracks
-        /// sorted by the matching degree
-        std::map<double, std::int32_t> m_KFReco;
 
         /// Mutex to protect the tree filling
         std::mutex m_mutex;

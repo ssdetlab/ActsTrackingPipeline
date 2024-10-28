@@ -13,6 +13,7 @@
 #include "TrackingPipeline/TrackFinding/E320PathWidthProvider.hpp"
 #include "TrackingPipeline/TrackFinding/PathSeedingAlgorithm.hpp"
 #include "TrackingPipeline/TrackFinding/CKFTrackFindingAlgorithm.hpp"
+#include "TrackingPipeline/Clustering/HourglassFilter.hpp"
 #include "TrackingPipeline/Simulation/Generators.hpp"
 #include "TrackingPipeline/Simulation/NoiseEmbeddingAlgorithm.hpp"
 
@@ -179,22 +180,29 @@ int main() {
     auto field = std::make_shared<CompositeMagField>(fieldComponents);
 
     // --------------------------------------------------------------
+    // Cluster filter setup
+    SimpleSourceLink::SurfaceAccessor surfaceAccessor{detector.get()};
+    auto hourglassFilter = std::make_shared<HourglassFilter>();
+    hourglassFilter->surfaceAccessor = surfaceAccessor;
+
+    // --------------------------------------------------------------
     // Event reading 
 
     // Setup the sequencer
     Sequencer::Config seqCfg;
-    // seqCfg.events = 2;
-    seqCfg.numThreads = -1;
+    // seqCfg.events = 12;
+    seqCfg.numThreads = 1;
     seqCfg.trackFpes = false;
     Sequencer sequencer(seqCfg);
 
     // Add the sim data reader
     E320Io::E320RootSimDataReader::Config readerCfg = 
         E320Io::defaultSimConfig();
-    readerCfg.outputSourceLinks = "Measurements";
+    readerCfg.clusterFilter = hourglassFilter;
+    readerCfg.outputSourceLinks = "SimMeasurements";
     readerCfg.outputSimClusters = "SimClusters";
     std::string pathToDir = 
-        "/home/romanurmanov/lab/LUXE/acts_tracking/E320Pipeline_dataInRootFormat/Background_E320lp_10.0_12BX_All/Background_E320lp_10.0_12BX";
+        "/home/romanurmanov/lab/LUXE/acts_tracking/E320Pipeline_dataInRootFormat/Signal_E320lp_10.0_12BX_All/Signal_E320lp_10.0_12BX_split";
 
     // Get the paths to the files in the directory
     for (const auto & entry : std::filesystem::directory_iterator(pathToDir)) {
@@ -223,9 +231,27 @@ int main() {
         std::make_shared<E320Io::E320RootSimDataReader>(readerCfg, logLevel));
 
     // --------------------------------------------------------------
-    // The path seeding setup
-    SimpleSourceLink::SurfaceAccessor surfaceAccessor{detector.get()};
+    // Noise embedding
 
+    // E320 noise generator
+    E320Sim::E320ComptonBackgroundGenerator noiseGen;
+    noiseGen.numberOfHits = 800;
+    
+    NoiseEmbeddingAlgorithm::Config noiseEmbeddingCfg;
+    noiseEmbeddingCfg.clusterFilter = hourglassFilter;
+    noiseEmbeddingCfg.noiseGenerator = 
+        std::make_shared<E320Sim::E320ComptonBackgroundGenerator>(noiseGen);
+    noiseEmbeddingCfg.detector = detector.get();
+    noiseEmbeddingCfg.inputSourceLinks = "SimMeasurements";
+    noiseEmbeddingCfg.inputSimClusters = "SimClusters";
+    noiseEmbeddingCfg.outputSourceLinks = "Measurements";
+    noiseEmbeddingCfg.outputSimClusters = "Clusters";
+
+    sequencer.addAlgorithm(
+        std::make_shared<NoiseEmbeddingAlgorithm>(noiseEmbeddingCfg, logLevel));
+
+    // --------------------------------------------------------------
+    // The path seeding setup
     auto pathSeederCfg = Acts::Experimental::PathSeeder::Config();
 
     // Estimator of the IP and first hit
@@ -500,21 +526,25 @@ int main() {
             &surfaceAccessor);
 
     trackWriterCfg.inputKFTracks = "Tracks";
-    trackWriterCfg.inputTruthClusters = "SimClusters";
+    trackWriterCfg.inputTruthClusters = "Clusters";
     trackWriterCfg.treeName = "fitted-tracks";
-    trackWriterCfg.filePath = "fitted-tracks-bkg-2k.root";
+    trackWriterCfg.filePath = "fitted-tracks-sig-2k-bkg-gen.root";
 
     sequencer.addWriter(
         std::make_shared<RootFittedTrackWriter>(trackWriterCfg, logLevel));
 
-    // // --------------------------------------------------------------
-    // // Phoenix write out
-    // PhoenixTrackWriter::Config phoenixWriterCfg;
-    // phoenixWriterCfg.inputTrackCollection = "Tracks";
+    // --------------------------------------------------------------
+    // Phoenix write out
+    // PhoenixWriter::Config phoenixWriterCfg;
+    // phoenixWriterCfg.surfaceAccessor.connect<
+        // &SimpleSourceLink::SurfaceAccessor::operator()>(
+            // &surfaceAccessor);
+    // phoenixWriterCfg.inputClusters = "Clusters";
+    // phoenixWriterCfg.inputTracks = "Tracks";
     // phoenixWriterCfg.fileName = "test-tracks";
 
     // sequencer.addWriter(
-        // std::make_shared<PhoenixTrackWriter>(phoenixWriterCfg, logLevel));
+        // std::make_shared<PhoenixWriter>(phoenixWriterCfg, logLevel));
 
     return sequencer.run();
 }
