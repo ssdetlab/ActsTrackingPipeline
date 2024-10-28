@@ -5,6 +5,7 @@
 #include "TrackingPipeline/Infrastructure/AlgorithmContext.hpp"
 #include "TrackingPipeline/Infrastructure/DataHandle.hpp"
 #include "TrackingPipeline/EventData/DataContainers.hpp"
+#include "TrackingPipeline/Clustering/IClusterFilter.hpp"
 
 #include "Acts/Utilities/Logger.hpp"
 #include "Acts/EventData/SourceLink.hpp"
@@ -46,6 +47,8 @@ class RootSimDataReader : public IReader {
     public:
         /// @brief The nested configuration struct
         struct Config {
+            /// Cluster filter
+            std::shared_ptr<IClusterFilter> clusterFilter;
             /// Collection with the measurement data
             std::string outputSourceLinks;
             /// Collection with the sim clusters data
