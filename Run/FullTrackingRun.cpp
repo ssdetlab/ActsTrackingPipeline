@@ -2,6 +2,7 @@
 #include "TrackingPipeline/Io/RootFittedTrackWriter.hpp"
 #include "TrackingPipeline/Io/PhoenixTrackWriter.hpp"
 #include "TrackingPipeline/Io/CsvLookupTableProvider.hpp"
+#include "TrackingPipeline/Io/DummyReader.hpp"
 #include "TrackingPipeline/Geometry/E320Geometry.hpp"
 #include "TrackingPipeline/TrackFitting/TrackFittingAlgorithm.hpp"
 #include "TrackingPipeline/MagneticField/QuadrupoleMagField.hpp"
@@ -190,7 +191,7 @@ int main() {
 
     // Setup the sequencer
     Sequencer::Config seqCfg;
-    // seqCfg.events = 12;
+    seqCfg.events = 10;
     seqCfg.numThreads = 1;
     seqCfg.trackFpes = false;
     Sequencer sequencer(seqCfg);
@@ -226,9 +227,19 @@ int main() {
         }
     );
 
-    // Add the reader to the sequencer
+    // // Add the reader to the sequencer
+    // sequencer.addReader(
+        // std::make_shared<E320Io::E320RootSimDataReader>(readerCfg, logLevel));
+
+    // --------------------------------------------------------------
+    // Add dummy reader
+    DummyReader::Config dummyReaderCfg;
+    dummyReaderCfg.nEvents = 10;
+    dummyReaderCfg.outputSourceLinks = "SimMeasurements";
+    dummyReaderCfg.outputSimClusters = "SimClusters";
+
     sequencer.addReader(
-        std::make_shared<E320Io::E320RootSimDataReader>(readerCfg, logLevel));
+        std::make_shared<DummyReader>(dummyReaderCfg, logLevel));
 
     // --------------------------------------------------------------
     // Noise embedding

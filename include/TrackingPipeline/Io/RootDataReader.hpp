@@ -71,6 +71,7 @@ class RootSimDataReader : public IReader {
     
         /// Constructor
         /// @param config The Configuration struct
+        /// @param level The log level
         RootSimDataReader(const Config &config, Acts::Logging::Level level)
             : IReader(),
             m_cfg(config),
