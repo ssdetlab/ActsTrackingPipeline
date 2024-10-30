@@ -48,11 +48,11 @@ class NoiseEmbeddingAlgorithm : public IAlgorithm {
         ProcessCode execute(const AlgorithmContext& ctx) const override {
             // Get the inputs from the context
             
-            // auto inputSourceLinks = m_inputSourceLinks(ctx);
-            // auto inputSimClusters = m_inputSimClusters(ctx);
+            auto inputSourceLinks = m_inputSourceLinks(ctx);
+            auto inputSimClusters = m_inputSimClusters(ctx);
 
-            std::vector<Acts::SourceLink> inputSourceLinks;
-            SimClusters inputSimClusters;
+            // std::vector<Acts::SourceLink> inputSourceLinks;
+            // SimClusters inputSimClusters;
 
             std::random_device rd;
             std::mt19937 gen(rd());
