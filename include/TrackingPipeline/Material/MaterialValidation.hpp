@@ -4,11 +4,7 @@
 #include "TrackingPipeline/Infrastructure/IAlgorithm.hpp"
 #include "TrackingPipeline/Infrastructure/ProcessCode.hpp"
 #include "TrackingPipeline/Infrastructure/RandomNumbers.hpp"
-#include "TrackingPipeline/Simulation/Generators.hpp"
-#include "TrackingPipeline/Material/IMaterialWriter.hpp"
 
-#include "Acts/Definitions/Algebra.hpp"
-#include "Acts/Geometry/GeometryContext.hpp"
 #include "Acts/Material/MaterialInteraction.hpp"
 #include "Acts/Material/MaterialValidater.hpp"
 #include "Acts/Utilities/Logger.hpp"
@@ -20,24 +16,10 @@ class MaterialValidation : public IAlgorithm {
         /// @class nested Config class
         /// of the MaterialMapping algorithm
         struct Config {
-            /// Number of tracks per event
-            std::size_t ntracks = 1000;
-        
-            /// Start position for the scan
-            std::shared_ptr<IVertexGenerator> startPosition = nullptr;
-
-            /// Start direction for the scan: phi
-            std::pair<Acts::ActsScalar, Acts::ActsScalar> phiRange = {-M_PI, M_PI};
-        
-            /// Start direction for the scan: eta
-            std::pair<Acts::ActsScalar, Acts::ActsScalar> etaRange = {0., 4.};
-        
-            /// Random number service
-            std::shared_ptr<RandomNumbers> randomNumberSvc = nullptr;
-        
+            // Input file with validation tracks
+            std::string inputMaterialTracks = "inputMaterialTracks";
             // The validater
             std::shared_ptr<Acts::MaterialValidater> materialValidater = nullptr;
-        
             /// Output collection name
             std::string outputMaterialTracks = "material_tracks";
         };
@@ -64,8 +46,12 @@ class MaterialValidation : public IAlgorithm {
         const Config& config() const { return m_cfg; }
         
     private:
-        Config m_cfg;  //!< internal config object
-        
+        /// Configuraion
+        Config m_cfg;
+
+        ReadDataHandle<std::unordered_map<std::size_t, Acts::RecordedMaterialTrack>>
+            m_inputMaterialTracks{this, "InputMaterialTracks"};
+
         WriteDataHandle<std::unordered_map<std::size_t, Acts::RecordedMaterialTrack>>
             m_outputMaterialTracks{this, "OutputMaterialTracks"};
 };

@@ -3,38 +3,37 @@
 #include "Acts/Surfaces/Surface.hpp" 
 #include "Acts/Geometry/GeometryContext.hpp"
 #include "Acts/Geometry/GeometryIdentifier.hpp"
+#include "Acts/EventData/TrackParameters.hpp"
 
+/// @brief Class that finds intersection points 
+/// based on the pivot paremeters
+///
+/// Class takes the provided surfaces and finds 
+/// intersection points for each pivot source link
+/// based on the reference layer track parameters. 
+/// The class is designed to work with layer-representing 
+/// surfaces combining the senstive surfaces of the detector
+/// on the same binning direction, e.g. z-axis.
 class ForwardOrderedIntersectionFinder {
     public:
-        Acts::ActsScalar m_tol = 1e-4;
+        /// @brief Nested configuration struct
+        struct Config {
+            /// Merged layers to base the grid on
+            std::vector<const Acts::Surface*> layers;
+            /// Tolerance
+            Acts::ActsScalar tol = 1e-4;
+        };
 
-        std::vector<const Acts::Surface*> m_surfaces;
+        /// @brief Construct
+        ForwardOrderedIntersectionFinder(const Config& config);
 
-        std::vector<std::pair<Acts::GeometryIdentifier, Acts::Vector3>> operator()(
-            const Acts::GeometryContext& geoCtx, const Acts::Vector3& position,
-            const Acts::Vector3& direction, [[maybe_unused]] const Acts::ActsScalar& Pmag = 0,
-            [[maybe_unused]] const Acts::ActsScalar& charge = 0) const {
-                std::vector<std::pair<Acts::GeometryIdentifier, Acts::Vector3>> sIntersections;
+        /// @brief Find track intersections with provided 
+        /// surfaces
+        std::vector<std::pair<Acts::GeometryIdentifier, Acts::Vector2>> operator()(
+            const Acts::GeometryContext&, 
+            const Acts::CurvilinearTrackParameters&) const;
 
-                // Intersect the surfaces
-                for (auto& surface : m_surfaces) {
-                    // Get the intersection
-                    auto sMultiIntersection = surface->intersect(
-                        geoCtx, position, direction,
-                        Acts::BoundaryTolerance::Infinite());
-
-                    // Take the closest
-                    auto closestForward = sMultiIntersection.closestForward();
-
-                    // Store if the intersection is reachable
-                    if (closestForward.status() == Acts::IntersectionStatus::reachable &&
-                        closestForward.pathLength() > 0.0) {
-                            sIntersections.push_back(
-                                {closestForward.object()->geometryId(), closestForward.position()});
-                            continue;
-                    }
-                }
-
-                return sIntersections;
-        }
+    private:
+        /// Configuration
+        Config m_cfg;
 };

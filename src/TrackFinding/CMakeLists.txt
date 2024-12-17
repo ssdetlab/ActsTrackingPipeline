@@ -1,0 +1,10 @@
+target_sources(
+    TrackingPipelineCore
+    PRIVATE
+    SourceLinkGridConstructor.cpp
+    ForwardOrderedIntersectionFinder.cpp
+    PathSeedingAlgorithm.cpp
+    TrackLookupProvider.cpp
+    TrackLookupAccumulator.cpp
+    TrackLookupEstimationAlgorithm.cpp
+    TrackLookupValidationAlgorithm.cpp)

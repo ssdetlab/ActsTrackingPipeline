@@ -6,7 +6,7 @@
 #include <vector>
 
 /// @brief Dummy namespace for ROOT dictionary generation
-namespace ActsLUXEPipeline {
+namespace TrackingPipelineDummies {
     using vectorVector3 = std::vector<TVector3>;
     using vectorLorentzVector = std::vector<TLorentzVector>;
-} // namespace ActsLUXEPipeline
+} // namespace TrackingPipelineDummies

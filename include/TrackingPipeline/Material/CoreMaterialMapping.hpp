@@ -5,7 +5,6 @@
 #include "TrackingPipeline/Infrastructure/ProcessCode.hpp"
 #include "TrackingPipeline/Material/IMaterialWriter.hpp"
 
-#include "Acts/Geometry/GeometryContext.hpp"
 #include "Acts/Material/MaterialMapper.hpp"
 #include "Acts/Utilities/Logger.hpp"
 

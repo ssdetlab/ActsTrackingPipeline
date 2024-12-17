@@ -8,6 +8,7 @@
 #include "Acts/Material/IntersectionMaterialAssigner.hpp"
 #include "Acts/Material/BinnedSurfaceMaterialAccumulater.hpp"
 #include "Acts/Material/MaterialMapper.hpp"
+#include "Acts/Geometry/GeometryIdentifier.hpp"
 
 int main() {
     // Set the log level
@@ -48,6 +49,7 @@ int main() {
     // Setup the sequencer
     Sequencer::Config seqCfg;
     seqCfg.numThreads = 1;
+    seqCfg.trackFpes = false;
     Sequencer sequencer(seqCfg);
 
     // White board for material track reading
@@ -57,7 +59,7 @@ int main() {
     auto materialTrackReaderCfg = RootMaterialTrackReader::Config{
         "material-tracks",
         "material-tracks",
-        {"/home/romanurmanov/lab/LUXE/acts_tracking/E320Pipeline_material/uniform/geant4_material_tracks.root"}
+        {"/home/romanurmanov/lab/LUXE/acts_tracking/E320Pipeline_material/Uniform_DirectZ_TrackerOnly_256x128_1M/geant4_material_tracks_mapping.root"}
     };
 
     auto materialTrackReader = std::make_shared<RootMaterialTrackReader>(

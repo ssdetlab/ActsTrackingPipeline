@@ -7,7 +7,7 @@
 
 class NoMaterialDecorator : public Acts::IMaterialDecorator {
     public:
-        /// Configuration struct for the NoMaterialDecorator
+        /// @brief Nested configuration struct
         struct Config {
             /// The surface binnings
             Acts::BinUtility surfaceBinning;
@@ -15,13 +15,13 @@ class NoMaterialDecorator : public Acts::IMaterialDecorator {
             std::vector<Acts::GeometryIdentifier> vetos;
         };
 
-        /// Default destructor
+        /// @brief Default destructor
         ~NoMaterialDecorator() override = default;
 
-        /// Constructor
+        /// @brief Constructor
         NoMaterialDecorator(const Config& cfg) : m_cfg(cfg) {}
 
-        /// Decorate a surface
+        /// @brief Decorate a surface
         ///
         /// @param surface the non-cost surface that is decorated
         void decorate(Acts::Surface& surface) const override {
@@ -35,7 +35,7 @@ class NoMaterialDecorator : public Acts::IMaterialDecorator {
             surface.assignSurfaceMaterial(surfaceMaterial);
         };
 
-        /// Decorate a TrackingVolume
+        /// @brief Decorate a TrackingVolume
         ///
         /// @param volume the non-cost volume that is decorated
         void decorate(Acts::TrackingVolume& volume) const override {};

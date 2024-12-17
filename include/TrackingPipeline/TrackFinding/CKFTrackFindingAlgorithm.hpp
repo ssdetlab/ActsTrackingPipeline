@@ -7,6 +7,7 @@
 
 #include "Acts/TrackFinding/CombinatorialKalmanFilter.hpp"
 #include "Acts/EventData/TrackContainer.hpp"
+#include "Acts/EventData/VectorTrackContainer.hpp"
 
 /// The map(-like) container accessor
 template <typename container_t>
@@ -80,9 +81,9 @@ class CKFTrackFindingAlgorithm : public IAlgorithm {
             /// The output collection before filtering
             std::string outputTrackCandidates = "TrackCandidates";
             /// Minimum number of source links
-            int minSourceLinks = 3;
+            std::size_t minCandidateSize;
             /// Maximum number of source links
-            int maxSourceLinks = 10;
+            std::size_t maxCandidateSize;
         };
 
         /// @brief Constructor
@@ -150,8 +151,8 @@ class CKFTrackFindingAlgorithm : public IAlgorithm {
                         sourceLinks.push_back(sl);
                     }
 
-                    if (sourceLinks.size() < m_cfg.minSourceLinks ||
-                        sourceLinks.size() > m_cfg.maxSourceLinks) {
+                    if (sourceLinks.size() < m_cfg.minCandidateSize ||
+                        sourceLinks.size() > m_cfg.maxCandidateSize) {
                             continue;
                     }
 

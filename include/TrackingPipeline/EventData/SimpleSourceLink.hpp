@@ -11,12 +11,8 @@
 #include "Acts/Geometry/TrackingGeometry.hpp"
 #include "Acts/Utilities/CalibrationContext.hpp"
 
-#include <algorithm>
 #include <array>
 #include <cassert>
-#include <cstddef>
-#include <iosfwd>
-#include <stdexcept>
 
 /// @brief A minimal source link implementation
 /// that is easy to convert to the Measurement
@@ -88,7 +84,7 @@ class SimpleSourceLink {
         /// Event identifier
         std::int32_t m_eventId = 0u;
     
-        /// Index for global matching   
+        /// Index for enumeration within event
         std::int32_t m_index = 0u;
     
         /// Indices of the local coordinates

@@ -4,7 +4,6 @@
 #include "TrackingPipeline/Infrastructure/ProcessCode.hpp"
 #include "TrackingPipeline/Infrastructure/SequenceElement.hpp"
 
-#include <string>
 #include <utility>
 
 /// Event data reader interface.

@@ -2,15 +2,10 @@
 
 #include "TrackingPipeline/Infrastructure/IAlgorithm.hpp"
 #include "TrackingPipeline/Infrastructure/DataHandle.hpp"
-#include "TrackingPipeline/EventData/SimpleSourceLink.hpp"
 #include "TrackingPipeline/EventData/DataContainers.hpp"
 
-#include "Acts/EventData/SourceLink.hpp"
 #include "Acts/TrackFitting/KalmanFitter.hpp"
-#include "Acts/TrackFitting/GainMatrixSmoother.hpp"
-#include "Acts/TrackFitting/GainMatrixUpdater.hpp"
 #include "Acts/EventData/VectorTrackContainer.hpp"
-#include "Acts/EventData/ProxyAccessor.hpp"
 
 template <typename propagator_t,
 typename trajectory_t = Acts::VectorMultiTrajectory,

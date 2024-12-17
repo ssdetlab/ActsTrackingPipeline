@@ -1,11 +1,7 @@
 #include "TrackingPipeline/Io/JsonMaterialWriter.hpp"
 
-#include "Acts/Utilities/Helpers.hpp"
-
 #include <fstream>
 #include <iomanip>
-#include <ios>
-#include <vector>
 
 #include <nlohmann/json.hpp>
 

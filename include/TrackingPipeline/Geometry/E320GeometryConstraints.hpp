@@ -7,7 +7,6 @@
 #include "G4Transform3D.hh" 
 #include "G4ThreeVector.hh"
 
-#include <numeric>
 #include <map>
 
 /// Namespace for the E320 geometry
@@ -169,7 +168,7 @@ namespace E320Geometry {
         // Material binning for the surfaces
         const Acts::BinUtility materialBinningX = 
             Acts::BinUtility(
-                128, 
+                256, 
                 -chipSizeY/2, 
                 chipSizeY/2, 
                 Acts::closed, 
@@ -177,7 +176,7 @@ namespace E320Geometry {
 
         const Acts::BinUtility materialBinningY = 
             Acts::BinUtility(
-                64, 
+                128, 
                 -chipSizeX/2, 
                 chipSizeX/2, 
                 Acts::closed, 

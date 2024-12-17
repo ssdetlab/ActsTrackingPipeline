@@ -1,16 +1,23 @@
 #include "TrackingPipeline/Geometry/E320Geometry.hpp"
+#include "TrackingPipeline/Io/DummyReader.hpp"
+#include "TrackingPipeline/Io/JsonTrackLookupWriter.hpp"
 #include "TrackingPipeline/MagneticField/DipoleMagField.hpp"
 #include "TrackingPipeline/MagneticField/QuadrupoleMagField.hpp"
 #include "TrackingPipeline/MagneticField/CompositeMagField.hpp"
 #include "TrackingPipeline/Infrastructure/Sequencer.hpp"
-#include "TrackingPipeline/Io/RootLookupDataWriter.hpp"
-#include "TrackingPipeline/Io/CsvLookupTableWriter.hpp"
 #include "TrackingPipeline/Simulation/MeasurementsCreator.hpp"
-#include "TrackingPipeline/Simulation/Generators.hpp"
+#include "TrackingPipeline/Simulation/MeasurementsEmbeddingAlgorithm.hpp"
+#include "TrackingPipeline/Simulation/StationaryVertexGenerator.hpp"
+#include "TrackingPipeline/Simulation/RangedUniformMomentumGenerator.hpp"
+#include "TrackingPipeline/Simulation/IdealDigitizer.hpp"
+#include "TrackingPipeline/TrackFinding/TrackLookupEstimationAlgorithm.hpp"
 
 #include "Acts/Utilities/Logger.hpp"
-
-#include <filesystem>
+#include <Acts/Definitions/Algebra.hpp>
+#include <cmath>
+#include <memory>
+#include <string>
+#include <vector>
 
 using namespace Acts::UnitLiterals;
 
@@ -40,8 +47,6 @@ int main() {
     std::string gdmlPath = 
         "/home/romanurmanov/lab/LUXE/acts_tracking/E320Pipeline_gdmls/ettgeom_magnet_pdc_tracker.gdml";
     std::vector<std::string> names{"OPPPSensitive", "DetChamberWindow"};
-
-    std::string materialPath = "/home/romanurmanov/lab/LUXE/acts_tracking/E320Pipeline_material/uniform/material.json";
 
     // Build the detector
     auto trackerBP = 
@@ -143,10 +148,19 @@ int main() {
 
     // Setup the sequencer
     Sequencer::Config seqCfg;
-    seqCfg.events = 100000;
-    seqCfg.numThreads = 16;
+    seqCfg.events = 2000000;
+    seqCfg.numThreads = -1;
     seqCfg.trackFpes = false;
     Sequencer sequencer(seqCfg);
+
+    // Setup dummy reader
+    DummyReader::Config readerCfg;
+    readerCfg.outputSimClusters = "SimClusters";
+    readerCfg.outputSourceLinks = "SimMeasurements";
+    readerCfg.nEvents = 1000;
+
+    sequencer.addReader(
+        std::make_shared<DummyReader>(readerCfg));
 
     // Setup the measurements creator
     Acts::Experimental::DetectorNavigator::Config navCfg;
@@ -165,8 +179,8 @@ int main() {
     auto propagator = 
         Propagator(std::move(stepper), std::move(navigator));
 
-    RangedUniformMomentumGenerator momGen;
-    momGen.Pranges = {
+    auto momGen = std::make_shared<RangedUniformMomentumGenerator>();
+    momGen->Pranges = {
         {0.5_GeV, 1.0_GeV},
         {1.0_GeV, 1.5_GeV},
         {1.5_GeV, 2.0_GeV},
@@ -176,83 +190,55 @@ int main() {
         {3.5_GeV, 4.0_GeV},
         {4.0_GeV, 4.5_GeV}};
 
-    // UniformVertexGenerator vertexGen;
-    // vertexGen.mins = {-100_um, -100_um, -100_um};
-    // vertexGen.maxs = {100_um, 100_um, 100_um};
-
-    // GaussianMomentumGenerator momGen; 
-    // momGen.pMagRange = {0.5_GeV, 4.5_GeV};
-    // momGen.thetaRange = {-M_PI / 4, M_PI / 4};
-    // momGen.phiRange = {0, 2 * M_PI};
-
+    auto digiizer = std::make_shared<IdealDigitizer>();
+    
     MeasurementsCreator::Config mcCfg;
-    mcCfg.outputSourceLinks = "Measurements";
-    mcCfg.outputSimHits = "SimHits";
     mcCfg.vertexGenerator = std::make_shared<StationaryVertexGenerator>();
-    mcCfg.momentumGenerator = std::make_shared<RangedUniformMomentumGenerator>(momGen);
-    mcCfg.randomNumberSvc = std::make_shared<RandomNumbers>(RandomNumbers::Config());
-    mcCfg.nTracks = 1;
+    mcCfg.momentumGenerator = momGen;
+    mcCfg.hitDigitizer = digiizer;
+
+    auto measurementsCreator = 
+        std::make_shared<MeasurementsCreator>(
+            propagator,
+            mcCfg);
+
+    MeasurementsEmbeddingAlgorithm::Config mcaCfg;
+    mcaCfg.inputSourceLinks = "SimMeasurements";
+    mcaCfg.inputSimClusters = "SimClusters";
+    mcaCfg.outputSourceLinks = "Measurements";
+    mcaCfg.outputSimClusters = "Clusters";
+    mcaCfg.measurementGenerator = measurementsCreator;
+    mcaCfg.randomNumberSvc = std::make_shared<RandomNumbers>(RandomNumbers::Config());
+    mcaCfg.nMeasurements = 1;
 
     sequencer.addAlgorithm(
-        std::make_shared<MeasurementsCreator>(
-            propagator, mcCfg, logLevel));
+        std::make_shared<MeasurementsEmbeddingAlgorithm>(
+            mcaCfg, logLevel));
 
     // --------------------------------------------------------------
     // Lookup data generation 
 
-    // Add the lookup data writers
-    RootLookupDataWriter::Config lookupWriterCfg;
-        
-    lookupWriterCfg.inputCollection = mcCfg.outputSimHits;
+    JsonTrackLookupWriter::Config lookupWriterCfg;
+    lookupWriterCfg.path = "lookup.json";
 
-    SimpleSourceLink::SurfaceAccessor surfaceAccessor{detector.get()};
-    lookupWriterCfg.surfaceAccessor.connect<
-        &SimpleSourceLink::SurfaceAccessor::operator()>(
-        &surfaceAccessor);
+    auto lookupWriter = std::make_shared<JsonTrackLookupWriter>(lookupWriterCfg);
 
-    // Extent in already rotated frame
-    Acts::Extent firstLayerExtent;
-    firstLayerExtent.set(
-        Acts::BinningValue::binX, 
-        gOpt.chipX - gOpt.chipSizeX/2 - 1_mm,
-        gOpt.chipX + gOpt.chipSizeX/2 + 1_mm);
-    firstLayerExtent.set(
-        Acts::BinningValue::binZ,
-        -gOpt.chipY.at(8) - gOpt.chipSizeY/2 - 1_mm,
-        -gOpt.chipY.at(0) + gOpt.chipSizeY/2 + 1_mm);
-    firstLayerExtent.set(
-        Acts::BinningValue::binY,
-        gOpt.layerZPositions.at(0) - gOpt.layerBounds.at(2) - 1_mm,
-        gOpt.layerZPositions.at(0) + gOpt.layerBounds.at(2) + 1_mm);
+    std::unordered_map<Acts::GeometryIdentifier, const Acts::Surface*>
+        refLayers;
+    const auto& refVolume = 
+        detector->findDetectorVolume("layer0");
+    for (const auto* surf : refVolume->surfaces()) {
+        refLayers.try_emplace(surf->geometryId(), surf);
+    }
 
-    lookupWriterCfg.firstLayerExtent = firstLayerExtent;
+    TrackLookupEstimationAlgorithm::Config estimatorCfg;
+    estimatorCfg.trackLookupGridWriters = {lookupWriter};
+    estimatorCfg.refLayers = refLayers;
+    estimatorCfg.bins = {1000, 20};
+    estimatorCfg.inputClusters = "Clusters";
 
-    sequencer.addWriter(
-        std::make_shared<RootLookupDataWriter>(lookupWriterCfg, logLevel));
-
-    auto lookupMakerCfg = CsvLookupTableWriter::Config();
-
-    lookupMakerCfg.filePath = "lookupTable.csv";
-
-    // Grid parameters
-    lookupMakerCfg.YFirst = {
-        10, 
-        -gOpt.chipY.at(8) - gOpt.chipSizeY/2 - 1_mm, 
-        -gOpt.chipY.at(0) + gOpt.chipSizeY/2 + 1_mm};
-    lookupMakerCfg.XFirst = {
-        100, 
-        gOpt.chipX - gOpt.chipSizeX/2 - 1_mm,
-        gOpt.chipX + gOpt.chipSizeX/2 + 1_mm};
-    lookupMakerCfg.surfaceAccessor.connect<
-        &SimpleSourceLink::SurfaceAccessor::operator()>(
-        &surfaceAccessor);
-    lookupMakerCfg.firstLayerExtent = firstLayerExtent;
-
-    auto lookupMaker = std::make_shared<CsvLookupTableWriter>(lookupMakerCfg, logLevel);
-
-    sequencer.addWriter(lookupMaker);
+    sequencer.addAlgorithm(
+        std::make_shared<TrackLookupEstimationAlgorithm>(estimatorCfg, logLevel));
 
     return sequencer.run();
-
-    return 0;
 }

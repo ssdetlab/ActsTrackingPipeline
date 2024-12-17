@@ -4,9 +4,7 @@
 #include "TrackingPipeline/Infrastructure/IReader.hpp"
 #include "TrackingPipeline/Infrastructure/ProcessCode.hpp"
 
-#include "Acts/Definitions/Algebra.hpp"
 #include "Acts/Material/MaterialInteraction.hpp"
-#include "Acts/Propagator/MaterialInteractor.hpp"
 #include "Acts/Utilities/Logger.hpp"
 
 #include <cstddef>

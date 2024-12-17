@@ -9,7 +9,6 @@
 
 #include "Acts/Utilities/Logger.hpp"
 #include "Acts/EventData/SourceLink.hpp"
-#include "Acts/Definitions/TrackParametrization.hpp"
 
 #include "TChain.h"
 #include "TVector3.h"
@@ -140,7 +139,7 @@ class RootSimDataReader : public IReader {
         }
     
         /// Reader name() method
-        virtual std::string name() const { return "RootSimDataReader"; }
+        virtual std::string name() const override { return "RootSimDataReader"; }
     
         /// Return the available events range.
         std::pair<std::size_t, std::size_t> 

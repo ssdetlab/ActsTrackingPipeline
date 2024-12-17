@@ -9,8 +9,6 @@
 #include "Acts/Geometry/GeometryIdentifier.hpp"
 #include "Acts/Utilities/Logger.hpp"
 
-#include <any>
-
 namespace E320Geometry {
 
 /// @brief The geometry id generator
