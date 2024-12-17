@@ -122,11 +122,6 @@ class RootFittedSimTrackWriter : public IWriter {
         std::vector<TVector3> m_smoothedPulls;
 
         /// Chi2 of the track
-        /// with respect to the 
-        /// true hit position
-        double m_trueChi2;
-
-        /// Chi2 of the track
         /// with respect ot the 
         /// measurement
         double m_chi2;
