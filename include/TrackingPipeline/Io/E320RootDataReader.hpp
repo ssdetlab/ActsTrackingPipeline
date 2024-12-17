@@ -6,16 +6,17 @@
 #include "TrackingPipeline/EventData/DataContainers.hpp"
 
 #include "Acts/Definitions/Units.hpp"
+#include <Acts/Definitions/Algebra.hpp>
+#include <unordered_map>
 
 using namespace Acts::UnitLiterals;
 
 /// @brief Global to local conversion
 /// for the LUXE geometry
-Acts::Vector2 convertToLoc(
+inline Acts::Vector2 convertToLoc(
     const Acts::Vector3& glob, 
     const Acts::GeometryIdentifier geoId,
     const E320Geometry::GeometryOptions& gOpt) {
-        int nStave = geoId.sensitive()/10 - 1;
         int nChip = geoId.sensitive()%10 - 1;
         Acts::Vector2 loc = Acts::Vector2(
             (glob.y() - gOpt.chipY.at(nChip)),
@@ -52,6 +53,9 @@ class E320RootSimDataReader : public RootSimDataReader {
 
         Acts::RotationMatrix3 m_actsToWorld;
 
+        Acts::ActsScalar m_pixSizeX = 27_um;
+        Acts::ActsScalar m_pixSizeY = 29_um;
+
         // Prepare the measurements
         // for the Sequencer pipeline
         inline void prepareMeasurements(
@@ -68,6 +72,7 @@ class E320RootSimDataReader : public RootSimDataReader {
                 std::int32_t geoIdval; 
                 std::int32_t sizeX;
                 std::int32_t sizeY;
+                std::int32_t size;
                 TVector3* geoCenter;
 
                 // Columns with the truth quantities
@@ -95,6 +100,9 @@ class E320RootSimDataReader : public RootSimDataReader {
 
                     // The cluster size in Y
                     sizeY = m_intColumns.at("ysize");
+
+                    // Cluster size
+                    size = m_intColumns.at("size");
 
                     //--------------------------------
                     // Truth quantities
@@ -161,11 +169,10 @@ class E320RootSimDataReader : public RootSimDataReader {
                     convertToLoc(hitGlob, geoId, m_cfg.gOpt);
 
                 // Estimate error from the cluster size
-                double pixSizeX = 27_um;
-                double pixSizeY = 29_um;
-
-                Acts::Vector2 stddev(sizeX * pixSizeX, sizeY * pixSizeY);
-                Acts::SquareMatrix2 cov = stddev.cwiseProduct(stddev).asDiagonal();
+                Acts::ActsScalar errX = m_pixSizeX / std::sqrt(12 * size);
+                Acts::ActsScalar errY = m_pixSizeY / std::sqrt(12 * size);
+                Acts::Vector2 stdDev(errX, errY);
+                Acts::SquareMatrix2 cov = stdDev.cwiseProduct(stdDev).asDiagonal();
 
                 // Fill the measurement
                 SimpleSourceLink ssl(hitLoc, cov, geoId, eventId, sourceLinks->size());
@@ -263,21 +270,20 @@ class E320RootSimDataReader : public RootSimDataReader {
                             runId->at(idx)
                         ));
                     cluster.isSignal = m_intColumns.at("isSignal");
-                    cluster.index = ssl.index();
                 }
                 
                 clusters->push_back(cluster);
         };
 };
 
-auto defaultSimConfig() {
+inline auto defaultSimConfig() {
     E320RootSimDataReader::Config config;
     config.treeName = "clusters";
     config.vVector3Keys = {"tru_hit", "tru_vertex"};
     config.vector3Keys = {"rglobal_geo"};
     config.vLorentzKeys = {"tru_p", "tru_p_ip"};
     config.vIntKeys = {"tru_trackId", "tru_parenttrackId", "tru_runId"};
-    config.intKeys = {"eventId", "geoId", "xsize", "ysize", "isSignal"};
+    config.intKeys = {"eventId", "geoId", "xsize", "ysize", "size", "isSignal"};
     return config;
 }
 

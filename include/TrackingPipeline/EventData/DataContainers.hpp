@@ -9,7 +9,6 @@
 #include "Acts/EventData/TrackProxy.hpp"
 
 #include <vector>
-#include <map>  
 
 ///-----------------------------------------------
 /// Simulated and truth data containers
@@ -38,11 +37,9 @@ struct SimCluster {
     /// Observable parameters
     SimpleSourceLink sourceLink;
     /// Truth parameters
-    std::vector<SimHit> truthHits;
+    SimHits truthHits;
     /// Is Signal flag
     bool isSignal;
-    /// Index for global matching
-    std::int32_t index;
 };
 
 /// @brief Collection of SimClusters

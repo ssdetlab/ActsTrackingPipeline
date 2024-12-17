@@ -3,7 +3,6 @@
 #include "Acts/Plugins/Geant4/Geant4SurfaceProvider.hpp"
 #include "Acts/Detector/LayerStructureBuilder.hpp"
 
-#include <iostream>
 #include <tuple>
 
 /// @brief Create internal structure builder 
@@ -26,7 +25,8 @@ makeLayerBuilder(
     const std::vector<std::string>& names,
     const std::array<std::tuple<Acts::ActsScalar,
         Acts::ActsScalar>, kDim>& ranges,
-    const std::array<Acts::BinningValue, kDim>& binningValues) {
+    const std::array<Acts::BinningValue, kDim>& binningValues,
+    bool convertMaterial = false) {
         auto spCfg = 
             typename Acts::Experimental::Geant4SurfaceProvider<kDim>::Config();
         spCfg.g4World = world;
@@ -34,7 +34,7 @@ makeLayerBuilder(
         spCfg.surfacePreselector =
             std::make_shared<
                 Acts::Geant4PhysicalVolumeSelectors::NameSelector>(names, true);
-        spCfg.convertMaterial = false;
+        spCfg.convertMaterial = convertMaterial;
 
         auto kdtDOpt = 
             typename Acts::Experimental::Geant4SurfaceProvider<kDim>::kdtOptions();

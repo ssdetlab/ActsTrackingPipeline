@@ -11,19 +11,22 @@ class HourglassFilter : public IClusterFilter {
     public:
         Acts::SourceLinkSurfaceAccessor surfaceAccessor;
 
-        // Horizontal line
-        double a0 = 0.0;
-        double b0 = 220.0;
-    
-        // Diagonal hourglass lines
+        /// Diagonal hourglass lines
+        /// slopes
         double a1 = 5.4;
-        double b1 = 110.0;
+        double a2 = -6.0;
     
-        double a2 = -5.4;
+        /// Tunnel-bounded vertical 
+        /// shifts
+        double b1 = 110.0;
         double b2 = 110.0;
     
+        /// Center-bounded vertical
+        /// shift
+        double b0 = 190.0;
+
         // Tunnel in the center
-        double tunnel = 2.0;
+        double tunnel = 1.5;
     
         /// Filter operator
         ///
@@ -43,9 +46,9 @@ class HourglassFilter : public IClusterFilter {
                 Acts::ActsScalar x = globalPos.x();
                 Acts::ActsScalar y = -globalPos.z();
     
-                // Filter out the top part of the tracking plane
-                bool cond0 = y < a0 * x + b0;
-        
+                // Cluster has to be under the "cap"
+                bool cond0 = (x < 0) ? (y < a1 * x + b0) : (y < a2 * x + b0);
+
                 // Conditions alternate between the two sides of
                 // the hourglass shape
                 if (x < -tunnel) {
@@ -54,7 +57,7 @@ class HourglassFilter : public IClusterFilter {
         
                     return cond0 && (cond1 || cond2);
                 }
-                if (x > tunnel) {
+                else if (x > tunnel) {
                     bool cond1 = y > a1 * x + b1;
                     bool cond2 = y < a2 * x + b2;
         

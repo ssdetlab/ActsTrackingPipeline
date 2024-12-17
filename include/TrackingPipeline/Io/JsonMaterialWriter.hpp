@@ -1,21 +1,15 @@
 #pragma once
 
-#include "TrackingPipeline/Infrastructure/ProcessCode.hpp"
 #include "TrackingPipeline/Material/IMaterialWriter.hpp"
 
-#include "Acts/Definitions/Algebra.hpp"
 #include "Acts/Geometry/GeometryIdentifier.hpp"
 #include "Acts/Material/ISurfaceMaterial.hpp"
 #include "Acts/Material/IVolumeMaterial.hpp"
 #include "Acts/Plugins/Json/MaterialMapJsonConverter.hpp"
-#include "Acts/Utilities/EnumBitwiseOperators.hpp"
 #include "Acts/Utilities/Logger.hpp"
 
-#include <cstdint>
-#include <limits>
 #include <map>
 #include <memory>
-#include <mutex>
 #include <string>
 #include <utility>
 

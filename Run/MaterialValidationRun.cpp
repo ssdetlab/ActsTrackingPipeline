@@ -1,13 +1,13 @@
 #include "TrackingPipeline/Geometry/E320Geometry.hpp"
+#include "TrackingPipeline/Io/RootMaterialTrackReader.hpp"
 #include "TrackingPipeline/Infrastructure/Sequencer.hpp"
-#include "TrackingPipeline/Infrastructure/RandomNumbers.hpp"
 #include "TrackingPipeline/Io/RootMaterialTrackWriter.hpp"
 #include "TrackingPipeline/Material/MaterialValidation.hpp"
-
 #include "Acts/Material/IntersectionMaterialAssigner.hpp"
-#include "Acts/Material/BinnedSurfaceMaterialAccumulater.hpp"
 #include "Acts/Material/MaterialValidater.hpp"
-#include "Acts/Material/MaterialMapper.hpp"
+#include "Acts/Utilities/Logger.hpp"
+
+#include <memory>
 
 int main() {
     // Set the log level
@@ -28,9 +28,14 @@ int main() {
         "/home/romanurmanov/lab/LUXE/acts_tracking/E320Pipeline_gdmls/ettgeom_magnet_pdc_tracker.gdml";
     std::vector<std::string> names{"OPPPSensitive", "DetChamberWindow"};
 
-    std::vector<Acts::GeometryIdentifier> materialVeto{};
+    // Veto PDC window material mapping
+    // to preserve homogeneous material
+    // from Geant4
+    Acts::GeometryIdentifier pdcWindowId;
+    pdcWindowId.setApproach(1);
+    std::vector<Acts::GeometryIdentifier> materialVeto{pdcWindowId};
 
-    std::string materialPath = "/home/romanurmanov/lab/LUXE/acts_tracking/TrackingPipeline_build/material.json";
+    std::string materialPath = "/home/romanurmanov/lab/LUXE/acts_tracking/E320Pipeline_material/Uniform_DirectZ_TrackerOnly_256x128_1M/material.json";
 
     auto trackerBP = 
         E320Geometry::makeBlueprintE320(gdmlPath, names, gOpt);
@@ -50,14 +55,22 @@ int main() {
 
     // Setup the sequencer
     Sequencer::Config seqCfg;
-    seqCfg.events = 100000;
+    // seqCfg.events = 1;
     seqCfg.numThreads = 1;
     Sequencer sequencer(seqCfg);
 
-    // White board for material track reading
-    auto whiteBoard = WhiteBoard(Acts::getDefaultLogger("WhiteBoard", logLevel));
+    // Add the material track reader
+    auto materialTrackReaderCfg = RootMaterialTrackReader::Config{
+        "materialTracks",
+        "material-tracks",
+        {"/home/romanurmanov/lab/LUXE/acts_tracking/E320Pipeline_material/Uniform_DirectZ_TrackerOnly_256x128_1M/geant4_material_tracks_validation.root"}
+    };
 
-    auto rnd = std::make_shared<RandomNumbers>(RandomNumbers::Config());
+    auto materialTrackReader = std::make_shared<RootMaterialTrackReader>(
+        materialTrackReaderCfg,
+        logLevel);
+
+    sequencer.addReader(materialTrackReader);
 
     // Assignment setup : Intersection assigner
     auto materialAssingerCfg = Acts::IntersectionMaterialAssigner::Config();
@@ -83,17 +96,10 @@ int main() {
             Acts::getDefaultLogger("MaterialValidater", logLevel));
 
     // Validation Algorithm
-    auto uniform = std::make_shared<UniformVertexGenerator>();
-    uniform->mins = Acts::Vector3(-8, 0, 16000);
-    uniform->maxs = Acts::Vector3(8, 400, 16000);
-
     auto matValidationCfg = MaterialValidation::Config();
     matValidationCfg.materialValidater = matValidater;
-    matValidationCfg.outputMaterialTracks = "recorded-material-tracks";
-    matValidationCfg.ntracks = 1;
-    matValidationCfg.etaRange = {4.,4.};
-    matValidationCfg.startPosition = uniform;
-    matValidationCfg.randomNumberSvc = rnd;
+    matValidationCfg.inputMaterialTracks = "materialTracks";
+    matValidationCfg.outputMaterialTracks = "recordedMaterialTracks";
     auto materialValidation = 
        std::make_shared<MaterialValidation>(
             matValidationCfg, 
@@ -103,7 +109,7 @@ int main() {
     // Add the mapped material tracks writer
     auto mappedMaterialTrackWriterCfg = 
         RootMaterialTrackWriter::Config{
-            "recorded-material-tracks",
+            "recordedMaterialTracks",
             "recorded-material-tracks.root",
             "RECREATE",
             "recorded-material-tracks"
@@ -120,5 +126,4 @@ int main() {
     // Run all configured algorithms and return the appropriate status.
 
     return sequencer.run();
-    return 0;
 }

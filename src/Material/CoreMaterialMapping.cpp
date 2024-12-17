@@ -1,9 +1,6 @@
 #include "TrackingPipeline/Material/CoreMaterialMapping.hpp"
 #include "TrackingPipeline/Material/IMaterialWriter.hpp"
 
-#include "Acts/Material/AccumulatedMaterialSlab.hpp"
-#include "Acts/Material/AccumulatedSurfaceMaterial.hpp"
-
 #include <stdexcept>
 #include <unordered_map>
 
@@ -55,7 +52,7 @@ ProcessCode CoreMaterialMapping::execute(
         for (auto& [idTrack, mTrack] : mtrackCollection) {
             auto [mapped, unmapped] = m_cfg.materialMapper->mapMaterial(
                 *mappingState, context.geoContext, context.magFieldContext, mTrack);
-        
+
             mappedTrackCollection.emplace_hint(
                 mappedTrackCollection.end(), 
                 idTrack,

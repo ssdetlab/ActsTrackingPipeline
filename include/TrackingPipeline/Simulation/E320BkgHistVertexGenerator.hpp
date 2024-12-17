@@ -1,0 +1,61 @@
+#pragma once
+
+#include "TrackingPipeline/Geometry/E320GeometryConstraints.hpp"
+#include "TrackingPipeline/Simulation/IVertexGenerator.hpp"
+
+#include "TFile.h"
+#include "TH3.h"
+
+#include <string>
+
+namespace E320Sim {
+
+/// @brief Class that samples vertex from a ROOT histogram
+class E320BkgHistVertexGenerator : public IVertexGenerator {
+    public:
+        struct Config {
+            /// Path to file with generative
+            /// histograms
+            std::string pathToHist;
+            /// Size histogram name
+            std::string histName;
+        };
+
+        E320BkgHistVertexGenerator(const Config& cfg) : m_cfg(cfg) {
+            m_file = new TFile(m_cfg.pathToHist.c_str());
+
+            m_genXYZ = (TH3D*)m_file->Get(m_cfg.histName.c_str());
+        };
+
+        ~E320BkgHistVertexGenerator() {
+            m_file->Close();
+        }
+
+        Acts::Vector3 gen(RandomEngine& /*rng*/) const override {
+            // Generate x y
+            Acts::ActsScalar x;
+            Acts::ActsScalar y;
+            Acts::ActsScalar z;
+
+            m_genXYZ->GetRandom3(x, y, z);
+
+            // z-axis indexes layers in the histogram
+            z = m_gOpt.staveZ.at(z);
+            Acts::Vector3 glob(x, y, z);
+
+            glob = m_gOpt.actsToWorld.rotation().inverse() * glob;
+
+            return glob;
+        }
+
+    private: 
+        Config m_cfg;
+
+        TH3D* m_genXYZ = nullptr;
+
+        TFile* m_file = nullptr;
+
+        E320Geometry::GeometryOptions m_gOpt;
+};
+
+} // namespace E320Sim

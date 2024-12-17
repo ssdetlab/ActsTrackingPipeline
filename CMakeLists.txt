@@ -28,7 +28,7 @@ find_package(
 find_package(
     ROOT 
     COMPONENTS 
-    Core 
+    Core
     RIO
     Tree
     Hist
@@ -41,7 +41,8 @@ find_package(
 # Dictionary for the sim data
 add_library(SimEventDict SHARED)
 include_directories(
-    ${CMAKE_CURRENT_SOURCE_DIR}/include/TrackingPipeline/Io/detail)
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/TrackingPipeline/Io/detail
+    )
 ROOT_GENERATE_DICTIONARY(
     G__SimEventDict
     ./include/TrackingPipeline/Io/detail/ROOTDictDefs.h
@@ -109,6 +110,7 @@ add_subdirectory(src/Io)
 add_subdirectory(src/MagneticField)
 add_subdirectory(src/Material)
 add_subdirectory(src/Simulation)
+add_subdirectory(src/TrackFinding)
 
 # macro to add a run executables
 macro(add_run _name _source)

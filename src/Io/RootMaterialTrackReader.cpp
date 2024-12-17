@@ -9,12 +9,10 @@
 #include "Acts/Material/MaterialSlab.hpp"
 #include "Acts/Utilities/Logger.hpp"
 
-#include <cstdint>
 #include <iostream>
 #include <stdexcept>
 
 #include "TChain.h"
-#include "TTree.h"
 
 RootMaterialTrackReader::RootMaterialTrackReader(
     const Config& config,
@@ -160,51 +158,51 @@ ProcessCode RootMaterialTrackReader::read(const AlgorithmContext& context) {
         rmTrack.second.materialInL0 = 0.;
     
         for (std::size_t is = 0; is < msteps; ++is) {
-        ACTS_VERBOSE("====================");
-        ACTS_VERBOSE("[" << is + 1 << "/" << msteps << "] STEP INFORMATION: ");
-    
-        double s = (*m_step_length)[is];
-        if (s == 0) {
-            ACTS_VERBOSE("invalid step length... skipping!");
-            continue;
-        }
-    
-        double mX0 = (*m_step_X0)[is];
-        double mL0 = (*m_step_L0)[is];
-    
-        rmTrack.second.materialInX0 += s / mX0;
-        rmTrack.second.materialInL0 += s / mL0;
-        /// Fill the position & the material
-        Acts::MaterialInteraction mInteraction;
-        mInteraction.position =
-            Acts::Vector3((*m_step_x)[is], (*m_step_y)[is], (*m_step_z)[is]);
-        ACTS_VERBOSE("POSITION : " << (*m_step_x)[is] << ", " << (*m_step_y)[is]
-            << ", " << (*m_step_z)[is]);
-        mInteraction.direction =
-            Acts::Vector3((*m_step_dx)[is], (*m_step_dy)[is], (*m_step_dz)[is]);
-        ACTS_VERBOSE("DIRECTION: " << (*m_step_dx)[is] << ", " << (*m_step_dy)[is]
-            << ", " << (*m_step_dz)[is]);
-        mInteraction.materialSlab = Acts::MaterialSlab(
-            Acts::Material::fromMassDensity(mX0, mL0, (*m_step_A)[is],
-                                            (*m_step_Z)[is], (*m_step_rho)[is]),
-            s);
-        ACTS_VERBOSE("MATERIAL: " << mX0 << ", " << mL0 << ", " << (*m_step_A)[is]
-            << ", " << (*m_step_Z)[is] << ", "
-            << (*m_step_rho)[is]);
-        ACTS_VERBOSE("====================");
-    
-        if (m_cfg.readCachedSurfaceInformation) {
-            // add the surface information to the interaction this allows the
-            // mapping to be speed up
-            mInteraction.intersectionID = Acts::GeometryIdentifier((*m_sur_id)[is]);
-            mInteraction.intersection =
-                Acts::Vector3((*m_sur_x)[is], (*m_sur_y)[is], (*m_sur_z)[is]);
-            mInteraction.pathCorrection = (*m_sur_pathCorrection)[is];
-        } else {
-            mInteraction.intersectionID = Acts::GeometryIdentifier();
-            mInteraction.intersection = Acts::Vector3(0, 0, 0);
-        }
-        rmTrack.second.materialInteractions.push_back(std::move(mInteraction));
+            ACTS_VERBOSE("====================");
+            ACTS_VERBOSE("[" << is + 1 << "/" << msteps << "] STEP INFORMATION: ");
+        
+            double s = (*m_step_length)[is];
+            if (s == 0) {
+                ACTS_VERBOSE("invalid step length... skipping!");
+                continue;
+            }
+        
+            double mX0 = (*m_step_X0)[is];
+            double mL0 = (*m_step_L0)[is];
+        
+            rmTrack.second.materialInX0 += s / mX0;
+            rmTrack.second.materialInL0 += s / mL0;
+            /// Fill the position & the material
+            Acts::MaterialInteraction mInteraction;
+            mInteraction.position =
+                Acts::Vector3((*m_step_x)[is], (*m_step_y)[is], (*m_step_z)[is]);
+            ACTS_VERBOSE("POSITION : " << (*m_step_x)[is] << ", " << (*m_step_y)[is]
+                << ", " << (*m_step_z)[is]);
+            mInteraction.direction =
+                Acts::Vector3((*m_step_dx)[is], (*m_step_dy)[is], (*m_step_dz)[is]);
+            ACTS_VERBOSE("DIRECTION: " << (*m_step_dx)[is] << ", " << (*m_step_dy)[is]
+                << ", " << (*m_step_dz)[is]);
+            mInteraction.materialSlab = Acts::MaterialSlab(
+                Acts::Material::fromMassDensity(mX0, mL0, (*m_step_A)[is],
+                                                (*m_step_Z)[is], (*m_step_rho)[is]),
+                s);
+            ACTS_VERBOSE("MATERIAL: " << mX0 << ", " << mL0 << ", " << (*m_step_A)[is]
+                << ", " << (*m_step_Z)[is] << ", "
+                << (*m_step_rho)[is]);
+            ACTS_VERBOSE("====================");
+        
+            if (m_cfg.readCachedSurfaceInformation) {
+                // add the surface information to the interaction this allows the
+                // mapping to be speed up
+                mInteraction.intersectionID = Acts::GeometryIdentifier((*m_sur_id)[is]);
+                mInteraction.intersection =
+                    Acts::Vector3((*m_sur_x)[is], (*m_sur_y)[is], (*m_sur_z)[is]);
+                mInteraction.pathCorrection = (*m_sur_pathCorrection)[is];
+            } else {
+                mInteraction.intersectionID = Acts::GeometryIdentifier();
+                mInteraction.intersection = Acts::Vector3(0, 0, 0);
+            }
+            rmTrack.second.materialInteractions.push_back(std::move(mInteraction));
         }
         mtrackCollection[ib] = (std::move(rmTrack));
     }

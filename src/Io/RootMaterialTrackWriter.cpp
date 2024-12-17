@@ -4,7 +4,6 @@
 
 #include "Acts/Geometry/GeometryIdentifier.hpp"
 #include "Acts/Geometry/TrackingVolume.hpp"
-#include "Acts/Geometry/Volume.hpp"
 #include "Acts/Material/Material.hpp"
 #include "Acts/Material/MaterialInteraction.hpp"
 #include "Acts/Material/MaterialSlab.hpp"
@@ -15,17 +14,14 @@
 #include "Acts/Utilities/Intersection.hpp"
 #include "Acts/Utilities/Logger.hpp"
 
-#include <algorithm>
 #include <cstddef>
 #include <ios>
 #include <stdexcept>
-#include <type_traits>
 
 #include "TFile.h"
 #include "TTree.h"
 
 using Acts::VectorHelpers::eta;
-using Acts::VectorHelpers::perp;
 using Acts::VectorHelpers::phi;
 
 RootMaterialTrackWriter::RootMaterialTrackWriter(
@@ -165,8 +161,7 @@ ProcessCode RootMaterialTrackWriter::write(
                 Acts::Vector3 positionSum = Acts::Vector3::Zero();
                 double pathCorrectionSum = 0;
             
-                for (std::size_t start = 0, end = 0; end < materialInteractions.size();
-                    ++end) {
+                for (std::size_t start = 0, end = 0; end < materialInteractions.size(); ++end) {
                     const auto& mintStart = materialInteractions[start];
                     const auto& mintEnd = materialInteractions[end];
             
@@ -178,15 +173,15 @@ ProcessCode RootMaterialTrackWriter::write(
                     const bool last = end == materialInteractions.size() - 1;
             
                     if (!same || last) {
-                    auto mint = mintStart;
-                    mint.position = positionSum / (end - start);
-                    mint.pathCorrection = pathCorrectionSum;
-            
-                    collapsed.push_back(mint);
-            
-                    start = end;
-                    positionSum = Acts::Vector3::Zero();
-                    pathCorrectionSum = 0;
+                        auto mint = mintStart;
+                        mint.position = positionSum / (end - start);
+                        mint.pathCorrection = pathCorrectionSum;
+                
+                        collapsed.push_back(mint);
+                
+                        start = end;
+                        positionSum = Acts::Vector3::Zero();
+                        pathCorrectionSum = 0;
                     }
                 }
             
@@ -327,15 +322,15 @@ ProcessCode RootMaterialTrackWriter::write(
                 if (m_cfg.storeVolume) {
                     Acts::GeometryIdentifier vlayerID;
                     if (!mint.volume.empty()) {
-                    vlayerID = mint.volume.geometryId();
-                    m_vol_id.push_back(vlayerID.value());
+                        vlayerID = mint.volume.geometryId();
+                        m_vol_id.push_back(vlayerID.value());
                     } else {
-                    vlayerID.setVolume(0);
-                    vlayerID.setBoundary(0);
-                    vlayerID.setLayer(0);
-                    vlayerID.setApproach(0);
-                    vlayerID.setSensitive(0);
-                    m_vol_id.push_back(vlayerID.value());
+                        vlayerID.setVolume(0);
+                        vlayerID.setBoundary(0);
+                        vlayerID.setLayer(0);
+                        vlayerID.setApproach(0);
+                        vlayerID.setSensitive(0);
+                        m_vol_id.push_back(vlayerID.value());
                     }
                 }
     

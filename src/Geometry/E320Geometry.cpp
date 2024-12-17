@@ -45,15 +45,16 @@ makeBlueprintE320(
         for (std::size_t i = 0; i < numLayers; i++) {
             // Layer bounds
             auto zBounds = std::make_tuple(
-                gOpt.layerZPositions[i] - gOpt.layerBounds[2],
-                gOpt.layerZPositions[i] + gOpt.layerBounds[2]);
+                gOpt.layerZPositions.at(i) - gOpt.layerBounds.at(2),
+                gOpt.layerZPositions.at(i) + gOpt.layerBounds.at(2));
 
             // As the volumes are already rotated, 
             // the selection has to happen along the y-axis
             auto layerBuilder =
-                makeLayerBuilder<1>(
+                makeLayerBuilder(
                     world, gOpt.g4ToWorld, names, 
-                    {zBounds}, {Acts::BinningValue::binY});
+                    {zBounds}, 
+                    {Acts::BinningValue::binY});
 
             // Convention is that the transformations
             // are with respect to the global frame
@@ -61,7 +62,7 @@ makeBlueprintE320(
                 Acts::Vector3(
                     gOpt.armTranslation.x(), 
                     gOpt.armTranslation.y(),
-                    gOpt.layerZPositions[i]);
+                    gOpt.layerZPositions.at(i));
 
             layerTranslation = 
                 gOpt.actsToWorld.rotation().inverse() * layerTranslation; 
@@ -80,14 +81,17 @@ makeBlueprintE320(
             trackerBP->add(std::move(layerNode));
         }
 
+        // PDC window
         auto pdcWindowZBounds = std::make_tuple(
-            gOpt.pdcWindowTranslation.z() - gOpt.pdcWindowBounds[2],
-            gOpt.pdcWindowTranslation.z() + gOpt.pdcWindowBounds[2]);
+            gOpt.pdcWindowTranslation.z() - gOpt.pdcWindowBounds.at(2),
+            gOpt.pdcWindowTranslation.z() + gOpt.pdcWindowBounds.at(2));
 
         auto pdcWindowLayerBuilder =
-            makeLayerBuilder<1>(
+            makeLayerBuilder(
                 world, gOpt.g4ToWorld, names, 
-                {pdcWindowZBounds}, {Acts::BinningValue::binY});
+                {pdcWindowZBounds}, 
+                {Acts::BinningValue::binY},
+                true);
 
         Acts::Transform3 pdcWindowTransform = Acts::Transform3::Identity();
         pdcWindowTransform.rotate(
@@ -102,13 +106,13 @@ makeBlueprintE320(
 
         trackerBP->add(std::move(pdcWindowNode));
 
-
+        // Dipole
         auto dipoleZBounds = std::make_tuple(
-            gOpt.dipoleTranslation.z() - gOpt.dipoleBounds[2],
-            gOpt.dipoleTranslation.z() + gOpt.dipoleBounds[2]);
+            gOpt.dipoleTranslation.z() - gOpt.dipoleBounds.at(2),
+            gOpt.dipoleTranslation.z() + gOpt.dipoleBounds.at(2));
 
         auto dipoleLayerBuilder =
-            makeLayerBuilder<1>(
+            makeLayerBuilder(
                 world, gOpt.g4ToWorld, names, 
                 {dipoleZBounds}, {Acts::BinningValue::binZ});
 
@@ -124,14 +128,14 @@ makeBlueprintE320(
             gOpt.dipoleBounds, dipoleLayerBuilder);
 
         trackerBP->add(std::move(dipoleNode));
-
         
+        // Quadrupole 1
         auto quad1ZBounds = std::make_tuple(
-            gOpt.quad1Translation.z() - gOpt.quad1Bounds[2],
-            gOpt.quad1Translation.z() + gOpt.quad1Bounds[2]);
+            gOpt.quad1Translation.z() - gOpt.quad1Bounds.at(2),
+            gOpt.quad1Translation.z() + gOpt.quad1Bounds.at(2));
 
         auto quad1LayerBuilder =
-            makeLayerBuilder<1>(
+            makeLayerBuilder(
                 world, gOpt.g4ToWorld, names, 
                 {quad1ZBounds}, {Acts::BinningValue::binZ});
 
@@ -147,14 +151,14 @@ makeBlueprintE320(
             gOpt.quad1Bounds, quad1LayerBuilder);
 
         trackerBP->add(std::move(quad1Node));
-        
 
+        // Quadrupole 2
         auto quad2ZBounds = std::make_tuple(
-            gOpt.quad2Translation.z() - gOpt.quad2Bounds[2],
-            gOpt.quad2Translation.z() + gOpt.quad2Bounds[2]);
+            gOpt.quad2Translation.z() - gOpt.quad2Bounds.at(2),
+            gOpt.quad2Translation.z() + gOpt.quad2Bounds.at(2));
 
         auto quad2LayerBuilder =
-            makeLayerBuilder<1>(
+            makeLayerBuilder(
                 world, gOpt.g4ToWorld, names, 
                 {quad2ZBounds}, {Acts::BinningValue::binZ});
 
@@ -170,14 +174,14 @@ makeBlueprintE320(
             gOpt.quad2Bounds, quad2LayerBuilder);
 
         trackerBP->add(std::move(quad2Node));
-
         
+        // Quadrupole 3
         auto quad3ZBounds = std::make_tuple(
-            gOpt.quad3Translation.z() - gOpt.quad3Bounds[2],
-            gOpt.quad3Translation.z() + gOpt.quad3Bounds[2]);
+            gOpt.quad3Translation.z() - gOpt.quad3Bounds.at(2),
+            gOpt.quad3Translation.z() + gOpt.quad3Bounds.at(2));
 
         auto quad3LayerBuilder =
-            makeLayerBuilder<1>(
+            makeLayerBuilder(
                 world, gOpt.g4ToWorld, names, 
                 {quad3ZBounds}, {Acts::BinningValue::binZ});
 
@@ -247,7 +251,8 @@ std::shared_ptr<const Acts::Experimental::Detector>
         const std::string jsonMaterialPath,
         const std::vector<Acts::GeometryIdentifier>& materialVetos) {
             // Complete and fill gaps
-            Acts::Experimental::detail::BlueprintHelper::fillGaps(*detectorBpr, false);
+            Acts::Experimental::detail::BlueprintHelper::fillGaps(
+                *detectorBpr, false);
     
             auto detectorBuilder =
                 std::make_shared<Acts::Experimental::CuboidalContainerBuilder>(
@@ -255,10 +260,6 @@ std::shared_ptr<const Acts::Experimental::Detector>
     
             auto idGenCfg = E320GeometryIdGenerator::Config{
                 false, 0u, true, false, gOpt};
-
-            // Initialize the material binning
-            Acts::BinUtility materialBinning = gOpt.materialBinningX;
-            materialBinning += gOpt.materialBinningY;
 
             // Material provider
             auto jMatMapConverterCfg = 
@@ -269,7 +270,8 @@ std::shared_ptr<const Acts::Experimental::Detector>
                 std::make_shared<Acts::JsonMaterialDecorator>(
                     jMatMapConverterCfg, 
                     jsonMaterialPath, 
-                    Acts::Logging::VERBOSE);
+                    Acts::Logging::VERBOSE,
+                    materialVetos);
 
             // Detector builder
             Acts::Experimental::DetectorBuilder::Config dCfg;
