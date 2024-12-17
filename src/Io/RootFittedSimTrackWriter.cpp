@@ -67,7 +67,6 @@ RootFittedSimTrackWriter::RootFittedSimTrackWriter(
             m_tree->Branch("vertexTruth", &m_vertexTruth);
 
             // Chi2 and ndf of the fitted track
-            m_tree->Branch("trueChi2", &m_trueChi2, "trueChi2/D");
             m_tree->Branch("chi2", &m_chi2, "chi2/D");
             m_tree->Branch("ndf", &m_ndf, "ndf/I");
 
@@ -387,8 +386,6 @@ ProcessCode RootFittedSimTrackWriter::write(const AlgorithmContext &ctx) {
                 TVector3(filteredPull.x(), 0, -filteredPull.y()));
             smoothedPulls.push_back(
                 TVector3(smoothedPull.x(), 0, -smoothedPull.y()));
-
-            trueChi2 += smoothedPull.dot(smoothedPull);
         }
 
         // Matching degree is computed with respect 
@@ -475,11 +472,6 @@ ProcessCode RootFittedSimTrackWriter::write(const AlgorithmContext &ctx) {
         // with respect ot the 
         // measurement
         m_chi2 = track.chi2();
-
-        /// Chi2 of the track
-        /// with respect to the 
-        /// true hit position
-        m_trueChi2 = trueChi2;
 
         // Number of degrees of freedom
         m_ndf = track.nDoF();
