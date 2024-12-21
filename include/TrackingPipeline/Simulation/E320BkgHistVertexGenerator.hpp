@@ -5,10 +5,13 @@
 
 #include "TFile.h"
 #include "TH3.h"
+#include "TRandom.h"
 
 #include <string>
 
 namespace E320Sim {
+
+using namespace Acts::UnitLiterals;
 
 /// @brief Class that samples vertex from a ROOT histogram
 class E320BkgHistVertexGenerator : public IVertexGenerator {
@@ -24,6 +27,9 @@ class E320BkgHistVertexGenerator : public IVertexGenerator {
         E320BkgHistVertexGenerator(const Config& cfg) : m_cfg(cfg) {
             m_file = new TFile(m_cfg.pathToHist.c_str());
 
+            m_rng = new TRandom();
+            m_rng->SetSeed(std::chrono::system_clock::now().time_since_epoch().count());
+
             m_genXYZ = (TH3D*)m_file->Get(m_cfg.histName.c_str());
         };
 
@@ -37,7 +43,7 @@ class E320BkgHistVertexGenerator : public IVertexGenerator {
             Acts::ActsScalar y;
             Acts::ActsScalar z;
 
-            m_genXYZ->GetRandom3(x, y, z);
+            m_genXYZ->GetRandom3(x, y, z, m_rng);
 
             // z-axis indexes layers in the histogram
             z = m_gOpt.staveZ.at(z);
@@ -52,6 +58,8 @@ class E320BkgHistVertexGenerator : public IVertexGenerator {
         Config m_cfg;
 
         TH3D* m_genXYZ = nullptr;
+
+        TRandom* m_rng = nullptr;
 
         TFile* m_file = nullptr;
 

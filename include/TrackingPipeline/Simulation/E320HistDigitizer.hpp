@@ -6,6 +6,7 @@
 
 #include "TFile.h"
 #include "TH1.h"
+#include "TRandom.h"
 
 #include <string>
 
@@ -27,6 +28,9 @@ namespace E320Sim {
             E320HistDigitizer(const Config& cfg) : m_cfg(cfg) {
                 m_file = new TFile(m_cfg.pathToHist.c_str());
 
+                m_rng = new TRandom();
+                m_rng->SetSeed(std::chrono::system_clock::now().time_since_epoch().count());
+
                 m_genSize = (TH1D*)m_file->Get(m_cfg.histName.c_str());
             };
 
@@ -38,7 +42,7 @@ namespace E320Sim {
                 RandomEngine& /*rng*/,
                 Acts::GeometryIdentifier /*geoId*/,
                 Acts::Vector2 pos) const override {
-                    int size = m_genSize->GetRandom();
+                    int size = m_genSize->GetRandom(m_rng);
 
                     Acts::ActsScalar errX = m_pixSizeX / std::sqrt(12 * size);
                     Acts::ActsScalar errY = m_pixSizeY / std::sqrt(12 * size);
@@ -55,7 +59,9 @@ namespace E320Sim {
             Acts::ActsScalar m_pixSizeY = 29_um;
 
             TH1D* m_genSize = nullptr;
-
+            
+            TRandom* m_rng = nullptr;
+            
             TFile* m_file = nullptr;
     };
 
