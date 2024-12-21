@@ -5,6 +5,7 @@
 
 #include "TFile.h"
 #include "TH3.h"
+#include "TRandom.h"
 
 #include <Acts/Definitions/Algebra.hpp>
 #include <Acts/Utilities/VectorHelpers.hpp>
@@ -26,6 +27,9 @@ class HistMomentumGenerator : public IMomentumGenerator {
         HistMomentumGenerator(const Config& cfg) : m_cfg(cfg) {
             m_file = new TFile(m_cfg.pathToHist.c_str());
 
+            m_rng = new TRandom();
+            m_rng->SetSeed(std::chrono::system_clock::now().time_since_epoch().count());
+
             m_genPhiThetaE = (TH3D*)m_file->Get(m_cfg.histName.c_str());
         };
 
@@ -38,7 +42,7 @@ class HistMomentumGenerator : public IMomentumGenerator {
             Acts::ActsScalar theta;
             Acts::ActsScalar E;
 
-            m_genPhiThetaE->GetRandom3(phi, theta, E);
+            m_genPhiThetaE->GetRandom3(phi, theta, E, m_rng);
 
             Acts::Vector3 dir{
                 std::sin(theta) * std::cos(phi),
@@ -54,6 +58,8 @@ class HistMomentumGenerator : public IMomentumGenerator {
         Config m_cfg;
 
         TH3D* m_genPhiThetaE = nullptr;
+
+        TRandom* m_rng = nullptr;
 
         TFile* m_file = nullptr;
 
