@@ -10,7 +10,6 @@
 #include <Acts/Utilities/VectorHelpers.hpp>
 #include <cstddef>
 #include <cstdlib>
-#include <random>
 #include <utility>
 #include <vector>
 
@@ -85,7 +84,7 @@ MeasurementsCreator::gen(
             // std::cout << err.what() << "\n";
         }
 
-        int trackId = (m_cfg.isBackground) ? -1 : 1;
+        int trackId = (m_cfg.isSignal) ? 1 : -1;
         for (const auto& boundPars : resultParameters) {
             Acts::BoundVector boundVec = boundPars.parameters();
 
@@ -129,7 +128,7 @@ MeasurementsCreator::gen(
             SimCluster cl{
                 simpleSl,
                 {sm},
-                true,
+                m_cfg.isSignal,
             };
             simClusters.push_back(cl);
         }
