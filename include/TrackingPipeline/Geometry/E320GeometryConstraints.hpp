@@ -37,10 +37,10 @@ namespace E320Geometry {
         // Stave Id to the translation in the z direction
         const std::map<std::int32_t, Acts::ActsScalar>
         staveZ{
-            {0, 16567.0_mm},
-            {1, 16667.0_mm},
-            {2, 16767.0_mm},
-            {3, 16867.0_mm},
+            {0, 16567.0125_mm},
+            {1, 16667.0125_mm},
+            {2, 16767.0125_mm},
+            {3, 16867.0125_mm},
         };
 
         // All the staves are at the same y position

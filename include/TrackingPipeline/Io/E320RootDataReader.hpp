@@ -6,21 +6,25 @@
 #include "TrackingPipeline/EventData/DataContainers.hpp"
 
 #include "Acts/Definitions/Units.hpp"
-#include <Acts/Definitions/Algebra.hpp>
+#include "Acts/Definitions/Algebra.hpp"
+
 #include <unordered_map>
 
 using namespace Acts::UnitLiterals;
 
 /// @brief Global to local conversion
-/// for the LUXE geometry
+/// 
+/// @note Here the conventions of all 
+/// the tranformations involved are preserved
 inline Acts::Vector2 convertToLoc(
     const Acts::Vector3& glob, 
     const Acts::GeometryIdentifier geoId,
     const E320Geometry::GeometryOptions& gOpt) {
-        int nChip = geoId.sensitive()%10 - 1;
+        int nChip = geoId.sensitive() % 10 - 1;
         Acts::Vector2 loc = Acts::Vector2(
-            (glob.y() - gOpt.chipY.at(nChip)),
-            (glob.x() - gOpt.chipX));
+            glob.y() - gOpt.chipY.at(nChip),
+            -(glob.x() - gOpt.chipX)
+        );
         return loc;
 }
 
