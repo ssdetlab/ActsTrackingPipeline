@@ -27,7 +27,12 @@ class HourglassFilter : public IClusterFilter {
 
         // Tunnel in the center
         double tunnel = 1.5;
-    
+
+        // Bounds
+        double y0 = 90.3 - 29.94176/2;
+        double x0 = (y0 - b1) / a1;
+        double x1 = (y0 - b2) / a2;
+
         /// Filter operator
         ///
         /// @param cluster: the cluster to filter
@@ -54,14 +59,16 @@ class HourglassFilter : public IClusterFilter {
                 if (x < -tunnel) {
                     bool cond1 = y < a1 * x + b1;
                     bool cond2 = y > a2 * x + b2;
+                    bool cond3 = x > x0;
         
-                    return cond0 && (cond1 || cond2);
+                    return cond0 && (cond1 || cond2) && cond3;
                 }
                 else if (x > tunnel) {
                     bool cond1 = y > a1 * x + b1;
                     bool cond2 = y < a2 * x + b2;
+                    bool cond3 = x < x1;
         
-                    return cond0 && (cond1 || cond2);
+                    return cond0 && (cond1 || cond2) && cond3;
                 }
                 else {
                     // Tunnel in the center
