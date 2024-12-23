@@ -47,7 +47,7 @@ class RootSimDataReader : public IReader {
         /// @brief The nested configuration struct
         struct Config {
             /// Cluster filter
-            std::shared_ptr<IClusterFilter> clusterFilter;
+            std::shared_ptr<IClusterFilter> clusterFilter = nullptr;
             /// Collection with the measurement data
             std::string outputSourceLinks;
             /// Collection with the sim clusters data
