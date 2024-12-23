@@ -185,9 +185,10 @@ class E320RootSimDataReader : public RootSimDataReader {
                     .sourceLink = ssl
                 };
 
-                if(!m_cfg.clusterFilter->operator()(
-                    context.geoContext, cluster)) {
-                        return;
+                if(m_cfg.clusterFilter != nullptr && 
+                    !m_cfg.clusterFilter->operator()(
+                        context.geoContext, cluster)) {
+                                return;
                 }
 
                 sourceLinks->push_back(Acts::SourceLink(ssl));
