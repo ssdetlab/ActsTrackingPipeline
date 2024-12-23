@@ -38,7 +38,7 @@ class MeasurementsCreator : public IMeasurementGenerator {
             /// to propagate 
             std::size_t maxSteps;
             /// Is background flag
-            bool isBackground;
+            bool isSignal;
         };
 
         /// @brief Constructor

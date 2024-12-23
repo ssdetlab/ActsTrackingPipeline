@@ -165,6 +165,8 @@ ProcessCode RootSimClusterWriter::write(const AlgorithmContext &ctx) {
         m_originMomentum = originMomenta;
         m_vertex = vertices;
 
+        m_isSignal = cluster.isSignal;
+
         // Fill the tree
         m_tree->Fill();
     }
