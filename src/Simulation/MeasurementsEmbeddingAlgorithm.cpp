@@ -4,12 +4,19 @@
 #include "TrackingPipeline/Infrastructure/IAlgorithm.hpp"
 #include "TrackingPipeline/Infrastructure/DataHandle.hpp"
 #include "TrackingPipeline/EventData/DataContainers.hpp"
-#include <Acts/EventData/SourceLink.hpp>
+
+#include "Acts/EventData/SourceLink.hpp"
+
+#include <stdexcept>
 
 MeasurementsEmbeddingAlgorithm::MeasurementsEmbeddingAlgorithm(
     const Config& config, Acts::Logging::Level level)
     : IAlgorithm("MeasurementsEmbeddingAlgorithm", level),
     m_cfg(config) {
+        if (m_cfg.measurementGenerator == nullptr) {
+            throw std::runtime_error("Generator is not initialized");
+        }
+
         m_inputSourceLinks.initialize(m_cfg.inputSourceLinks);
         m_inputSimClusters.initialize(m_cfg.inputSimClusters);
 

@@ -37,7 +37,7 @@ class HistMomentumGenerator : public IMomentumGenerator {
             m_file->Close();
         }
 
-        Acts::Vector3 gen(RandomEngine& /*rng*/) const override {
+        Acts::Vector3 genMomentum(RandomEngine& /*rng*/) const override {
             Acts::ActsScalar phi;
             Acts::ActsScalar theta;
             Acts::ActsScalar E;
