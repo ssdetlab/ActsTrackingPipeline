@@ -6,7 +6,7 @@
 struct RangedUniformMomentumGenerator : public IMomentumGenerator {
     std::vector<std::pair<Acts::ActsScalar, Acts::ActsScalar>> Pranges;
 
-    Acts::Vector3 gen(RandomEngine& rng) const override {
+    Acts::Vector3 genMomentum(RandomEngine& rng) const override {
         std::uniform_int_distribution<int> range_select(0, Pranges.size() - 1);
         int range = range_select(rng);
 

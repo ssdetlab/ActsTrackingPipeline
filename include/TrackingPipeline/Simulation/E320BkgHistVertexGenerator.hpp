@@ -37,7 +37,7 @@ class E320BkgHistVertexGenerator : public IVertexGenerator {
             m_file->Close();
         }
 
-        Acts::Vector3 gen(RandomEngine& /*rng*/) const override {
+        Acts::Vector3 genVertex(RandomEngine& /*rng*/) const override {
             // Generate x y
             Acts::ActsScalar x;
             Acts::ActsScalar y;

@@ -96,7 +96,7 @@ class RootSimDataReader : public IReader {
                 setBranches(m_chain, m_cfg.intKeys, m_intColumns);
 
                 // Add the files to the chain
-                for (auto path : m_cfg.filePaths) {
+                for (const auto& path : m_cfg.filePaths) {
                     m_chain->Add(path.c_str());
                 }
 

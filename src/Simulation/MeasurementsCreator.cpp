@@ -56,13 +56,13 @@ MeasurementsCreator::gen(
         // Generate initial track parameters
         rng.seed(std::chrono::system_clock::now().time_since_epoch().count());
 
-        Acts::Vector3 spatial = m_cfg.vertexGenerator->gen(rng);
+        Acts::Vector3 spatial = m_cfg.vertexGenerator->genVertex(rng);
         Acts::Vector4 mPos4 = {spatial.x(), spatial.y(), spatial.z(), 0};
 
-        Acts::Vector3 mom = m_cfg.momentumGenerator->gen(rng);
+        Acts::Vector3 mom = m_cfg.momentumGenerator->genMomentum(rng);
         Acts::ActsScalar p = mom.norm(); 
-        Acts::ActsScalar theta = Acts::VectorHelpers::theta(mom);
         Acts::ActsScalar phi = Acts::VectorHelpers::phi(mom);
+        Acts::ActsScalar theta = Acts::VectorHelpers::theta(mom);
 
         TrackParameters trackParameters(
             mPos4, phi, theta,
@@ -91,12 +91,21 @@ MeasurementsCreator::gen(
             Acts::GeometryIdentifier geoId = 
                 boundPars.referenceSurface().geometryId();
 
+            // Sometimes scattering makes particles 
+            // to be stuck in the same surface
+            if (std::ranges::find_if(simClusters,
+                [&](const auto& cl) {
+                    return (cl.sourceLink.geometryId() == geoId);
+                }) != simClusters.end()) {
+                    continue;
+            }
+
             // Digitize hits
             Acts::Vector2 trueLocalPos{
                 boundVec[Acts::eBoundLoc0], boundVec[Acts::eBoundLoc1]};
 
             auto [digCov, digLocalPos] = 
-                m_cfg.hitDigitizer->gen(rng, geoId, trueLocalPos);
+                m_cfg.hitDigitizer->genCluster(rng, geoId, trueLocalPos);
 
             // Truth information
             SimpleSourceLink hitSimpleSl(

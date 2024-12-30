@@ -9,4 +9,5 @@ target_sources(
     JsonTrackLookupReader.cpp
     JsonTrackLookupWriter.cpp
     RootMaterialTrackReader.cpp  
+    RootTrackParamsReader.cpp
     RootMaterialTrackWriter.cpp)

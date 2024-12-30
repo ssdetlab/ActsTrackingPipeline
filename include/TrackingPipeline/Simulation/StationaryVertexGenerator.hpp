@@ -6,7 +6,7 @@
 struct StationaryVertexGenerator : public IVertexGenerator {
     Acts::Vector3 vertex{0., 0., 0.};
 
-    Acts::Vector3 gen(RandomEngine& /*rng*/) const override {
+    Acts::Vector3 genVertex(RandomEngine& /*rng*/) const override {
         return vertex;
     }
 };

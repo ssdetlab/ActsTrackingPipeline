@@ -5,7 +5,7 @@
 #include "Acts/Definitions/Algebra.hpp"
 
 struct IdealDigitizer : public IDigitizer {
-    std::pair<Acts::SquareMatrix2, Acts::Vector2> gen(
+    std::pair<Acts::SquareMatrix2, Acts::Vector2> genCluster(
         RandomEngine& rng,
         Acts::GeometryIdentifier /*geoId*/,
         Acts::Vector2 pos) const override {

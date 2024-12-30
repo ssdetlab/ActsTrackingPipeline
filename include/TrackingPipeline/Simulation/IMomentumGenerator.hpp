@@ -6,5 +6,5 @@
 
 /// @brief Interface for generating momentum vectors
 struct IMomentumGenerator {
-    virtual Acts::Vector3 gen(RandomEngine& rng) const = 0;
+    virtual Acts::Vector3 genMomentum(RandomEngine& rng) const = 0;
 };
