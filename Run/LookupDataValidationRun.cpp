@@ -5,7 +5,7 @@
 #include "TrackingPipeline/Clustering/HourglassFilter.hpp"
 #include "TrackingPipeline/Geometry/E320Geometry.hpp"
 #include "TrackingPipeline/Infrastructure/Sequencer.hpp"
-#include "TrackingPipeline/Io/E320RootDataReader.hpp"
+#include "TrackingPipeline/Io/E320RootSimDataReader.hpp"
 #include "TrackingPipeline/Io/JsonTrackLookupReader.hpp"
 #include "TrackingPipeline/Io/RootTrackLookupValidationWriter.hpp"
 #include "TrackingPipeline/MagneticField/CompositeMagField.hpp"

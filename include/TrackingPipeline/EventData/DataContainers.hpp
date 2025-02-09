@@ -48,7 +48,7 @@ using SimClusters = std::vector<SimCluster>;
 ///-----------------------------------------------
 /// Obserbable data containers
 
-/// @brief Seed to be passed to the KF
+/// @brief Seed to be passed to the CKF
 struct Seed {
   /// Source links related
   /// to the seed measurements
