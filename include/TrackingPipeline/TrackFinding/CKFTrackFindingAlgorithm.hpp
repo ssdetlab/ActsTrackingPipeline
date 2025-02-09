@@ -2,6 +2,8 @@
 
 #include "Acts/EventData/TrackContainer.hpp"
 #include "Acts/EventData/VectorTrackContainer.hpp"
+#include "Acts/Navigation/DetectorNavigator.hpp"
+#include "Acts/Propagator/EigenStepper.hpp"
 #include "Acts/TrackFinding/CombinatorialKalmanFilter.hpp"
 
 #include "TrackingPipeline/EventData/DataContainers.hpp"
@@ -57,24 +59,41 @@ struct SimpleContainerAccessor {
   }
 };
 
-template <typename propagator_t, typename candidate_container_t>
 class CKFTrackFindingAlgorithm : public IAlgorithm {
  public:
+  /// Propagator definitions
+  using ActionList = Acts::ActionList<>;
+  using AbortList = Acts::AbortList<Acts::EndOfWorldReached>;
+
+  using Propagator = Acts::Propagator<Acts::EigenStepper<>,
+                                      Acts::Experimental::DetectorNavigator>;
+  using PropagatorOptions =
+      typename Propagator::template Options<ActionList, AbortList>;
+
+  /// Track containers
+  using TrackContainer = Acts::TrackContainer<Acts::VectorTrackContainer,
+                                              Acts::VectorMultiTrajectory,
+                                              Acts::detail::ValueHolder>;
+  using TrackStateContainerBackend =
+      typename TrackContainer::TrackStateContainerBackend;
+
+  /// Sourcelink containers
   using SimpleSourceLinkContainer =
       std::unordered_multimap<Acts::GeometryIdentifier, SimpleSourceLink>;
   using SimpleSourceLinkAccessor =
       SimpleContainerAccessor<SimpleSourceLinkContainer>;
+
+  /// Options
   using CombinatorialKalmanFilterOptions =
       Acts::CombinatorialKalmanFilterOptions<SimpleSourceLinkAccessor::Iterator,
-                                             candidate_container_t>;
+                                             TrackContainer>;
 
   /// @brief The nested configuration struct
   struct Config {
     /// CKF finder
-    const Acts::CombinatorialKalmanFilter<propagator_t, candidate_container_t>&
-        ckf;
+    const Acts::CombinatorialKalmanFilter<Propagator, TrackContainer>& ckf;
     /// CKF extensions
-    Acts::CombinatorialKalmanFilterExtensions<candidate_container_t> extensions;
+    Acts::CombinatorialKalmanFilterExtensions<TrackContainer> extensions;
     /// The input collection
     std::string inputSeeds = "Seed";
     /// The output collection before filtering
@@ -94,80 +113,14 @@ class CKFTrackFindingAlgorithm : public IAlgorithm {
   }
   ~CKFTrackFindingAlgorithm() = default;
 
-  CKFTrackFindingAlgorithm(Config config) : m_cfg(config) {}
-
   /// @brief The execute method
-  ProcessCode execute(const AlgorithmContext& ctx) const override {
-    // Get the input seeds
-    // from the context
-    auto input = m_inputSeeds(ctx);
-
-    auto options = CombinatorialKalmanFilterOptions(
-        ctx.geoContext, ctx.magFieldContext, ctx.calibContext,
-        Acts::SourceLinkAccessorDelegate<SimpleSourceLinkAccessor::Iterator>{},
-        m_cfg.extensions,
-        Acts::PropagatorPlainOptions(ctx.geoContext, ctx.magFieldContext));
-
-    SimpleSourceLinkAccessor slAccessor;
-    options.sourcelinkAccessor
-        .template connect<&SimpleSourceLinkAccessor::range>(&slAccessor);
-
-    Seeds trackCandidates;
-    for (const auto& seed : input) {
-      SimpleSourceLinkContainer ckfSourceLinks;
-      for (auto& sl : seed.sourceLinks) {
-        auto ssl = sl.get<SimpleSourceLink>();
-        ckfSourceLinks.insert({ssl.geometryId(), ssl});
-      }
-
-      slAccessor.container = &ckfSourceLinks;
-
-      Acts::TrackContainer tc{Acts::VectorTrackContainer{},
-                              Acts::VectorMultiTrajectory{}};
-
-      // run the CKF for all initial track states
-      Acts::CurvilinearTrackParameters ipParameters = seed.ipParameters;
-
-      options.propagatorPlainOptions.maxSteps = 10000;
-
-      auto res = m_cfg.ckf.findTracks(ipParameters, options, tc);
-      if (!res.ok()) {
-        continue;
-      }
-
-      for (std::size_t tid = 0u; tid < tc.size(); ++tid) {
-        const auto track = tc.getTrack(tid);
-
-        // check purity of first found track
-        // find the number of hits not originating from the right track
-        std::vector<Acts::SourceLink> sourceLinks;
-        for (const auto trackState : track.trackStatesReversed()) {
-          if (!trackState.hasUncalibratedSourceLink()) {
-            continue;
-          }
-          Acts::SourceLink sl = trackState.getUncalibratedSourceLink();
-          sourceLinks.push_back(sl);
-        }
-
-        if (sourceLinks.size() < m_cfg.minCandidateSize ||
-            sourceLinks.size() > m_cfg.maxCandidateSize) {
-          continue;
-        }
-
-        trackCandidates.push_back(
-            Seed{sourceLinks, ipParameters, seed.trackId});
-      }
-    }
-
-    m_outputTrackCandidates(ctx, std::move(trackCandidates));
-
-    return ProcessCode::SUCCESS;
-  }
+  ProcessCode execute(const AlgorithmContext& ctx) const override;
 
  private:
   Config m_cfg;
 
   ReadDataHandle<Seeds> m_inputSeeds{this, "InputSeeds"};
 
-  WriteDataHandle<Seeds> m_outputTrackCandidates{this, "OutputTrackCandidates"};
+  WriteDataHandle<TrackCandidates> m_outputTrackCandidates{
+      this, "OutputTrackCandidates"};
 };

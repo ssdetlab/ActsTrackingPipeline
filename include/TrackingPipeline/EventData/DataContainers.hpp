@@ -62,6 +62,24 @@ struct Seed {
 /// @brief Collection of Seeds
 using Seeds = std::vector<Seed>;
 
+/// @brief Track candidate to be passed to the KF
+struct TrackCandidate {
+  /// Source links related
+  /// to the seed measurements
+  std::vector<Acts::SourceLink> sourceLinks;
+  /// IP parameters
+  Acts::CurvilinearTrackParameters ipParameters;
+  /// Track Id
+  std::int32_t trackId;
+  /// Predicted chi2 at the tracking layers
+  std::vector<double> predictedChi2;
+  /// Filtered chi2 at the tracking layers
+  std::vector<double> filteredChi2;
+};
+
+/// @brief Collection of TrackCandidates
+using TrackCandidates = std::vector<TrackCandidate>;
+
 /// @brief A track with observables and uncertainties
 template <typename container_t, typename trajectory_t>
 struct Tracks {
