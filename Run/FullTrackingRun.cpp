@@ -17,8 +17,7 @@
 #include "TrackingPipeline/Clustering/HourglassFilter.hpp"
 #include "TrackingPipeline/Geometry/E320Geometry.hpp"
 #include "TrackingPipeline/Infrastructure/Sequencer.hpp"
-#include "TrackingPipeline/Io/DummyReader.hpp"
-#include "TrackingPipeline/Io/E320RootDataReader.hpp"
+#include "TrackingPipeline/Io/E320RootSimDataReader.hpp"
 #include "TrackingPipeline/Io/JsonTrackLookupReader.hpp"
 #include "TrackingPipeline/Io/RootFittedSimTrackWriter.hpp"
 #include "TrackingPipeline/Io/RootSimClusterWriter.hpp"
@@ -201,49 +200,39 @@ int main() {
   seqCfg.trackFpes = false;
   Sequencer sequencer(seqCfg);
 
-  //   // Add the sim data reader
-  //   E320Io::E320RootSimDataReader::Config readerCfg =
-  //   E320Io::defaultSimConfig(); readerCfg.clusterFilter = hourglassFilter;
-  //   readerCfg.outputSourceLinks = "Measurements";
-  //   readerCfg.outputSimClusters = "Clusters";
-  //   std::string pathToDir =
-  //   "/home/romanurmanov/lab/LUXE/acts_tracking/E320Pipeline_dataInRootFormat/"
-  //   "temp";
+  // Add the sim data reader
+  E320Io::E320RootSimDataReader::Config readerCfg = E320Io::defaultSimConfig();
+  readerCfg.clusterFilter = hourglassFilter;
+  readerCfg.outputSourceLinks = "SimMeasurements";
+  readerCfg.outputSimClusters = "SimClusters";
+  std::string pathToDir =
+      "/home/romanurmanov/lab/LUXE/acts_tracking/E320Pipeline_dataInRootFormat/"
+      "temp";
 
-  //   // Get the paths to the files in the directory
-  //   for (const auto& entry : std::filesystem::directory_iterator(pathToDir))
-  //   {
-  // std::string pathToFile = entry.path();
-  // readerCfg.filePaths.push_back(pathToFile);
-  //   }
+  // Get the paths to the files in the directory
+  for (const auto& entry : std::filesystem::directory_iterator(pathToDir)) {
+    std::string pathToFile = entry.path();
+    readerCfg.filePaths.push_back(pathToFile);
+  }
 
-  //   // The events are not sorted in the directory
-  //   // but we need to process them in order
-  //   std::ranges::sort(readerCfg.filePaths, [](const std::string& a,
-  // const std::string& b) {
-  // std::size_t idxRootA = a.find_last_of('.');
-  // std::size_t idxEventA = a.find_last_of('t', idxRootA);
-  // std::string eventSubstrA = a.substr(idxEventA + 1, idxRootA - idxEventA);
+  // The events are not sorted in the directory
+  // but we need to process them in order
+  std::ranges::sort(readerCfg.filePaths, [](const std::string& a,
+                                            const std::string& b) {
+    std::size_t idxRootA = a.find_last_of('.');
+    std::size_t idxEventA = a.find_last_of('t', idxRootA);
+    std::string eventSubstrA = a.substr(idxEventA + 1, idxRootA - idxEventA);
 
-  // std::size_t idxRootB = b.find_last_of('.');
-  // std::size_t idxEventB = b.find_last_of('t', idxRootB);
-  // std::string eventSubstrB = b.substr(idxEventB + 1, idxRootB - idxEventB);
+    std::size_t idxRootB = b.find_last_of('.');
+    std::size_t idxEventB = b.find_last_of('t', idxRootB);
+    std::string eventSubstrB = b.substr(idxEventB + 1, idxRootB - idxEventB);
 
-  // return std::stoul(eventSubstrA) < std::stoul(eventSubstrB);
-  //   });
+    return std::stoul(eventSubstrA) < std::stoul(eventSubstrB);
+  });
 
-  //   // Add the reader to the sequencer
-  //   sequencer.addReader(
-  //   std::make_shared<E320Io::E320RootSimDataReader>(readerCfg, logLevel));
-
-  // --------------------------------------------------------------
-  // Add dummy reader
-  DummyReader::Config dummyReaderCfg;
-  dummyReaderCfg.outputSourceLinks = "SimMeasurements";
-  dummyReaderCfg.outputSimClusters = "SimClusters";
-  dummyReaderCfg.nEvents = 10;
-
-  sequencer.addReader(std::make_shared<DummyReader>(dummyReaderCfg));
+  // Add the reader to the sequencer
+  sequencer.addReader(
+      std::make_shared<E320Io::E320RootSimDataReader>(readerCfg, logLevel));
 
   // --------------------------------------------------------------
   // Compton background embedding

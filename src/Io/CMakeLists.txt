@@ -6,8 +6,11 @@ target_sources(
     RootSimSeedWriter.cpp
     RootFittedSimTrackWriter.cpp
     RootTrackLookupValidationWriter.cpp
-    JsonTrackLookupReader.cpp
-    JsonTrackLookupWriter.cpp
     RootMaterialTrackReader.cpp  
     RootTrackParamsReader.cpp
-    RootMaterialTrackWriter.cpp)
+    RootSimDataReader.cpp
+    RootMaterialTrackWriter.cpp
+    JsonTrackLookupReader.cpp
+    JsonTrackLookupWriter.cpp
+    E320RootSimDataReader.cpp
+)

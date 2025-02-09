@@ -262,8 +262,7 @@ int main() {
   cptMceCfg.clusterFilter = hourglassFilter;
   cptMceCfg.randomNumberSvc =
       std::make_shared<RandomNumbers>(RandomNumbers::Config());
-  //   cptMceCfg.nMeasurements = 660;
-  cptMceCfg.nMeasurements = 6600;
+  cptMceCfg.nMeasurements = 660;
 
   sequencer.addAlgorithm(
       std::make_shared<MeasurementsEmbeddingAlgorithm>(cptMceCfg, logLevel));
@@ -355,12 +354,10 @@ int main() {
   beamMceCfg.clusterFilter = hourglassFilter;
   beamMceCfg.randomNumberSvc =
       std::make_shared<RandomNumbers>(RandomNumbers::Config());
-  //   beamMceCfg.nMeasurements = 3450;
-  beamMceCfg.nMeasurements = 34500;
+  beamMceCfg.nMeasurements = 3450;
 
-  // sequencer.addAlgorithm(
-  // std::make_shared<MeasurementsEmbeddingAlgorithm>(
-  // beamMceCfg, logLevel));
+  sequencer.addAlgorithm(
+      std::make_shared<MeasurementsEmbeddingAlgorithm>(beamMceCfg, logLevel));
 
   // --------------------------------------------------------------
   // Event write out
