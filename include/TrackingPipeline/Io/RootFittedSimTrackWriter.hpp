@@ -1,20 +1,19 @@
 #pragma once
 
-#include "TrackingPipeline/Infrastructure/IWriter.hpp"
-#include "TrackingPipeline/Infrastructure/ProcessCode.hpp"
-#include "TrackingPipeline/Infrastructure/AlgorithmContext.hpp"
-#include "TrackingPipeline/Infrastructure/DataHandle.hpp"
-#include "TrackingPipeline/EventData/DataContainers.hpp"
-
-#include "Acts/Utilities/Logger.hpp"
 #include "Acts/EventData/SourceLink.hpp"
 #include "Acts/EventData/VectorMultiTrajectory.hpp"
 #include "Acts/EventData/VectorTrackContainer.hpp"
+#include "Acts/Utilities/Logger.hpp"
 
 #include "TFile.h"
+#include "TLorentzVector.h"
 #include "TTree.h"
 #include "TVector3.h"
-#include "TLorentzVector.h" 
+#include "TrackingPipeline/EventData/DataContainers.hpp"
+#include "TrackingPipeline/Infrastructure/AlgorithmContext.hpp"
+#include "TrackingPipeline/Infrastructure/DataHandle.hpp"
+#include "TrackingPipeline/Infrastructure/IWriter.hpp"
+#include "TrackingPipeline/Infrastructure/ProcessCode.hpp"
 
 using namespace Acts::UnitLiterals;
 
@@ -23,136 +22,135 @@ using TrackID = std::tuple<std::int32_t, std::int32_t, std::int32_t>;
 /// @brief Writer to store fitted track data in
 /// ROOT file
 ///
-/// Writer that accepts fitted track data from KF 
+/// Writer that accepts fitted track data from KF
 /// derives the basic performance metrics, such as
 /// chi2 and residuals, and stores them in a ROOT file.
 ///
-/// @note Assumes that the tracks are simulated and 
+/// @note Assumes that the tracks are simulated and
 /// the truth information is available
 class RootFittedSimTrackWriter : public IWriter {
-    public:
-        /// @brief The nested configuration struct
-        struct Config {
-            /// Surface accessor
-            Acts::SourceLinkSurfaceAccessor surfaceAccessor;
-            /// Fitted track collection
-            std::string inputKFTracks;
-            /// Truth cluster data
-            std::string inputTruthClusters;
-            /// Name of the input tree
-            std::string treeName;
-            /// The names of the input files
-            std::string filePath;
-            /// Target size of the true track
-            std::size_t targetTrueTrackSize;
-        };
+ public:
+  /// @brief The nested configuration struct
+  struct Config {
+    /// Surface accessor
+    Acts::SourceLinkSurfaceAccessor surfaceAccessor;
+    /// Fitted track collection
+    std::string inputKFTracks;
+    /// Truth cluster data
+    std::string inputTruthClusters;
+    /// Name of the input tree
+    std::string treeName;
+    /// The names of the input files
+    std::string filePath;
+    /// Target size of the true track
+    std::size_t targetTrueTrackSize;
+  };
 
-        RootFittedSimTrackWriter(const RootFittedSimTrackWriter &) = delete;
-        RootFittedSimTrackWriter(const RootFittedSimTrackWriter &&) = delete;
-    
-        /// @brief Constructor
-        ///
-        /// @param config The Configuration struct
-        RootFittedSimTrackWriter(const Config &config, Acts::Logging::Level level);
+  RootFittedSimTrackWriter(const RootFittedSimTrackWriter &) = delete;
+  RootFittedSimTrackWriter(const RootFittedSimTrackWriter &&) = delete;
 
-        /// @brief Finalize method
-        ProcessCode finalize() override; 
-    
-        /// Writer name() method
-        std::string name() const override { return "RootFittedTrackWriter"; }
-    
-        /// Write out data to the input stream
-        ProcessCode write(const AlgorithmContext &ctx) override; 
+  /// @brief Constructor
+  ///
+  /// @param config The Configuration struct
+  RootFittedSimTrackWriter(const Config &config, Acts::Logging::Level level);
 
-        /// Readonly access to the config
-        const Config &config() const { return m_cfg; }
+  /// @brief Finalize method
+  ProcessCode finalize() override;
 
-    private:
-        /// Private access to the logging instance
-        const Acts::Logger &logger() const { return *m_logger; }
+  /// Writer name() method
+  std::string name() const override { return "RootFittedTrackWriter"; }
 
-        /// The config class
-        Config m_cfg;
+  /// Write out data to the input stream
+  ProcessCode write(const AlgorithmContext &ctx) override;
 
-        ReadDataHandle<Tracks<
-            Acts::VectorTrackContainer,
-            Acts::VectorMultiTrajectory>>
-                m_KFTracks{this, "KFTracks"};  
+  /// Readonly access to the config
+  const Config &config() const { return m_cfg; }
 
-        ReadDataHandle<SimClusters> m_truthClusters{this, "TruthClusters"};
+ private:
+  /// Private access to the logging instance
+  const Acts::Logger &logger() const { return *m_logger; }
 
-        std::unique_ptr<const Acts::Logger> m_logger;
+  /// The config class
+  Config m_cfg;
 
-        /// The output file
-        TFile *m_file = nullptr;
+  ReadDataHandle<
+      Tracks<Acts::VectorTrackContainer, Acts::VectorMultiTrajectory>>
+      m_KFTracks{this, "KFTracks"};
 
-        /// The output tree
-        TTree *m_tree = nullptr;
+  ReadDataHandle<SimClusters> m_truthClusters{this, "TruthClusters"};
 
-    protected:
-        /// True hits
-        std::vector<TVector3> m_trueTrackHits;
+  std::unique_ptr<const Acts::Logger> m_logger;
 
-        /// Measurement hits
-        std::vector<TVector3> m_trackHits;
-        
-        /// KF predicted track hits
-        std::vector<TVector3> m_predictedTrackHits;
-        std::vector<TVector3> m_filteredTrackHits;
-        std::vector<TVector3> m_smoothedTrackHits;
+  /// The output file
+  TFile *m_file = nullptr;
 
-        /// KF residuals with respect to the true hits
-        std::vector<TVector3> m_truePredictedResiduals;
-        std::vector<TVector3> m_trueFilteredResiduals;
-        std::vector<TVector3> m_trueSmoothedResiduals;
+  /// The output tree
+  TTree *m_tree = nullptr;
 
-        /// KF residuals with respect to the measurements
-        std::vector<TVector3> m_predictedResiduals;
-        std::vector<TVector3> m_filteredResiduals;
-        std::vector<TVector3> m_smoothedResiduals;
+ protected:
+  /// True hits
+  std::vector<TVector3> m_trueTrackHits;
 
-        /// KF pulls with respect to the true hits
-        std::vector<TVector3> m_truePredictedPulls;
-        std::vector<TVector3> m_trueFilteredPulls;
-        std::vector<TVector3> m_trueSmoothedPulls;
+  /// Measurement hits
+  std::vector<TVector3> m_trackHits;
 
-        /// KF pulls with respect to the measurements
-        std::vector<TVector3> m_predictedPulls;
-        std::vector<TVector3> m_filteredPulls;
-        std::vector<TVector3> m_smoothedPulls;
+  /// KF predicted track hits
+  std::vector<TVector3> m_predictedTrackHits;
+  std::vector<TVector3> m_filteredTrackHits;
+  std::vector<TVector3> m_smoothedTrackHits;
 
-        /// Chi2 of the track
-        /// with respect ot the 
-        /// measurement
-        double m_chi2;
+  /// KF residuals with respect to the true hits
+  std::vector<TVector3> m_truePredictedResiduals;
+  std::vector<TVector3> m_trueFilteredResiduals;
+  std::vector<TVector3> m_trueSmoothedResiduals;
 
-        /// Number of degrees of freedom
-        /// of the track
-        int m_ndf;
+  /// KF residuals with respect to the measurements
+  std::vector<TVector3> m_predictedResiduals;
+  std::vector<TVector3> m_filteredResiduals;
+  std::vector<TVector3> m_smoothedResiduals;
 
-        /// Matching degree
-        double m_matchingDegree;
+  /// KF pulls with respect to the true hits
+  std::vector<TVector3> m_truePredictedPulls;
+  std::vector<TVector3> m_trueFilteredPulls;
+  std::vector<TVector3> m_trueSmoothedPulls;
 
-        /// TrackId
-        int m_trackId;
+  /// KF pulls with respect to the measurements
+  std::vector<TVector3> m_predictedPulls;
+  std::vector<TVector3> m_filteredPulls;
+  std::vector<TVector3> m_smoothedPulls;
 
-        /// EventId
-        int m_eventId;
+  /// Chi2 of the track
+  /// with respect ot the
+  /// measurement
+  double m_chi2;
 
-        /// KF predicted momentum at the IP
-        TLorentzVector m_ipMomentum;
-        TVector3 m_ipMomentumError;
-        TVector3 m_vertex;
-        TVector3 m_vertexError;
+  /// Number of degrees of freedom
+  /// of the track
+  int m_ndf;
 
-        /// True momentum at the IP
-        TLorentzVector m_ipMomentumTruth;
-        TVector3 m_vertexTruth;
+  /// Matching degree
+  double m_matchingDegree;
 
-        /// Number of true tracks prior to 
-        /// applying the cuts
-        std::int32_t m_truthSig;
+  /// TrackId
+  int m_trackId;
 
-        /// Mutex to protect the tree filling
-        std::mutex m_mutex;
+  /// EventId
+  int m_eventId;
+
+  /// KF predicted momentum at the IP
+  TLorentzVector m_ipMomentum;
+  TVector3 m_ipMomentumError;
+  TVector3 m_vertex;
+  TVector3 m_vertexError;
+
+  /// True momentum at the IP
+  TLorentzVector m_ipMomentumTruth;
+  TVector3 m_vertexTruth;
+
+  /// Number of true tracks prior to
+  /// applying the cuts
+  std::int32_t m_truthSig;
+
+  /// Mutex to protect the tree filling
+  std::mutex m_mutex;
 };
