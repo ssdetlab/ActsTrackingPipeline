@@ -41,6 +41,7 @@
 #include "TrackingPipeline/TrackFinding/TrackLookupProvider.hpp"
 #include "TrackingPipeline/TrackFitting/TrackFittingAlgorithm.hpp"
 
+// Propagator short-hands
 using ActionList = Acts::ActionList<>;
 using AbortList = Acts::AbortList<Acts::EndOfWorldReached>;
 
@@ -49,16 +50,16 @@ using Propagator = Acts::Propagator<Acts::EigenStepper<>,
 using PropagatorOptions =
     typename Propagator::template Options<ActionList, AbortList>;
 
-using Trajectory = Acts::VectorMultiTrajectory;
-using KFTrackContainer = Acts::VectorTrackContainer;
-using KF = Acts::KalmanFitter<Propagator, Trajectory>;
-
-using CKFTrackContainer = Acts::TrackContainer<Acts::VectorTrackContainer,
-                                               Acts::VectorMultiTrajectory,
-                                               Acts::detail::ValueHolder>;
+// CKF short-hands
+using CKFTrackContainer = CKFTrackFindingAlgorithm::TrackContainer;
 
 using TrackStateContainerBackend =
-    typename CKFTrackContainer::TrackStateContainerBackend;
+    CKFTrackFindingAlgorithm::TrackStateContainerBackend;
+
+// KF short-hands
+using KFTrajectory = TrackFittingAlgorithm::Trajectory;
+using KFTrackContainer = TrackFittingAlgorithm::Trajectory;
+using KF = Acts::KalmanFitter<Propagator, KFTrajectory>;
 
 using namespace Acts::UnitLiterals;
 
@@ -563,10 +564,9 @@ int main() {
   ckfExtensions.measurementSelector.template connect<
       &Acts::MeasurementSelector::select<TrackStateContainerBackend>>(&measSel);
 
-  CKFTrackFindingAlgorithm<Propagator, CKFTrackContainer>::Config
-      trackFindingCfg{
-          .ckf = ckf,
-      };
+  CKFTrackFindingAlgorithm::Config trackFindingCfg{
+      .ckf = ckf,
+  };
   trackFindingCfg.extensions = ckfExtensions;
   trackFindingCfg.inputSeeds = "PathSeeds";
   trackFindingCfg.outputTrackCandidates = "TrackCandidates";
@@ -574,8 +574,7 @@ int main() {
   trackFindingCfg.maxCandidateSize = 4;
 
   auto trackFindingAlgorithm =
-      std::make_shared<CKFTrackFindingAlgorithm<Propagator, CKFTrackContainer>>(
-          trackFindingCfg, logLevel);
+      std::make_shared<CKFTrackFindingAlgorithm>(trackFindingCfg, logLevel);
   sequencer.addAlgorithm(trackFindingAlgorithm);
 
   // --------------------------------------------------------------
@@ -585,15 +584,16 @@ int main() {
   Acts::GainMatrixSmoother kfSmoother;
 
   // Initialize track fitter options
-  Acts::KalmanFitterExtensions<Trajectory> extensions;
+  Acts::KalmanFitterExtensions<KFTrajectory> extensions;
   // Add calibrator
-  extensions.calibrator.connect<&simpleSourceLinkCalibrator<Trajectory>>();
+  extensions.calibrator.connect<&simpleSourceLinkCalibrator<KFTrajectory>>();
   // Add the updater
-  extensions.updater.connect<&Acts::GainMatrixUpdater::operator()<Trajectory>>(
-      &kfUpdater);
+  extensions.updater
+      .connect<&Acts::GainMatrixUpdater::operator()<KFTrajectory>>(&kfUpdater);
   // Add the smoother
   extensions.smoother
-      .connect<&Acts::GainMatrixSmoother::operator()<Trajectory>>(&kfSmoother);
+      .connect<&Acts::GainMatrixSmoother::operator()<KFTrajectory>>(
+          &kfSmoother);
   // Add the surface accessor
   extensions.surfaceAccessor
       .connect<&SimpleSourceLink::SurfaceAccessor::operator()>(
@@ -641,16 +641,13 @@ int main() {
       kfPropagator, Acts::getDefaultLogger("DetectorKalmanFilter", logLevel));
 
   // Add the track fitting algorithm to the sequencer
-  TrackFittingAlgorithm<Propagator, Trajectory, KFTrackContainer>::Config
-      fitterCfg{.inputCollection = "TrackCandidates",
-                .outputCollection = "Tracks",
-                .fitter = fitter,
-                .kfOptions = options};
+  TrackFittingAlgorithm::Config fitterCfg{.inputCollection = "TrackCandidates",
+                                          .outputCollection = "Tracks",
+                                          .fitter = fitter,
+                                          .kfOptions = options};
 
   sequencer.addAlgorithm(
-      std::make_shared<
-          TrackFittingAlgorithm<Propagator, Trajectory, KFTrackContainer>>(
-          fitterCfg, logLevel));
+      std::make_shared<TrackFittingAlgorithm>(fitterCfg, logLevel));
 
   // --------------------------------------------------------------
   // Event write out

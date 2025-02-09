@@ -1,82 +1,56 @@
 #pragma once
 
-#include "TrackingPipeline/Infrastructure/IAlgorithm.hpp"
-#include "TrackingPipeline/Infrastructure/DataHandle.hpp"
-#include "TrackingPipeline/EventData/DataContainers.hpp"
-
-#include "Acts/TrackFitting/KalmanFitter.hpp"
 #include "Acts/EventData/VectorTrackContainer.hpp"
+#include "Acts/TrackFitting/KalmanFitter.hpp"
+#include <Acts/Navigation/DetectorNavigator.hpp>
+#include <Acts/Propagator/EigenStepper.hpp>
 
-template <typename propagator_t,
-typename trajectory_t = Acts::VectorMultiTrajectory,
-typename container_t = Acts::VectorTrackContainer>
+#include "TrackingPipeline/EventData/DataContainers.hpp"
+#include "TrackingPipeline/Infrastructure/DataHandle.hpp"
+#include "TrackingPipeline/Infrastructure/IAlgorithm.hpp"
+
 class TrackFittingAlgorithm : public IAlgorithm {
-    public:
-        /// @brief The nested configuration struct
-        struct Config {
-            /// The input collection
-            std::string inputCollection = "SourceLink";
-            /// The output collection
-            std::string outputCollection = "Track";
-            /// KF fitter
-            const Acts::KalmanFitter<propagator_t, trajectory_t>& fitter;
-            /// KF options
-            Acts::KalmanFitterOptions<trajectory_t> kfOptions;
-        };
+ public:
+  using ActionList = Acts::ActionList<>;
+  using AbortList = Acts::AbortList<Acts::EndOfWorldReached>;
 
-        /// @brief Constructor
-        TrackFittingAlgorithm(Config config, Acts::Logging::Level level)
-            : IAlgorithm("TrackFittingAlgorithm", level),
-            m_cfg(std::move(config)) {
-                m_inputSeeds.initialize(m_cfg.inputCollection);
-                m_outputTracks.initialize(m_cfg.outputCollection);
-        }
-        ~TrackFittingAlgorithm() = default;
+  using Propagator = Acts::Propagator<Acts::EigenStepper<>,
+                                      Acts::Experimental::DetectorNavigator>;
 
-        /// @brief The execute method        
-        ProcessCode execute(const AlgorithmContext& ctx) const override {
-            // Get the input seeds
-            // from the context
-            auto input = m_inputSeeds(ctx);
+  using TrackContainer = Acts::VectorTrackContainer;
+  using Trajectory = Acts::VectorMultiTrajectory;
 
-            auto trackContainer = std::make_shared<container_t>();
-            auto trackStateContainer = std::make_shared<trajectory_t>();
-            Acts::TrackContainer tracks(trackContainer, trackStateContainer);
+  /// @brief The nested configuration struct
+  struct Config {
+    /// The input collection
+    std::string inputCollection;
+    /// The output collection
+    std::string outputCollection;
+    /// KF fitter
+    const Acts::KalmanFitter<Propagator, Trajectory>& fitter;
+    /// KF options
+    Acts::KalmanFitterOptions<Trajectory> kfOptions;
+  };
 
-            std::vector<std::int32_t> trackIds;
+  /// @brief Constructor
+  TrackFittingAlgorithm(Config config, Acts::Logging::Level level)
+      : IAlgorithm("TrackFittingAlgorithm", level), m_cfg(std::move(config)) {
+    m_inputSeeds.initialize(m_cfg.inputCollection);
+    m_outputTracks.initialize(m_cfg.outputCollection);
+  }
+  ~TrackFittingAlgorithm() = default;
 
-            for (const auto& seed : input) {
-                auto start = seed.ipParameters;
-                auto sourceLinks = seed.sourceLinks;
+  /// @brief The execute method
+  ProcessCode execute(const AlgorithmContext& ctx) const override;
 
-                auto res = m_cfg.fitter.fit(sourceLinks.begin(), sourceLinks.end(), 
-                    start, m_cfg.kfOptions, tracks);
-                
-                if (!res.ok()) {
-                    ACTS_ERROR("Track fitting failed");
-                    continue;
-                }
+  /// Get readonly access to the config parameters
+  const Config& config() const { return m_cfg; }
 
-                trackIds.push_back(seed.trackId);
-            }
-            auto outTracks = Tracks<container_t, trajectory_t>{
-                tracks, trackIds};
+ private:
+  Config m_cfg;
 
-            m_outputTracks(ctx, std::move(outTracks));
+  ReadDataHandle<Seeds> m_inputSeeds{this, "InputSeeds"};
 
-            return ProcessCode::SUCCESS;
-        }
-
-        /// Get readonly access to the config parameters
-        const Config& config() const { return m_cfg; }
-
-    private:
-        Config m_cfg;
-
-        ReadDataHandle<Seeds> m_inputSeeds
-            {this, "InputSeeds"};
-
-        WriteDataHandle<Tracks<
-            container_t, trajectory_t>> m_outputTracks
-            {this, "OutputTracks"};
+  WriteDataHandle<Tracks<TrackContainer, Trajectory>> m_outputTracks{
+      this, "OutputTracks"};
 };

@@ -35,9 +35,9 @@ using Propagator = Acts::Propagator<Acts::EigenStepper<>,
 using PropagatorOptions =
     typename Propagator::template Options<ActionList, AbortList>;
 
-using Trajectory = Acts::VectorMultiTrajectory;
+using KFTrajectory = Acts::VectorMultiTrajectory;
 using KFTrackContainer = Acts::VectorTrackContainer;
-using KF = Acts::KalmanFitter<Propagator, Trajectory>;
+using KF = Acts::KalmanFitter<Propagator, KFTrajectory>;
 
 using CKFTrackContainer = Acts::TrackContainer<Acts::VectorTrackContainer,
                                                Acts::VectorMultiTrajectory,

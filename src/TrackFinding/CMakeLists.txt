@@ -7,4 +7,6 @@ target_sources(
     TrackLookupProvider.cpp
     TrackLookupAccumulator.cpp
     TrackLookupEstimationAlgorithm.cpp
-    TrackLookupValidationAlgorithm.cpp)
+    TrackLookupValidationAlgorithm.cpp
+    CKFTrackFindingAlgorithm.cpp
+)

@@ -111,6 +111,7 @@ add_subdirectory(src/MagneticField)
 add_subdirectory(src/Material)
 add_subdirectory(src/Simulation)
 add_subdirectory(src/TrackFinding)
+add_subdirectory(src/TrackFitting)
 
 # macro to add a run executables
 macro(add_run _name _source)
