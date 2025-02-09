@@ -2,10 +2,6 @@
 
 #include "Acts/MagneticField/MagneticFieldProvider.hpp"
 
-#include "G4MagneticField.hh"
-#include "G4RotationMatrix.hh"
-#include "G4ThreeVector.hh"
-
 class QuadrupoleMagField : public Acts::MagneticFieldProvider {
  public:
   /// @brief Cache for the magnetic field provider
@@ -20,7 +16,7 @@ class QuadrupoleMagField : public Acts::MagneticFieldProvider {
   /// @brief Constructor with magnetic field gradient
   ///
   /// @param gradient magnetic field gradient
-  QuadrupoleMagField(Acts::ActsScalar gradient);
+  QuadrupoleMagField(double gradient);
 
   /// @brief Constructor with magnetic field gradient
   /// quadrupole origin and orientation
@@ -28,7 +24,7 @@ class QuadrupoleMagField : public Acts::MagneticFieldProvider {
   /// @param gradient magnetic field gradient
   /// @param origin quadrupole origin
   /// @param rotation quadrupole orientation
-  QuadrupoleMagField(Acts::ActsScalar gradient, const Acts::Vector3& origin,
+  QuadrupoleMagField(double gradient, const Acts::Vector3& origin,
                      const Acts::RotationMatrix3& rotation);
 
   ~QuadrupoleMagField() override;
@@ -66,7 +62,7 @@ class QuadrupoleMagField : public Acts::MagneticFieldProvider {
       const Acts::MagneticFieldContext& mctx) const override;
 
  private:
-  Acts::ActsScalar m_gradient = 0.0;
+  double m_gradient = 0.0;
   Acts::Vector3 m_origin = Acts::Vector3(0.0, 0.0, 0.0);
   Acts::RotationMatrix3 m_rotation = Acts::RotationMatrix3::Identity();
 };

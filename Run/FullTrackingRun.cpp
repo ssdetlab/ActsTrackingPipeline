@@ -170,7 +170,7 @@ int main() {
       gOpt.actsToWorldRotation.inverse() * gOpt.quad3Translation,
       gOpt.actsToWorldRotation);
 
-  Acts::ActsScalar dipoleB = 0.31_T;
+  double dipoleB = 0.31_T;
   DipoleMagField dipoleField(
       gOpt.dipoleParams, dipoleB, gOpt.actsToWorldRotation,
       gOpt.actsToWorldRotation.inverse() * gOpt.dipoleTranslation);
@@ -270,12 +270,6 @@ int main() {
 
   auto cptDigitizer =
       std::make_shared<E320Sim::E320HistDigitizer>(cptDigitizerCfg);
-
-  Acts::ActsScalar y0 = gOpt.chipY.at(0) - gOpt.chipSizeY / 2;
-  Acts::ActsScalar y1 = gOpt.chipY.at(8) + gOpt.chipSizeY / 2;
-
-  Acts::ActsScalar x0 = gOpt.chipX - gOpt.chipSizeX / 2;
-  Acts::ActsScalar x1 = gOpt.chipX + gOpt.chipSizeX / 2;
 
   // Track parameters generator
   RootTrackParamsReader::Config cptReaderCfg;
@@ -470,13 +464,12 @@ int main() {
           &intersectionFinder);
 
   // Path width provider
-  std::map<std::int32_t, std::pair<Acts::ActsScalar, Acts::ActsScalar>>
-      pathWidths = {
-          {0, {100_um, 100_um}},
-          {1, {300_um, 300_um}},
-          {2, {305_um, 350_um}},
-          {3, {310_um, 400_um}},
-      };
+  std::map<std::int32_t, std::pair<double, double>> pathWidths = {
+      {0, {100_um, 100_um}},
+      {1, {300_um, 300_um}},
+      {2, {305_um, 350_um}},
+      {3, {310_um, 400_um}},
+  };
 
   LayerPathWidthProvider pathWidthProvider(pathWidths);
 
@@ -558,9 +551,8 @@ int main() {
   for (auto& vol : detector->volumes()) {
     for (auto& surf : vol->surfaces()) {
       if (vol->name() == "layer0") {
-        cuts.push_back(
-            {surf->geometryId(),
-             {{}, {std::numeric_limits<Acts::ActsScalar>::max()}, {1000u}}});
+        cuts.push_back({surf->geometryId(),
+                        {{}, {std::numeric_limits<double>::max()}, {1000u}}});
       } else {
         cuts.push_back({surf->geometryId(), {{}, {0.5}, {1u}}});
       }

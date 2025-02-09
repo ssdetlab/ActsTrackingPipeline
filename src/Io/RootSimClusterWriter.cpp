@@ -112,7 +112,7 @@ ProcessCode RootSimClusterWriter::write(const AlgorithmContext& ctx) {
       Acts::FreeVector onSurfParameters = Acts::transformBoundToFreeParameters(
           *surf, ctx.geoContext, hit.truthParameters);
 
-      Acts::ActsScalar onSurfE = std::abs(onSurfParameters[Acts::eFreeQOverP]);
+      double onSurfE = std::abs(onSurfParameters[Acts::eFreeQOverP]);
 
       Acts::Vector3 onSurfMomentum =
           onSurfE * Acts::Vector3(onSurfParameters[Acts::eFreeDir0],

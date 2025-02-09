@@ -15,7 +15,7 @@ class KDEMomentumGenerator : public IMomentumGenerator {
   struct Config {
     std::shared_ptr<ITrackParamsReader> trackParamsReader;
     std::size_t nIterations;
-    Acts::ActsScalar sensitivity;
+    double sensitivity;
     Acts::Transform3 transform;
   };
 
@@ -34,9 +34,9 @@ class KDEMomentumGenerator : public IMomentumGenerator {
 
   Acts::Vector3 genMomentum(RandomEngine& rng) const override {
     Acts::Vector3 phiThetaE = m_kde->sample(rng);
-    Acts::ActsScalar phi = phiThetaE.x();
-    Acts::ActsScalar theta = phiThetaE.y();
-    Acts::ActsScalar E = phiThetaE.z();
+    double phi = phiThetaE.x();
+    double theta = phiThetaE.y();
+    double E = phiThetaE.z();
 
     Acts::Vector3 dir{std::sin(theta) * std::cos(phi),
                       std::sin(theta) * std::sin(phi), std::cos(theta)};

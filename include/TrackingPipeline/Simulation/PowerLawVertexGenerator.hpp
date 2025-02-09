@@ -12,16 +12,16 @@ namespace E320Sim {
 
 /// @brief Class that samples vertex from a ROOT histogram
 struct E320PowerLawVertexGenerator : public IVertexGenerator {
-  Acts::ActsScalar yBoundLow;
-  Acts::ActsScalar yBoundHigh;
+  double yBoundLow;
+  double yBoundHigh;
 
-  Acts::ActsScalar xBoundLow;
-  Acts::ActsScalar xBoundHigh;
+  double xBoundLow;
+  double xBoundHigh;
 
-  Acts::ActsScalar yPower;
-  Acts::ActsScalar yShift;
-  std::vector<Acts::ActsScalar> zProbs;
-  std::vector<Acts::ActsScalar> zPositions;
+  double yPower;
+  double yShift;
+  std::vector<double> zProbs;
+  std::vector<double> zPositions;
 
   Acts::Vector3 genVertex(RandomEngine& rng) const override {
     if (zProbs.size() == 0) {
@@ -32,19 +32,18 @@ struct E320PowerLawVertexGenerator : public IVertexGenerator {
     std::uniform_real_distribution<> uniform(0, 1);
 
     // Generate unfiorm x
-    Acts::ActsScalar x = xBoundLow + (xBoundHigh - xBoundLow) * uniform(rng);
+    double x = xBoundLow + (xBoundHigh - xBoundLow) * uniform(rng);
 
     // Generate power-law y
-    Acts::ActsScalar gamma = uniform(rng);
+    double gamma = uniform(rng);
 
-    Acts::ActsScalar yTerm1 = gamma * std::pow(yBoundHigh - yShift, yPower + 1);
-    Acts::ActsScalar yTerm2 =
-        (1 - gamma) * std::pow(yBoundLow - yShift, yPower + 1);
+    double yTerm1 = gamma * std::pow(yBoundHigh - yShift, yPower + 1);
+    double yTerm2 = (1 - gamma) * std::pow(yBoundLow - yShift, yPower + 1);
 
-    Acts::ActsScalar y = yShift + std::pow(yTerm1 + yTerm2, 1. / (yPower + 1));
+    double y = yShift + std::pow(yTerm1 + yTerm2, 1. / (yPower + 1));
 
     // Generate uniform z
-    Acts::ActsScalar z = zPositions.at(discrete(rng));
+    double z = zPositions.at(discrete(rng));
 
     Acts::Vector3 glob(x, z, -y);
 

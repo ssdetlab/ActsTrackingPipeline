@@ -52,9 +52,9 @@ std::tuple<std::vector<Acts::SourceLink>, SimClusters> MeasurementsCreator::gen(
   Acts::Vector4 mPos4 = {spatial.x(), spatial.y(), spatial.z(), 0};
 
   Acts::Vector3 mom = m_cfg.momentumGenerator->genMomentum(rng);
-  Acts::ActsScalar p = mom.norm();
-  Acts::ActsScalar phi = Acts::VectorHelpers::phi(mom);
-  Acts::ActsScalar theta = Acts::VectorHelpers::theta(mom);
+  double p = mom.norm();
+  double phi = Acts::VectorHelpers::phi(mom);
+  double theta = Acts::VectorHelpers::theta(mom);
 
   TrackParameters trackParameters(mPos4, phi, theta, 1_e / p, ipCov,
                                   Acts::ParticleHypothesis::electron());

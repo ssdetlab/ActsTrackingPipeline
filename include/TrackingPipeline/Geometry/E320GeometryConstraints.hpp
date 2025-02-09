@@ -21,12 +21,12 @@ struct GeometryOptions {
   const float chipSizeX = 13.76256_mm;
 
   // Chip Id to the translation in the x direction
-  const std::map<std::int32_t, Acts::ActsScalar> chipY{
+  const std::map<std::int32_t, double> chipY{
       {0, 90.3_mm},  {1, 120.4_mm}, {2, 150.5_mm}, {3, 180.6_mm}, {4, 210.7_mm},
       {5, 240.8_mm}, {6, 270.9_mm}, {7, 301.0_mm}, {8, 331.1_mm}};
 
   // Stave Id to the translation in the z direction
-  const std::map<std::int32_t, Acts::ActsScalar> staveZ{
+  const std::map<std::int32_t, double> staveZ{
       {0, 16567.0_mm},
       {1, 16667.0_mm},
       {2, 16767.0_mm},
@@ -34,42 +34,42 @@ struct GeometryOptions {
   };
 
   // All the staves are at the same y position
-  Acts::ActsScalar chipX = -0.61872_mm;
+  double chipX = -0.61872_mm;
 
   // Positions of the volumes
   // encapsulating the layers
-  const std::vector<Acts::ActsScalar> layerZPositions{
-      staveZ.at(0), staveZ.at(1), staveZ.at(2), staveZ.at(3)};
+  const std::vector<double> layerZPositions{staveZ.at(0), staveZ.at(1),
+                                            staveZ.at(2), staveZ.at(3)};
 
   // Tracker volume encapsulating the
   // whole detector
   const Acts::Vector3 trackerTranslation{0_mm, 0_mm, 8550_mm};
 
-  const std::vector<Acts::ActsScalar> trackerBounds = {
+  const std::vector<double> trackerBounds = {
       chipSizeX / 2 + 1000_mm, chipY.at(8) + chipSizeY / 2 + 1000_mm, 8600_mm};
 
   // Dipole volume encapsulating the
   // magnetic field
   const Acts::Vector3 dipoleTranslation{0_mm, 0_mm, 13140_mm};
 
-  const std::vector<Acts::ActsScalar> dipoleBounds = {
+  const std::vector<double> dipoleBounds = {
       chipSizeX / 2 + 1000_mm, chipY.at(8) + chipSizeY / 2 + 1000_mm, 1000_mm};
 
   // Quadrupole volume encapsulating the
   // magnetic field
   const Acts::Vector3 quad1Translation{0_mm, 0_mm, 4182.49_mm};
 
-  const std::vector<Acts::ActsScalar> quad1Bounds = {
+  const std::vector<double> quad1Bounds = {
       chipSizeX / 2 + 1000_mm, chipY.at(8) + chipSizeY / 2 + 1000_mm, 1000_mm};
 
   const Acts::Vector3 quad2Translation{0_mm, 0_mm, 6406.62_mm};
 
-  const std::vector<Acts::ActsScalar> quad2Bounds = {
+  const std::vector<double> quad2Bounds = {
       chipSizeX / 2 + 1000_mm, chipY.at(8) + chipSizeY / 2 + 1000_mm, 1000_mm};
 
   const Acts::Vector3 quad3Translation{0_mm, 0_mm, 8631.05_mm};
 
-  const std::vector<Acts::ActsScalar> quad3Bounds = {
+  const std::vector<double> quad3Bounds = {
       chipSizeX / 2 + 1000_mm, chipY.at(8) + chipSizeY / 2 + 1000_mm, 1000_mm};
 
   // Dipole and quadrupole field parameters
@@ -84,7 +84,7 @@ struct GeometryOptions {
   // PDC window volume
   const Acts::Vector3 pdcWindowTranslation{0_mm, 0_mm, 16549.7_mm};
 
-  const std::vector<Acts::ActsScalar> pdcWindowBounds = {
+  const std::vector<double> pdcWindowBounds = {
       chipSizeX / 2 + 1000_mm, chipY.at(8) + chipSizeY / 2 + 1000_mm, 2_mm};
 
   // Arm volume encapsulating the layers
@@ -92,9 +92,9 @@ struct GeometryOptions {
                                      (staveZ.at(3) + staveZ.at(0)) / 2};
 
   /// Layer volumes encapsulating the staves
-  const Acts::ActsScalar deltaZ = (staveZ.at(1) - staveZ.at(0)) / 10 + 1_mm;
+  const double deltaZ = (staveZ.at(1) - staveZ.at(0)) / 10 + 1_mm;
 
-  const std::vector<Acts::ActsScalar> layerBounds = {
+  const std::vector<double> layerBounds = {
       chipSizeX / 2 + 1000_mm, chipY.at(8) + chipSizeY / 2 + 1000_mm, deltaZ};
 
   /// Global rotation of the world volume

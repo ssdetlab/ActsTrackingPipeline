@@ -36,9 +36,9 @@ class E320BkgHistVertexGenerator : public IVertexGenerator {
 
   Acts::Vector3 genVertex(RandomEngine& /*rng*/) const override {
     // Generate x y
-    Acts::ActsScalar x;
-    Acts::ActsScalar y;
-    Acts::ActsScalar z;
+    double x;
+    double y;
+    double z;
 
     m_genXYZ->GetRandom3(x, y, z, m_rng);
 

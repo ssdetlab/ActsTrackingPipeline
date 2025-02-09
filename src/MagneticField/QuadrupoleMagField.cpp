@@ -1,9 +1,9 @@
 #include "TrackingPipeline/MagneticField/QuadrupoleMagField.hpp"
 
-QuadrupoleMagField::QuadrupoleMagField(Acts::ActsScalar gradient)
+QuadrupoleMagField::QuadrupoleMagField(double gradient)
     : m_gradient(gradient) {};
 
-QuadrupoleMagField::QuadrupoleMagField(Acts::ActsScalar gradient,
+QuadrupoleMagField::QuadrupoleMagField(double gradient,
                                        const Acts::Vector3& origin,
                                        const Acts::RotationMatrix3& rotation)
     : m_gradient(gradient), m_origin(origin), m_rotation(rotation) {};
