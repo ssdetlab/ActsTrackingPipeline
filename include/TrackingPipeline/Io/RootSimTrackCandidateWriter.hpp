@@ -1,83 +1,83 @@
 #pragma once
 
-#include "TrackingPipeline/Infrastructure/IWriter.hpp"
-#include "TrackingPipeline/Infrastructure/ProcessCode.hpp"
-#include "TrackingPipeline/Infrastructure/AlgorithmContext.hpp"
-#include "TrackingPipeline/Infrastructure/DataHandle.hpp"
-#include "TrackingPipeline/EventData/DataContainers.hpp"
+#include <TLorentzVector.h>
 
 #include "TFile.h"
 #include "TTree.h"
-#include <TLorentzVector.h>
+#include "TrackingPipeline/EventData/DataContainers.hpp"
+#include "TrackingPipeline/Infrastructure/AlgorithmContext.hpp"
+#include "TrackingPipeline/Infrastructure/DataHandle.hpp"
+#include "TrackingPipeline/Infrastructure/IWriter.hpp"
+#include "TrackingPipeline/Infrastructure/ProcessCode.hpp"
 
 using TrackID = std::tuple<std::int32_t, std::int32_t, std::int32_t>;
 
 class RootSimTrackCandidateWriter : public IWriter {
-    public:
-        /// @brief The nested configuration struct
-        struct Config {
-            /// Fitted track collection
-            std::string inputTrackCandidates;
-            /// Truth cluster data
-            std::string inputTruthClusters;
-            /// Name of the input tree
-            std::string treeName;
-            /// The names of the input files
-            std::string filePath;
-            /// Target size of the true track
-            std::size_t targetTrueTrackSize;
-        };
+ public:
+  /// @brief The nested configuration struct
+  struct Config {
+    /// Fitted track collection
+    std::string inputTrackCandidates;
+    /// Truth cluster data
+    std::string inputTruthClusters;
+    /// Name of the input tree
+    std::string treeName;
+    /// The names of the input files
+    std::string filePath;
+    /// Target size of the true track
+    std::size_t targetTrueTrackSize;
+  };
 
-        RootSimTrackCandidateWriter(const RootSimTrackCandidateWriter &) = delete;
-        RootSimTrackCandidateWriter(const RootSimTrackCandidateWriter &&) = delete;
-    
-        /// @brief Constructor
-        ///
-        /// @param config The Configuration struct
-        RootSimTrackCandidateWriter(const Config &config, Acts::Logging::Level level);
+  RootSimTrackCandidateWriter(const RootSimTrackCandidateWriter &) = delete;
+  RootSimTrackCandidateWriter(const RootSimTrackCandidateWriter &&) = delete;
 
-        /// @brief Finalize method
-        ProcessCode finalize() override; 
-    
-        /// Writer name() method
-        std::string name() const override { return "RootSimTrackCandidateWriter"; }
-    
-        /// Write out data to the input stream
-        ProcessCode write(const AlgorithmContext &ctx) override; 
+  /// @brief Constructor
+  ///
+  /// @param config The Configuration struct
+  RootSimTrackCandidateWriter(const Config &config, Acts::Logging::Level level);
 
-        /// Readonly access to the config
-        const Config &config() const { return m_cfg; }
+  /// @brief Finalize method
+  ProcessCode finalize() override;
 
-    private:
-        /// Private access to the logging instance
-        const Acts::Logger &logger() const { return *m_logger; }
+  /// Writer name() method
+  std::string name() const override { return "RootSimTrackCandidateWriter"; }
 
-        /// The config class
-        Config m_cfg;
+  /// Write out data to the input stream
+  ProcessCode write(const AlgorithmContext &ctx) override;
 
-        ReadDataHandle<Seeds> m_trackCandidates{this, "InputTrackCandidates"};  
+  /// Readonly access to the config
+  const Config &config() const { return m_cfg; }
 
-        ReadDataHandle<SimClusters> m_truthClusters{this, "TruthClusters"};
+ private:
+  /// Private access to the logging instance
+  const Acts::Logger &logger() const { return *m_logger; }
 
-        std::unique_ptr<const Acts::Logger> m_logger;
+  /// The config class
+  Config m_cfg;
 
-        /// The output file
-        TFile *m_file = nullptr;
+  ReadDataHandle<Seeds> m_trackCandidates{this, "InputTrackCandidates"};
 
-        /// The output tree
-        TTree *m_tree = nullptr;
+  ReadDataHandle<SimClusters> m_truthClusters{this, "TruthClusters"};
 
-    protected:
-        int m_size;
+  std::unique_ptr<const Acts::Logger> m_logger;
 
-        /// Fraction of signal hits corresponding
-        /// to a true track present in the 
-        /// track candidate
-        double m_matchingDegree;
+  /// The output file
+  TFile *m_file = nullptr;
 
-        /// True momentum at the IP
-        TLorentzVector m_ipMomentumTruth;
+  /// The output tree
+  TTree *m_tree = nullptr;
 
-        /// Mutex to protect the tree filling
-        std::mutex m_mutex;
+ protected:
+  int m_size;
+
+  /// Fraction of signal hits corresponding
+  /// to a true track present in the
+  /// track candidate
+  double m_matchingDegree;
+
+  /// True momentum at the IP
+  TLorentzVector m_ipMomentumTruth;
+
+  /// Mutex to protect the tree filling
+  std::mutex m_mutex;
 };

@@ -1,10 +1,10 @@
 #pragma once
 
-#include "TrackingPipeline/Geometry/LUXEGeometryConstraints.hpp"
-
 #include "Acts/Detector/Blueprint.hpp"
 #include "Acts/Detector/Detector.hpp"
 #include "Acts/Geometry/GeometryContext.hpp"
+
+#include "TrackingPipeline/Geometry/LUXEGeometryConstraints.hpp"
 
 namespace LUXEGeometry {
 
@@ -16,10 +16,8 @@ namespace LUXEGeometry {
 /// @param gOpt the geometry constraints
 ///
 /// @return the Blueprint for the LUXE detector
-std::unique_ptr<Acts::Experimental::Blueprint::Node> 
-makeBlueprintLUXE(
-    const std::string& gdmlPath,
-    const std::vector<std::string>& names,
+std::unique_ptr<Acts::Experimental::Blueprint::Node> makeBlueprintLUXE(
+    const std::string& gdmlPath, const std::vector<std::string>& names,
     const LUXEGeometry::GeometryOptions& gOpt);
 
 /// @brief Build the LUXE detector
@@ -30,13 +28,11 @@ makeBlueprintLUXE(
 /// @param gOpt the geometry constraints
 ///
 /// @return shared pointer to the detector object
-std::shared_ptr<const Acts::Experimental::Detector>
-    buildLUXEDetector(
-        const std::unique_ptr<Acts::Experimental::Blueprint::Node> 
-            detectorBpr,
-        const Acts::GeometryContext& gctx,
-        const LUXEGeometry::GeometryOptions& gOpt,
-        const std::vector<Acts::GeometryIdentifier>& materialVetos);
+std::shared_ptr<const Acts::Experimental::Detector> buildLUXEDetector(
+    const std::unique_ptr<Acts::Experimental::Blueprint::Node> detectorBpr,
+    const Acts::GeometryContext& gctx,
+    const LUXEGeometry::GeometryOptions& gOpt,
+    const std::vector<Acts::GeometryIdentifier>& materialVetos);
 
 /// @brief Build the LUXE detector
 ///
@@ -46,14 +42,11 @@ std::shared_ptr<const Acts::Experimental::Detector>
 /// @param gOpt the geometry constraints
 ///
 /// @return shared pointer to the detector object
-std::shared_ptr<const Acts::Experimental::Detector>
-    buildLUXEDetector(
-        const std::unique_ptr<Acts::Experimental::Blueprint::Node> 
-            detectorBpr,
-        const Acts::GeometryContext& gctx,
-        const LUXEGeometry::GeometryOptions& gOpt, 
-        const std::string jsonMaterialPath,
-        const std::vector<Acts::GeometryIdentifier>& materialVetos);
+std::shared_ptr<const Acts::Experimental::Detector> buildLUXEDetector(
+    const std::unique_ptr<Acts::Experimental::Blueprint::Node> detectorBpr,
+    const Acts::GeometryContext& gctx,
+    const LUXEGeometry::GeometryOptions& gOpt,
+    const std::string jsonMaterialPath,
+    const std::vector<Acts::GeometryIdentifier>& materialVetos);
 
-
-} // namespace LUXEGeometry
+}  // namespace LUXEGeometry
