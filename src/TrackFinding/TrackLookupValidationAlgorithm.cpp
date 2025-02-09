@@ -54,8 +54,8 @@ ProcessCode TrackLookupValidationAlgorithm::execute(
       Acts::Vector4 refFourPosition{refGlobalPos.x(), refGlobalPos.y(),
                                     refGlobalPos.z(), 0};
 
-      Acts::ActsScalar refPhi = hit.truthParameters[Acts::eBoundPhi];
-      Acts::ActsScalar refTheta = hit.truthParameters[Acts::eBoundTheta];
+      double refPhi = hit.truthParameters[Acts::eBoundPhi];
+      double refTheta = hit.truthParameters[Acts::eBoundTheta];
 
       Acts::Vector3 refDirection{std::sin(refTheta) * std::cos(refPhi),
                                  std::sin(refTheta) * std::sin(refPhi),

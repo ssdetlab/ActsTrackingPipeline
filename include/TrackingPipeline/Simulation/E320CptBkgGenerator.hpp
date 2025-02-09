@@ -20,10 +20,10 @@ class E320CptBkgGenerator : public IVertexGenerator, public IMomentumGenerator {
   struct Config {
     std::shared_ptr<ITrackParamsReader> trackParamsReader;
     std::size_t nIterations;
-    Acts::ActsScalar sensitivity;
-    Acts::ActsScalar yPower;
-    Acts::ActsScalar yShift;
-    std::vector<Acts::ActsScalar> zProbs;
+    double sensitivity;
+    double yPower;
+    double yShift;
+    std::vector<double> zProbs;
   };
 
   struct State {
@@ -44,7 +44,7 @@ class E320CptBkgGenerator : public IVertexGenerator, public IMomentumGenerator {
     std::vector<Acts::Vector4> sample;
     sample.reserve(trackParams.size());
     for (const auto& param : trackParams) {
-      Acts::ActsScalar zSub = 0;
+      double zSub = 0;
       if (std::abs(param.fourPosition().z() - m_gOpt.staveZ.at(0)) < 10) {
         zSub = 0;
       } else if (std::abs(param.fourPosition().z() - m_gOpt.staveZ.at(1)) <
@@ -108,15 +108,15 @@ class E320CptBkgGenerator : public IVertexGenerator, public IMomentumGenerator {
 
     int zIdx = static_cast<int>(std::round(zPhiThetaE(0)));
 
-    Acts::ActsScalar phi = zPhiThetaE(1);
-    Acts::ActsScalar theta = zPhiThetaE(2);
-    Acts::ActsScalar E = zPhiThetaE(3);
+    double phi = zPhiThetaE(1);
+    double theta = zPhiThetaE(2);
+    double E = zPhiThetaE(3);
 
     Acts::Vector3 dir{std::sin(theta) * std::cos(phi),
                       std::sin(theta) * std::sin(phi), std::cos(theta)};
     dir = m_gOpt.actsToWorld.rotation().inverse() * dir;
 
-    Acts::ActsScalar z = m_gOpt.staveZ.at(zIdx);
+    double z = m_gOpt.staveZ.at(zIdx);
 
     Acts::Vector3 pos = Acts::Vector3{vertex(0), z, vertex(2)};
 

@@ -8,7 +8,7 @@
 #include "TrackingPipeline/EventData/DataContainers.hpp"
 #include "TrackingPipeline/EventData/SimpleSourceLink.hpp"
 #include "TrackingPipeline/Geometry/E320GeometryConstraints.hpp"
-#include "TrackingPipeline/Io/RootDataReader.hpp"
+#include "TrackingPipeline/Io/RootSimDataReader.hpp"
 
 using namespace Acts::UnitLiterals;
 
@@ -52,8 +52,8 @@ class E320RootSimDataReader : public RootSimDataReader {
 
   Acts::RotationMatrix3 m_actsToWorld;
 
-  Acts::ActsScalar m_pixSizeX = 27_um;
-  Acts::ActsScalar m_pixSizeY = 29_um;
+  double m_pixSizeX = 27_um;
+  double m_pixSizeY = 29_um;
 
   // Prepare the measurements
   // for the Sequencer pipeline
@@ -164,8 +164,8 @@ class E320RootSimDataReader : public RootSimDataReader {
     const Acts::Vector2 hitLoc = convertToLoc(hitGlob, geoId, m_cfg.gOpt);
 
     // Estimate error from the cluster size
-    Acts::ActsScalar errX = m_pixSizeX / std::sqrt(12 * size);
-    Acts::ActsScalar errY = m_pixSizeY / std::sqrt(12 * size);
+    double errX = m_pixSizeX / std::sqrt(12 * size);
+    double errY = m_pixSizeY / std::sqrt(12 * size);
     Acts::Vector2 stdDev(errX, errY);
     Acts::SquareMatrix2 cov = stdDev.cwiseProduct(stdDev).asDiagonal();
 
@@ -184,7 +184,7 @@ class E320RootSimDataReader : public RootSimDataReader {
     }
 
     sourceLinks->push_back(Acts::SourceLink(ssl));
-    Acts::ActsScalar me = 0.511 * Acts::UnitConstants::MeV;
+    double me = 0.511 * Acts::UnitConstants::MeV;
     for (int idx = 0; idx < trueHits->size(); idx++) {
       auto hitMom = mom->at(idx);
 

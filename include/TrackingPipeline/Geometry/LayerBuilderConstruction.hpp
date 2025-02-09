@@ -21,8 +21,7 @@ template <std::size_t kDim = 1u>
 std::shared_ptr<Acts::Experimental::LayerStructureBuilder> makeLayerBuilder(
     const G4VPhysicalVolume* world, const G4Transform3D& transform,
     const std::vector<std::string>& names,
-    const std::array<std::tuple<Acts::ActsScalar, Acts::ActsScalar>, kDim>&
-        ranges,
+    const std::array<std::tuple<double, double>, kDim>& ranges,
     const std::array<Acts::BinningValue, kDim>& binningValues,
     bool convertMaterial = false) {
   auto spCfg =

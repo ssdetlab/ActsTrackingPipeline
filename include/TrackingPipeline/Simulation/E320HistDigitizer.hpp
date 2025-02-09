@@ -40,8 +40,8 @@ class E320HistDigitizer : public IDigitizer {
       Acts::Vector2 pos) const override {
     int size = m_genSize->GetRandom(m_rng);
 
-    Acts::ActsScalar errX = m_pixSizeX / std::sqrt(12 * size);
-    Acts::ActsScalar errY = m_pixSizeY / std::sqrt(12 * size);
+    double errX = m_pixSizeX / std::sqrt(12 * size);
+    double errY = m_pixSizeY / std::sqrt(12 * size);
     Acts::Vector2 stdDev(errX, errY);
     Acts::SquareMatrix2 cov = stdDev.cwiseProduct(stdDev).asDiagonal();
 
@@ -51,8 +51,8 @@ class E320HistDigitizer : public IDigitizer {
  private:
   Config m_cfg;
 
-  Acts::ActsScalar m_pixSizeX = 27_um;
-  Acts::ActsScalar m_pixSizeY = 29_um;
+  double m_pixSizeX = 27_um;
+  double m_pixSizeY = 29_um;
 
   TH1D* m_genSize = nullptr;
 

@@ -155,7 +155,7 @@ int main() {
       gOpt.actsToWorldRotation.inverse() * gOpt.quad3Translation,
       gOpt.actsToWorldRotation);
 
-  Acts::ActsScalar dipoleB = 0.31_T;
+  double dipoleB = 0.31_T;
   DipoleMagField dipoleField(
       gOpt.dipoleParams, dipoleB, gOpt.actsToWorldRotation,
       gOpt.actsToWorldRotation.inverse() * gOpt.dipoleTranslation);
@@ -217,12 +217,6 @@ int main() {
 
   auto cptDigitizer =
       std::make_shared<E320Sim::E320HistDigitizer>(cptDigitizerCfg);
-
-  Acts::ActsScalar y0 = gOpt.chipY.at(0) - gOpt.chipSizeY / 2;
-  Acts::ActsScalar y1 = gOpt.chipY.at(8) + gOpt.chipSizeY / 2;
-
-  Acts::ActsScalar x0 = gOpt.chipX - gOpt.chipSizeX / 2;
-  Acts::ActsScalar x1 = gOpt.chipX + gOpt.chipSizeX / 2;
 
   // Track parameters generator
   RootTrackParamsReader::Config cptReaderCfg;

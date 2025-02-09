@@ -44,8 +44,8 @@ class HourglassFilter : public IClusterFilter {
     auto globalPos = surfaceAccessor(Acts::SourceLink(cluster.sourceLink))
                          ->localToGlobal(gctx, cluster.sourceLink.parameters(),
                                          Acts::Vector3(0, 1, 0));
-    Acts::ActsScalar x = globalPos.x();
-    Acts::ActsScalar y = -globalPos.z();
+    double x = globalPos.x();
+    double y = -globalPos.z();
 
     // Cluster has to be under the "cap"
     bool cond0 = (x < 0) ? (y < a1 * x + b0) : (y < a2 * x + b0);

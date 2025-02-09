@@ -1,6 +1,5 @@
 #pragma once
 
-#include "Acts/Geometry/Extent.hpp"
 #include "Acts/MagneticField/MagneticFieldProvider.hpp"
 
 class DipoleMagField : public Acts::MagneticFieldProvider {
@@ -20,7 +19,7 @@ class DipoleMagField : public Acts::MagneticFieldProvider {
   /// @param BFieldExtent magnetic field extent
   explicit DipoleMagField(
       const std::tuple<Acts::Vector2, Acts::Vector4, Acts::Vector4> params,
-      const Acts::ActsScalar fieldStrength,
+      const double fieldStrength,
       const Acts::RotationMatrix3& rotation = Acts::RotationMatrix3::Identity(),
       const Acts::Vector3& origin = Acts::Vector3::Zero())
       : m_xParams(std::get<0>(params)),
@@ -30,8 +29,7 @@ class DipoleMagField : public Acts::MagneticFieldProvider {
         m_rotation(rotation),
         m_origin(origin) {}
 
-  const Acts::ActsScalar decayFunction(const Acts::ActsScalar x,
-                                       const Acts::Vector4 params) const {
+  const double decayFunction(const double x, const Acts::Vector4 params) const {
     return 1 / ((1 + exp((params[0] - x) / params[2])) *
                 (1 + exp((x - params[1]) / params[3])));
   }
@@ -51,11 +49,11 @@ class DipoleMagField : public Acts::MagneticFieldProvider {
 
     local = m_rotation * local;
 
-    Acts::ActsScalar a1 = (local.x() > m_xParams[0] && local.x() < m_xParams[1])
-                              ? Acts::ActsScalar(1.0)
-                              : Acts::ActsScalar(0.0);
-    Acts::ActsScalar a2 = decayFunction(local.y(), m_yParams);
-    Acts::ActsScalar a3 = decayFunction(local.z(), m_zParams);
+    double a1 = (local.x() > m_xParams[0] && local.x() < m_xParams[1])
+                    ? double(1.0)
+                    : double(0.0);
+    double a2 = decayFunction(local.y(), m_yParams);
+    double a3 = decayFunction(local.z(), m_zParams);
 
     localB[0] = m_fieldStrength * a1 * a2 * a3;
 
@@ -91,7 +89,7 @@ class DipoleMagField : public Acts::MagneticFieldProvider {
   Acts::Vector2 m_xParams;
   Acts::Vector4 m_yParams;
   Acts::Vector4 m_zParams;
-  Acts::ActsScalar m_fieldStrength;
+  double m_fieldStrength;
   Acts::RotationMatrix3 m_rotation;
   Acts::Vector3 m_origin;
 };

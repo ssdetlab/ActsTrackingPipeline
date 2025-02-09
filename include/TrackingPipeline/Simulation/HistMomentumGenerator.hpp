@@ -35,9 +35,9 @@ class HistMomentumGenerator : public IMomentumGenerator {
   ~HistMomentumGenerator() { m_file->Close(); }
 
   Acts::Vector3 genMomentum(RandomEngine& /*rng*/) const override {
-    Acts::ActsScalar phi;
-    Acts::ActsScalar theta;
-    Acts::ActsScalar E;
+    double phi;
+    double theta;
+    double E;
 
     m_genPhiThetaE->GetRandom3(phi, theta, E, m_rng);
 

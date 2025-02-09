@@ -5,7 +5,6 @@
 #include "Acts/Utilities/BinUtility.hpp"
 
 #include <map>
-#include <numeric>
 
 #include "G4ThreeVector.hh"
 #include "G4Transform3D.hh"
@@ -23,30 +22,30 @@ struct GeometryOptions {
 
   // Chip Id to the translation in the x direction
   // for the inner stave
-  const std::map<std::int32_t, Acts::ActsScalar> chipXEven{
+  const std::map<std::int32_t, double> chipXEven{
       {0, 67.73_mm},  {1, 97.83_mm},  {2, 127.93_mm},
       {3, 158.03_mm}, {4, 188.13_mm}, {5, 218.23_mm},
       {6, 248.33_mm}, {7, 278.43_mm}, {8, 308.53_mm}};
 
   // Chip Id to the translation in the x direction
   // for the outer stave
-  const std::map<std::int32_t, Acts::ActsScalar> chipXOdd{
+  const std::map<std::int32_t, double> chipXOdd{
       {0, 298.53_mm}, {1, 328.63_mm}, {2, 358.73_mm},
       {3, 388.83_mm}, {4, 418.93_mm}, {5, 449.03_mm},
       {6, 479.13_mm}, {7, 509.23_mm}, {8, 539.33_mm}};
 
   // Stave Id to the translation in the z direction
-  const std::map<std::int32_t, Acts::ActsScalar> staveZ{
+  const std::map<std::int32_t, double> staveZ{
       {0, 3962.0125_mm}, {1, 3950.0125_mm}, {2, 4062.0125_mm},
       {3, 4050.0125_mm}, {4, 4162.0125_mm}, {5, 4150.0125_mm},
       {6, 4262.0125_mm}, {7, 4250.0125_mm}};
 
   // All the staves are at the same y position
-  Acts::ActsScalar chipY = 0.61872_mm;
+  double chipY = 0.61872_mm;
 
   // Positions of the volumes
   // encapsulating the layers
-  const std::vector<Acts::ActsScalar> layerZPositions{
+  const std::vector<double> layerZPositions{
       (staveZ.at(0) + staveZ.at(1)) / 2, (staveZ.at(2) + staveZ.at(3)) / 2,
       (staveZ.at(4) + staveZ.at(5)) / 2, (staveZ.at(6) + staveZ.at(7)) / 2};
 
@@ -54,26 +53,26 @@ struct GeometryOptions {
   // whole detector
   const Acts::Vector3 trackerTranslation{0_mm, 0_mm, 2150_mm};
 
-  const std::vector<Acts::ActsScalar> trackerBounds = {
+  const std::vector<double> trackerBounds = {
       chipXOdd.at(8) + chipSizeX / 2 + 100_mm, chipSizeY / 2 + 100_mm, 2200_mm};
 
   // Dipole volume encapsulating the
   // magnetic field
   const Acts::Vector3 dipoleTranslation{0_mm, 0_mm, 2050_mm};
 
-  const std::vector<Acts::ActsScalar> dipoleBounds = {
+  const std::vector<double> dipoleBounds = {
       chipXOdd.at(8) + chipSizeX / 2 + 100_mm, chipSizeY / 2 + 100_mm, 600_mm};
 
-  const std::vector<Acts::ActsScalar> constantFieldDelta = {0_mm, 0_mm, 120_mm};
+  const std::vector<double> constantFieldDelta = {0_mm, 0_mm, 120_mm};
 
   // Arm volume encapsulating the layers
   const Acts::Vector3 armTranslation{0_mm, 0_mm,
                                      (staveZ.at(7) + staveZ.at(0)) / 2};
 
   /// Layer volumes encapsulating the staves
-  const Acts::ActsScalar deltaZ = (staveZ.at(0) - staveZ.at(1)) / 2 + 1_mm;
+  const double deltaZ = (staveZ.at(0) - staveZ.at(1)) / 2 + 1_mm;
 
-  const std::vector<Acts::ActsScalar> layerBounds = {
+  const std::vector<double> layerBounds = {
       chipXOdd.at(8) + chipSizeX / 2 + 100_mm, chipSizeY / 2 + 100_mm, deltaZ};
 
   /// Global rotation of the world volume

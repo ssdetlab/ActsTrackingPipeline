@@ -1,23 +1,20 @@
 #pragma once
 
-#include "Acts/Definitions/Algebra.hpp"
-
 #include <cmath>
 #include <cstddef>
 #include <vector>
 
 #include "Eigen/Eigen"
-
 #include "TrackingPipeline/Infrastructure/RandomNumbers.hpp"
 
 /// @brief Multivariate normal random variable generator
 template <std::size_t Dim>
 class NormalKDE {
  public:
-  using Vector = Eigen::Vector<Acts::ActsScalar, Dim>;
+  using Vector = Eigen::Vector<double, Dim>;
 
   NormalKDE(std::vector<Vector> sample, std::size_t nIterations,
-            Acts::ActsScalar sensitivity)
+            double sensitivity)
       : m_sample(sample) {
     Vector mu = Vector::Zero();
     Vector mu2 = Vector::Zero();
@@ -38,8 +35,8 @@ class NormalKDE {
                   return pointA(i) < pointB(i);
                 });
 
-      Acts::ActsScalar q1 = sample.at(sample.size() / 4)(i);
-      Acts::ActsScalar q3 = sample.at(3 * sample.size() / 4)(i);
+      double q1 = sample.at(sample.size() / 4)(i);
+      double q3 = sample.at(3 * sample.size() / 4)(i);
       iqr(i) = q3 - q1;
     }
 
@@ -98,8 +95,8 @@ class NormalKDE {
                       [&](auto x) { return normal(rng); }));
   }
 
-  // Acts::ActsScalar eval(Acts::ActsScalar x) {
-  // Acts::ActsScalar res = 0;
+  // double eval(double x) {
+  // double res = 0;
   // for (const auto& point : m_sample) {
   // res += normalKernel((x - point)/m_bandwidth);
   // }
@@ -108,7 +105,7 @@ class NormalKDE {
   // return res;
   // }
 
-  // Acts::ActsScalar bandwidth() {
+  // double bandwidth() {
   // return m_bandwidth;
   // }
 
@@ -146,11 +143,11 @@ class NormalKDE {
 
   Vector sheatherJonesBW(const std::vector<Vector>& sample,
                          Vector pilotBandwidth) {
-    const Acts::ActsScalar RK = 1.0 / (2.0 * std::sqrt(M_PI));
-    const Acts::ActsScalar mu2K = 1.0;
+    const double RK = 1.0 / (2.0 * std::sqrt(M_PI));
+    const double mu2K = 1.0;
 
     auto rSecondDerivative = RSecondDerivative(sample, pilotBandwidth);
-    Acts::ActsScalar n = sample.size();
+    double n = sample.size();
 
     rSecondDerivative =
         RK * rSecondDerivative.cwiseInverse() / (n * mu2K * mu2K);

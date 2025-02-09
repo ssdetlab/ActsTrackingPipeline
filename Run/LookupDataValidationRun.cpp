@@ -105,7 +105,7 @@ int main() {
       gOpt.actsToWorldRotation.inverse() * gOpt.quad3Translation,
       gOpt.actsToWorldRotation);
 
-  Acts::ActsScalar dipoleB = 0.31_T;
+  double dipoleB = 0.31_T;
   DipoleMagField dipoleField(
       gOpt.dipoleParams, dipoleB, gOpt.actsToWorldRotation,
       gOpt.actsToWorldRotation.inverse() * gOpt.dipoleTranslation);
