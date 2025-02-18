@@ -5,7 +5,11 @@
 #include "Acts/EventData/TrackContainer.hpp"
 #include "Acts/EventData/TrackParameters.hpp"
 #include "Acts/EventData/TrackProxy.hpp"
+#include "Acts/EventData/VectorMultiTrajectory.hpp"
+#include "Acts/EventData/VectorTrackContainer.hpp"
+#include <Acts/Utilities/Holders.hpp>
 
+#include <memory>
 #include <vector>
 
 #include "TrackingPipeline/EventData/SimpleSourceLink.hpp"
@@ -62,59 +66,7 @@ struct Seed {
 /// @brief Collection of Seeds
 using Seeds = std::vector<Seed>;
 
-/// @brief Track candidate to be passed to the KF
-struct TrackCandidate {
-  /// Source links related
-  /// to the seed measurements
-  std::vector<Acts::SourceLink> sourceLinks;
-  /// IP parameters
-  Acts::CurvilinearTrackParameters ipParameters;
-  /// Track Id
-  std::int32_t trackId;
-  /// Predicted chi2 at the tracking layers
-  std::vector<double> predictedChi2;
-  /// Filtered chi2 at the tracking layers
-  std::vector<double> filteredChi2;
-};
-
-/// @brief Collection of TrackCandidates
-using TrackCandidates = std::vector<TrackCandidate>;
-
-/// @brief A track with observables and uncertainties
-template <typename container_t, typename trajectory_t>
-struct Tracks {
-  using TrackContainer =
-      Acts::TrackContainer<container_t, trajectory_t, std::shared_ptr>;
-
-  using IdContainer = std::vector<std::int32_t>;
-
-  using ConstTrackProxy =
-      Acts::TrackProxy<container_t, trajectory_t, std::shared_ptr, true>;
-
-  TrackContainer tracks;
-  IdContainer trackIds;
-
-  std::pair<std::int32_t, ConstTrackProxy> getByIndex(std::int32_t i) {
-    return {trackIds.at(i), tracks.getTrack(i)};
-  }
-
-  std::pair<std::int32_t, ConstTrackProxy> getByTrackId(std::int32_t i) {
-    auto it = std::find(trackIds.begin(), trackIds.end(), i);
-    if (it != trackIds.end()) {
-      return {i, tracks.getTrack(std::distance(trackIds.begin(), it))};
-    } else {
-      return {i, nullptr};
-    }
-  }
-
-  std::pair<std::int32_t, ConstTrackProxy> begin() {
-    return {trackIds.at(0), tracks.getTrack(0)};
-  }
-
-  std::pair<std::int32_t, ConstTrackProxy> end() {
-    return {trackIds.at(trackIds.size() - 1),
-            tracks.getTrack(trackIds.size() - 1)};
-  }
-
-  std::size_t size() { return trackIds.size(); }
-};
+/// @brief Collection of Tracks
+using Tracks =
+    Acts::TrackContainer<Acts::VectorTrackContainer,
+                         Acts::VectorMultiTrajectory, std::shared_ptr>;
