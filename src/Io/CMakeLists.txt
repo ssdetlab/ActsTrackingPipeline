@@ -2,14 +2,14 @@ target_sources(
     TrackingPipelineCore
     PRIVATE
     RootSimClusterWriter.cpp
-    RootSimTrackCandidateWriter.cpp
     RootSimSeedWriter.cpp
-    RootFittedSimTrackWriter.cpp
-    RootTrackLookupValidationWriter.cpp
+    RootSimTrackCandidateWriter.cpp
+    RootSimTrackWriter.cpp
     RootMaterialTrackReader.cpp  
+    RootMaterialTrackWriter.cpp
+    RootTrackLookupValidationWriter.cpp
     RootTrackParamsReader.cpp
     RootSimDataReader.cpp
-    RootMaterialTrackWriter.cpp
     JsonTrackLookupReader.cpp
     JsonTrackLookupWriter.cpp
     E320RootSimDataReader.cpp

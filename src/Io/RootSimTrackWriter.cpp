@@ -1,11 +1,11 @@
-#include "TrackingPipeline/Io/RootFittedSimTrackWriter.hpp"
+#include "TrackingPipeline/Io/RootSimTrackWriter.hpp"
 
 #include <algorithm>
 #include <ranges>
 
 #include "TrackingPipeline/EventData/SimpleSourceLink.hpp"
 
-RootFittedSimTrackWriter::RootFittedSimTrackWriter(const Config& config,
+RootSimTrackWriter::RootSimTrackWriter(const Config& config,
                                                    Acts::Logging::Level level)
     : m_cfg(config), m_logger(Acts::getDefaultLogger(name(), level)) {
   if (m_cfg.filePath.empty()) {
@@ -77,7 +77,9 @@ RootFittedSimTrackWriter::RootFittedSimTrackWriter(const Config& config,
   m_tree->Branch("vertexTruth", &m_vertexTruth);
 
   // Chi2 and ndf of the fitted track
-  m_tree->Branch("chi2", &m_chi2, "chi2/D");
+  m_tree->Branch("chi2Predicted", &m_chi2Predicted, "chi2Predicted/D");
+  m_tree->Branch("chi2Filtered", &m_chi2Filtered, "chi2Filtered/D");
+  m_tree->Branch("chi2Smoothed", &m_chi2Smoothed, "chi2Smoothed/D");
   m_tree->Branch("ndf", &m_ndf, "ndf/I");
 
   // Matching degree between the true and the fitted track
@@ -91,11 +93,11 @@ RootFittedSimTrackWriter::RootFittedSimTrackWriter(const Config& config,
 
   //------------------------------------------------------------------
   // Initialize the data handles
-  m_KFTracks.initialize(m_cfg.inputKFTracks);
-  m_truthClusters.initialize(m_cfg.inputTruthClusters);
+  m_inputTracks.initialize(m_cfg.inputTracks);
+  m_inputTruthClusters.initialize(m_cfg.inputTruthClusters);
 }
 
-ProcessCode RootFittedSimTrackWriter::finalize() {
+ProcessCode RootSimTrackWriter::finalize() {
   if (m_file) {
     m_file->Write();
     m_file->Close();
@@ -104,10 +106,10 @@ ProcessCode RootFittedSimTrackWriter::finalize() {
   return ProcessCode::SUCCESS;
 }
 
-ProcessCode RootFittedSimTrackWriter::write(const AlgorithmContext& ctx) {
-  auto inputKFTracks = m_KFTracks(ctx);
+ProcessCode RootSimTrackWriter::write(const AlgorithmContext& ctx) {
+  auto inputTracks = m_inputTracks(ctx);
 
-  auto inputTruthClusters = m_truthClusters(ctx);
+  auto inputTruthClusters = m_inputTruthClusters(ctx);
 
   std::lock_guard<std::mutex> lock(m_mutex);
 
@@ -135,9 +137,9 @@ ProcessCode RootFittedSimTrackWriter::write(const AlgorithmContext& ctx) {
   m_eventId = ctx.eventNumber;
 
   // Iterate over the fitted tracks
-  for (int idx = 0; idx < inputKFTracks.size(); idx++) {
+  for (std::size_t tid = 0; tid < inputTracks.size(); tid++) {
     // Get the track object and the track id
-    auto [id, track] = inputKFTracks.getByIndex(idx);
+    const auto& track = inputTracks.getTrack(tid);
 
     // KF predicted momentum at the IP
     double me = 0.511 * Acts::UnitConstants::MeV;
@@ -195,11 +197,13 @@ ProcessCode RootFittedSimTrackWriter::write(const AlgorithmContext& ctx) {
     // between the true and the fitted track
     double matchingDegree = 0;
 
-    double trueChi2 = 0;
+    double chi2Predicted = 0;
+    double chi2Filtered = 0;
+    double chi2Smoothed = 0;
 
     // Iterate over the track states
     std::map<TrackID, std::vector<std::int32_t>> trackStateIds;
-    for (auto state : track.trackStatesReversed()) {
+    for (const auto& state : track.trackStatesReversed()) {
       // Skip the states without meaningful information
       if (!state.hasProjector()) {
         continue;
@@ -238,8 +242,6 @@ ProcessCode RootFittedSimTrackWriter::write(const AlgorithmContext& ctx) {
 
       // Get the measurements hit
       auto hit = state.effectiveCalibrated();
-
-      // std::cout << "HIT: " << hit.transpose() << "\n";
 
       // Project onto the prediction space
       auto predictedHit = state.effectiveProjector() * state.predicted();
@@ -377,6 +379,11 @@ ProcessCode RootFittedSimTrackWriter::write(const AlgorithmContext& ctx) {
           TVector3(predictedPull.x(), 0, -predictedPull.y()));
       filteredPulls.push_back(TVector3(filteredPull.x(), 0, -filteredPull.y()));
       smoothedPulls.push_back(TVector3(smoothedPull.x(), 0, -smoothedPull.y()));
+
+      // Add to the track chi2
+      chi2Predicted += predictedPull.dot(predictedPull);
+      chi2Filtered += filteredPull.dot(filteredPull);
+      chi2Smoothed += smoothedPull.dot(smoothedPull);
     }
 
     // Matching degree is computed with respect
@@ -453,16 +460,17 @@ ProcessCode RootFittedSimTrackWriter::write(const AlgorithmContext& ctx) {
     m_filteredPulls = filteredPulls;
     m_smoothedPulls = smoothedPulls;
 
-    // Chi2 of the track
-    // with respect ot the
-    // measurement
-    m_chi2 = track.chi2();
+    // Chi2 of the tracks from different 
+    // KF states
+    m_chi2Predicted = chi2Predicted;
+    m_chi2Filtered = chi2Filtered;
+    m_chi2Smoothed = chi2Smoothed;
 
     // Number of degrees of freedom
     m_ndf = track.nDoF();
 
     // Track Id
-    m_trackId = id;
+    m_trackId = tid;
 
     // Matching degree
     m_matchingDegree = matchingDegree;

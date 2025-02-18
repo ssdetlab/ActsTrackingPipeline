@@ -1,8 +1,6 @@
 #pragma once
 
 #include "Acts/EventData/SourceLink.hpp"
-#include "Acts/EventData/VectorMultiTrajectory.hpp"
-#include "Acts/EventData/VectorTrackContainer.hpp"
 #include "Acts/Utilities/Logger.hpp"
 
 #include "TFile.h"
@@ -28,14 +26,14 @@ using TrackID = std::tuple<std::int32_t, std::int32_t, std::int32_t>;
 ///
 /// @note Assumes that the tracks are simulated and
 /// the truth information is available
-class RootFittedSimTrackWriter : public IWriter {
+class RootSimTrackWriter : public IWriter {
  public:
   /// @brief The nested configuration struct
   struct Config {
     /// Surface accessor
     Acts::SourceLinkSurfaceAccessor surfaceAccessor;
     /// Fitted track collection
-    std::string inputKFTracks;
+    std::string inputTracks;
     /// Truth cluster data
     std::string inputTruthClusters;
     /// Name of the input tree
@@ -46,13 +44,13 @@ class RootFittedSimTrackWriter : public IWriter {
     std::size_t targetTrueTrackSize;
   };
 
-  RootFittedSimTrackWriter(const RootFittedSimTrackWriter &) = delete;
-  RootFittedSimTrackWriter(const RootFittedSimTrackWriter &&) = delete;
+  RootSimTrackWriter(const RootSimTrackWriter &) = delete;
+  RootSimTrackWriter(const RootSimTrackWriter &&) = delete;
 
   /// @brief Constructor
   ///
   /// @param config The Configuration struct
-  RootFittedSimTrackWriter(const Config &config, Acts::Logging::Level level);
+  RootSimTrackWriter(const Config &config, Acts::Logging::Level level);
 
   /// @brief Finalize method
   ProcessCode finalize() override;
@@ -73,11 +71,9 @@ class RootFittedSimTrackWriter : public IWriter {
   /// The config class
   Config m_cfg;
 
-  ReadDataHandle<
-      Tracks<Acts::VectorTrackContainer, Acts::VectorMultiTrajectory>>
-      m_KFTracks{this, "KFTracks"};
+  ReadDataHandle<Tracks> m_inputTracks{this, "Tracks"};
 
-  ReadDataHandle<SimClusters> m_truthClusters{this, "TruthClusters"};
+  ReadDataHandle<SimClusters> m_inputTruthClusters{this, "TruthClusters"};
 
   std::unique_ptr<const Acts::Logger> m_logger;
 
@@ -122,7 +118,9 @@ class RootFittedSimTrackWriter : public IWriter {
   /// Chi2 of the track
   /// with respect ot the
   /// measurement
-  double m_chi2;
+  double m_chi2Predicted;
+  double m_chi2Filtered;
+  double m_chi2Smoothed;
 
   /// Number of degrees of freedom
   /// of the track

@@ -5,6 +5,10 @@
 #include "Acts/Navigation/DetectorNavigator.hpp"
 #include "Acts/Propagator/EigenStepper.hpp"
 #include "Acts/TrackFinding/CombinatorialKalmanFilter.hpp"
+#include <Acts/Utilities/Holders.hpp>
+
+#include <cstddef>
+#include <memory>
 
 #include "TrackingPipeline/EventData/DataContainers.hpp"
 #include "TrackingPipeline/EventData/SimpleSourceLink.hpp"
@@ -67,13 +71,10 @@ class CKFTrackFindingAlgorithm : public IAlgorithm {
 
   using Propagator = Acts::Propagator<Acts::EigenStepper<>,
                                       Acts::Experimental::DetectorNavigator>;
-  using PropagatorOptions =
-      typename Propagator::template Options<ActionList, AbortList>;
-
   /// Track containers
   using TrackContainer = Acts::TrackContainer<Acts::VectorTrackContainer,
                                               Acts::VectorMultiTrajectory,
-                                              Acts::detail::ValueHolder>;
+                                              std::shared_ptr>;
   using TrackStateContainerBackend =
       typename TrackContainer::TrackStateContainerBackend;
 
@@ -84,7 +85,7 @@ class CKFTrackFindingAlgorithm : public IAlgorithm {
       SimpleContainerAccessor<SimpleSourceLinkContainer>;
 
   /// Options
-  using CombinatorialKalmanFilterOptions =
+  using CKFOptions =
       Acts::CombinatorialKalmanFilterOptions<SimpleSourceLinkAccessor::Iterator,
                                              TrackContainer>;
 
@@ -95,13 +96,17 @@ class CKFTrackFindingAlgorithm : public IAlgorithm {
     /// CKF extensions
     Acts::CombinatorialKalmanFilterExtensions<TrackContainer> extensions;
     /// The input collection
-    std::string inputSeeds = "Seed";
-    /// The output collection before filtering
-    std::string outputTrackCandidates = "TrackCandidates";
+    std::string inputSeeds;
+    /// The output collection before
+    std::string outputTrackCandidates;
+    /// The output collection before
+    std::string outputTrackView;
     /// Minimum number of source links
     std::size_t minCandidateSize;
     /// Maximum number of source links
     std::size_t maxCandidateSize;
+    /// Maximum number of steps for the propagator
+    std::size_t maxSteps;
   };
 
   /// @brief Constructor
@@ -110,6 +115,7 @@ class CKFTrackFindingAlgorithm : public IAlgorithm {
         m_cfg(std::move(config)) {
     m_inputSeeds.initialize(m_cfg.inputSeeds);
     m_outputTrackCandidates.initialize(m_cfg.outputTrackCandidates);
+    m_outputTrackView.initialize(m_cfg.outputTrackView);
   }
   ~CKFTrackFindingAlgorithm() = default;
 
@@ -121,6 +127,6 @@ class CKFTrackFindingAlgorithm : public IAlgorithm {
 
   ReadDataHandle<Seeds> m_inputSeeds{this, "InputSeeds"};
 
-  WriteDataHandle<TrackCandidates> m_outputTrackCandidates{
-      this, "OutputTrackCandidates"};
+  WriteDataHandle<Seeds> m_outputTrackCandidates{this, "OutputTrackCandidates"};
+  WriteDataHandle<Tracks> m_outputTrackView{this, "OutputTrackView"};
 };

@@ -23,9 +23,9 @@ class TrackFittingAlgorithm : public IAlgorithm {
   /// @brief The nested configuration struct
   struct Config {
     /// The input collection
-    std::string inputCollection;
+    std::string inputTrackCandidates;
     /// The output collection
-    std::string outputCollection;
+    std::string outputTracks;
     /// KF fitter
     const Acts::KalmanFitter<Propagator, Trajectory>& fitter;
     /// KF options
@@ -35,8 +35,8 @@ class TrackFittingAlgorithm : public IAlgorithm {
   /// @brief Constructor
   TrackFittingAlgorithm(Config config, Acts::Logging::Level level)
       : IAlgorithm("TrackFittingAlgorithm", level), m_cfg(std::move(config)) {
-    m_inputSeeds.initialize(m_cfg.inputCollection);
-    m_outputTracks.initialize(m_cfg.outputCollection);
+    m_inputTrackCandidates.initialize(m_cfg.inputTrackCandidates);
+    m_outputTracks.initialize(m_cfg.outputTracks);
   }
   ~TrackFittingAlgorithm() = default;
 
@@ -49,8 +49,8 @@ class TrackFittingAlgorithm : public IAlgorithm {
  private:
   Config m_cfg;
 
-  ReadDataHandle<Seeds> m_inputSeeds{this, "InputSeeds"};
+  ReadDataHandle<Seeds> m_inputTrackCandidates{
+      this, "inputTrackCandidates"};
 
-  WriteDataHandle<Tracks<TrackContainer, Trajectory>> m_outputTracks{
-      this, "OutputTracks"};
+  WriteDataHandle<Tracks> m_outputTracks{this, "OutputTracks"};
 };

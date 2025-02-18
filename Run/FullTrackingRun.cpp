@@ -19,10 +19,10 @@
 #include "TrackingPipeline/Infrastructure/Sequencer.hpp"
 #include "TrackingPipeline/Io/E320RootSimDataReader.hpp"
 #include "TrackingPipeline/Io/JsonTrackLookupReader.hpp"
-#include "TrackingPipeline/Io/RootFittedSimTrackWriter.hpp"
 #include "TrackingPipeline/Io/RootSimClusterWriter.hpp"
 #include "TrackingPipeline/Io/RootSimSeedWriter.hpp"
 #include "TrackingPipeline/Io/RootSimTrackCandidateWriter.hpp"
+#include "TrackingPipeline/Io/RootSimTrackWriter.hpp"
 #include "TrackingPipeline/Io/RootTrackParamsReader.hpp"
 #include "TrackingPipeline/MagneticField/CompositeMagField.hpp"
 #include "TrackingPipeline/MagneticField/DipoleMagField.hpp"
@@ -58,7 +58,7 @@ using TrackStateContainerBackend =
 
 // KF short-hands
 using KFTrajectory = TrackFittingAlgorithm::Trajectory;
-using KFTrackContainer = TrackFittingAlgorithm::Trajectory;
+using KFTrackContainer = TrackFittingAlgorithm::TrackContainer;
 using KF = Acts::KalmanFitter<Propagator, KFTrajectory>;
 
 using namespace Acts::UnitLiterals;
@@ -196,7 +196,7 @@ int main() {
 
   // Setup the sequencer
   Sequencer::Config seqCfg;
-  //   seqCfg.events = 100;
+  //   seqCfg.events = 1;
   seqCfg.numThreads = 1;
   seqCfg.trackFpes = false;
   Sequencer sequencer(seqCfg);
@@ -204,8 +204,8 @@ int main() {
   // Add the sim data reader
   E320Io::E320RootSimDataReader::Config readerCfg = E320Io::defaultSimConfig();
   readerCfg.clusterFilter = hourglassFilter;
-  readerCfg.outputSourceLinks = "SimMeasurements";
-  readerCfg.outputSimClusters = "SimClusters";
+  readerCfg.outputSourceLinks = "Measurements";
+  readerCfg.outputSimClusters = "Clusters";
   std::string pathToDir =
       "/home/romanurmanov/lab/LUXE/acts_tracking/E320Pipeline_dataInRootFormat/"
       "temp";
@@ -275,40 +275,41 @@ int main() {
     cptReaderCfg.filePaths.push_back(pathToFile);
   }
 
-  E320Sim::E320CptBkgGenerator::Config cptBkgGenCfg;
-  cptBkgGenCfg.nIterations = 1;
-  cptBkgGenCfg.sensitivity = 0.5;
-  cptBkgGenCfg.yPower = -77.0091;
-  cptBkgGenCfg.yShift = -10630.9;
-  cptBkgGenCfg.zProbs = {0.29, 0.26, 0.24, 0.21};
-  cptBkgGenCfg.trackParamsReader =
-      std::make_shared<RootTrackParamsReader>(cptReaderCfg);
-  auto cptBkgGen = std::make_shared<E320Sim::E320CptBkgGenerator>(cptBkgGenCfg);
+  //   E320Sim::E320CptBkgGenerator::Config cptBkgGenCfg;
+  //   cptBkgGenCfg.nIterations = 1;
+  //   cptBkgGenCfg.sensitivity = 0.5;
+  //   cptBkgGenCfg.yPower = -77.0091;
+  //   cptBkgGenCfg.yShift = -10630.9;
+  //   cptBkgGenCfg.zProbs = {0.29, 0.26, 0.24, 0.21};
+  //   cptBkgGenCfg.trackParamsReader =
+  //   std::make_shared<RootTrackParamsReader>(cptReaderCfg);
+  //   auto cptBkgGen =
+  //   std::make_shared<E320Sim::E320CptBkgGenerator>(cptBkgGenCfg);
 
-  // Measurement creator
-  MeasurementsCreator::Config cptMcCfg;
-  cptMcCfg.vertexGenerator = cptBkgGen;
-  cptMcCfg.momentumGenerator = cptBkgGen;
-  cptMcCfg.hitDigitizer = cptDigitizer;
-  cptMcCfg.maxSteps = 100;
-  cptMcCfg.isSignal = false;
+  //   // Measurement creator
+  //   MeasurementsCreator::Config cptMcCfg;
+  //   cptMcCfg.vertexGenerator = cptBkgGen;
+  //   cptMcCfg.momentumGenerator = cptBkgGen;
+  //   cptMcCfg.hitDigitizer = cptDigitizer;
+  //   cptMcCfg.maxSteps = 100;
+  //   cptMcCfg.isSignal = false;
 
-  auto cptMeasurementsCreator =
-      std::make_shared<MeasurementsCreator>(cptBkgPropagator, cptMcCfg);
+  //   auto cptMeasurementsCreator =
+  //   std::make_shared<MeasurementsCreator>(cptBkgPropagator, cptMcCfg);
 
-  MeasurementsEmbeddingAlgorithm::Config cptMceCfg;
-  cptMceCfg.inputSourceLinks = "SimMeasurements";
-  cptMceCfg.inputSimClusters = "SimClusters";
-  cptMceCfg.outputSourceLinks = "MeasurementsWithNCS";
-  cptMceCfg.outputSimClusters = "ClustersWithNCS";
-  cptMceCfg.measurementGenerator = cptMeasurementsCreator;
-  cptMceCfg.clusterFilter = hourglassFilter;
-  cptMceCfg.randomNumberSvc =
-      std::make_shared<RandomNumbers>(RandomNumbers::Config());
-  cptMceCfg.nMeasurements = 6600;
+  //   MeasurementsEmbeddingAlgorithm::Config cptMceCfg;
+  //   cptMceCfg.inputSourceLinks = "SimMeasurements";
+  //   cptMceCfg.inputSimClusters = "SimClusters";
+  //   cptMceCfg.outputSourceLinks = "MeasurementsWithNCS";
+  //   cptMceCfg.outputSimClusters = "ClustersWithNCS";
+  //   cptMceCfg.measurementGenerator = cptMeasurementsCreator;
+  //   cptMceCfg.clusterFilter = hourglassFilter;
+  //   cptMceCfg.randomNumberSvc =
+  //   std::make_shared<RandomNumbers>(RandomNumbers::Config());
+  //   cptMceCfg.nMeasurements = 660;
 
-  sequencer.addAlgorithm(
-      std::make_shared<MeasurementsEmbeddingAlgorithm>(cptMceCfg, logLevel));
+  //   sequencer.addAlgorithm(
+  //   std::make_shared<MeasurementsEmbeddingAlgorithm>(cptMceCfg, logLevel));
 
   // --------------------------------------------------------------
   // Beam background embedding
@@ -366,41 +367,41 @@ int main() {
     beamReaderCfg.filePaths.push_back(pathToFile);
   }
 
-  KDEMomentumGenerator::Config beamMomGenCfg;
-  beamMomGenCfg.trackParamsReader =
-      std::make_shared<RootTrackParamsReader>(beamReaderCfg);
-  beamMomGenCfg.nIterations = 1;
-  beamMomGenCfg.sensitivity = 0.5;
-  beamMomGenCfg.transform =
-      Acts::Transform3(Acts::Translation3(Acts::Vector3(0, 0, 0)) *
-                       gOpt.actsToWorldRotation.inverse());
+  //   KDEMomentumGenerator::Config beamMomGenCfg;
+  //   beamMomGenCfg.trackParamsReader =
+  //   std::make_shared<RootTrackParamsReader>(beamReaderCfg);
+  //   beamMomGenCfg.nIterations = 1;
+  //   beamMomGenCfg.sensitivity = 0.5;
+  //   beamMomGenCfg.transform =
+  //   Acts::Transform3(Acts::Translation3(Acts::Vector3(0, 0, 0)) *
+  //    gOpt.actsToWorldRotation.inverse());
 
-  auto beamMomGen = std::make_shared<KDEMomentumGenerator>(beamMomGenCfg);
+  //   auto beamMomGen = std::make_shared<KDEMomentumGenerator>(beamMomGenCfg);
 
-  // Measurement creator
-  MeasurementsCreator::Config beamMcCfg;
-  beamMcCfg.vertexGenerator = beamVertexGen;
-  beamMcCfg.momentumGenerator = beamMomGen;
-  beamMcCfg.hitDigitizer = beamDigitizer;
-  beamMcCfg.maxSteps = 100;
-  beamMcCfg.isSignal = false;
+  //   // Measurement creator
+  //   MeasurementsCreator::Config beamMcCfg;
+  //   beamMcCfg.vertexGenerator = beamVertexGen;
+  //   beamMcCfg.momentumGenerator = beamMomGen;
+  //   beamMcCfg.hitDigitizer = beamDigitizer;
+  //   beamMcCfg.maxSteps = 100;
+  //   beamMcCfg.isSignal = false;
 
-  auto beamMeasurementsCreator =
-      std::make_shared<MeasurementsCreator>(beamBkgPropagator, beamMcCfg);
+  //   auto beamMeasurementsCreator =
+  //   std::make_shared<MeasurementsCreator>(beamBkgPropagator, beamMcCfg);
 
-  MeasurementsEmbeddingAlgorithm::Config beamMceCfg;
-  beamMceCfg.inputSourceLinks = "MeasurementsWithNCS";
-  beamMceCfg.inputSimClusters = "ClustersWithNCS";
-  beamMceCfg.outputSourceLinks = "Measurements";
-  beamMceCfg.outputSimClusters = "Clusters";
-  beamMceCfg.measurementGenerator = beamMeasurementsCreator;
-  beamMceCfg.clusterFilter = hourglassFilter;
-  beamMceCfg.randomNumberSvc =
-      std::make_shared<RandomNumbers>(RandomNumbers::Config());
-  beamMceCfg.nMeasurements = 34500;
+  //   MeasurementsEmbeddingAlgorithm::Config beamMceCfg;
+  //   beamMceCfg.inputSourceLinks = "MeasurementsWithNCS";
+  //   beamMceCfg.inputSimClusters = "ClustersWithNCS";
+  //   beamMceCfg.outputSourceLinks = "Measurements";
+  //   beamMceCfg.outputSimClusters = "Clusters";
+  //   beamMceCfg.measurementGenerator = beamMeasurementsCreator;
+  //   beamMceCfg.clusterFilter = hourglassFilter;
+  //   beamMceCfg.randomNumberSvc =
+  //   std::make_shared<RandomNumbers>(RandomNumbers::Config());
+  //   beamMceCfg.nMeasurements = 3450;
 
-  sequencer.addAlgorithm(
-      std::make_shared<MeasurementsEmbeddingAlgorithm>(beamMceCfg, logLevel));
+  //   sequencer.addAlgorithm(
+  //   std::make_shared<MeasurementsEmbeddingAlgorithm>(beamMceCfg, logLevel));
 
   // --------------------------------------------------------------
   // The path seeding setup
@@ -544,7 +545,7 @@ int main() {
         cuts.push_back({surf->geometryId(),
                         {{}, {std::numeric_limits<double>::max()}, {1000u}}});
       } else {
-        cuts.push_back({surf->geometryId(), {{}, {0.5}, {1u}}});
+        cuts.push_back({surf->geometryId(), {{}, {15}, {1u}}});
       }
     }
   }
@@ -570,8 +571,10 @@ int main() {
   trackFindingCfg.extensions = ckfExtensions;
   trackFindingCfg.inputSeeds = "PathSeeds";
   trackFindingCfg.outputTrackCandidates = "TrackCandidates";
+  trackFindingCfg.outputTrackView = "CandidatesTrackView";
   trackFindingCfg.minCandidateSize = 4;
   trackFindingCfg.maxCandidateSize = 4;
+  trackFindingCfg.maxSteps = 1e4;
 
   auto trackFindingAlgorithm =
       std::make_shared<CKFTrackFindingAlgorithm>(trackFindingCfg, logLevel);
@@ -641,10 +644,11 @@ int main() {
       kfPropagator, Acts::getDefaultLogger("DetectorKalmanFilter", logLevel));
 
   // Add the track fitting algorithm to the sequencer
-  TrackFittingAlgorithm::Config fitterCfg{.inputCollection = "TrackCandidates",
-                                          .outputCollection = "Tracks",
-                                          .fitter = fitter,
-                                          .kfOptions = options};
+  TrackFittingAlgorithm::Config fitterCfg{
+      .inputTrackCandidates = "TrackCandidates",
+      .outputTracks = "Tracks",
+      .fitter = fitter,
+      .kfOptions = options};
 
   sequencer.addAlgorithm(
       std::make_shared<TrackFittingAlgorithm>(fitterCfg, logLevel));
@@ -661,7 +665,7 @@ int main() {
 
   clusterWriterCfg.inputClusters = "Clusters";
   clusterWriterCfg.treeName = "clusters";
-  clusterWriterCfg.filePath = "clusters-bkg-10-nominal.root";
+  clusterWriterCfg.filePath = "clusters-sig-bkg.root";
 
   sequencer.addWriter(
       std::make_shared<RootSimClusterWriter>(clusterWriterCfg, logLevel));
@@ -672,7 +676,7 @@ int main() {
   seedWriterCfg.inputSeeds = "PathSeeds";
   seedWriterCfg.inputTruthClusters = "Clusters";
   seedWriterCfg.treeName = "seeds";
-  seedWriterCfg.filePath = "seeds-bkg-10-nominal.root";
+  seedWriterCfg.filePath = "seeds-sig-bkg.root";
   seedWriterCfg.targetTrueTrackSize = 4;
 
   sequencer.addWriter(
@@ -680,29 +684,33 @@ int main() {
 
   // Track candidate writer
   auto trackCandidateWriterCfg = RootSimTrackCandidateWriter::Config();
+  trackCandidateWriterCfg.surfaceAccessor
+      .connect<&SimpleSourceLink::SurfaceAccessor::operator()>(
+          &surfaceAccessor);
 
-  trackCandidateWriterCfg.inputTrackCandidates = "TrackCandidates";
+  trackCandidateWriterCfg.inputTrackCandidates = "CandidatesTrackView";
   trackCandidateWriterCfg.inputTruthClusters = "Clusters";
   trackCandidateWriterCfg.treeName = "track-candidates";
-  trackCandidateWriterCfg.filePath = "track-candidates-bkg-10-nominal.root";
+  trackCandidateWriterCfg.filePath = "track-candidates-sig-bkg-test.root";
   trackCandidateWriterCfg.targetTrueTrackSize = 4;
 
   sequencer.addWriter(std::make_shared<RootSimTrackCandidateWriter>(
       trackCandidateWriterCfg, logLevel));
 
-  auto trackWriterCfg = RootFittedSimTrackWriter::Config();
+  // Fitted track writer
+  auto trackWriterCfg = RootSimTrackWriter::Config();
   trackWriterCfg.surfaceAccessor
       .connect<&SimpleSourceLink::SurfaceAccessor::operator()>(
           &surfaceAccessor);
 
-  trackWriterCfg.inputKFTracks = "Tracks";
+  trackWriterCfg.inputTracks = "Tracks";
   trackWriterCfg.inputTruthClusters = "Clusters";
   trackWriterCfg.treeName = "fitted-tracks";
-  trackWriterCfg.filePath = "fitted-tracks-bkg-10-nominal.root";
+  trackWriterCfg.filePath = "fitted-tracks-sig-bkg-test.root";
   trackWriterCfg.targetTrueTrackSize = 4;
 
   sequencer.addWriter(
-      std::make_shared<RootFittedSimTrackWriter>(trackWriterCfg, logLevel));
+      std::make_shared<RootSimTrackWriter>(trackWriterCfg, logLevel));
 
   return sequencer.run();
 }
