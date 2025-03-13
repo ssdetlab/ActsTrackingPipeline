@@ -55,23 +55,22 @@ RootSimDataReader::RootSimDataReader(const Config& config,
 
   // Add the first entry
   m_chain->GetEntry(0);
-  m_eventMap.push_back({m_intColumns.at("eventId"), 0ul, 0ul});
+  m_eventMap.emplace_back(m_intColumns.at("eventId"), 0, 0);
 
   // Go through all entries and store the position of the events
-  for (auto i = 1ul; i < nEntries; ++i) {
+  for (std::size_t i = 1; i < nEntries; ++i) {
     m_chain->GetEntry(i);
     const auto evtId = m_intColumns.at("eventId");
 
     if (evtId != std::get<0>(m_eventMap.back())) {
       std::get<2>(m_eventMap.back()) = i;
-      m_eventMap.push_back({evtId, i, i});
+      m_eventMap.emplace_back(evtId, i, i);
     }
   }
   // Sort by event id
-  std::sort(m_eventMap.begin(), m_eventMap.end(),
-            [](const auto& a, const auto& b) {
-              return std::get<0>(a) < std::get<0>(b);
-            });
+  std::ranges::sort(m_eventMap, [](const auto& a, const auto& b) {
+    return std::get<0>(a) < std::get<0>(b);
+  });
 
   std::get<2>(m_eventMap.back()) = nEntries;
 
@@ -86,10 +85,10 @@ std::pair<std::size_t, std::size_t> RootSimDataReader::availableEvents() const {
 }
 
 ProcessCode RootSimDataReader::read(const AlgorithmContext& context) {
-  auto it = std::find_if(
-      m_eventMap.begin(), m_eventMap.end(),
-      [&](const auto& a) { return std::get<0>(a) == context.eventNumber; });
-
+  auto it = std::ranges::find_if(m_eventMap, [&](const auto& a) {
+    return std::get<0>(a) == context.eventNumber;
+  });
+  
   if (it == m_eventMap.end()) {
     // explicitly warn if it happens for the first or last event as that might
     // indicate a human error
