@@ -7,6 +7,7 @@
 #include "Acts/Utilities/Logger.hpp"
 
 #include <iostream>
+#include <mutex>
 #include <stdexcept>
 
 #include "TChain.h"
@@ -100,7 +101,7 @@ ProcessCode RootMaterialTrackReader::read(const AlgorithmContext& context) {
   }
 
   // lock the mutex
-  std::lock_guard<std::mutex> lock(m_read_mutex);
+  std::scoped_lock lock{m_read_mutex};
   // now read
 
   // The collection to be written
