@@ -18,13 +18,13 @@ Acts::MagneticFieldProvider::Cache E320MagField::makeCache(
 /// @param x position in space
 /// @param params location and rate of decay
 /// @return exponential damping factor
-const double E320MagField::decayFunction(const double x,
+double E320MagField::decayFunction(const double x,
                                          const Acts::Vector4 params) const {
   return 1 / ((1 + exp((params[0] - x) / params[2])) *
               (1 + exp((x - params[1]) / params[3])));
 }
 
-const Acts::Vector3 E320MagField::getDipole(
+Acts::Vector3 E320MagField::getDipole(
     const Acts::Vector3& pos,
     const std::tuple<Acts::Vector2, Acts::Vector4, Acts::Vector4>& dipoleParams)
     const {
@@ -45,7 +45,7 @@ const Acts::Vector3 E320MagField::getDipole(
 
 Acts::Result<Acts::Vector3> E320MagField::getField(
     const Acts::Vector3& position, MagneticFieldProvider::Cache& cache) const {
-  E320Geometry::GeometryOptions gOpt;
+  E320Geometry::FullTrackerConstraints gOpt;
   double z = position.z();
   Acts::Vector3 fieldValue = Acts::Vector3::Zero();
 

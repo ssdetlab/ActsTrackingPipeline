@@ -44,7 +44,7 @@ class RootMaterialTrackReader : public IReader {
   RootMaterialTrackReader(const Config& config, Acts::Logging::Level level);
 
   /// Destructor
-  ~RootMaterialTrackReader() override;
+  ~RootMaterialTrackReader() override = default;
 
   /// Framework name() method
   std::string name() const override;

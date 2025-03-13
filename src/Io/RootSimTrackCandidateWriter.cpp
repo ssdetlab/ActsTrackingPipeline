@@ -85,7 +85,6 @@ ProcessCode RootSimTrackCandidateWriter::finalize() {
   if (m_file) {
     m_file->Write();
     m_file->Close();
-    delete m_file;
   }
   return ProcessCode::SUCCESS;
 }

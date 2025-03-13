@@ -33,14 +33,14 @@ ProcessCode MeasurementsEmbeddingAlgorithm::execute(
   RandomEngine rng = m_cfg.randomNumberSvc->spawnGenerator(ctx);
 
   // Create the measurements
-  for (int i = 0; i < m_cfg.nMeasurements; i++) {
+  for (std::size_t i = 0; i < m_cfg.nMeasurements; i++) {
     auto [sls, cls] = m_cfg.measurementGenerator->gen(ctx, rng, i);
 
-    for (std::size_t i = 0; i < sls.size(); i++) {
-      auto ssl = sls.at(i).get<SimpleSourceLink>();
+    for (std::size_t j = 0; j < sls.size(); j++) {
+      auto ssl = sls.at(j).get<SimpleSourceLink>();
       ssl.setIndex(sourceLinks.size());
 
-      auto cl = cls.at(i);
+      auto cl = cls.at(j);
       cl.sourceLink.setIndex(ssl.index());
 
       if (m_cfg.clusterFilter == nullptr ||

@@ -6,7 +6,7 @@
 #include "TrackingPipeline/EventData/SimpleSourceLink.hpp"
 
 RootSimTrackWriter::RootSimTrackWriter(const Config& config,
-                                                   Acts::Logging::Level level)
+                                       Acts::Logging::Level level)
     : m_cfg(config), m_logger(Acts::getDefaultLogger(name(), level)) {
   if (m_cfg.filePath.empty()) {
     throw std::invalid_argument("Missing filename");
@@ -101,7 +101,6 @@ ProcessCode RootSimTrackWriter::finalize() {
   if (m_file) {
     m_file->Write();
     m_file->Close();
-    delete m_file;
   }
   return ProcessCode::SUCCESS;
 }
@@ -460,7 +459,7 @@ ProcessCode RootSimTrackWriter::write(const AlgorithmContext& ctx) {
     m_filteredPulls = filteredPulls;
     m_smoothedPulls = smoothedPulls;
 
-    // Chi2 of the tracks from different 
+    // Chi2 of the tracks from different
     // KF states
     m_chi2Predicted = chi2Predicted;
     m_chi2Filtered = chi2Filtered;

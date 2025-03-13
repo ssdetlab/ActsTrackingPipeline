@@ -7,6 +7,7 @@
 #include <Acts/EventData/TrackParameters.hpp>
 
 #include <cstddef>
+#include <mutex>
 #include <optional>
 
 RootTrackParamsReader::RootTrackParamsReader(const Config& config)
@@ -28,7 +29,7 @@ RootTrackParamsReader::RootTrackParamsReader(const Config& config)
 }
 
 std::vector<Acts::CurvilinearTrackParameters> RootTrackParamsReader::read() {
-  std::lock_guard<std::mutex> lock(m_readMutex);
+  std::scoped_lock lock{m_readMutex};
 
   std::vector<Acts::CurvilinearTrackParameters> trackParams;
   trackParams.reserve(m_chain->GetEntries());
