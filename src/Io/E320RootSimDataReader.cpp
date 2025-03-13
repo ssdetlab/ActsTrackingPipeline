@@ -8,7 +8,7 @@
 // involved are preserved
 Acts::Vector2 convertToLoc(const Acts::Vector3& glob,
                            const Acts::GeometryIdentifier geoId,
-                           const E320Geometry::GeometryOptions& gOpt) {
+                           const E320Geometry::FullTrackerConstraints& gOpt) {
   int nChip = geoId.sensitive() % 10 - 1;
   Acts::Vector2 loc =
       Acts::Vector2(glob.y() - gOpt.chipY.at(nChip), -(glob.x() - gOpt.chipX));
@@ -90,7 +90,7 @@ inline void E320Io::E320RootSimDataReader::prepareMeasurements(
     // The true momenta of the particles
     // that created the cluster at the IP
     momIP = m_vLorentzColumns.at("tru_p_ip");
-  } catch (const std::out_of_range& e) {
+  } catch (const std::out_of_range& /*err*/) {
     throw std::runtime_error("Missing columns in the ROOT file");
   }
 
