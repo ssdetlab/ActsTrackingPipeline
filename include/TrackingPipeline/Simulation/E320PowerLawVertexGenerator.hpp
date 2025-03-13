@@ -8,17 +8,11 @@
 
 #include "TrackingPipeline/Simulation/IVertexGenerator.hpp"
 
-inline double powerLaw(double x) {
-  const double scale = 5.31456e3;
-  const double shift = -6.98928e1;
-  const double pedestal = -4.99682e3;
-
-  return (scale * std::pow(x + shift, -0.01) + pedestal) / 20011.3;
-}
-
 namespace E320Sim {
 
-/// @brief Class that samples vertex from a ROOT histogram
+/// @brief Vertex sampler constructed to sample the inital
+/// positions of the NCS-induced backgorund in the tracking
+/// detector of the E320 experiment
 struct E320PowerLawVertexGenerator : public IVertexGenerator {
   double yBoundLow;
   double yBoundHigh;
@@ -31,14 +25,19 @@ struct E320PowerLawVertexGenerator : public IVertexGenerator {
   std::vector<double> zProbs;
   std::vector<double> zPositions;
 
-  const double y0 = 90.3 - 29.94176 / 2;
-  const double y1 = 331.1 + 29.94176 / 2;
+  std::vector<double> is{yBoundLow, yBoundHigh};
+  std::vector<double> ws{powerLaw(yBoundLow), powerLaw(yBoundHigh)};
+  const double a =
+      (powerLaw(yBoundHigh) - powerLaw(yBoundLow)) / (yBoundHigh - yBoundLow);
+  const double b = powerLaw(yBoundLow) - a * yBoundLow + 1e-4;
 
-  std::vector<double> is{y0, y1};
-  std::vector<double> ws{powerLaw(y0), powerLaw(y1)};
-    const double a = (powerLaw(y1) - powerLaw(y0)) / (y1 - y0);
-    const double b = powerLaw(y0) - a * y0 + 1e-4;
+  inline double powerLaw(double x) const {
+    const double scale = 5.31456e3;
+    const double shift = -6.98928e1;
+    const double pedestal = -4.99682e3;
 
+    return (scale * std::pow(x + shift, -0.01) + pedestal) / 20011.3;
+  }
   Acts::Vector3 genVertex(RandomEngine& rng) const override {
     if (zProbs.empty() == 0) {
       throw std::runtime_error("Vertex generator not initialized");
