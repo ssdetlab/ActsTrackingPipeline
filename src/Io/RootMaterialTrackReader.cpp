@@ -7,10 +7,10 @@
 #include "Acts/Utilities/Logger.hpp"
 
 #include <iostream>
+#include <mutex>
 #include <stdexcept>
 
 #include "TChain.h"
-
 #include "TrackingPipeline/Infrastructure/AlgorithmContext.hpp"
 #include "TrackingPipeline/Io/RootUtility.hpp"
 
@@ -84,29 +84,6 @@ RootMaterialTrackReader::RootMaterialTrackReader(const Config& config,
   m_outputMaterialTracks.initialize(m_cfg.outputMaterialTracks);
 }
 
-RootMaterialTrackReader::~RootMaterialTrackReader() {
-  delete m_inputChain;
-
-  delete m_step_x;
-  delete m_step_y;
-  delete m_step_z;
-  delete m_step_dx;
-  delete m_step_dy;
-  delete m_step_dz;
-  delete m_step_length;
-  delete m_step_X0;
-  delete m_step_L0;
-  delete m_step_A;
-  delete m_step_Z;
-  delete m_step_rho;
-
-  delete m_sur_id;
-  delete m_sur_x;
-  delete m_sur_y;
-  delete m_sur_z;
-  delete m_sur_pathCorrection;
-}
-
 std::string RootMaterialTrackReader::name() const {
   return "RootMaterialTrackReader";
 }
@@ -124,7 +101,7 @@ ProcessCode RootMaterialTrackReader::read(const AlgorithmContext& context) {
   }
 
   // lock the mutex
-  std::lock_guard<std::mutex> lock(m_read_mutex);
+  std::scoped_lock lock{m_read_mutex};
   // now read
 
   // The collection to be written

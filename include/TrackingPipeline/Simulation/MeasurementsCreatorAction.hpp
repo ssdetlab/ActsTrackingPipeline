@@ -50,12 +50,6 @@ struct MeasurementsCreatorAction {
     const Acts::Surface *surface = navigator.currentSurface(state.navigation);
     const Acts::GeometryIdentifier &geoId = surface->geometryId();
 
-    // only generate measurements on sensitive surface
-    if (!geoId.sensitive()) {
-      ACTS_VERBOSE("Create no measurements on non-sensitive surface " << geoId);
-      return;
-    }
-
     // Apply global to local
     Acts::Vector3 globalPos = stepper.position(state.stepping);
     Acts::Vector2 localPos =
@@ -136,6 +130,10 @@ struct MeasurementsCreatorAction {
     stepper.resetState(state.stepping, scatteredParameters, state.stepping.cov,
                        *surface);
 
+    if (!geoId.sensitive()) {
+      ACTS_VERBOSE("Create no measurements on non-sensitive surface " << geoId);
+      return;
+    }
     Acts::BoundTrackParameters boundsPars(
         surface->getSharedPtr(), scatteredParameters, state.stepping.cov,
         stepper.particleHypothesis(state.stepping));

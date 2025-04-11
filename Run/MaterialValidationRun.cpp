@@ -5,6 +5,7 @@
 #include <memory>
 
 #include "TrackingPipeline/Geometry/E320Geometry.hpp"
+#include "TrackingPipeline/Geometry/E320GeometryConstraints.hpp"
 #include "TrackingPipeline/Infrastructure/Sequencer.hpp"
 #include "TrackingPipeline/Io/RootMaterialTrackReader.hpp"
 #include "TrackingPipeline/Io/RootMaterialTrackWriter.hpp"

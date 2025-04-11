@@ -30,14 +30,14 @@ class E320MagField : public Acts::MagneticFieldProvider {
       const Acts::MagneticFieldContext& mctx) const override;
 
   /// @brief helper function
-  const double decayFunction(const double x, const Acts::Vector4 params) const;
+  double decayFunction(const double x, const Acts::Vector4 params) const;
 
   /// @brief calculate the dipole part of the magnetic field
   ///
   /// @param pos position in space
   /// @param dipoleParams tuple<xParams,yParams,zParams>
   /// @return value of dipole in the x-direction
-  const Acts::Vector3 getDipole(
+  Acts::Vector3 getDipole(
       const Acts::Vector3& pos,
       const std::tuple<Acts::Vector2, Acts::Vector4, Acts::Vector4>&
           dipoleParams) const;

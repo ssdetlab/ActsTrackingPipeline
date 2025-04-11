@@ -1,6 +1,7 @@
 #include "TrackingPipeline/Io/E320RootSimDataReader.hpp"
 
 #include "TrackingPipeline/EventData/SimpleSourceLink.hpp"
+#include "TrackingPipeline/Geometry/E320GeometryConstraints.hpp"
 
 // Global to local conversion
 //
@@ -90,7 +91,7 @@ inline void E320Io::E320RootSimDataReader::prepareMeasurements(
     // The true momenta of the particles
     // that created the cluster at the IP
     momIP = m_vLorentzColumns.at("tru_p_ip");
-  } catch (const std::out_of_range& e) {
+  } catch (const std::out_of_range& /*err*/) {
     throw std::runtime_error("Missing columns in the ROOT file");
   }
 

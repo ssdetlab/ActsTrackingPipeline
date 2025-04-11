@@ -11,7 +11,7 @@
 namespace E320Sim {
 
 /// @brief Class that samples vertex from a ROOT histogram
-struct E320PowerLawVertexGenerator : public IVertexGenerator {
+struct E320BeamBkgVertexGenerator : public IVertexGenerator {
   double yBoundLow;
   double yBoundHigh;
 
