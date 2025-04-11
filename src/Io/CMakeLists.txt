@@ -12,5 +12,4 @@ target_sources(
     RootSimDataReader.cpp
     JsonTrackLookupReader.cpp
     JsonTrackLookupWriter.cpp
-    E320RootSimDataReader.cpp
 )
