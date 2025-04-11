@@ -44,7 +44,7 @@ ProcessCode MeasurementsEmbeddingAlgorithm::execute(
       cl.sourceLink.setIndex(ssl.index());
 
       if (m_cfg.clusterFilter == nullptr ||
-          m_cfg.clusterFilter->operator()(ctx.geoContext, cls.at(i))) {
+          m_cfg.clusterFilter->operator()(ctx.geoContext, cls.at(j))) {
         sourceLinks.push_back(Acts::SourceLink(ssl));
         clusters.push_back(cl);
       }

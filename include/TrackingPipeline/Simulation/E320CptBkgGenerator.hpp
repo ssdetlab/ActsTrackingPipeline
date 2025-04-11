@@ -8,9 +8,9 @@
 
 #include "TrackingPipeline/Geometry/E320GeometryConstraints.hpp"
 #include "TrackingPipeline/Io/ITrackParamsReader.hpp"
+#include "TrackingPipeline/Simulation/E320CptBkgVertexGenerator.hpp"
 #include "TrackingPipeline/Simulation/IMomentumGenerator.hpp"
 #include "TrackingPipeline/Simulation/IVertexGenerator.hpp"
-#include "TrackingPipeline/Simulation/PowerLawVertexGenerator.hpp"
 #include "TrackingPipeline/Simulation/detail/NormalKDE.hpp"
 
 namespace E320Sim {
@@ -21,9 +21,7 @@ class E320CptBkgGenerator : public IVertexGenerator, public IMomentumGenerator {
     std::shared_ptr<ITrackParamsReader> trackParamsReader;
     std::size_t nIterations;
     double sensitivity;
-    double yPower;
-    double yShift;
-    std::vector<double> zProbs;
+    E320CptBkgVertexGenerator::Config vertexGenCfg;
   };
 
   struct State {
@@ -36,7 +34,8 @@ class E320CptBkgGenerator : public IVertexGenerator, public IMomentumGenerator {
   E320CptBkgGenerator(const Config& cfg)
       : m_cfg(cfg),
         m_state(std::make_unique<State>()),
-        m_vertexGen(std::make_unique<E320PowerLawVertexGenerator>()) {
+        m_vertexGen(
+            std::make_unique<E320CptBkgVertexGenerator>(cfg.vertexGenCfg)) {
     m_state->genState = {false, false};
 
     auto trackParams = m_cfg.trackParamsReader->read();
@@ -63,18 +62,6 @@ class E320CptBkgGenerator : public IVertexGenerator, public IMomentumGenerator {
     }
     m_zPhiThetaEKDE = std::make_unique<NormalKDE<4>>(
         std::move(sample), m_cfg.nIterations, m_cfg.sensitivity);
-
-    m_vertexGen->yBoundLow = m_gOpt.chipY.at(0) - m_gOpt.chipSizeY / 2;
-    m_vertexGen->yBoundHigh = m_gOpt.chipY.at(8) + m_gOpt.chipSizeY / 2;
-
-    m_vertexGen->xBoundLow = m_gOpt.chipX - m_gOpt.chipSizeX / 2;
-    m_vertexGen->xBoundHigh = m_gOpt.chipX + m_gOpt.chipSizeX / 2;
-
-    m_vertexGen->yPower = m_cfg.yPower;
-    m_vertexGen->yShift = m_cfg.yShift;
-    m_vertexGen->zProbs = m_cfg.zProbs;
-    m_vertexGen->zPositions = {m_gOpt.staveZ.at(0), m_gOpt.staveZ.at(1),
-                               m_gOpt.staveZ.at(2), m_gOpt.staveZ.at(3)};
   };
 
   Acts::Vector3 genVertex(RandomEngine& rng) const override {
@@ -100,7 +87,7 @@ class E320CptBkgGenerator : public IVertexGenerator, public IMomentumGenerator {
 
   std::unique_ptr<NormalKDE<4>> m_zPhiThetaEKDE;
 
-  std::unique_ptr<E320PowerLawVertexGenerator> m_vertexGen;
+  std::unique_ptr<E320CptBkgVertexGenerator> m_vertexGen;
 
   void internalUpdate(RandomEngine& rng) const {
     Acts::Vector3 vertex = m_vertexGen->genVertex(rng);
@@ -116,7 +103,7 @@ class E320CptBkgGenerator : public IVertexGenerator, public IMomentumGenerator {
                       std::sin(theta) * std::sin(phi), std::cos(theta)};
     dir = m_gOpt.actsToWorld.rotation().inverse() * dir;
 
-    double z = m_gOpt.staveZ.at(zIdx);
+    double z = m_gOpt.staveZ.at(zIdx) - 0.1;
 
     Acts::Vector3 pos = Acts::Vector3{vertex(0), z, vertex(2)};
 

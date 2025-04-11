@@ -4,6 +4,7 @@
 #include "Acts/Material/MaterialMapper.hpp"
 
 #include "TrackingPipeline/Geometry/E320Geometry.hpp"
+#include "TrackingPipeline/Geometry/E320GeometryConstraints.hpp"
 #include "TrackingPipeline/Infrastructure/Sequencer.hpp"
 #include "TrackingPipeline/Io/JsonMaterialWriter.hpp"
 #include "TrackingPipeline/Io/RootMaterialTrackReader.hpp"
@@ -27,7 +28,7 @@ int main() {
   // and the names of the volumes to be converted
   std::string gdmlPath =
       "/home/romanurmanov/lab/LUXE/acts_tracking/E320Pipeline_gdmls/"
-      "ettgeom_magnet_pdc_tracker.gdml";
+      "prototype/ettgeomdump_3419d3d2.gdml";
   std::vector<std::string> names{"OPPPSensitive", "DetChamberWindow"};
 
   std::vector<Acts::GeometryIdentifier> materialVeto{};
@@ -65,7 +66,7 @@ int main() {
       "material-tracks",
       "material-tracks",
       {"/home/romanurmanov/lab/LUXE/acts_tracking/E320Pipeline_material/"
-       "Uniform_DirectZ_TrackerOnly_256x128_1M/"
+       "prototype/Uniform_DirectZ_TrackerOnly_256x128_1M/"
        "geant4_material_tracks_mapping.root"}};
 
   auto materialTrackReader = std::make_shared<RootMaterialTrackReader>(

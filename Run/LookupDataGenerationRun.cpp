@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "TrackingPipeline/Geometry/E320Geometry.hpp"
+#include "TrackingPipeline/Geometry/E320GeometryConstraints.hpp"
 #include "TrackingPipeline/Infrastructure/Sequencer.hpp"
 #include "TrackingPipeline/Io/DummyReader.hpp"
 #include "TrackingPipeline/Io/JsonTrackLookupWriter.hpp"
@@ -46,7 +47,7 @@ int main() {
   // and the names of the volumes to be converted
   std::string gdmlPath =
       "/home/romanurmanov/lab/LUXE/acts_tracking/E320Pipeline_gdmls/"
-      "ettgeom_magnet_pdc_tracker.gdml";
+      "prototype/ettgeomdump_3419d3d2.gdml";
   std::vector<std::string> names{"OPPPSensitive", "DetChamberWindow"};
 
   // Build the detector
@@ -115,7 +116,7 @@ int main() {
       gOpt.actsToWorldRotation.inverse() * gOpt.quad3Translation,
       gOpt.actsToWorldRotation);
 
-  double dipoleB = 0.31_T;
+  double dipoleB = 0.22_T;
   DipoleMagField dipoleField(
       gOpt.dipoleParams, dipoleB, gOpt.actsToWorldRotation,
       gOpt.actsToWorldRotation.inverse() * gOpt.dipoleTranslation);
@@ -133,7 +134,7 @@ int main() {
 
   // Setup the sequencer
   Sequencer::Config seqCfg;
-  seqCfg.events = 2000000;
+  seqCfg.events = 200000;
   seqCfg.numThreads = -1;
   seqCfg.trackFpes = false;
   Sequencer sequencer(seqCfg);

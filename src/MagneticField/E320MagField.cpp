@@ -45,7 +45,7 @@ Acts::Vector3 E320MagField::getDipole(
 
 Acts::Result<Acts::Vector3> E320MagField::getField(
     const Acts::Vector3& position, MagneticFieldProvider::Cache& cache) const {
-  E320Geometry::FullTrackerConstraints gOpt;
+  E320Geometry::GeometryOptions gOpt;
   double z = position.z();
   Acts::Vector3 fieldValue = Acts::Vector3::Zero();
 

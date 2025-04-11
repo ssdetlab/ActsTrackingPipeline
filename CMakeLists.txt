@@ -24,7 +24,8 @@ find_package(
     TBB 
     COMPONENTS 
     tbb 
-    REQUIRED)
+    REQUIRED
+)
 find_package(
     ROOT 
     COMPONENTS 
@@ -36,26 +37,32 @@ find_package(
     Net
     Physics
     GeomPainter
-    REQUIRED)
+    REQUIRED
+)
 
 # Dictionary for the sim data
 add_library(SimEventDict SHARED)
 include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}/include/TrackingPipeline/Io/detail
-    )
+)
 ROOT_GENERATE_DICTIONARY(
     G__SimEventDict
     ./include/TrackingPipeline/Io/detail/ROOTDictDefs.h
+    ./include/TrackingPipeline/Io/detail/AlpideRegisters.h
+    ./include/TrackingPipeline/Io/detail/MosaicRegisters.h
+    ./include/TrackingPipeline/Io/detail/EudaqDetectorEvent.h
     MODULE 
     SimEventDict 
     LINKDEF 
-    ./include/TrackingPipeline/Io/detail/LinkDef.h)
+    ./include/TrackingPipeline/Io/detail/LinkDef.h
+)
 target_link_libraries(
     SimEventDict 
     PRIVATE 
     ROOT::RIO
     ROOT::Physics
-    ROOT::GeomPainter)
+    ROOT::GeomPainter
+)
 
 # Geant4 is required for the geometry
 find_package(Geant4 REQUIRED)
@@ -73,7 +80,8 @@ find_package(
     PluginGeant4
     PluginJson
     PluginFpeMonitoring
-    REQUIRED)
+    REQUIRED
+)
 
 # source files will be added later
 add_library(
@@ -95,7 +103,8 @@ target_link_libraries(
     ActsFatras
     ActsPluginGeant4
     ActsPluginJson
-    ActsPluginFpeMonitoring)
+    ActsPluginFpeMonitoring
+)
 
 target_include_directories(
     TrackingPipelineCore
@@ -123,7 +132,8 @@ macro(add_run _name _source)
     target_link_libraries(
         ${_target}
         PRIVATE
-        TrackingPipelineCore)
+        TrackingPipelineCore
+    )
 endmacro()
 
 # run has to be last, so that it can be 

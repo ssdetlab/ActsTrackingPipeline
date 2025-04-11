@@ -1,6 +1,7 @@
 #include "TrackingPipeline/Io/E320RootSimDataReader.hpp"
 
 #include "TrackingPipeline/EventData/SimpleSourceLink.hpp"
+#include "TrackingPipeline/Geometry/E320GeometryConstraints.hpp"
 
 // Global to local conversion
 //
@@ -8,7 +9,7 @@
 // involved are preserved
 Acts::Vector2 convertToLoc(const Acts::Vector3& glob,
                            const Acts::GeometryIdentifier geoId,
-                           const E320Geometry::FullTrackerConstraints& gOpt) {
+                           const E320Geometry::GeometryOptions& gOpt) {
   int nChip = geoId.sensitive() % 10 - 1;
   Acts::Vector2 loc =
       Acts::Vector2(glob.y() - gOpt.chipY.at(nChip), -(glob.x() - gOpt.chipX));
