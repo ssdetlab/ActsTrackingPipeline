@@ -35,7 +35,7 @@ class E320CptBkgGenerator : public IVertexGenerator, public IMomentumGenerator {
       : m_cfg(cfg),
         m_state(std::make_unique<State>()),
         m_vertexGen(
-            std::make_unique<E320CptBkgVertexGenerator>(cfg.vertexGenCfg)) {
+            std::make_unique<E320CptBkgVertexGenerator>(m_cfg.vertexGenCfg)) {
     m_state->genState = {false, false};
 
     auto trackParams = m_cfg.trackParamsReader->read();
@@ -60,6 +60,7 @@ class E320CptBkgGenerator : public IVertexGenerator, public IMomentumGenerator {
       sample.emplace_back(Acts::Vector4{zSub, param.phi(), param.theta(),
                                         param.absoluteMomentum()});
     }
+
     m_zPhiThetaEKDE = std::make_unique<NormalKDE<4>>(
         std::move(sample), m_cfg.nIterations, m_cfg.sensitivity);
   };
@@ -103,7 +104,7 @@ class E320CptBkgGenerator : public IVertexGenerator, public IMomentumGenerator {
                       std::sin(theta) * std::sin(phi), std::cos(theta)};
     dir = m_gOpt.actsToWorld.rotation().inverse() * dir;
 
-    double z = m_gOpt.staveZ.at(zIdx) - 0.1;
+    double z = m_gOpt.staveZ.at(zIdx);
 
     Acts::Vector3 pos = Acts::Vector3{vertex(0), z, vertex(2)};
 
