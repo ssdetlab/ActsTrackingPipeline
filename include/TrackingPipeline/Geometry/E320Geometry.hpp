@@ -9,7 +9,6 @@
 namespace E320Geometry {
 
 /// @brief Make the blueprint for the E320 detector
-/// in the two arm configuration
 ///
 /// @param gdmlPath path to the gdml file
 /// @param names the names of the volumes to be converted

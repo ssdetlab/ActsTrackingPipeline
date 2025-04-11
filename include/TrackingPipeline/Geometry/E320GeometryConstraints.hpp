@@ -4,6 +4,7 @@
 #include "Acts/Definitions/Units.hpp"
 #include "Acts/Utilities/BinUtility.hpp"
 
+#include <cmath>
 #include <map>
 
 #include "G4ThreeVector.hh"

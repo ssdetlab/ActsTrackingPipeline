@@ -4,6 +4,7 @@
 
 #include "TrackingPipeline/Clustering/HourglassFilter.hpp"
 #include "TrackingPipeline/Geometry/E320Geometry.hpp"
+#include "TrackingPipeline/Geometry/E320GeometryConstraints.hpp"
 #include "TrackingPipeline/Infrastructure/Sequencer.hpp"
 #include "TrackingPipeline/Io/E320RootSimDataReader.hpp"
 #include "TrackingPipeline/Io/JsonTrackLookupReader.hpp"

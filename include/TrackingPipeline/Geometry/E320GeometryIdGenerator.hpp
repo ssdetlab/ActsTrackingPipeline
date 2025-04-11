@@ -58,7 +58,7 @@ class E320GeometryIdGenerator final
 
   /// @brief Interface method to generate a geometry id cache
   /// @return a geometry id cache wrapped in a std::any object
-  IGeometryIdGenerator::GeoIdCache generateCache() const final;
+  IGeometryIdGenerator::GeoIdCache generateCache() const override;
 
   /// @brief Method for assigning a geometry id to a detector volume
   ///
@@ -66,7 +66,7 @@ class E320GeometryIdGenerator final
   /// @param dVolume the detector volume to assign the geometry id to
   void assignGeometryId(
       Acts::Experimental::IGeometryIdGenerator::GeoIdCache& cache,
-      Acts::Experimental::DetectorVolume& dVolume) const final;
+      Acts::Experimental::DetectorVolume& dVolume) const override;
 
   /// @brief Method for assigning a geometry id to a portal
   ///
@@ -74,7 +74,7 @@ class E320GeometryIdGenerator final
   /// @param portal the portal to assign the geometry id to
   void assignGeometryId(
       Acts::Experimental::IGeometryIdGenerator::GeoIdCache& cache,
-      Acts::Experimental::Portal& portal) const final;
+      Acts::Experimental::Portal& portal) const override;
 
   /// @brief Method for assigning a geometry id to a surface
   ///
@@ -82,7 +82,7 @@ class E320GeometryIdGenerator final
   /// @param surface the surface to assign the geometry id to
   void assignGeometryId(
       Acts::Experimental::IGeometryIdGenerator::GeoIdCache& cache,
-      Acts::Surface& surface) const final;
+      Acts::Surface& surface) const override;
 
  private:
   /// @brief Helper method to get the volume id from the cache

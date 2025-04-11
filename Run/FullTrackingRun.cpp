@@ -12,10 +12,12 @@
 #include "Acts/Utilities/Logger.hpp"
 
 #include <filesystem>
+#include <iostream>
 #include <unordered_map>
 
 #include "TrackingPipeline/Clustering/HourglassFilter.hpp"
 #include "TrackingPipeline/Geometry/E320Geometry.hpp"
+#include "TrackingPipeline/Geometry/E320GeometryConstraints.hpp"
 #include "TrackingPipeline/Infrastructure/Sequencer.hpp"
 #include "TrackingPipeline/Io/E320RootSimDataReader.hpp"
 #include "TrackingPipeline/Io/JsonTrackLookupReader.hpp"
@@ -28,11 +30,11 @@
 #include "TrackingPipeline/MagneticField/DipoleMagField.hpp"
 #include "TrackingPipeline/MagneticField/QuadrupoleMagField.hpp"
 #include "TrackingPipeline/Simulation/E320CptBkgGenerator.hpp"
+#include "TrackingPipeline/Simulation/E320CptBkgVertexGenerator.hpp"
 #include "TrackingPipeline/Simulation/E320HistDigitizer.hpp"
 #include "TrackingPipeline/Simulation/KDEMomentumxGenerator.hpp"
 #include "TrackingPipeline/Simulation/MeasurementsCreator.hpp"
 #include "TrackingPipeline/Simulation/MeasurementsEmbeddingAlgorithm.hpp"
-#include "TrackingPipeline/Simulation/PowerLawVertexGenerator.hpp"
 #include "TrackingPipeline/TrackFinding/CKFTrackFindingAlgorithm.hpp"
 #include "TrackingPipeline/TrackFinding/ForwardOrderedIntersectionFinder.hpp"
 #include "TrackingPipeline/TrackFinding/LayerPathWidthProvider.hpp"
@@ -65,7 +67,7 @@ using namespace Acts::UnitLiterals;
 
 int main() {
   // Set the log level
-  Acts::Logging::Level logLevel = Acts::Logging::FATAL;
+  Acts::Logging::Level logLevel = Acts::Logging::VERBOSE;
 
   // Dummy context and options
   Acts::GeometryContext gctx;
@@ -80,7 +82,7 @@ int main() {
   // and the names of the volumes to be converted
   std::string gdmlPath =
       "/home/romanurmanov/lab/LUXE/acts_tracking/E320Pipeline_gdmls/"
-      "ettgeom_magnet_pdc_tracker.gdml";
+      "prototype/ett_geometry_f566a577_no_walls.gdml";
   std::vector<std::string> names{"OPPPSensitive", "DetChamberWindow"};
 
   // Veto PDC window material mapping
@@ -96,8 +98,8 @@ int main() {
 
   // Build the detector
   auto trackerBP = E320Geometry::makeBlueprintE320(gdmlPath, names, gOpt);
-  auto detector = E320Geometry::buildE320Detector(
-      std::move(trackerBP), gctx, gOpt, materialPath, materialVeto);
+  auto detector = E320Geometry::buildE320Detector(std::move(trackerBP), gctx,
+                                                  gOpt, materialVeto);
 
   for (auto& v : detector->volumes()) {
     std::cout << v->name() << std::endl;
@@ -105,7 +107,8 @@ int main() {
       std::cout << s->center(gctx).transpose() << "   "
                 << s->normal(gctx, s->center(gctx), Acts::Vector3(1, 0, 0))
                        .transpose()
-                << std::endl;
+                << "\n"
+                << s->bounds() << std::endl;
     }
   }
 
@@ -191,7 +194,6 @@ int main() {
       .connect<&SimpleSourceLink::SurfaceAccessor::operator()>(
           &surfaceAccessor);
 
-  // --------------------------------------------------------------
   // Event reading
 
   // Setup the sequencer
@@ -202,13 +204,13 @@ int main() {
   Sequencer sequencer(seqCfg);
 
   // Add the sim data reader
-  E320Io::E320RootSimDataReader::Config readerCfg = E320Io::defaultSimConfig();
-  readerCfg.clusterFilter = hourglassFilter;
+  E320Io::E320RootSimDataReader::Config readerCfg;
+  //   readerCfg.clusterFilter = hourglassFilter;
+  readerCfg.treeName = "MyTree";
   readerCfg.outputSourceLinks = "Measurements";
-  readerCfg.outputSimClusters = "Clusters";
   std::string pathToDir =
       "/home/romanurmanov/lab/LUXE/acts_tracking/E320Pipeline_dataInRootFormat/"
-      "temp";
+      "E320Shift_Nov_2024";
 
   // Get the paths to the files in the directory
   for (const auto& entry : std::filesystem::directory_iterator(pathToDir)) {
@@ -235,173 +237,177 @@ int main() {
   sequencer.addReader(
       std::make_shared<E320Io::E320RootSimDataReader>(readerCfg, logLevel));
 
-  // --------------------------------------------------------------
-  // Compton background embedding
+  //  // --------------------------------------------------------------
+  //  // Compton background embedding
+  //
+  //  // Setup the measurements creator
+  //  Acts::Experimental::DetectorNavigator::Config cptNavCfg;
+  //  cptNavCfg.detector = detector.get();
+  //  cptNavCfg.resolvePassive = false;
+  //  cptNavCfg.resolveMaterial = true;
+  //  cptNavCfg.resolveSensitive = true;
+  //
+  //  Acts::Experimental::DetectorNavigator cptNavigator(
+  //      cptNavCfg, Acts::getDefaultLogger("DetectorNavigator", logLevel));
+  //  Acts::EigenStepper<> cptStepper(field);
+  //
+  //  Propagator cptBkgPropagator(std::move(cptStepper),
+  //  std::move(cptNavigator));
+  //
+  //  // Digitizer
+  //  E320Sim::E320HistDigitizer::Config cptDigitizerCfg;
+  //  cptDigitizerCfg.pathToHist =
+  //      "/home/romanurmanov/lab/LUXE/acts_tracking/E320Pipeline_genHists/"
+  //      "comptonBkg/genHistSize.root";
+  //  cptDigitizerCfg.histName = "histSize";
+  //
+  //  auto cptDigitizer =
+  //      std::make_shared<E320Sim::E320HistDigitizer>(cptDigitizerCfg);
+  //
+  //  // Track parameters generator
+  //  RootTrackParamsReader::Config cptReaderCfg;
+  //  cptReaderCfg.treeName = "track-parameters";
+  //  cptReaderCfg.transform = Acts::Transform3::Identity();
+  //  std::string pathToDirCpt =
+  //      "/home/romanurmanov/lab/LUXE/acts_tracking/E320Pipeline_genRootData/"
+  //      "comptonBkg";
+  //
+  //  // Get the paths to the files in the directory
+  //  for (const auto& entry :
+  //  std::filesystem::directory_iterator(pathToDirCpt)) {
+  //    std::string pathToFile = entry.path();
+  //    cptReaderCfg.filePaths.push_back(pathToFile);
+  //  }
+  //
+  //  E320Sim::E320CptBkgGenerator::Config cptBkgGenCfg;
+  //  cptBkgGenCfg.nIterations = 1;
+  //  cptBkgGenCfg.sensitivity = 0.5;
+  //  cptBkgGenCfg.yPower = -77.0091;
+  //  cptBkgGenCfg.yShift = -10630.9;
+  //  cptBkgGenCfg.zProbs = {0.29, 0.26, 0.24, 0.21};
+  //  cptBkgGenCfg.trackParamsReader =
+  //      std::make_shared<RootTrackParamsReader>(cptReaderCfg);
+  //  auto cptBkgGen =
+  //  std::make_shared<E320Sim::E320CptBkgGenerator>(cptBkgGenCfg);
+  //
+  //  // Measurement creator
+  //  MeasurementsCreator::Config cptMcCfg;
+  //  cptMcCfg.vertexGenerator = cptBkgGen;
+  //  cptMcCfg.momentumGenerator = cptBkgGen;
+  //  cptMcCfg.hitDigitizer = cptDigitizer;
+  //  cptMcCfg.maxSteps = 100;
+  //  cptMcCfg.isSignal = false;
+  //
+  //  auto cptMeasurementsCreator =
+  //      std::make_shared<MeasurementsCreator>(cptBkgPropagator, cptMcCfg);
+  //
+  //  MeasurementsEmbeddingAlgorithm::Config cptMceCfg;
+  //  cptMceCfg.inputSourceLinks = "SimMeasurements";
+  //  cptMceCfg.inputSimClusters = "SimClusters";
+  //  cptMceCfg.outputSourceLinks = "MeasurementsWithNCS";
+  //  cptMceCfg.outputSimClusters = "ClustersWithNCS";
+  //  cptMceCfg.measurementGenerator = cptMeasurementsCreator;
+  //  cptMceCfg.clusterFilter = hourglassFilter;
+  //  cptMceCfg.randomNumberSvc =
+  //      std::make_shared<RandomNumbers>(RandomNumbers::Config());
+  //  cptMceCfg.nMeasurements = 660;
+  //
+  //  sequencer.addAlgorithm(
+  //      std::make_shared<MeasurementsEmbeddingAlgorithm>(cptMceCfg,
+  //      logLevel));
 
-  // Setup the measurements creator
-  Acts::Experimental::DetectorNavigator::Config cptNavCfg;
-  cptNavCfg.detector = detector.get();
-  cptNavCfg.resolvePassive = false;
-  cptNavCfg.resolveMaterial = true;
-  cptNavCfg.resolveSensitive = true;
-
-  Acts::Experimental::DetectorNavigator cptNavigator(
-      cptNavCfg, Acts::getDefaultLogger("DetectorNavigator", logLevel));
-  Acts::EigenStepper<> cptStepper(field);
-
-  Propagator cptBkgPropagator(std::move(cptStepper), std::move(cptNavigator));
-
-  // Digitizer
-  E320Sim::E320HistDigitizer::Config cptDigitizerCfg;
-  cptDigitizerCfg.pathToHist =
-      "/home/romanurmanov/lab/LUXE/acts_tracking/E320Pipeline_genHists/"
-      "comptonBkg/genHistSize.root";
-  cptDigitizerCfg.histName = "histSize";
-
-  auto cptDigitizer =
-      std::make_shared<E320Sim::E320HistDigitizer>(cptDigitizerCfg);
-
-  // Track parameters generator
-  RootTrackParamsReader::Config cptReaderCfg;
-  cptReaderCfg.treeName = "track-parameters";
-  cptReaderCfg.transform = Acts::Transform3::Identity();
-  std::string pathToDirCpt =
-      "/home/romanurmanov/lab/LUXE/acts_tracking/E320Pipeline_genRootData/"
-      "comptonBkg";
-
-  // Get the paths to the files in the directory
-  for (const auto& entry : std::filesystem::directory_iterator(pathToDirCpt)) {
-    std::string pathToFile = entry.path();
-    cptReaderCfg.filePaths.push_back(pathToFile);
-  }
-
-  //   E320Sim::E320CptBkgGenerator::Config cptBkgGenCfg;
-  //   cptBkgGenCfg.nIterations = 1;
-  //   cptBkgGenCfg.sensitivity = 0.5;
-  //   cptBkgGenCfg.yPower = -77.0091;
-  //   cptBkgGenCfg.yShift = -10630.9;
-  //   cptBkgGenCfg.zProbs = {0.29, 0.26, 0.24, 0.21};
-  //   cptBkgGenCfg.trackParamsReader =
-  //   std::make_shared<RootTrackParamsReader>(cptReaderCfg);
-  //   auto cptBkgGen =
-  //   std::make_shared<E320Sim::E320CptBkgGenerator>(cptBkgGenCfg);
-
-  //   // Measurement creator
-  //   MeasurementsCreator::Config cptMcCfg;
-  //   cptMcCfg.vertexGenerator = cptBkgGen;
-  //   cptMcCfg.momentumGenerator = cptBkgGen;
-  //   cptMcCfg.hitDigitizer = cptDigitizer;
-  //   cptMcCfg.maxSteps = 100;
-  //   cptMcCfg.isSignal = false;
-
-  //   auto cptMeasurementsCreator =
-  //   std::make_shared<MeasurementsCreator>(cptBkgPropagator, cptMcCfg);
-
-  //   MeasurementsEmbeddingAlgorithm::Config cptMceCfg;
-  //   cptMceCfg.inputSourceLinks = "SimMeasurements";
-  //   cptMceCfg.inputSimClusters = "SimClusters";
-  //   cptMceCfg.outputSourceLinks = "MeasurementsWithNCS";
-  //   cptMceCfg.outputSimClusters = "ClustersWithNCS";
-  //   cptMceCfg.measurementGenerator = cptMeasurementsCreator;
-  //   cptMceCfg.clusterFilter = hourglassFilter;
-  //   cptMceCfg.randomNumberSvc =
-  //   std::make_shared<RandomNumbers>(RandomNumbers::Config());
-  //   cptMceCfg.nMeasurements = 660;
-
-  //   sequencer.addAlgorithm(
-  //   std::make_shared<MeasurementsEmbeddingAlgorithm>(cptMceCfg, logLevel));
-
-  // --------------------------------------------------------------
-  // Beam background embedding
-
-  // Setup the measurements creator
-  Acts::Experimental::DetectorNavigator::Config beamNavCfg;
-  beamNavCfg.detector = detector.get();
-  beamNavCfg.resolvePassive = false;
-  beamNavCfg.resolveMaterial = true;
-  beamNavCfg.resolveSensitive = true;
-
-  Acts::Experimental::DetectorNavigator beamNavigator(
-      beamNavCfg, Acts::getDefaultLogger("DetectorNavigator", logLevel));
-  Acts::EigenStepper<> beamStepper(field);
-
-  Propagator beamBkgPropagator(std::move(beamStepper),
-                               std::move(beamNavigator));
-
-  // Digitizer
-  E320Sim::E320HistDigitizer::Config beamDigitizerCfg;
-  beamDigitizerCfg.pathToHist =
-      "/home/romanurmanov/lab/LUXE/acts_tracking/E320Pipeline_genHists/beamBkg/"
-      "genHistSize.root";
-  beamDigitizerCfg.histName = "histSize";
-
-  auto beamDigitizer =
-      std::make_shared<E320Sim::E320HistDigitizer>(beamDigitizerCfg);
-
-  // Vertex generator
-  auto beamVertexGen = std::make_shared<E320Sim::E320PowerLawVertexGenerator>();
-
-  beamVertexGen->yBoundLow = gOpt.chipY.at(0) - gOpt.chipSizeY / 2;
-  beamVertexGen->yBoundHigh = gOpt.chipY.at(8) + gOpt.chipSizeY / 2;
-
-  beamVertexGen->xBoundLow = gOpt.chipX - gOpt.chipSizeX / 2;
-  beamVertexGen->xBoundHigh = gOpt.chipX + gOpt.chipSizeX / 2;
-
-  beamVertexGen->yPower = 69.8048;
-  beamVertexGen->yShift = -22165;
-  beamVertexGen->zProbs = {0.25, 0.24, 0.23, 0.28};
-  beamVertexGen->zPositions = {gOpt.staveZ.at(0), gOpt.staveZ.at(1),
-                               gOpt.staveZ.at(2), gOpt.staveZ.at(3)};
-
-  // Momentum generator
-  RootTrackParamsReader::Config beamReaderCfg;
-  beamReaderCfg.treeName = "track-parameters";
-  beamReaderCfg.transform = Acts::Transform3::Identity();
-  std::string pathToDirBeam =
-      "/home/romanurmanov/lab/LUXE/acts_tracking/E320Pipeline_genRootData/"
-      "beamBkg";
-
-  // Get the paths to the files in the directory
-  for (const auto& entry : std::filesystem::directory_iterator(pathToDirBeam)) {
-    std::string pathToFile = entry.path();
-    beamReaderCfg.filePaths.push_back(pathToFile);
-  }
-
-  //   KDEMomentumGenerator::Config beamMomGenCfg;
-  //   beamMomGenCfg.trackParamsReader =
-  //   std::make_shared<RootTrackParamsReader>(beamReaderCfg);
-  //   beamMomGenCfg.nIterations = 1;
-  //   beamMomGenCfg.sensitivity = 0.5;
-  //   beamMomGenCfg.transform =
-  //   Acts::Transform3(Acts::Translation3(Acts::Vector3(0, 0, 0)) *
-  //    gOpt.actsToWorldRotation.inverse());
-
-  //   auto beamMomGen = std::make_shared<KDEMomentumGenerator>(beamMomGenCfg);
-
-  //   // Measurement creator
-  //   MeasurementsCreator::Config beamMcCfg;
-  //   beamMcCfg.vertexGenerator = beamVertexGen;
-  //   beamMcCfg.momentumGenerator = beamMomGen;
-  //   beamMcCfg.hitDigitizer = beamDigitizer;
-  //   beamMcCfg.maxSteps = 100;
-  //   beamMcCfg.isSignal = false;
-
-  //   auto beamMeasurementsCreator =
-  //   std::make_shared<MeasurementsCreator>(beamBkgPropagator, beamMcCfg);
-
-  //   MeasurementsEmbeddingAlgorithm::Config beamMceCfg;
-  //   beamMceCfg.inputSourceLinks = "MeasurementsWithNCS";
-  //   beamMceCfg.inputSimClusters = "ClustersWithNCS";
-  //   beamMceCfg.outputSourceLinks = "Measurements";
-  //   beamMceCfg.outputSimClusters = "Clusters";
-  //   beamMceCfg.measurementGenerator = beamMeasurementsCreator;
-  //   beamMceCfg.clusterFilter = hourglassFilter;
-  //   beamMceCfg.randomNumberSvc =
-  //   std::make_shared<RandomNumbers>(RandomNumbers::Config());
-  //   beamMceCfg.nMeasurements = 3450;
-
-  //   sequencer.addAlgorithm(
-  //   std::make_shared<MeasurementsEmbeddingAlgorithm>(beamMceCfg, logLevel));
+//   // --------------------------------------------------------------
+//   // Beam background embedding
+// 
+//   // Setup the measurements creator
+//   Acts::Experimental::DetectorNavigator::Config beamNavCfg;
+//   beamNavCfg.detector = detector.get();
+//   beamNavCfg.resolvePassive = false;
+//   beamNavCfg.resolveMaterial = true;
+//   beamNavCfg.resolveSensitive = true;
+// 
+//   Acts::Experimental::DetectorNavigator beamNavigator(
+//       beamNavCfg, Acts::getDefaultLogger("DetectorNavigator", logLevel));
+//   Acts::EigenStepper<> beamStepper(field);
+// 
+//   Propagator beamBkgPropagator(std::move(beamStepper),
+//                                std::move(beamNavigator));
+// 
+//   // Digitizer
+//   E320Sim::E320HistDigitizer::Config beamDigitizerCfg;
+//   beamDigitizerCfg.pathToHist =
+//       "/home/romanurmanov/lab/LUXE/acts_tracking/E320Pipeline_genHists/"
+//       "beamBkg/"
+//       "genHistSize.root";
+//   beamDigitizerCfg.histName = "histSize";
+// 
+//   auto beamDigitizer =
+//       std::make_shared<E320Sim::E320HistDigitizer>(beamDigitizerCfg);
+// 
+//   // Vertex generator
+//   auto beamVertexGen = std::make_shared<E320Sim::E320PowerLawVertexGenerator>();
+// 
+//   beamVertexGen->yBoundLow = gOpt.chipY.at(0) - gOpt.chipSizeY / 2;
+//   beamVertexGen->yBoundHigh = gOpt.chipY.at(8) + gOpt.chipSizeY / 2;
+// 
+//   beamVertexGen->xBoundLow = gOpt.chipX - gOpt.chipSizeX / 2;
+//   beamVertexGen->xBoundHigh = gOpt.chipX + gOpt.chipSizeX / 2;
+// 
+//   beamVertexGen->yPower = 69.8048;
+//   beamVertexGen->yShift = -22165;
+//   beamVertexGen->zProbs = {0.25, 0.24, 0.23, 0.28};
+//   beamVertexGen->zPositions = {gOpt.staveZ.at(0), gOpt.staveZ.at(1),
+//                                gOpt.staveZ.at(2), gOpt.staveZ.at(3)};
+// 
+//   // Momentum generator
+//   RootTrackParamsReader::Config beamReaderCfg;
+//   beamReaderCfg.treeName = "track-parameters";
+//   beamReaderCfg.transform = Acts::Transform3::Identity();
+//   std::string pathToDirBeam =
+//       "/home/romanurmanov/lab/LUXE/acts_tracking/E320Pipeline_genRootData/"
+//       "beamBkg";
+// 
+//   // Get the paths to the files in the directory
+//   for (const auto& entry : std::filesystem::directory_iterator(pathToDirBeam)) {
+//     std::string pathToFile = entry.path();
+//     beamReaderCfg.filePaths.push_back(pathToFile);
+//   }
+// 
+//   KDEMomentumGenerator::Config beamMomGenCfg;
+//   beamMomGenCfg.trackParamsReader =
+//       std::make_shared<RootTrackParamsReader>(beamReaderCfg);
+//   beamMomGenCfg.nIterations = 1;
+//   beamMomGenCfg.sensitivity = 0.5;
+//   beamMomGenCfg.transform =
+//       Acts::Transform3(Acts::Translation3(Acts::Vector3(0, 0, 0)) *
+//                        gOpt.actsToWorldRotation.inverse());
+// 
+//   auto beamMomGen = std::make_shared<KDEMomentumGenerator>(beamMomGenCfg);
+// 
+//   // Measurement creator
+//   MeasurementsCreator::Config beamMcCfg;
+//   beamMcCfg.vertexGenerator = beamVertexGen;
+//   beamMcCfg.momentumGenerator = beamMomGen;
+//   beamMcCfg.hitDigitizer = beamDigitizer;
+//   beamMcCfg.maxSteps = 100;
+//   beamMcCfg.isSignal = false;
+// 
+//   auto beamMeasurementsCreator =
+//       std::make_shared<MeasurementsCreator>(beamBkgPropagator, beamMcCfg);
+// 
+//   MeasurementsEmbeddingAlgorithm::Config beamMceCfg;
+//   beamMceCfg.inputSourceLinks = "MeasurementsWithNCS";
+//   beamMceCfg.inputSimClusters = "ClustersWithNCS";
+//   beamMceCfg.outputSourceLinks = "Measurements";
+//   beamMceCfg.outputSimClusters = "Clusters";
+//   beamMceCfg.measurementGenerator = beamMeasurementsCreator;
+//   beamMceCfg.clusterFilter = hourglassFilter;
+//   beamMceCfg.randomNumberSvc =
+//       std::make_shared<RandomNumbers>(RandomNumbers::Config());
+//   beamMceCfg.nMeasurements = 3450;
+// 
+//   sequencer.addAlgorithm(
+//       std::make_shared<MeasurementsEmbeddingAlgorithm>(beamMceCfg, logLevel));
 
   // --------------------------------------------------------------
   // The path seeding setup

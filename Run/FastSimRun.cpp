@@ -13,6 +13,7 @@
 
 #include "TrackingPipeline/Clustering/HourglassFilter.hpp"
 #include "TrackingPipeline/Geometry/E320Geometry.hpp"
+#include "TrackingPipeline/Geometry/E320GeometryConstraints.hpp"
 #include "TrackingPipeline/Infrastructure/Sequencer.hpp"
 #include "TrackingPipeline/Io/DummyReader.hpp"
 #include "TrackingPipeline/Io/RootSimClusterWriter.hpp"
@@ -20,12 +21,13 @@
 #include "TrackingPipeline/MagneticField/CompositeMagField.hpp"
 #include "TrackingPipeline/MagneticField/DipoleMagField.hpp"
 #include "TrackingPipeline/MagneticField/QuadrupoleMagField.hpp"
+#include "TrackingPipeline/Simulation/E320BeamBkgVertexGenerator.hpp"
 #include "TrackingPipeline/Simulation/E320CptBkgGenerator.hpp"
+#include "TrackingPipeline/Simulation/E320CptBkgVertexGenerator.hpp"
 #include "TrackingPipeline/Simulation/E320HistDigitizer.hpp"
 #include "TrackingPipeline/Simulation/KDEMomentumxGenerator.hpp"
 #include "TrackingPipeline/Simulation/MeasurementsCreator.hpp"
 #include "TrackingPipeline/Simulation/MeasurementsEmbeddingAlgorithm.hpp"
-#include "TrackingPipeline/Simulation/PowerLawVertexGenerator.hpp"
 
 using ActionList = Acts::ActionList<>;
 using AbortList = Acts::AbortList<Acts::EndOfWorldReached>;
@@ -48,6 +50,7 @@ using TrackStateContainerBackend =
 
 using namespace Acts::UnitLiterals;
 
+// TODO: There's something wrong with the KDE
 int main() {
   // Set the log level
   Acts::Logging::Level logLevel = Acts::Logging::FATAL;
@@ -65,7 +68,7 @@ int main() {
   // and the names of the volumes to be converted
   std::string gdmlPath =
       "/home/romanurmanov/lab/LUXE/acts_tracking/E320Pipeline_gdmls/"
-      "ettgeom_magnet_pdc_tracker.gdml";
+      "full_detector_sim/ettgeom_magnet_pdc_tracker.gdml";
   std::vector<std::string> names{"OPPPSensitive", "DetChamberWindow"};
 
   // Veto PDC window material mapping
@@ -77,7 +80,7 @@ int main() {
 
   std::string materialPath =
       "/home/romanurmanov/lab/LUXE/acts_tracking/E320Pipeline_material/"
-      "Uniform_DirectZ_TrackerOnly_256x128_1M/material.json";
+      "full_detector_sim/Uniform_DirectZ_TrackerOnly_256x128_1M/material.json";
 
   // Build the detector
   auto trackerBP = E320Geometry::makeBlueprintE320(gdmlPath, names, gOpt);
@@ -188,7 +191,7 @@ int main() {
   DummyReader::Config dummyReaderCfg;
   dummyReaderCfg.outputSourceLinks = "SimMeasurements";
   dummyReaderCfg.outputSimClusters = "SimClusters";
-  dummyReaderCfg.nEvents = 10;
+  dummyReaderCfg.nEvents = 1e2;
 
   sequencer.addReader(std::make_shared<DummyReader>(dummyReaderCfg));
 
@@ -235,9 +238,7 @@ int main() {
   E320Sim::E320CptBkgGenerator::Config cptBkgGenCfg;
   cptBkgGenCfg.nIterations = 1;
   cptBkgGenCfg.sensitivity = 0.5;
-  cptBkgGenCfg.yPower = -77.0091;
-  cptBkgGenCfg.yShift = -10630.9;
-  cptBkgGenCfg.zProbs = {0.29, 0.26, 0.24, 0.21};
+  cptBkgGenCfg.vertexGenCfg = E320Sim::cptBkgVertexGenConfig();
   cptBkgGenCfg.trackParamsReader =
       std::make_shared<RootTrackParamsReader>(cptReaderCfg);
   auto cptBkgGen = std::make_shared<E320Sim::E320CptBkgGenerator>(cptBkgGenCfg);
@@ -259,7 +260,7 @@ int main() {
   cptMceCfg.outputSourceLinks = "Measurements";
   cptMceCfg.outputSimClusters = "Clusters";
   cptMceCfg.measurementGenerator = cptMeasurementsCreator;
-  cptMceCfg.clusterFilter = hourglassFilter;
+  //   cptMceCfg.clusterFilter = hourglassFilter;
   cptMceCfg.randomNumberSvc =
       std::make_shared<RandomNumbers>(RandomNumbers::Config());
   cptMceCfg.nMeasurements = 660;
@@ -295,7 +296,7 @@ int main() {
       std::make_shared<E320Sim::E320HistDigitizer>(beamDigitizerCfg);
 
   // Vertex generator
-  auto beamVertexGen = std::make_shared<E320Sim::E320PowerLawVertexGenerator>();
+  auto beamVertexGen = std::make_shared<E320Sim::E320BeamBkgVertexGenerator>();
 
   beamVertexGen->yBoundLow = gOpt.chipY.at(0) - gOpt.chipSizeY / 2;
   beamVertexGen->yBoundHigh = gOpt.chipY.at(8) + gOpt.chipSizeY / 2;
@@ -351,13 +352,13 @@ int main() {
   beamMceCfg.outputSourceLinks = "Measurements";
   beamMceCfg.outputSimClusters = "Clusters";
   beamMceCfg.measurementGenerator = beamMeasurementsCreator;
-  beamMceCfg.clusterFilter = hourglassFilter;
+  //   beamMceCfg.clusterFilter = hourglassFilter;
   beamMceCfg.randomNumberSvc =
       std::make_shared<RandomNumbers>(RandomNumbers::Config());
   beamMceCfg.nMeasurements = 3450;
 
-  sequencer.addAlgorithm(
-      std::make_shared<MeasurementsEmbeddingAlgorithm>(beamMceCfg, logLevel));
+//  sequencer.addAlgorithm(
+//      std::make_shared<MeasurementsEmbeddingAlgorithm>(beamMceCfg, logLevel));
 
   // --------------------------------------------------------------
   // Event write out
@@ -371,7 +372,7 @@ int main() {
 
   clusterWriterCfg.inputClusters = "Clusters";
   clusterWriterCfg.treeName = "clusters";
-  clusterWriterCfg.filePath = "clusters-bkg.root";
+  clusterWriterCfg.filePath = "clusters-ncs-beam.root";
 
   sequencer.addWriter(
       std::make_shared<RootSimClusterWriter>(clusterWriterCfg, logLevel));

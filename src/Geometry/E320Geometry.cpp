@@ -4,9 +4,11 @@
 #include "Acts/Detector/DetectorBuilder.hpp"
 #include "Acts/Detector/detail/BlueprintHelper.hpp"
 #include "Acts/Plugins/Json/JsonMaterialDecorator.hpp"
+#include <Acts/Definitions/Algebra.hpp>
 
 #include <vector>
 
+#include "TrackingPipeline/Geometry/E320GeometryConstraints.hpp"
 #include "TrackingPipeline/Geometry/E320GeometryIdGenerator.hpp"
 #include "TrackingPipeline/Geometry/LayerBuilderConstruction.hpp"
 #include "TrackingPipeline/Material/NoMaterialDecorator.hpp"

@@ -11,7 +11,7 @@ namespace E320Io {
 
 using namespace Acts::UnitLiterals;
 
-/// @brief The ROOT file reader for the LUXE simulation
+/// @brief The ROOT file reader for the E320 simulation
 /// that knows about the true trueHits and the true momenta
 ///
 /// @note Covariance is implemented as a diagonal matrix

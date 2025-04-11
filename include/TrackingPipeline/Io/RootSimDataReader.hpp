@@ -54,7 +54,7 @@ class RootSimDataReader : public IReader {
   virtual std::string name() const override { return "RootSimDataReader"; }
 
   /// Return the available events range.
-  std::pair<std::size_t, std::size_t> availableEvents() const override;
+  std::pair<std::size_t, std::size_t> availableEvents() const final;
 
   /// Read out data from the input stream
   ProcessCode read(const AlgorithmContext& context) override;
