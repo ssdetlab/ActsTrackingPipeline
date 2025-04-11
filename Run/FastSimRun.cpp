@@ -191,7 +191,7 @@ int main() {
   DummyReader::Config dummyReaderCfg;
   dummyReaderCfg.outputSourceLinks = "SimMeasurements";
   dummyReaderCfg.outputSimClusters = "SimClusters";
-  dummyReaderCfg.nEvents = 1e2;
+  dummyReaderCfg.nEvents = 1e1;
 
   sequencer.addReader(std::make_shared<DummyReader>(dummyReaderCfg));
 
@@ -357,8 +357,8 @@ int main() {
       std::make_shared<RandomNumbers>(RandomNumbers::Config());
   beamMceCfg.nMeasurements = 3450;
 
-//  sequencer.addAlgorithm(
-//      std::make_shared<MeasurementsEmbeddingAlgorithm>(beamMceCfg, logLevel));
+  sequencer.addAlgorithm(
+      std::make_shared<MeasurementsEmbeddingAlgorithm>(beamMceCfg, logLevel));
 
   // --------------------------------------------------------------
   // Event write out
