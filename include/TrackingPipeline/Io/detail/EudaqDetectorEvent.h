@@ -4,8 +4,10 @@
 #include <string>
 #include <vector>
 
-#include "TObject.h"
+#include <TObject.h>
+
 #include "AlpideRegisters.h"
+#include "EpicsFrame.h"
 #include "MosaicRegisters.h"
 
 class chip_event {
@@ -31,7 +33,7 @@ class chip_event {
   std::uint8_t chip_id;
   std::uint8_t channel;
 
-  ClassDef(chip_event, 4);
+  ClassDef(chip_event, 3);
 };
 
 class tlu_event {
@@ -80,7 +82,7 @@ class tlu_event {
   std::uint64_t event_begin;
   std::uint64_t event_end;
 
-  ClassDef(tlu_event, 4);
+  ClassDef(tlu_event, 3);
 };
 
 class stave_event {
@@ -91,7 +93,7 @@ class stave_event {
   // stave identificator
   std::uint8_t stave_id;
 
-  ClassDef(stave_event, 4);
+  ClassDef(stave_event, 3);
 };
 
 class detector_event {
@@ -99,16 +101,20 @@ class detector_event {
   // stave event storage
   std::vector<stave_event> st_ev_buffer;
 
+  // Epics frame
+  EpicsFrame epics_frame;
+
   // event MOSAIC trigger ID
   std::uint64_t trg_n;
 
   // UNIX timestamp in ms
-  std::uint64_t ts;
+  std::uint64_t ts_begin;
+  std::uint64_t ts_end;
 
   // Run number
   std::uint32_t run_number;
 
-  ClassDef(detector_event, 4);
+  ClassDef(detector_event, 6);
 };
 
 class detector_event_tlu {
@@ -119,7 +125,7 @@ class detector_event_tlu {
   // to sync with the tlu
   tlu_event tl_ev;
 
-  ClassDef(detector_event_tlu, 4);
+  ClassDef(detector_event_tlu, 3);
 };
 
 class chip_run_meta {
