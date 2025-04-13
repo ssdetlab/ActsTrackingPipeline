@@ -75,8 +75,9 @@ int main() {
   // Set the path to the gdml file
   // and the names of the volumes to be converted
   std::string gdmlPath =
-      "/home/romanurmanov/lab/LUXE/acts_tracking/E320Pipeline_gdmls/"
-      "prototype/ett_geometry_f566a577_no_walls.gdml";
+      "/home/romanurmanov/lab/LUXE/acts_tracking/E320Prototype/"
+      "E320Prototype_gdmls/"
+      "ett_geometry_f566a577.gdml";
   std::vector<std::string> names{"OPPPSensitive", "DetChamberWindow"};
 
   // Veto PDC window material mapping
@@ -87,13 +88,14 @@ int main() {
   std::vector<Acts::GeometryIdentifier> materialVeto{pdcWindowId};
 
   std::string materialPath =
-      "/home/romanurmanov/lab/LUXE/acts_tracking/E320Pipeline_material/"
+      "/home/romanurmanov/lab/LUXE/acts_tracking/E320Prototype/"
+      "E320Prototype_material/"
       "Uniform_DirectZ_TrackerOnly_256x128_1M/material.json";
 
   // Build the detector
   auto trackerBP = E320Geometry::makeBlueprintE320(gdmlPath, names, gOpt);
-  auto detector = E320Geometry::buildE320Detector(std::move(trackerBP), gctx,
-                                                  gOpt, materialVeto);
+  auto detector = E320Geometry::buildE320Detector(
+      std::move(trackerBP), gctx, gOpt, materialPath, materialVeto);
 
   for (auto& v : detector->volumes()) {
     std::cout << v->name() << std::endl;

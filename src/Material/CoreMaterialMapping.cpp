@@ -51,7 +51,8 @@ ProcessCode CoreMaterialMapping::execute(
 
   for (auto& [idTrack, mTrack] : mtrackCollection) {
     auto [mapped, unmapped] = m_cfg.materialMapper->mapMaterial(
-        *mappingState, context.geoContext, context.magFieldContext, mTrack);
+        *mappingState, context.geoContext, context.magFieldContext, mTrack,
+        m_cfg.materialMapperOptions);
 
     mappedTrackCollection.emplace_hint(mappedTrackCollection.end(), idTrack,
                                        mapped);

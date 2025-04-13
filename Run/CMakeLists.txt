@@ -4,4 +4,5 @@
 #
 
 add_run(MaterialMapping MaterialMappingRun.cpp)
+add_run(MaterialValidation MaterialValidationRun.cpp)
 add_run(FullTracking FullTrackingRun.cpp)
