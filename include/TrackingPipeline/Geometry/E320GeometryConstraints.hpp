@@ -51,27 +51,30 @@ struct GeometryOptions {
 
   // Dipole volume encapsulating the
   // magnetic field
-  const Acts::Vector3 dipoleTranslation{0_mm, 0_mm, 13140_mm};
+  const Acts::Vector3 dipoleTranslation{0_mm, 0_mm, 13060.6_mm};
 
   const std::vector<double> dipoleBounds = {
       chipSizeX / 2 + 1000_mm, chipY.at(8) + chipSizeY / 2 + 1000_mm, 1000_mm};
 
   // Quadrupole volume encapsulating the
   // magnetic field
-  const Acts::Vector3 quad1Translation{0_mm, 0_mm, 4182.49_mm};
+  const Acts::Vector3 quad1Translation{0_mm, 0_mm, 4160_mm};
 
   const std::vector<double> quad1Bounds = {
-      chipSizeX / 2 + 1000_mm, chipY.at(8) + chipSizeY / 2 + 1000_mm, 1000_mm};
+      chipSizeX / 2 + 1000_mm, chipY.at(8) + chipSizeY / 2 + 1000_mm,
+      486.664_mm};
 
-  const Acts::Vector3 quad2Translation{0_mm, 0_mm, 6406.62_mm};
+  const Acts::Vector3 quad2Translation{0_mm, 0_mm, 6390_mm};
 
   const std::vector<double> quad2Bounds = {
-      chipSizeX / 2 + 1000_mm, chipY.at(8) + chipSizeY / 2 + 1000_mm, 1000_mm};
+      chipSizeX / 2 + 1000_mm, chipY.at(8) + chipSizeY / 2 + 1000_mm,
+      486.664_mm};
 
-  const Acts::Vector3 quad3Translation{0_mm, 0_mm, 8631.05_mm};
+  const Acts::Vector3 quad3Translation{0_mm, 0_mm, 8610_mm};
 
   const std::vector<double> quad3Bounds = {
-      chipSizeX / 2 + 1000_mm, chipY.at(8) + chipSizeY / 2 + 1000_mm, 1000_mm};
+      chipSizeX / 2 + 1000_mm, chipY.at(8) + chipSizeY / 2 + 1000_mm,
+      486.664_mm};
 
   // Dipole and quadrupole field parameters
   const std::tuple<Acts::Vector2, Acts::Vector4, Acts::Vector4> dipoleParams = {
