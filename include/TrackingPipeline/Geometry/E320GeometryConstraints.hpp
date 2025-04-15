@@ -81,6 +81,13 @@ struct GeometryOptions {
   const Acts::Vector3 quadrupolesParams = {4.0_T / 1_m, -7.0_T / 1_m,
                                            4.0_T / 1_m};
 
+  // X-corrector volume encapsulating the
+  // magnetic field
+  const Acts::Vector3 xCorrectorTranslation{0_mm, 0_mm, 4182.49_mm};
+
+  const std::vector<double> xCorrectorBounds = {
+      chipSizeX / 2 + 1000_mm, chipY + chipSizeY / 2 + 1000_mm, 1000_mm};
+
   // PDC window volume
   const Acts::Vector3 pdcWindowTranslation{0_mm, 0_mm, 16549.7_mm};
 

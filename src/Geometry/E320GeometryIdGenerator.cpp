@@ -59,13 +59,18 @@ void E320GeometryIdGenerator::assignGeometryId(
     Acts::Surface& surface) const {
   auto& ccache = std::any_cast<Cache&>(cache);
 
+  std::cout << "STARTING SURFACE ID\n";
   auto rGeoID = surface.geometryId();
+  std::cout << "rGeoID == " << rGeoID << "\n";
   auto geoID = Acts::GeometryIdentifier(0u);
+  std::cout << "geoID == " << geoID << "\n";
   if (!m_cfg.overrideExistingIds && rGeoID.value() != 0) {
     return;
   } else if ((rGeoID.sensitive() == 0 && rGeoID.passive() == 0) ||
              m_cfg.overrideExistingIds) {
+    std::cout << "CENTER:\n";
     Acts::Vector3 center = surface.center(Acts::GeometryContext());
+    std::cout << center.transpose() << "\n";
     ACTS_VERBOSE("Processing surface " << center.transpose());
     std::int32_t geoIDval = 0u;
 

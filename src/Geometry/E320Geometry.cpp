@@ -6,8 +6,11 @@
 #include "Acts/Plugins/Json/JsonMaterialDecorator.hpp"
 #include <Acts/Definitions/Algebra.hpp>
 
+#include <memory>
 #include <vector>
 
+#include "TrackingPipeline/Alignment/AlignableDetectorElement.hpp"
+#include "TrackingPipeline/Alignment/AlignableDetectorElementBuilder.hpp"
 #include "TrackingPipeline/Geometry/E320GeometryConstraints.hpp"
 #include "TrackingPipeline/Geometry/E320GeometryIdGenerator.hpp"
 #include "TrackingPipeline/Geometry/LayerBuilderConstruction.hpp"
@@ -51,6 +54,9 @@ std::unique_ptr<Acts::Experimental::Blueprint::Node> makeBlueprintE320(
     auto layerBuilder = makeLayerBuilder(world, gOpt.g4ToWorld, names,
                                          {zBounds}, {Acts::BinningValue::binY});
 
+    auto detElementBuilder =
+        std::make_shared<AlignableDetectorElementBuilder>();
+
     // Convention is that the transformations
     // are with respect to the global frame
     Acts::Vector3 layerTranslation =
@@ -65,7 +71,8 @@ std::unique_ptr<Acts::Experimental::Blueprint::Node> makeBlueprintE320(
 
     auto layerNode = std::make_unique<Acts::Experimental::Blueprint::Node>(
         "layer" + std::to_string(i), layerTransform,
-        Acts::VolumeBounds::eCuboid, gOpt.layerBounds, layerBuilder);
+        Acts::VolumeBounds::eCuboid, gOpt.layerBounds, layerBuilder,
+        detElementBuilder);
 
     trackerBP->add(std::move(layerNode));
   }
@@ -227,8 +234,8 @@ std::shared_ptr<const Acts::Experimental::Detector> buildE320Detector(
 
   // Detector builder
   Acts::Experimental::DetectorBuilder::Config dCfg;
-  dCfg.auxiliary = "LUXE detector builder";
-  dCfg.name = "LUXE detector from blueprint";
+  dCfg.auxiliary = "Detector builder";
+  dCfg.name = "Detector from blueprint";
   dCfg.builder = detectorBuilder;
   dCfg.materialDecorator = jMatDecorator;
   dCfg.geoIdGenerator = std::make_shared<E320GeometryIdGenerator>(
@@ -239,7 +246,6 @@ std::shared_ptr<const Acts::Experimental::Detector> buildE320Detector(
                       dCfg, Acts::getDefaultLogger("DetectorBuilder",
                                                    Acts::Logging::VERBOSE))
                       .construct(gctx);
-
   return detector;
 }
 

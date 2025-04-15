@@ -5,12 +5,12 @@
 
 /// @brief Gaussian momentum generator
 struct GaussianVertexGenerator : public IVertexGenerator {
-    NormalRandomVariable normal;
+  NormalRandomVariable normal;
 
-    GaussianVertexGenerator(Acts::Vector3 mean, Acts::SquareMatrix3 cov)
-        : normal(mean, cov) {};
+  GaussianVertexGenerator(Acts::Vector3 mean, Acts::SquareMatrix3 cov)
+      : normal(mean, cov) {};
 
-    Acts::Vector3 gen(RandomEngine& rng) const override {
-        return normal.gen(rng);
-    }
+  Acts::Vector3 genVertex(RandomEngine& rng) const override {
+    return normal.gen(rng);
+  }
 };
