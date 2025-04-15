@@ -48,9 +48,6 @@ include_directories(
 ROOT_GENERATE_DICTIONARY(
     G__SimEventDict
     ./include/TrackingPipeline/Io/detail/ROOTDictDefs.h
-    ./include/TrackingPipeline/Io/detail/AlpideRegisters.h
-    ./include/TrackingPipeline/Io/detail/MosaicRegisters.h
-    ./include/TrackingPipeline/Io/detail/EudaqDetectorEvent.h
     MODULE 
     SimEventDict 
     LINKDEF 
