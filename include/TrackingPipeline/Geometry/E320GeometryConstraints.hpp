@@ -60,17 +60,17 @@ struct GeometryOptions {
   const Acts::Vector3 quad1Translation{0_mm, 0_mm, 4182.49_mm};
 
   const std::vector<double> quad1Bounds = {
-      chipSizeX / 2 + 1000_mm, chipY + chipSizeY / 2 + 1000_mm, 1000_mm};
+      chipSizeX / 2 + 1000_mm, chipY + chipSizeY / 2 + 1000_mm, 486.664_mm};
 
   const Acts::Vector3 quad2Translation{0_mm, 0_mm, 6406.62_mm};
 
   const std::vector<double> quad2Bounds = {
-      chipSizeX / 2 + 1000_mm, chipY + chipSizeY / 2 + 1000_mm, 1000_mm};
+      chipSizeX / 2 + 1000_mm, chipY + chipSizeY / 2 + 1000_mm, 486.664_mm};
 
   const Acts::Vector3 quad3Translation{0_mm, 0_mm, 8631.05_mm};
 
   const std::vector<double> quad3Bounds = {
-      chipSizeX / 2 + 1000_mm, chipY + chipSizeY / 2 + 1000_mm, 1000_mm};
+      chipSizeX / 2 + 1000_mm, chipY + chipSizeY / 2 + 1000_mm, 486.664_mm};
 
   // Dipole and quadrupole field parameters
   const std::tuple<Acts::Vector2, Acts::Vector4, Acts::Vector4> dipoleParams = {

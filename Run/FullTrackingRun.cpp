@@ -131,8 +131,8 @@ int main() {
                   gOpt.quad1Translation[1] - gOpt.quad1Bounds[1],
                   gOpt.quad1Translation[1] + gOpt.quad1Bounds[1]);
   quad1Extent.set(Acts::BinningValue::binY,
-                  gOpt.quad1Translation[2] - gOpt.quad1Bounds[2] / 2,
-                  gOpt.quad1Translation[2] + gOpt.quad1Bounds[2] / 2);
+                  gOpt.quad1Translation[2] - gOpt.quad1Bounds[2],
+                  gOpt.quad1Translation[2] + gOpt.quad1Bounds[2]);
 
   Acts::Extent quad2Extent;
   quad2Extent.set(Acts::BinningValue::binX,
@@ -142,8 +142,8 @@ int main() {
                   gOpt.quad2Translation[1] - gOpt.quad2Bounds[1],
                   gOpt.quad2Translation[1] + gOpt.quad2Bounds[1]);
   quad2Extent.set(Acts::BinningValue::binY,
-                  gOpt.quad2Translation[2] - gOpt.quad2Bounds[2] / 2,
-                  gOpt.quad2Translation[2] + gOpt.quad2Bounds[2] / 2);
+                  gOpt.quad2Translation[2] - gOpt.quad2Bounds[2],
+                  gOpt.quad2Translation[2] + gOpt.quad2Bounds[2]);
 
   Acts::Extent quad3Extent;
   quad3Extent.set(Acts::BinningValue::binX,
@@ -153,8 +153,8 @@ int main() {
                   gOpt.quad3Translation[1] - gOpt.quad3Bounds[1],
                   gOpt.quad3Translation[1] + gOpt.quad3Bounds[1]);
   quad3Extent.set(Acts::BinningValue::binY,
-                  gOpt.quad3Translation[2] - gOpt.quad3Bounds[2] / 2,
-                  gOpt.quad3Translation[2] + gOpt.quad3Bounds[2] / 2);
+                  gOpt.quad3Translation[2] - gOpt.quad3Bounds[2],
+                  gOpt.quad3Translation[2] + gOpt.quad3Bounds[2]);
 
   Acts::Extent dipoleExtent;
   dipoleExtent.set(Acts::BinningValue::binX,
@@ -164,8 +164,8 @@ int main() {
                    gOpt.dipoleTranslation.y() - gOpt.dipoleBounds[1],
                    gOpt.dipoleTranslation.y() + gOpt.dipoleBounds[1]);
   dipoleExtent.set(Acts::BinningValue::binY,
-                   gOpt.dipoleTranslation.z() - gOpt.dipoleBounds[2] / 2,
-                   gOpt.dipoleTranslation.z() + gOpt.dipoleBounds[2] / 2);
+                   gOpt.dipoleTranslation.z() - gOpt.dipoleBounds[2],
+                   gOpt.dipoleTranslation.z() + gOpt.dipoleBounds[2]);
 
   QuadrupoleMagField quad1Field(
       gOpt.quadrupolesParams[0],
