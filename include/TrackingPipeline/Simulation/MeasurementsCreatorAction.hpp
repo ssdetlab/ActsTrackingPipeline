@@ -134,6 +134,7 @@ struct MeasurementsCreatorAction {
       ACTS_VERBOSE("Create no measurements on non-sensitive surface " << geoId);
       return;
     }
+    ACTS_VERBOSE("Create measurements on sensitive surface " << geoId);
     Acts::BoundTrackParameters boundsPars(
         surface->getSharedPtr(), scatteredParameters, state.stepping.cov,
         stepper.particleHypothesis(state.stepping));

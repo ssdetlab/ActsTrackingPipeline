@@ -6,14 +6,18 @@
 #include <string>
 #include <vector>
 
+#include <pthread.h>
+
 #include "TrackingPipeline/Geometry/E320Geometry.hpp"
 #include "TrackingPipeline/Geometry/E320GeometryConstraints.hpp"
 #include "TrackingPipeline/Infrastructure/Sequencer.hpp"
 #include "TrackingPipeline/Io/DummyReader.hpp"
 #include "TrackingPipeline/Io/JsonTrackLookupWriter.hpp"
+#include "TrackingPipeline/Io/RootIPPositronTrackParametersReader.hpp"
 #include "TrackingPipeline/MagneticField/CompositeMagField.hpp"
 #include "TrackingPipeline/MagneticField/DipoleMagField.hpp"
 #include "TrackingPipeline/MagneticField/QuadrupoleMagField.hpp"
+#include "TrackingPipeline/Simulation/E320IPPositronGenerator.hpp"
 #include "TrackingPipeline/Simulation/IdealDigitizer.hpp"
 #include "TrackingPipeline/Simulation/MeasurementsCreator.hpp"
 #include "TrackingPipeline/Simulation/MeasurementsEmbeddingAlgorithm.hpp"
@@ -46,14 +50,37 @@ int main() {
   // Set the path to the gdml file
   // and the names of the volumes to be converted
   std::string gdmlPath =
-      "/home/romanurmanov/lab/LUXE/acts_tracking/E320Pipeline_gdmls/"
-      "prototype/ettgeomdump_3419d3d2.gdml";
+      "/home/romanurmanov/lab/LUXE/acts_tracking/E320Pipeline_sim/"
+      "E320Pipeline_gdmls/ettgeom_magnet_pdc_tracker.gdml";
   std::vector<std::string> names{"OPPPSensitive", "DetChamberWindow"};
+
+  // Veto PDC window material mapping
+  // to preserve homogeneous material
+  // from Geant4
+  Acts::GeometryIdentifier pdcWindowId;
+  pdcWindowId.setApproach(1);
+  std::vector<Acts::GeometryIdentifier> materialVeto{pdcWindowId};
+
+  std::string materialPath =
+      "/home/romanurmanov/lab/LUXE/acts_tracking/E320Pipeline_sim/"
+      "E320Pipeline_material/"
+      "Uniform_DirectZ_TrackerOnly_256x128_1M/material.json";
 
   // Build the detector
   auto trackerBP = E320Geometry::makeBlueprintE320(gdmlPath, names, gOpt);
-  auto detector =
-      E320Geometry::buildE320Detector(std::move(trackerBP), gctx, gOpt, {});
+  auto detector = E320Geometry::buildE320Detector(
+      std::move(trackerBP), gctx, gOpt, materialPath, materialVeto);
+
+  for (auto& v : detector->volumes()) {
+    std::cout << v->name() << std::endl;
+    for (auto& s : v->surfaces()) {
+      std::cout << s->center(gctx).transpose() << "   "
+                << s->normal(gctx, s->center(gctx), Acts::Vector3(1, 0, 0))
+                       .transpose()
+                << "\n"
+                << s->bounds() << std::endl;
+    }
+  }
 
   // --------------------------------------------------------------
   // The magnetic field setup
@@ -116,7 +143,7 @@ int main() {
       gOpt.actsToWorldRotation.inverse() * gOpt.quad3Translation,
       gOpt.actsToWorldRotation);
 
-  double dipoleB = 0.22_T;
+  double dipoleB = 0.31_T;
   DipoleMagField dipoleField(
       gOpt.dipoleParams, dipoleB, gOpt.actsToWorldRotation,
       gOpt.actsToWorldRotation.inverse() * gOpt.dipoleTranslation);
@@ -134,8 +161,8 @@ int main() {
 
   // Setup the sequencer
   Sequencer::Config seqCfg;
-  seqCfg.events = 200000;
-  seqCfg.numThreads = -1;
+  // seqCfg.events = 10000;
+  seqCfg.numThreads = 1;
   seqCfg.trackFpes = false;
   Sequencer sequencer(seqCfg);
 
@@ -143,7 +170,7 @@ int main() {
   DummyReader::Config readerCfg;
   readerCfg.outputSimClusters = "SimClusters";
   readerCfg.outputSourceLinks = "SimMeasurements";
-  readerCfg.nEvents = 1000;
+  readerCfg.nEvents = 2e5;
 
   sequencer.addReader(std::make_shared<DummyReader>(readerCfg));
 
@@ -165,12 +192,27 @@ int main() {
                      {2.0_GeV, 2.5_GeV}, {2.5_GeV, 3.0_GeV}, {3.0_GeV, 3.5_GeV},
                      {3.5_GeV, 4.0_GeV}, {4.0_GeV, 4.5_GeV}};
 
+  //  RootIPPositronTrackParametersReader::Config ptarmiganReaderCfg;
+  //  ptarmiganReaderCfg.filePaths = {
+  //      "/home/romanurmanov/lab/LUXE/acts_tracking/E320Pipeline_sim/"
+  //      "E320Pipeline_analysis/data/lookup_ptarmigan/"
+  //      "raw_e320_a0_10.0_gamma10.0_all_positrons_only_xF1M.root"};
+  //  ptarmiganReaderCfg.treeName = "tt";
+  //  ptarmiganReaderCfg.transform = gOpt.actsToWorld;
+  //
+  //  E320Sim::E320IPPositronGenerator::Config generatorCfg;
+  //  generatorCfg.trackParamsReader =
+  //      std::make_shared<RootIPPositronTrackParametersReader>(ptarmiganReaderCfg);
+  //  auto generator =
+  //      std::make_shared<E320Sim::E320IPPositronGenerator>(generatorCfg);
+
   auto digiizer = std::make_shared<IdealDigitizer>();
 
   MeasurementsCreator::Config mcCfg;
   mcCfg.vertexGenerator = std::make_shared<StationaryVertexGenerator>();
   mcCfg.momentumGenerator = momGen;
   mcCfg.hitDigitizer = digiizer;
+  mcCfg.maxSteps = 300;
 
   auto measurementsCreator =
       std::make_shared<MeasurementsCreator>(propagator, mcCfg);
@@ -205,7 +247,7 @@ int main() {
   TrackLookupEstimationAlgorithm::Config estimatorCfg;
   estimatorCfg.trackLookupGridWriters = {lookupWriter};
   estimatorCfg.refLayers = refLayers;
-  estimatorCfg.bins = {1000, 20};
+  estimatorCfg.bins = {1000, 1};
   estimatorCfg.inputClusters = "Clusters";
 
   sequencer.addAlgorithm(

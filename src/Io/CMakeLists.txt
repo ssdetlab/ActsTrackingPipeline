@@ -10,7 +10,9 @@ target_sources(
     RootTrackLookupValidationWriter.cpp
     RootTrackParamsReader.cpp
     RootSimDataReader.cpp
+    RootIPPositronTrackParametersReader.cpp
     JsonTrackLookupReader.cpp
     JsonTrackLookupWriter.cpp
+    RootTrackParamsReader.cpp
     E320RootSimDataReader.cpp
 )

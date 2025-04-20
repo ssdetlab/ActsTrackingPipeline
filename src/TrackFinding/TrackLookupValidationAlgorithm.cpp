@@ -29,6 +29,7 @@ ProcessCode TrackLookupValidationAlgorithm::execute(
   std::vector<Acts::CurvilinearTrackParameters> refLayerPars;
   std::vector<Acts::CurvilinearTrackParameters> ipParsEst;
   std::vector<Acts::CurvilinearTrackParameters> refLayerParsEst;
+  int accepted = 0;
   for (const auto& cluster : clusters) {
     if (!m_cfg.refLayers.contains(cluster.sourceLink.geometryId())) {
       continue;
@@ -44,6 +45,7 @@ ProcessCode TrackLookupValidationAlgorithm::execute(
         continue;
       }
 
+      accepted += 1;
       auto ip = hit.ipParameters;
 
       Acts::Vector2 refLocalPos{hit.truthParameters[Acts::eBoundLoc0],
@@ -74,7 +76,6 @@ ProcessCode TrackLookupValidationAlgorithm::execute(
       refLayerParsEst.push_back(refEst);
     }
   }
-
   m_outputIpPars(ctx, std::move(ipPars));
   m_outputRefLayerPars(ctx, std::move(refLayerPars));
   m_outputIpParsEst(ctx, std::move(ipParsEst));

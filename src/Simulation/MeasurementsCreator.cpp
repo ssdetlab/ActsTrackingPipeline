@@ -73,6 +73,7 @@ std::tuple<std::vector<Acts::SourceLink>, SimClusters> MeasurementsCreator::gen(
     std::cout << err.what() << "\n";
   }
 
+  // std::cout << "CREATED " << resultParameters.size() << " measurements\n";
   int trackId = (m_cfg.isSignal) ? 1 : -1;
   for (const auto& boundPars : resultParameters) {
     Acts::BoundVector boundVec = boundPars.parameters();

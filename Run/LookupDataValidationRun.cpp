@@ -6,16 +6,30 @@
 #include "TrackingPipeline/Geometry/E320Geometry.hpp"
 #include "TrackingPipeline/Geometry/E320GeometryConstraints.hpp"
 #include "TrackingPipeline/Infrastructure/Sequencer.hpp"
+#include "TrackingPipeline/Io/DummyReader.hpp"
 #include "TrackingPipeline/Io/E320RootSimDataReader.hpp"
 #include "TrackingPipeline/Io/JsonTrackLookupReader.hpp"
+#include "TrackingPipeline/Io/JsonTrackLookupWriter.hpp"
+#include "TrackingPipeline/Io/RootIPPositronTrackParametersReader.hpp"
 #include "TrackingPipeline/Io/RootTrackLookupValidationWriter.hpp"
 #include "TrackingPipeline/MagneticField/CompositeMagField.hpp"
 #include "TrackingPipeline/MagneticField/DipoleMagField.hpp"
 #include "TrackingPipeline/MagneticField/QuadrupoleMagField.hpp"
+#include "TrackingPipeline/Simulation/E320IPPositronGenerator.hpp"
+#include "TrackingPipeline/Simulation/IdealDigitizer.hpp"
+#include "TrackingPipeline/Simulation/MeasurementsCreator.hpp"
+#include "TrackingPipeline/Simulation/MeasurementsEmbeddingAlgorithm.hpp"
+#include "TrackingPipeline/Simulation/RangedUniformMomentumGenerator.hpp"
+#include "TrackingPipeline/Simulation/StationaryVertexGenerator.hpp"
+#include "TrackingPipeline/TrackFinding/TrackLookupEstimationAlgorithm.hpp"
 #include "TrackingPipeline/TrackFinding/TrackLookupProvider.hpp"
 #include "TrackingPipeline/TrackFinding/TrackLookupValidationAlgorithm.hpp"
 
 using namespace Acts::UnitLiterals;
+
+using Propagator = Acts::Propagator<Acts::EigenStepper<>,
+                                    Acts::Experimental::DetectorNavigator>;
+using TrackParameters = Acts::CurvilinearTrackParameters;
 
 /// @brief Run the propagation through
 /// a uniform energy spectrum and record the
@@ -36,14 +50,24 @@ int main() {
   // Set the path to the gdml file
   // and the names of the volumes to be converted
   std::string gdmlPath =
-      "/home/romanurmanov/lab/LUXE/acts_tracking/E320Pipeline_gdmls/"
+      "/home/romanurmanov/lab/LUXE/acts_tracking/E320Pipeline_sim/"
+      "E320Pipeline_gdmls/"
       "ettgeom_magnet_pdc_tracker.gdml";
   std::vector<std::string> names{"OPPPSensitive", "DetChamberWindow"};
 
+  Acts::GeometryIdentifier pdcWindowId;
+  pdcWindowId.setApproach(1);
+  std::vector<Acts::GeometryIdentifier> materialVeto{pdcWindowId};
+
+  std::string materialPath =
+      "/home/romanurmanov/lab/LUXE/acts_tracking/E320Pipeline_sim/"
+      "E320Pipeline_material/"
+      "Uniform_DirectZ_TrackerOnly_256x128_1M/material.json";
+
   // Build the detector
   auto trackerBP = E320Geometry::makeBlueprintE320(gdmlPath, names, gOpt);
-  auto detector =
-      E320Geometry::buildE320Detector(std::move(trackerBP), gctx, gOpt, {});
+  auto detector = E320Geometry::buildE320Detector(
+      std::move(trackerBP), gctx, gOpt, materialPath, materialVeto);
 
   // --------------------------------------------------------------
   // The magnetic field setup
@@ -57,8 +81,8 @@ int main() {
                   gOpt.quad1Translation[1] - gOpt.quad1Bounds[1],
                   gOpt.quad1Translation[1] + gOpt.quad1Bounds[1]);
   quad1Extent.set(Acts::BinningValue::binY,
-                  gOpt.quad1Translation[2] - gOpt.quad1Bounds[2] / 2,
-                  gOpt.quad1Translation[2] + gOpt.quad1Bounds[2] / 2);
+                  gOpt.quad1Translation[2] - gOpt.quad1Bounds[2],
+                  gOpt.quad1Translation[2] + gOpt.quad1Bounds[2]);
 
   Acts::Extent quad2Extent;
   quad2Extent.set(Acts::BinningValue::binX,
@@ -68,8 +92,8 @@ int main() {
                   gOpt.quad2Translation[1] - gOpt.quad2Bounds[1],
                   gOpt.quad2Translation[1] + gOpt.quad2Bounds[1]);
   quad2Extent.set(Acts::BinningValue::binY,
-                  gOpt.quad2Translation[2] - gOpt.quad2Bounds[2] / 2,
-                  gOpt.quad2Translation[2] + gOpt.quad2Bounds[2] / 2);
+                  gOpt.quad2Translation[2] - gOpt.quad2Bounds[2],
+                  gOpt.quad2Translation[2] + gOpt.quad2Bounds[2]);
 
   Acts::Extent quad3Extent;
   quad3Extent.set(Acts::BinningValue::binX,
@@ -79,8 +103,8 @@ int main() {
                   gOpt.quad3Translation[1] - gOpt.quad3Bounds[1],
                   gOpt.quad3Translation[1] + gOpt.quad3Bounds[1]);
   quad3Extent.set(Acts::BinningValue::binY,
-                  gOpt.quad3Translation[2] - gOpt.quad3Bounds[2] / 2,
-                  gOpt.quad3Translation[2] + gOpt.quad3Bounds[2] / 2);
+                  gOpt.quad3Translation[2] - gOpt.quad3Bounds[2],
+                  gOpt.quad3Translation[2] + gOpt.quad3Bounds[2]);
 
   Acts::Extent dipoleExtent;
   dipoleExtent.set(Acts::BinningValue::binX,
@@ -90,8 +114,8 @@ int main() {
                    gOpt.dipoleTranslation.y() - gOpt.dipoleBounds[1],
                    gOpt.dipoleTranslation.y() + gOpt.dipoleBounds[1]);
   dipoleExtent.set(Acts::BinningValue::binY,
-                   gOpt.dipoleTranslation.z() - gOpt.dipoleBounds[2] / 2,
-                   gOpt.dipoleTranslation.z() + gOpt.dipoleBounds[2] / 2);
+                   gOpt.dipoleTranslation.z() - gOpt.dipoleBounds[2],
+                   gOpt.dipoleTranslation.z() + gOpt.dipoleBounds[2]);
 
   QuadrupoleMagField quad1Field(
       gOpt.quadrupolesParams[0],
@@ -130,44 +154,97 @@ int main() {
 
   // Setup the sequencer
   Sequencer::Config seqCfg;
-  seqCfg.events = 1e4;
+  // seqCfg.events = 2e5;
   seqCfg.numThreads = 1;
   seqCfg.trackFpes = false;
   Sequencer sequencer(seqCfg);
 
-  // Add the sim data reader
-  E320Io::E320RootSimDataReader::Config readerCfg = E320Io::defaultSimConfig();
-  readerCfg.clusterFilter = hourglassFilter;
-  readerCfg.outputSourceLinks = "SimMeasurements";
+  //  // Add the sim data reader
+  //  E320Io::E320RootSimDataReader::Config readerCfg =
+  //  E320Io::defaultSimConfig(); readerCfg.clusterFilter = hourglassFilter;
+  //  readerCfg.outputSourceLinks = "SimMeasurements";
+  //  readerCfg.outputSimClusters = "SimClusters";
+  //  std::string pathToDir =
+  //      "/home/romanurmanov/lab/LUXE/acts_tracking/E320Pipeline_dataInRootFormat/"
+  //      "Signal_E320lp_10.0_12BX_All/Signal_E320lp_10.0_12BX_split";
+  //
+  //  // Get the paths to the files in the directory
+  //  for (const auto& entry : std::filesystem::directory_iterator(pathToDir)) {
+  //    std::string pathToFile = entry.path();
+  //    readerCfg.filePaths.push_back(pathToFile);
+  //  }
+  //
+  //  // The events are not sorted in the directory
+  //  // but we need to process them in order
+  //  std::ranges::sort(readerCfg.filePaths, [](const std::string& a,
+  //                                            const std::string& b) {
+  //    std::size_t idxRootA = a.find_last_of('.');
+  //    std::size_t idxEventA = a.find_last_of('t', idxRootA);
+  //    std::string eventSubstrA = a.substr(idxEventA + 1, idxRootA -
+  //    idxEventA);
+  //
+  //    std::size_t idxRootB = b.find_last_of('.');
+  //    std::size_t idxEventB = b.find_last_of('t', idxRootB);
+  //    std::string eventSubstrB = b.substr(idxEventB + 1, idxRootB -
+  //    idxEventB);
+  //
+  //    return std::stoul(eventSubstrA) < std::stoul(eventSubstrB);
+  //  });
+  //
+  //  // Add the reader to the sequencer
+  //  sequencer.addReader(
+  //      std::make_shared<E320Io::E320RootSimDataReader>(readerCfg, logLevel));
+
+  // Setup dummy reader
+  DummyReader::Config readerCfg;
   readerCfg.outputSimClusters = "SimClusters";
-  std::string pathToDir =
-      "/home/romanurmanov/lab/LUXE/acts_tracking/E320Pipeline_dataInRootFormat/"
-      "Signal_E320lp_10.0_12BX_All/Signal_E320lp_10.0_12BX_split";
+  readerCfg.outputSourceLinks = "SimMeasurements";
+  readerCfg.nEvents = 1e4;
 
-  // Get the paths to the files in the directory
-  for (const auto& entry : std::filesystem::directory_iterator(pathToDir)) {
-    std::string pathToFile = entry.path();
-    readerCfg.filePaths.push_back(pathToFile);
-  }
+  sequencer.addReader(std::make_shared<DummyReader>(readerCfg));
 
-  // The events are not sorted in the directory
-  // but we need to process them in order
-  std::ranges::sort(readerCfg.filePaths, [](const std::string& a,
-                                            const std::string& b) {
-    std::size_t idxRootA = a.find_last_of('.');
-    std::size_t idxEventA = a.find_last_of('t', idxRootA);
-    std::string eventSubstrA = a.substr(idxEventA + 1, idxRootA - idxEventA);
+  // Setup the measurements creator
+  Acts::Experimental::DetectorNavigator::Config navCfg;
+  navCfg.detector = detector.get();
+  navCfg.resolvePassive = false;
+  navCfg.resolveMaterial = true;
+  navCfg.resolveSensitive = true;
 
-    std::size_t idxRootB = b.find_last_of('.');
-    std::size_t idxEventB = b.find_last_of('t', idxRootB);
-    std::string eventSubstrB = b.substr(idxEventB + 1, idxRootB - idxEventB);
+  Acts::Experimental::DetectorNavigator navigator(
+      navCfg, Acts::getDefaultLogger("DetectorNavigator", logLevel));
+  Acts::EigenStepper<> stepper(field);
 
-    return std::stoul(eventSubstrA) < std::stoul(eventSubstrB);
-  });
+  auto propagator = Propagator(std::move(stepper), std::move(navigator));
 
-  // Add the reader to the sequencer
-  sequencer.addReader(
-      std::make_shared<E320Io::E320RootSimDataReader>(readerCfg, logLevel));
+  auto momGen = std::make_shared<RangedUniformMomentumGenerator>();
+  momGen->Pranges = {{0.5_GeV, 1.0_GeV}, {1.0_GeV, 1.5_GeV}, {1.5_GeV, 2.0_GeV},
+                     {2.0_GeV, 2.5_GeV}, {2.5_GeV, 3.0_GeV}, {3.0_GeV, 3.5_GeV},
+                     {3.5_GeV, 4.0_GeV}, {4.0_GeV, 4.5_GeV}};
+
+  auto digiizer = std::make_shared<IdealDigitizer>();
+
+  MeasurementsCreator::Config mcCfg;
+  mcCfg.vertexGenerator = std::make_shared<StationaryVertexGenerator>();
+  mcCfg.momentumGenerator = momGen;
+  mcCfg.hitDigitizer = digiizer;
+  mcCfg.maxSteps = 300;
+  mcCfg.isSignal = true;
+
+  auto measurementsCreator =
+      std::make_shared<MeasurementsCreator>(propagator, mcCfg);
+
+  MeasurementsEmbeddingAlgorithm::Config mcaCfg;
+  mcaCfg.inputSourceLinks = "SimMeasurements";
+  mcaCfg.inputSimClusters = "SimClusters";
+  mcaCfg.outputSourceLinks = "Measurements";
+  mcaCfg.outputSimClusters = "Clusters";
+  mcaCfg.measurementGenerator = measurementsCreator;
+  mcaCfg.randomNumberSvc =
+      std::make_shared<RandomNumbers>(RandomNumbers::Config());
+  mcaCfg.nMeasurements = 1;
+
+  sequencer.addAlgorithm(
+      std::make_shared<MeasurementsEmbeddingAlgorithm>(mcaCfg, logLevel));
 
   // --------------------------------------------------------------
   // Lookup data validation
@@ -180,7 +257,7 @@ int main() {
 
   JsonTrackLookupReader::Config lookupReaderCfg;
   lookupReaderCfg.refLayers = refLayers;
-  lookupReaderCfg.bins = {1000, 20};
+  lookupReaderCfg.bins = {1000, 1};
 
   // Validation algorithm
   TrackLookupValidationAlgorithm::Config validatorCfg;
@@ -193,7 +270,7 @@ int main() {
 
   validatorCfg.refLayers = refLayers;
   validatorCfg.estimator.connect<&TrackLookupProvider::lookup>(&provider);
-  validatorCfg.inputClusters = "SimClusters";
+  validatorCfg.inputClusters = "Clusters";
   validatorCfg.outputIpPars = "ipPars";
   validatorCfg.outputIpParsEst = "ipParsEst";
   validatorCfg.outputRefLayerPars = "refPars";
@@ -207,7 +284,7 @@ int main() {
   validationWriterCfg.inputIpParsEst = "ipParsEst";
   validationWriterCfg.inputRefLayerPars = "refPars";
   validationWriterCfg.inputRefLayerParsEst = "refParsEst";
-  validationWriterCfg.path = "lookup-validation.root";
+  validationWriterCfg.path = "lookup-validation-full.root";
   validationWriterCfg.treeName = "validation";
 
   sequencer.addWriter(std::make_shared<RootTrackLookupValidationWriter>(
