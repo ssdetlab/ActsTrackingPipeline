@@ -6,6 +6,7 @@
 #include <Acts/Detector/Detector.hpp>
 
 #include "TrackingPipeline/Alignment/AlignmentAlgorithm.hpp"
+#include "TrackingPipeline/Alignment/MinuitAlignment.hpp"
 
 namespace {
 
@@ -15,7 +16,7 @@ using Stepper = Acts::EigenStepper<>;
 using Propagator =
     Acts::Propagator<Stepper, Acts::Experimental::DetectorNavigator>;
 using Fitter = Acts::KalmanFitter<Propagator, Acts::VectorMultiTrajectory>;
-using Alignment = ActsAlignment::Alignment<Fitter>;
+using Alignment = MinuitAlignment::MinuitAlignment;
 
 struct AlignmentFunctionImpl : public AlignmentAlgorithm::AlignmentFunction {
   Alignment align;
@@ -24,9 +25,9 @@ struct AlignmentFunctionImpl : public AlignmentAlgorithm::AlignmentFunction {
 
   AlignmentAlgorithm::AlignmentResult operator()(
       const std::vector<std::vector<Acts::SourceLink>>& sourceLinks,
-      const Seeds& initialParameters,
+      const std::vector<Acts::CurvilinearTrackParameters>& initialParameters,
       const ActsAlignment::AlignmentOptions<
-          AlignmentAlgorithm::TrackFitterOptions>& options) const override {
+          AlignmentAlgorithm::TrackFitterOptions>& options) override {
     return align.align(sourceLinks, initialParameters, options);
   };
 };
@@ -37,17 +38,7 @@ std::shared_ptr<AlignmentAlgorithm::AlignmentFunction>
 AlignmentAlgorithm::makeAlignmentFunction(
     std::shared_ptr<const Acts::Experimental::Detector> detector,
     std::shared_ptr<const Acts::MagneticFieldProvider> magneticField) {
-  Stepper stepper(std::move(magneticField));
-  Acts::Experimental::DetectorNavigator::Config cfg;
-  cfg.detector = detector.get();
-  cfg.resolvePassive = false;
-  cfg.resolveMaterial = true;
-  cfg.resolveSensitive = true;
-  Acts::Experimental::DetectorNavigator navigator(
-      cfg, Acts::getDefaultLogger("DetectorNavigator", Acts::Logging::INFO));
-  Propagator propagator(std::move(stepper), std::move(navigator));
-  Fitter trackFitter(std::move(propagator));
-  Alignment alignment(std::move(trackFitter));
+  Alignment alignment(detector, magneticField);
 
   // build the alignment functions. owns the alignment object.
   return std::make_shared<AlignmentFunctionImpl>(std::move(alignment));

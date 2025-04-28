@@ -131,9 +131,13 @@ class RootSimTrackCandidateWriter : public IWriter {
   /// EventId
   int m_eventId;
 
-  /// True momentum at the IP
+  /// True IP parameters
   TLorentzVector m_ipMomentumTruth;
   TVector3 m_vertexTruth;
+
+  /// Predicted IP parameters
+  TLorentzVector m_ipMomentumEst;
+  TVector3 m_vertexEst;
 
   /// Number of true tracks prior to
   /// applying the cuts

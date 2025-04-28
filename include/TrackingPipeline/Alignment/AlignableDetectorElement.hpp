@@ -29,8 +29,8 @@ class AlignableDetectorElement : public Acts::DetectorElementBase {
     }
     auto alignContext = gctx.get<AlignmentContext>();
     if (alignContext.alignmentStore != nullptr &&
-        alignContext.alignmentIndex < 2) {
-      return (*(alignContext.alignmentStore))[alignContext.alignmentIndex];
+        !alignContext.alignmentStore->empty()) {
+      return alignContext.alignmentStore->at(surface().geometryId());
     } else {
       throw std::runtime_error("Invalid alignment context");
     }
@@ -43,8 +43,8 @@ class AlignableDetectorElement : public Acts::DetectorElementBase {
   Acts::Surface& surface() override { return *m_surface; }
 
   /// Returns the thickness of the module
-  /// @return double that indicates the thickness of the module
   ///
+  /// @return double that indicates the thickness of the module
   double thickness() const override {
     if (m_surface->surfaceMaterial() == nullptr) {
       return 0;

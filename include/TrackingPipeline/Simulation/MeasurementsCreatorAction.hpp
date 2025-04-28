@@ -81,6 +81,7 @@ struct MeasurementsCreatorAction {
     simParticle.setAbsoluteMomentum(stepper.charge(state.stepping) /
                                     parameters[Acts::eBoundQOverP]);
     simParticle.setReferenceSurface(surface);
+    simParticle.setCharge(stepper.charge(state.stepping));
 
     // Create the scattering and energy loss processes
     std::random_device rd;

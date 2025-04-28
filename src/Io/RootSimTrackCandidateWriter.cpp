@@ -57,9 +57,13 @@ RootSimTrackCandidateWriter::RootSimTrackCandidateWriter(
   m_tree->Branch("predictedPulls", &m_predictedPulls, buf_size, split_lvl);
   m_tree->Branch("filteredPulls", &m_filteredPulls, buf_size, split_lvl);
 
-  // True momentum at the IP
+  // True IP parameters
   m_tree->Branch("ipMomentumTruth", &m_ipMomentumTruth);
   m_tree->Branch("vertexTruth", &m_vertexTruth);
+
+  // Predicted IP parameters
+  m_tree->Branch("ipMomentumEst", &m_ipMomentumEst);
+  m_tree->Branch("vertexEst", &m_vertexEst);
 
   // Chi2 and ndf of the fitted track
   m_tree->Branch("chi2Predicted", &m_chi2Predicted, buf_size, split_lvl);
@@ -311,6 +315,14 @@ ProcessCode RootSimTrackCandidateWriter::write(const AlgorithmContext& ctx) {
       chi2Filtered.push_back(filteredPull.dot(filteredPull));
     }
     double me = 0.511 * Acts::UnitConstants::MeV;
+    // TODO: Add sampling surface
+    //    Acts::Vector3 pVec = track.momentum();
+    //    double pMag = pVec.norm();
+    //    m_ipMomentumEst.SetPxPyPzE(pVec.x(), pVec.y(), pVec.z(),
+    //                               std::hypot(pMag, me));
+    //
+    //    Acts::Vector3 vertex = {track.loc0(), 0, -track.loc1()};
+    //    m_vertexEst = TVector3(vertex.x(), vertex.y(), vertex.z());
 
     // Matching degree is computed with respect
     // to the most often occuring signal track
@@ -343,6 +355,10 @@ ProcessCode RootSimTrackCandidateWriter::write(const AlgorithmContext& ctx) {
           pivotHit->ipParameters.momentum().y(),
           pivotHit->ipParameters.momentum().z(),
           std::hypot(pivotHit->ipParameters.absoluteMomentum(), me));
+
+      m_vertexTruth.SetX(pivotHit->ipParameters.position(ctx.geoContext).x());
+      m_vertexTruth.SetY(pivotHit->ipParameters.position(ctx.geoContext).y());
+      m_vertexTruth.SetZ(pivotHit->ipParameters.position(ctx.geoContext).z());
 
       // Compute matching degree
       double trueTrackSize =

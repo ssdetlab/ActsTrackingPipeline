@@ -6,7 +6,6 @@
 #include <string>
 #include <vector>
 
-#include "TrackingPipeline/Alignment/AlignmentContext.hpp"
 #include "TrackingPipeline/Geometry/E320Geometry.hpp"
 #include "TrackingPipeline/Geometry/E320GeometryConstraints.hpp"
 #include "TrackingPipeline/Infrastructure/Sequencer.hpp"
@@ -14,6 +13,7 @@
 #include "TrackingPipeline/Io/JsonTrackLookupWriter.hpp"
 #include "TrackingPipeline/Io/RootSimClusterWriter.hpp"
 #include "TrackingPipeline/MagneticField/CompositeMagField.hpp"
+#include "TrackingPipeline/MagneticField/ConstantBoundedField.hpp"
 #include "TrackingPipeline/MagneticField/DipoleMagField.hpp"
 #include "TrackingPipeline/MagneticField/QuadrupoleMagField.hpp"
 #include "TrackingPipeline/Simulation/IdealDigitizer.hpp"
@@ -29,24 +29,12 @@ using Propagator = Acts::Propagator<Acts::EigenStepper<>,
                                     Acts::Experimental::DetectorNavigator>;
 using TrackParameters = Acts::CurvilinearTrackParameters;
 
-/// @brief Run the propagation through
-/// a uniform energy spectrum and record the
-/// energy vs position histograms for each layer
 int main() {
   // Set the log level
   Acts::Logging::Level logLevel = Acts::Logging::INFO;
 
-  // ALignment context
-  AlignmentContext alignCtx;
-  const std::array<Acts::Transform3, 2> temp{Acts::Transform3::Identity(),
-                                             Acts::Transform3::Identity()};
-  auto alignmentStore =
-      std::make_shared<const std::array<Acts::Transform3, 2>>(temp);
-  alignCtx.alignmentStore = alignmentStore;
-  Acts::GeometryContext ctx{alignCtx};
-
-  // Context and options
-  Acts::GeometryContext gctx{alignCtx};
+  // Dummy context and options
+  Acts::GeometryContext gctx;
   Acts::MagneticFieldContext mctx;
   Acts::CalibrationContext cctx;
   E320Geometry::GeometryOptions gOpt;
@@ -78,7 +66,6 @@ int main() {
   auto trackerBP = E320Geometry::makeBlueprintE320(gdmlPath, names, gOpt);
   auto detector = E320Geometry::buildE320Detector(
       std::move(trackerBP), gctx, gOpt, materialPath, materialVeto);
-
 
   // --------------------------------------------------------------
   // The magnetic field setup
@@ -128,6 +115,20 @@ int main() {
                    gOpt.dipoleTranslation.z() - gOpt.dipoleBounds[2],
                    gOpt.dipoleTranslation.z() + gOpt.dipoleBounds[2]);
 
+  Acts::Extent xCorrectorExtent;
+  xCorrectorExtent.set(
+      Acts::BinningValue::binX,
+      gOpt.xCorrectorTranslation.x() - gOpt.xCorrectorBounds[0],
+      gOpt.xCorrectorTranslation.x() + gOpt.xCorrectorBounds[0]);
+  xCorrectorExtent.set(
+      Acts::BinningValue::binZ,
+      gOpt.xCorrectorTranslation.y() - gOpt.xCorrectorBounds[1],
+      gOpt.xCorrectorTranslation.y() + gOpt.xCorrectorBounds[1]);
+  xCorrectorExtent.set(
+      Acts::BinningValue::binY,
+      gOpt.xCorrectorTranslation.z() - gOpt.xCorrectorBounds[2],
+      gOpt.xCorrectorTranslation.z() + gOpt.xCorrectorBounds[2]);
+
   QuadrupoleMagField quad1Field(
       gOpt.quadrupolesParams[0],
       gOpt.actsToWorldRotation.inverse() * gOpt.quad1Translation,
@@ -141,39 +142,48 @@ int main() {
       gOpt.actsToWorldRotation.inverse() * gOpt.quad3Translation,
       gOpt.actsToWorldRotation);
 
-  double dipoleB = 0.22_T;
+  double dipoleB = 0.2192_T;
   DipoleMagField dipoleField(
       gOpt.dipoleParams, dipoleB, gOpt.actsToWorldRotation,
       gOpt.actsToWorldRotation.inverse() * gOpt.dipoleTranslation);
+
+  // TODO: Check if it's the real field
+  // Acts::Vector3 xCorrectorB(0, 0, -0.0536_T);
+  Acts::Vector3 xCorrectorB(0, 0, 0);
+  ConstantBoundedField xCorrectorField(xCorrectorB, xCorrectorExtent);
 
   CompositeMagField::FieldComponents fieldComponents = {
       {quad1Extent, &quad1Field},
       {quad2Extent, &quad2Field},
       {quad3Extent, &quad3Field},
+      {xCorrectorExtent, &xCorrectorField},
       {dipoleExtent, &dipoleField}};
 
   auto field = std::make_shared<CompositeMagField>(fieldComponents);
 
   // --------------------------------------------------------------
-  // Event creation
+  // Event reading
   SimpleSourceLink::SurfaceAccessor surfaceAccessor{detector.get()};
 
   // Setup the sequencer
   Sequencer::Config seqCfg;
-  seqCfg.events = 1000;
-  seqCfg.numThreads = -1;
+  // seqCfg.events = 1;
+  seqCfg.numThreads = 1;
   seqCfg.trackFpes = false;
   Sequencer sequencer(seqCfg);
 
-  // Setup dummy reader
-  DummyReader::Config readerCfg;
-  readerCfg.outputSimClusters = "SimClusters";
-  readerCfg.outputSourceLinks = "SimMeasurements";
-  readerCfg.nEvents = 1000;
+  // --------------------------------------------------------------
+  // Add dummy reader
+  DummyReader::Config dummyReaderCfg;
+  dummyReaderCfg.outputSourceLinks = "SimMeasurements";
+  dummyReaderCfg.outputSimClusters = "SimClusters";
+  dummyReaderCfg.nEvents = 2e5;
 
-  sequencer.addReader(std::make_shared<DummyReader>(readerCfg));
+  sequencer.addReader(std::make_shared<DummyReader>(dummyReaderCfg));
 
+  // --------------------------------------------------------------
   // Setup the measurements creator
+
   Acts::Experimental::DetectorNavigator::Config navCfg;
   navCfg.detector = detector.get();
   navCfg.resolvePassive = false;
@@ -187,16 +197,25 @@ int main() {
   auto propagator = Propagator(std::move(stepper), std::move(navigator));
 
   auto momGen = std::make_shared<RangedUniformMomentumGenerator>();
-  momGen->Pranges = {{0.5_GeV, 1.0_GeV}, {1.0_GeV, 1.5_GeV}, {1.5_GeV, 2.0_GeV},
-                     {2.0_GeV, 2.5_GeV}, {2.5_GeV, 3.0_GeV}, {3.0_GeV, 3.5_GeV},
-                     {3.5_GeV, 4.0_GeV}, {4.0_GeV, 4.5_GeV}};
+  momGen->Pranges = {{1.9_GeV, 2.1_GeV},
+                     {2.1_GeV, 2.3_GeV},
+                     {2.3_GeV, 2.5_GeV},
+                     {2.5_GeV, 2.7_GeV},
+                     {2.7_GeV, 2.9_GeV}};
 
-  auto digiizer = std::make_shared<IdealDigitizer>();
+  auto vertexGen = std::make_shared<StationaryVertexGenerator>();
+  vertexGen->vertex =
+      Acts::Vector3(gOpt.beWindowTranslation[0], gOpt.beWindowTranslation[2],
+                    -gOpt.beWindowTranslation[1]);
+
+  // Digitizer
+  auto digitizer = std::make_shared<IdealDigitizer>();
 
   MeasurementsCreator::Config mcCfg;
-  mcCfg.vertexGenerator = std::make_shared<StationaryVertexGenerator>();
+  mcCfg.vertexGenerator = vertexGen;
   mcCfg.momentumGenerator = momGen;
-  mcCfg.hitDigitizer = digiizer;
+  mcCfg.hitDigitizer = digitizer;
+  mcCfg.maxSteps = 300;
 
   auto measurementsCreator =
       std::make_shared<MeasurementsCreator>(propagator, mcCfg);
@@ -218,7 +237,7 @@ int main() {
   // Lookup data generation
 
   JsonTrackLookupWriter::Config lookupWriterCfg;
-  lookupWriterCfg.path = "lookup.json";
+  lookupWriterCfg.path = "lookup-prototype.json";
 
   auto lookupWriter = std::make_shared<JsonTrackLookupWriter>(lookupWriterCfg);
 
@@ -231,7 +250,7 @@ int main() {
   TrackLookupEstimationAlgorithm::Config estimatorCfg;
   estimatorCfg.trackLookupGridWriters = {lookupWriter};
   estimatorCfg.refLayers = refLayers;
-  estimatorCfg.bins = {1000, 20};
+  estimatorCfg.bins = {1000, 1};
   estimatorCfg.inputClusters = "Clusters";
 
   sequencer.addAlgorithm(
@@ -249,7 +268,7 @@ int main() {
 
   clusterWriterCfg.inputClusters = "Clusters";
   clusterWriterCfg.treeName = "clusters";
-  clusterWriterCfg.filePath = "clusters-sig-bkg.root";
+  clusterWriterCfg.filePath = "clusters-protoype.root";
 
   sequencer.addWriter(
       std::make_shared<RootSimClusterWriter>(clusterWriterCfg, logLevel));

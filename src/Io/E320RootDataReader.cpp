@@ -1,5 +1,6 @@
 #include "TrackingPipeline/Io/E320RootDataReader.hpp"
 
+#include <chrono>
 #include <cstddef>
 
 #include <RtypesCore.h>
@@ -93,23 +94,13 @@ E320Io::E320RootDataReader::E320RootDataReader(const Config& config,
 
   m_outputSourceLinks.initialize(m_cfg.outputSourceLinks);
 
-  // Set the branches
-  m_chain->SetBranchAddress(m_cfg.eventKey.c_str(), &m_detEvent);
+  // Set the id branch
   m_chain->SetBranchAddress("eventId", &m_eventId);
 
   // Add the files to the chain
   for (const auto& path : m_cfg.filePaths) {
     m_chain->Add(path.c_str());
   }
-
-  // Disable all branches and only enable event-id for a first scan of the
-  // file
-  //  m_chain->SetBranchStatus("*", false);
-  //  if (!m_chain->GetBranch("eventId")) {
-  //    throw std::invalid_argument("Missing eventId branch");
-  //  }
-  //  m_chain->SetBranchStatus("eventId", true);
-
   auto nEntries = static_cast<std::size_t>(m_chain->GetEntries());
 
   // Add the first entry
@@ -119,13 +110,11 @@ E320Io::E320RootDataReader::E320RootDataReader(const Config& config,
   // Go through all entries and store the position of the events
   for (std::size_t i = 1; i < nEntries; ++i) {
     m_chain->GetEntry(i);
-    std::cout << "eventID = " << m_eventId << "\n";
     if (m_eventId != std::get<0>(m_eventMap.back())) {
       std::get<2>(m_eventMap.back()) = i;
       m_eventMap.emplace_back(m_eventId, i, i);
     }
   }
-  std::cout << "Events " << m_eventMap.size() << "\n";
 
   // Sort by event id
   std::ranges::sort(m_eventMap, [](const auto& a, const auto& b) {
@@ -134,8 +123,8 @@ E320Io::E320RootDataReader::E320RootDataReader(const Config& config,
 
   std::get<2>(m_eventMap.back()) = nEntries;
 
-  // Re-Enable all branches
-  m_chain->SetBranchStatus("*", true);
+  // Add the data branch
+  m_chain->SetBranchAddress(m_cfg.eventKey.c_str(), &m_detEvent);
   ACTS_DEBUG("Event range: " << availableEvents().first << " - "
                              << availableEvents().second);
 }
@@ -204,6 +193,7 @@ ProcessCode E320Io::E320RootDataReader::read(const AlgorithmContext& context) {
 
           Acts::Vector2 hitLoc{xPixLoc, yPixLoc};
 
+          // TODO: Estimate from the simulation
           // Estimate error from the cluster size
           double errX = m_gOpt.pixelSizeY / std::sqrt(12 * size);
           double errY = m_gOpt.pixelSizeX / std::sqrt(12 * size);
@@ -213,6 +203,7 @@ ProcessCode E320Io::E320RootDataReader::read(const AlgorithmContext& context) {
 
           // Fill the measurement
           SimpleSourceLink ssl(hitLoc, cov, geoId, eventId, sourceLinks.size());
+          sourceLinks.push_back(Acts::SourceLink(ssl));
         }
       }
     }

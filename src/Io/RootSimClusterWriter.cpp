@@ -1,14 +1,10 @@
 #include "TrackingPipeline/Io/RootSimClusterWriter.hpp"
 
-#include <Acts/Definitions/Algebra.hpp>
-#include <Acts/Definitions/TrackParametrization.hpp>
-#include <Acts/EventData/SourceLink.hpp>
+#include "Acts/Definitions/Algebra.hpp"
+#include "Acts/Definitions/TrackParametrization.hpp"
 
 #include <stdexcept>
 #include <vector>
-
-#include <TLorentzVector.h>
-#include <TVector3.h>
 
 #include "TrackingPipeline/EventData/SimpleSourceLink.hpp"
 
@@ -31,9 +27,13 @@ RootSimClusterWriter::RootSimClusterWriter(const Config& config,
   int split_lvl = 0;
 
   // Parameters at measurements
-  m_tree->Branch("geoCenter", &m_geoCenter, buf_size, split_lvl);
+  m_tree->Branch("geoCenterGlobal", &m_geoCenterGlobal, buf_size, split_lvl);
+  m_tree->Branch("geoCenterLocal", &m_geoCenterLocal, buf_size, split_lvl);
+  m_tree->Branch("cov", &m_cov, buf_size, split_lvl);
+  m_tree->Branch("geoId", &m_geoId, buf_size, split_lvl);
   m_tree->Branch("trackHits", &m_trackHits, buf_size, split_lvl);
   m_tree->Branch("onSurfMomemtum", &m_onSurfMomemtum, buf_size, split_lvl);
+  m_tree->Branch("eventId", &m_eventId, buf_size, split_lvl);
 
   // Parameters at the origin
   m_tree->Branch("originMomentum", &m_originMomentum, buf_size, split_lvl);
@@ -70,10 +70,15 @@ ProcessCode RootSimClusterWriter::write(const AlgorithmContext& ctx) {
 
     const auto* surf = m_cfg.surfaceAccessor(Acts::SourceLink(clusterSsl));
 
-    Acts::Vector3 geoCenter = surf->localToGlobal(
+    Acts::Vector2 geoCenterLocal = clusterSsl.parameters();
+    Acts::Vector3 geoCenterGlobal = surf->localToGlobal(
         ctx.geoContext, clusterSsl.parameters(), Acts::Vector3(0, 1, 0));
 
-    m_geoCenter = TVector3(geoCenter.x(), geoCenter.y(), geoCenter.z());
+    m_geoCenterGlobal =
+        TVector3(geoCenterGlobal.x(), geoCenterGlobal.y(), geoCenterGlobal.z());
+    m_geoCenterLocal = TVector2(geoCenterLocal.x(), geoCenterLocal.y());
+    m_geoId = clusterSsl.geometryId().sensitive();
+    m_eventId = clusterSsl.eventId();
 
     std::vector<TVector3> trackHits;
     trackHits.reserve(cluster.truthHits.size());

@@ -10,7 +10,9 @@ target_sources(
     RootTrackLookupValidationWriter.cpp
     RootTrackParamsReader.cpp
     RootSimDataReader.cpp
+    RootMeasurementWriter.cpp
     JsonTrackLookupReader.cpp
     JsonTrackLookupWriter.cpp
+    AlignmentResultWriter.cpp
     E320RootDataReader.cpp
 )

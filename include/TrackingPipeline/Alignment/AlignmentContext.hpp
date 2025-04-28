@@ -1,24 +1,21 @@
 #pragma once
 
 #include "Acts/Definitions/Algebra.hpp"
+#include <Acts/Geometry/GeometryIdentifier.hpp>
 
-#include <cstddef>
+#include <map>
 #include <memory>
 
 struct AlignmentContext {
-  /// We have 2 different transforms
-  std::shared_ptr<const std::array<Acts::Transform3, 2>> alignmentStore =
-      nullptr;
-
-  /// Context index
-  std::size_t alignmentIndex{0};
+  std::shared_ptr<std::map<Acts::GeometryIdentifier, Acts::Transform3>>
+      alignmentStore = nullptr;
 
   /// Default constructor
   AlignmentContext() = default;
 
   /// Constructor with Store and context index
   AlignmentContext(
-      std::shared_ptr<const std::array<Acts::Transform3, 2>> aStore,
-      unsigned int aIndex = 0)
-      : alignmentStore(std::move(aStore)), alignmentIndex(aIndex) {}
+      std::shared_ptr<std::map<Acts::GeometryIdentifier, Acts::Transform3>>
+          aStore)
+      : alignmentStore(std::move(aStore)) {}
 };

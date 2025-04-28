@@ -1,7 +1,7 @@
 target_sources(
     TrackingPipelineCore
     PRIVATE
-    SourceLinkGridConstructor.cpp
+    E320SourceLinkGridConstructor.cpp
     ForwardOrderedIntersectionFinder.cpp
     PathSeedingAlgorithm.cpp
     TrackLookupProvider.cpp

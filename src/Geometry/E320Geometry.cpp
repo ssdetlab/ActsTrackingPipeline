@@ -169,6 +169,25 @@ std::unique_ptr<Acts::Experimental::Blueprint::Node> makeBlueprintE320(
 
   trackerBP->add(std::move(quad3Node));
 
+  // X-Corrector
+  auto xCorrectorZBounds = std::make_tuple(
+      gOpt.xCorrectorTranslation.z() - gOpt.xCorrectorBounds.at(2),
+      gOpt.xCorrectorTranslation.z() + gOpt.xCorrectorBounds.at(2));
+
+  auto xCorrectorLayerBuilder =
+      makeLayerBuilder(world, gOpt.g4ToWorld, names, {xCorrectorZBounds},
+                       {Acts::BinningValue::binZ});
+
+  Acts::Transform3 xCorrectorTransform = Acts::Transform3::Identity();
+  xCorrectorTransform.rotate(gOpt.actsToWorld.rotation().inverse());
+  xCorrectorTransform.translate(gOpt.xCorrectorTranslation);
+
+  auto xCorrectorNode = std::make_unique<Acts::Experimental::Blueprint::Node>(
+      "xCorrector", xCorrectorTransform, Acts::VolumeBounds::eCuboid,
+      gOpt.xCorrectorBounds, xCorrectorLayerBuilder);
+
+  trackerBP->add(std::move(xCorrectorNode));
+
   return trackerBP;
 };
 
@@ -196,8 +215,8 @@ std::shared_ptr<const Acts::Experimental::Detector> buildE320Detector(
 
   // Detector builder
   Acts::Experimental::DetectorBuilder::Config dCfg;
-  dCfg.auxiliary = "LUXE detector builder";
-  dCfg.name = "LUXE detector from blueprint";
+  dCfg.auxiliary = "Detector builder";
+  dCfg.name = "Detector from blueprint";
   dCfg.builder = detectorBuilder;
   dCfg.materialDecorator = std::make_shared<NoMaterialDecorator>(mpCfg);
   dCfg.geoIdGenerator = std::make_shared<E320GeometryIdGenerator>(

@@ -37,6 +37,7 @@ find_package(
     Net
     Physics
     GeomPainter
+    Minuit
     REQUIRED
 )
 
@@ -77,6 +78,7 @@ find_package(
     COMPONENTS
     Core
     Fatras
+    Alignment
     PluginGeant4
     PluginJson
     PluginFpeMonitoring
@@ -98,9 +100,11 @@ target_link_libraries(
     ROOT::Hist
     ROOT::Gpad
     ROOT::Net
+    ROOT::Minuit
     G__SimEventDict
     ActsCore
     ActsFatras
+    ActsAlignment
     ActsPluginGeant4
     ActsPluginJson
     ActsPluginFpeMonitoring
@@ -121,6 +125,7 @@ add_subdirectory(src/Material)
 add_subdirectory(src/Simulation)
 add_subdirectory(src/TrackFinding)
 add_subdirectory(src/TrackFitting)
+add_subdirectory(src/Alignment)
 
 # macro to add a run executables
 macro(add_run _name _source)

@@ -48,26 +48,22 @@ struct GeometryOptions {
   const std::vector<double> trackerBounds = {
       chipSizeX / 2 + 1000_mm, chipY + chipSizeY / 2 + 1000_mm, 8600_mm};
 
-  // Dipole volume encapsulating the
-  // magnetic field
-  const Acts::Vector3 dipoleTranslation{0_mm, 0_mm, 13140_mm};
-
-  const std::vector<double> dipoleBounds = {
-      chipSizeX / 2 + 1000_mm, chipY + chipSizeY / 2 + 1000_mm, 1000_mm};
+  // Be window poisiton
+  const Acts::Vector3 beWindowTranslation{0_mm, 0_mm, 3279_mm};
 
   // Quadrupole volume encapsulating the
   // magnetic field
-  const Acts::Vector3 quad1Translation{0_mm, 0_mm, 4182.49_mm};
+  const Acts::Vector3 quad1Translation{0_mm, 0_mm, 4157_mm};
 
   const std::vector<double> quad1Bounds = {
       chipSizeX / 2 + 1000_mm, chipY + chipSizeY / 2 + 1000_mm, 486.664_mm};
 
-  const Acts::Vector3 quad2Translation{0_mm, 0_mm, 6406.62_mm};
+  const Acts::Vector3 quad2Translation{0_mm, 0_mm, 6382_mm};
 
   const std::vector<double> quad2Bounds = {
       chipSizeX / 2 + 1000_mm, chipY + chipSizeY / 2 + 1000_mm, 486.664_mm};
 
-  const Acts::Vector3 quad3Translation{0_mm, 0_mm, 8631.05_mm};
+  const Acts::Vector3 quad3Translation{0_mm, 0_mm, 8606_mm};
 
   const std::vector<double> quad3Bounds = {
       chipSizeX / 2 + 1000_mm, chipY + chipSizeY / 2 + 1000_mm, 486.664_mm};
@@ -83,12 +79,20 @@ struct GeometryOptions {
 
   // X-corrector volume encapsulating the
   // magnetic field
-  const Acts::Vector3 xCorrectorTranslation{0_mm, 0_mm, 4182.49_mm};
+  const Acts::Vector3 xCorrectorTranslation{0_mm, 0_mm, 9992.9032_mm};
 
   const std::vector<double> xCorrectorBounds = {
+      chipSizeX / 2 + 1000_mm, chipY + chipSizeY / 2 + 1000_mm, 118.11_mm};
+
+  // Dipole volume encapsulating the
+  // magnetic field
+  const Acts::Vector3 dipoleTranslation{0_mm, 0_mm, 13113_mm};
+
+  const std::vector<double> dipoleBounds = {
       chipSizeX / 2 + 1000_mm, chipY + chipSizeY / 2 + 1000_mm, 1000_mm};
 
   // PDC window volume
+  // TODO: Add machinery to move the PDC window
   const Acts::Vector3 pdcWindowTranslation{0_mm, 0_mm, 16549.7_mm};
 
   const std::vector<double> pdcWindowBounds = {

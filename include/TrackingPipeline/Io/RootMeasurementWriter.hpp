@@ -3,20 +3,19 @@
 #include "Acts/EventData/SourceLink.hpp"
 #include "Acts/Utilities/Logger.hpp"
 
+#include <cstddef>
+
+#include <TMatrixDfwd.h>
+
 #include "TFile.h"
 #include "TLorentzVector.h"
 #include "TMatrixD.h"
 #include "TTree.h"
 #include "TVector3.h"
-#include "TrackingPipeline/EventData/DataContainers.hpp"
 #include "TrackingPipeline/Infrastructure/AlgorithmContext.hpp"
 #include "TrackingPipeline/Infrastructure/DataHandle.hpp"
 #include "TrackingPipeline/Infrastructure/IWriter.hpp"
 #include "TrackingPipeline/Infrastructure/ProcessCode.hpp"
-
-using namespace Acts::UnitLiterals;
-
-using TrackID = std::tuple<std::int32_t, std::int32_t, std::int32_t>;
 
 /// @brief Writer to store fitted track data in
 /// ROOT file
@@ -27,33 +26,35 @@ using TrackID = std::tuple<std::int32_t, std::int32_t, std::int32_t>;
 ///
 /// @note Assumes that the tracks are simulated and
 /// the truth information is available
-class RootSimClusterWriter : public IWriter {
+class RootMeasurementWriter : public IWriter {
  public:
+  using HitData = std::tuple<TVector3, TVector3, TLorentzVector>;
+
   /// @brief The nested configuration struct
   struct Config {
     /// Surface accessor
     Acts::SourceLinkSurfaceAccessor surfaceAccessor;
     /// Truth cluster data
-    std::string inputClusters;
+    std::string inputMeasurements;
     /// Name of the input tree
     std::string treeName;
     /// The names of the input files
     std::string filePath;
   };
 
-  RootSimClusterWriter(const RootSimClusterWriter &) = delete;
-  RootSimClusterWriter(const RootSimClusterWriter &&) = delete;
+  RootMeasurementWriter(const RootMeasurementWriter &) = delete;
+  RootMeasurementWriter(const RootMeasurementWriter &&) = delete;
 
   /// @brief Constructor
   ///
   /// @param config The Configuration struct
-  RootSimClusterWriter(const Config &config, Acts::Logging::Level level);
+  RootMeasurementWriter(const Config &config, Acts::Logging::Level level);
 
   /// @brief Finalize method
   ProcessCode finalize() override;
 
   /// Writer name() method
-  std::string name() const override { return "RootSimClusterWriter"; }
+  std::string name() const override { return "RootMeasurementWriter"; }
 
   /// Write out data to the input stream
   ProcessCode write(const AlgorithmContext &ctx) override;
@@ -68,7 +69,8 @@ class RootSimClusterWriter : public IWriter {
   /// The config class
   Config m_cfg;
 
-  ReadDataHandle<SimClusters> m_inputClusters{this, "InputClusters"};
+  ReadDataHandle<std::vector<Acts::SourceLink>> m_inputMeasurements{
+      this, "inputMeasurements"};
 
   std::unique_ptr<const Acts::Logger> m_logger;
 
@@ -85,19 +87,6 @@ class RootSimClusterWriter : public IWriter {
 
   std::size_t m_geoId;
   std::size_t m_eventId;
-
-  int m_isSignal;
-
-  /// Measurement hits
-  std::vector<TVector3> m_trackHits;
-
-  std::vector<int> m_trackId;
-  std::vector<int> m_parentTrackId;
-  std::vector<int> m_runId;
-
-  std::vector<TLorentzVector> m_onSurfMomemtum;
-  std::vector<TLorentzVector> m_originMomentum;
-  std::vector<TVector3> m_vertex;
 
   /// Mutex to protect the tree filling
   std::mutex m_mutex;

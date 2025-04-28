@@ -8,6 +8,8 @@
 #include "Acts/TrackFinding/CombinatorialKalmanFilter.hpp"
 #include "Acts/TrackFitting/KalmanFitter.hpp"
 #include "ActsAlignment/Kernel/Alignment.hpp"
+#include <Acts/EventData/TrackParameters.hpp>
+#include <Acts/EventData/VectorMultiTrajectory.hpp>
 
 #include <functional>
 #include <memory>
@@ -48,6 +50,15 @@ class AlignmentGroup {
   }
 };
 
+class AlignmentTransformUpdater {
+ public:
+  bool update(Acts::DetectorElementBase* detElement,
+              const Acts::GeometryContext& gctx,
+              const Acts::Transform3& transform) {
+    return true;
+  };
+};
+
 class AlignmentAlgorithm final : public IAlgorithm {
  public:
   using AlignmentResult = Acts::Result<ActsAlignment::AlignmentResult>;
@@ -63,8 +74,9 @@ class AlignmentAlgorithm final : public IAlgorithm {
    public:
     virtual ~AlignmentFunction() = default;
     virtual AlignmentResult operator()(
-        const std::vector<std::vector<Acts::SourceLink>>&, const Seeds&,
-        const ActsAlignment::AlignmentOptions<TrackFitterOptions>&) const = 0;
+        const std::vector<std::vector<Acts::SourceLink>>&,
+        const std::vector<Acts::CurvilinearTrackParameters>&,
+        const ActsAlignment::AlignmentOptions<TrackFitterOptions>&) = 0;
   };
 
   /// Create the alignment function implementation.
@@ -76,18 +88,20 @@ class AlignmentAlgorithm final : public IAlgorithm {
       std::shared_ptr<const Acts::MagneticFieldProvider> magneticField);
 
   struct Config {
-    /// Input source links collection.
-    std::string inputSourceLinks;
-    /// Input initial track parameter estimates for for each proto track.
+    /// Input track candidates
     std::string inputTrackCandidates;
     /// Output aligned parameters collection.
     std::string outputAlignmentParameters;
+    /// Reference suface
+    std::shared_ptr<Acts::Surface> referenceSurface;
     /// Type erased fitter function.
     std::shared_ptr<AlignmentFunction> align;
     /// The aligned transform updater
     ActsAlignment::AlignedTransformUpdater alignedTransformUpdater;
     /// The surfaces (with detector elements) to be aligned
     std::vector<Acts::DetectorElementBase*> alignedDetElements;
+    /// KF options
+    Acts::KalmanFitterOptions<Acts::VectorMultiTrajectory> kfOptions;
     /// The alignment mask at each iteration
     std::map<unsigned int, std::bitset<6>> iterationState;
     /// Cutoff value for average chi2/ndf
@@ -116,8 +130,6 @@ class AlignmentAlgorithm final : public IAlgorithm {
  private:
   Config m_cfg;
 
-  ReadDataHandle<std::vector<Acts::SourceLink>> m_inputSourceLinks{
-      this, "InputSourceLinks"};
   ReadDataHandle<Seeds> m_inputTrackCandidates{this, "InputTrackCandidates"};
 
   WriteDataHandle<AlignmentParameters> m_outputAlignmentParameters{
