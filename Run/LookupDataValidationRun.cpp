@@ -1,5 +1,6 @@
 #include "Acts/Utilities/Logger.hpp"
 
+#include <filesystem>
 #include <memory>
 
 #include "TrackingPipeline/Clustering/HourglassFilter.hpp"
@@ -159,92 +160,96 @@ int main() {
   seqCfg.trackFpes = false;
   Sequencer sequencer(seqCfg);
 
-  //  // Add the sim data reader
-  //  E320Io::E320RootSimDataReader::Config readerCfg =
-  //  E320Io::defaultSimConfig(); readerCfg.clusterFilter = hourglassFilter;
-  //  readerCfg.outputSourceLinks = "SimMeasurements";
-  //  readerCfg.outputSimClusters = "SimClusters";
-  //  std::string pathToDir =
-  //      "/home/romanurmanov/lab/LUXE/acts_tracking/E320Pipeline_dataInRootFormat/"
-  //      "Signal_E320lp_10.0_12BX_All/Signal_E320lp_10.0_12BX_split";
-  //
-  //  // Get the paths to the files in the directory
-  //  for (const auto& entry : std::filesystem::directory_iterator(pathToDir)) {
-  //    std::string pathToFile = entry.path();
-  //    readerCfg.filePaths.push_back(pathToFile);
-  //  }
-  //
-  //  // The events are not sorted in the directory
-  //  // but we need to process them in order
-  //  std::ranges::sort(readerCfg.filePaths, [](const std::string& a,
-  //                                            const std::string& b) {
-  //    std::size_t idxRootA = a.find_last_of('.');
-  //    std::size_t idxEventA = a.find_last_of('t', idxRootA);
-  //    std::string eventSubstrA = a.substr(idxEventA + 1, idxRootA -
-  //    idxEventA);
-  //
-  //    std::size_t idxRootB = b.find_last_of('.');
-  //    std::size_t idxEventB = b.find_last_of('t', idxRootB);
-  //    std::string eventSubstrB = b.substr(idxEventB + 1, idxRootB -
-  //    idxEventB);
-  //
-  //    return std::stoul(eventSubstrA) < std::stoul(eventSubstrB);
-  //  });
-  //
-  //  // Add the reader to the sequencer
-  //  sequencer.addReader(
-  //      std::make_shared<E320Io::E320RootSimDataReader>(readerCfg, logLevel));
-
-  // Setup dummy reader
-  DummyReader::Config readerCfg;
-  readerCfg.outputSimClusters = "SimClusters";
+  // Add the sim data reader
+  E320Io::E320RootSimDataReader::Config readerCfg = E320Io::defaultSimConfig();
+  readerCfg.clusterFilter = hourglassFilter;
   readerCfg.outputSourceLinks = "SimMeasurements";
-  readerCfg.nEvents = 1e4;
+  readerCfg.outputSimClusters = "SimClusters";
+  std::string pathToDir =
+      "/home/romanurmanov/lab/LUXE/acts_tracking/E320Pipeline_sim/"
+      "E320Pipeline_dataInRootFormat/temp";
 
-  sequencer.addReader(std::make_shared<DummyReader>(readerCfg));
+  // Get the paths to the files in the directory
+  for (const auto& entry :
+       std::filesystem::recursive_directory_iterator(pathToDir)) {
+    if (entry.path().extension() != ".root") {
+      continue;
+    }
+    std::string pathToFile = entry.path();
+    readerCfg.filePaths.push_back(pathToFile);
+  }
 
-  // Setup the measurements creator
-  Acts::Experimental::DetectorNavigator::Config navCfg;
-  navCfg.detector = detector.get();
-  navCfg.resolvePassive = false;
-  navCfg.resolveMaterial = true;
-  navCfg.resolveSensitive = true;
+  // The events are not sorted in the directory
+  // but we need to process them in order
+  std::ranges::sort(readerCfg.filePaths, [](const std::string& a,
+                                            const std::string& b) {
+    std::size_t idxRootA = a.find_last_of('.');
+    std::size_t idxEventA = a.find_last_of('t', idxRootA);
+    std::string eventSubstrA = a.substr(idxEventA + 1, idxRootA - idxEventA);
 
-  Acts::Experimental::DetectorNavigator navigator(
-      navCfg, Acts::getDefaultLogger("DetectorNavigator", logLevel));
-  Acts::EigenStepper<> stepper(field);
+    std::size_t idxRootB = b.find_last_of('.');
+    std::size_t idxEventB = b.find_last_of('t', idxRootB);
+    std::string eventSubstrB = b.substr(idxEventB + 1, idxRootB - idxEventB);
 
-  auto propagator = Propagator(std::move(stepper), std::move(navigator));
+    return std::stoul(eventSubstrA) < std::stoul(eventSubstrB);
+  });
 
-  auto momGen = std::make_shared<RangedUniformMomentumGenerator>();
-  momGen->Pranges = {{0.5_GeV, 1.0_GeV}, {1.0_GeV, 1.5_GeV}, {1.5_GeV, 2.0_GeV},
-                     {2.0_GeV, 2.5_GeV}, {2.5_GeV, 3.0_GeV}, {3.0_GeV, 3.5_GeV},
-                     {3.5_GeV, 4.0_GeV}, {4.0_GeV, 4.5_GeV}};
+  // Add the reader to the sequencer
+  sequencer.addReader(
+      std::make_shared<E320Io::E320RootSimDataReader>(readerCfg, logLevel));
 
-  auto digiizer = std::make_shared<IdealDigitizer>();
+  /*// Setup dummy reader*/
+  /*DummyReader::Config readerCfg;*/
+  /*readerCfg.outputSimClusters = "SimClusters";*/
+  /*readerCfg.outputSourceLinks = "SimMeasurements";*/
+  /*readerCfg.nEvents = 1e4;*/
+  /**/
+  /*sequencer.addReader(std::make_shared<DummyReader>(readerCfg));*/
 
-  MeasurementsCreator::Config mcCfg;
-  mcCfg.vertexGenerator = std::make_shared<StationaryVertexGenerator>();
-  mcCfg.momentumGenerator = momGen;
-  mcCfg.hitDigitizer = digiizer;
-  mcCfg.maxSteps = 300;
-  mcCfg.isSignal = true;
-
-  auto measurementsCreator =
-      std::make_shared<MeasurementsCreator>(propagator, mcCfg);
-
-  MeasurementsEmbeddingAlgorithm::Config mcaCfg;
-  mcaCfg.inputSourceLinks = "SimMeasurements";
-  mcaCfg.inputSimClusters = "SimClusters";
-  mcaCfg.outputSourceLinks = "Measurements";
-  mcaCfg.outputSimClusters = "Clusters";
-  mcaCfg.measurementGenerator = measurementsCreator;
-  mcaCfg.randomNumberSvc =
-      std::make_shared<RandomNumbers>(RandomNumbers::Config());
-  mcaCfg.nMeasurements = 1;
-
-  sequencer.addAlgorithm(
-      std::make_shared<MeasurementsEmbeddingAlgorithm>(mcaCfg, logLevel));
+  //  // Setup the measurements creator
+  //  Acts::Experimental::DetectorNavigator::Config navCfg;
+  //  navCfg.detector = detector.get();
+  //  navCfg.resolvePassive = false;
+  //  navCfg.resolveMaterial = true;
+  //  navCfg.resolveSensitive = true;
+  //
+  //  Acts::Experimental::DetectorNavigator navigator(
+  //      navCfg, Acts::getDefaultLogger("DetectorNavigator", logLevel));
+  //  Acts::EigenStepper<> stepper(field);
+  //
+  //  auto propagator = Propagator(std::move(stepper), std::move(navigator));
+  //
+  //  auto momGen = std::make_shared<RangedUniformMomentumGenerator>();
+  //  momGen->Pranges = {{0.5_GeV, 1.0_GeV}, {1.0_GeV, 1.5_GeV},
+  //  {1.5_GeV, 2.0_GeV},
+  //                     {2.0_GeV, 2.5_GeV}, {2.5_GeV, 3.0_GeV},
+  //                     {3.0_GeV, 3.5_GeV}, {3.5_GeV, 4.0_GeV},
+  //                     {4.0_GeV, 4.5_GeV}};
+  //
+  //  auto digiizer = std::make_shared<IdealDigitizer>();
+  //
+  //  MeasurementsCreator::Config mcCfg;
+  //  mcCfg.vertexGenerator = std::make_shared<StationaryVertexGenerator>();
+  //  mcCfg.momentumGenerator = momGen;
+  //  mcCfg.hitDigitizer = digiizer;
+  //  mcCfg.maxSteps = 300;
+  //  mcCfg.isSignal = true;
+  //
+  //  auto measurementsCreator =
+  //      std::make_shared<MeasurementsCreator>(propagator, mcCfg);
+  //
+  //  MeasurementsEmbeddingAlgorithm::Config mcaCfg;
+  //  mcaCfg.inputSourceLinks = "SimMeasurements";
+  //  mcaCfg.inputSimClusters = "SimClusters";
+  //  mcaCfg.outputSourceLinks = "Measurements";
+  //  mcaCfg.outputSimClusters = "Clusters";
+  //  mcaCfg.measurementGenerator = measurementsCreator;
+  //  mcaCfg.randomNumberSvc =
+  //      std::make_shared<RandomNumbers>(RandomNumbers::Config());
+  //  mcaCfg.nMeasurements = 1;
+  //
+  //  sequencer.addAlgorithm(
+  //      std::make_shared<MeasurementsEmbeddingAlgorithm>(mcaCfg, logLevel));
 
   // --------------------------------------------------------------
   // Lookup data validation
@@ -257,20 +262,20 @@ int main() {
 
   JsonTrackLookupReader::Config lookupReaderCfg;
   lookupReaderCfg.refLayers = refLayers;
-  lookupReaderCfg.bins = {1000, 1};
+  lookupReaderCfg.bins = {1000, 5};
 
   // Validation algorithm
   TrackLookupValidationAlgorithm::Config validatorCfg;
 
   TrackLookupProvider::Config providerCfg;
-  providerCfg.lookupPath = "lookup.json";
+  providerCfg.lookupPath = "lookup-parmigan-1000x5.json";
   providerCfg.trackLookupReader =
       std::make_shared<JsonTrackLookupReader>(lookupReaderCfg);
   TrackLookupProvider provider(providerCfg);
 
   validatorCfg.refLayers = refLayers;
   validatorCfg.estimator.connect<&TrackLookupProvider::lookup>(&provider);
-  validatorCfg.inputClusters = "Clusters";
+  validatorCfg.inputClusters = "SimClusters";
   validatorCfg.outputIpPars = "ipPars";
   validatorCfg.outputIpParsEst = "ipParsEst";
   validatorCfg.outputRefLayerPars = "refPars";
@@ -284,7 +289,7 @@ int main() {
   validationWriterCfg.inputIpParsEst = "ipParsEst";
   validationWriterCfg.inputRefLayerPars = "refPars";
   validationWriterCfg.inputRefLayerParsEst = "refParsEst";
-  validationWriterCfg.path = "lookup-validation-full.root";
+  validationWriterCfg.path = "lookup-validation-data-1000x5.root";
   validationWriterCfg.treeName = "validation";
 
   sequencer.addWriter(std::make_shared<RootTrackLookupValidationWriter>(

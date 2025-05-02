@@ -67,8 +67,9 @@ int main() {
   // Set the path to the gdml file
   // and the names of the volumes to be converted
   std::string gdmlPath =
-      "/home/romanurmanov/lab/LUXE/acts_tracking/E320Pipeline_gdmls/"
-      "full_detector_sim/ettgeom_magnet_pdc_tracker.gdml";
+      "/home/romanurmanov/lab/LUXE/acts_tracking/E320Pipeline_sim/"
+      "E320Pipeline_gdmls/"
+      "ettgeom_magnet_pdc_tracker.gdml";
   std::vector<std::string> names{"OPPPSensitive", "DetChamberWindow"};
 
   // Veto PDC window material mapping
@@ -79,8 +80,9 @@ int main() {
   std::vector<Acts::GeometryIdentifier> materialVeto{pdcWindowId};
 
   std::string materialPath =
-      "/home/romanurmanov/lab/LUXE/acts_tracking/E320Pipeline_material/"
-      "full_detector_sim/Uniform_DirectZ_TrackerOnly_256x128_1M/material.json";
+      "/home/romanurmanov/lab/LUXE/acts_tracking/E320Pipeline_sim/"
+      "E320Pipeline_material/"
+      "Uniform_DirectZ_TrackerOnly_256x128_1M/material.json";
 
   // Build the detector
   auto trackerBP = E320Geometry::makeBlueprintE320(gdmlPath, names, gOpt);
@@ -191,7 +193,7 @@ int main() {
   DummyReader::Config dummyReaderCfg;
   dummyReaderCfg.outputSourceLinks = "SimMeasurements";
   dummyReaderCfg.outputSimClusters = "SimClusters";
-  dummyReaderCfg.nEvents = 1e1;
+  dummyReaderCfg.nEvents = 1e2;
 
   sequencer.addReader(std::make_shared<DummyReader>(dummyReaderCfg));
 
@@ -214,7 +216,8 @@ int main() {
   // Digitizer
   E320Sim::E320HistDigitizer::Config cptDigitizerCfg;
   cptDigitizerCfg.pathToHist =
-      "/home/romanurmanov/lab/LUXE/acts_tracking/E320Pipeline_genHists/"
+      "/home/romanurmanov/lab/LUXE/acts_tracking/E320Pipeline_sim/"
+      "E320Pipeline_genHists/"
       "comptonBkg/genHistSize.root";
   cptDigitizerCfg.histName = "histSize";
 
@@ -226,7 +229,8 @@ int main() {
   cptReaderCfg.treeName = "track-parameters";
   cptReaderCfg.transform = Acts::Transform3::Identity();
   std::string pathToDirCpt =
-      "/home/romanurmanov/lab/LUXE/acts_tracking/E320Pipeline_genRootData/"
+      "/home/romanurmanov/lab/LUXE/acts_tracking/E320Pipeline_sim/"
+      "E320Pipeline_genRootData/"
       "comptonBkg";
 
   // Get the paths to the files in the directory
@@ -257,8 +261,8 @@ int main() {
   MeasurementsEmbeddingAlgorithm::Config cptMceCfg;
   cptMceCfg.inputSourceLinks = "SimMeasurements";
   cptMceCfg.inputSimClusters = "SimClusters";
-  cptMceCfg.outputSourceLinks = "Measurements";
-  cptMceCfg.outputSimClusters = "Clusters";
+  cptMceCfg.outputSourceLinks = "MeasurementsWithCpt";
+  cptMceCfg.outputSimClusters = "ClustersWithCpt";
   cptMceCfg.measurementGenerator = cptMeasurementsCreator;
   //   cptMceCfg.clusterFilter = hourglassFilter;
   cptMceCfg.randomNumberSvc =
@@ -288,7 +292,8 @@ int main() {
   // Digitizer
   E320Sim::E320HistDigitizer::Config beamDigitizerCfg;
   beamDigitizerCfg.pathToHist =
-      "/home/romanurmanov/lab/LUXE/acts_tracking/E320Pipeline_genHists/beamBkg/"
+      "/home/romanurmanov/lab/LUXE/acts_tracking/E320Pipeline_sim/"
+      "E320Pipeline_genHists/beamBkg/"
       "genHistSize.root";
   beamDigitizerCfg.histName = "histSize";
 
@@ -315,7 +320,8 @@ int main() {
   beamReaderCfg.treeName = "track-parameters";
   beamReaderCfg.transform = Acts::Transform3::Identity();
   std::string pathToDirBeam =
-      "/home/romanurmanov/lab/LUXE/acts_tracking/E320Pipeline_genRootData/"
+      "/home/romanurmanov/lab/LUXE/acts_tracking/E320Pipeline_sim/"
+      "E320Pipeline_genRootData/"
       "beamBkg";
 
   // Get the paths to the files in the directory
@@ -347,8 +353,8 @@ int main() {
       std::make_shared<MeasurementsCreator>(beamBkgPropagator, beamMcCfg);
 
   MeasurementsEmbeddingAlgorithm::Config beamMceCfg;
-  beamMceCfg.inputSourceLinks = "SimMeasurements";
-  beamMceCfg.inputSimClusters = "SimClusters";
+  beamMceCfg.inputSourceLinks = "MeasurementsWithCpt";
+  beamMceCfg.inputSimClusters = "ClustersWithCpt";
   beamMceCfg.outputSourceLinks = "Measurements";
   beamMceCfg.outputSimClusters = "Clusters";
   beamMceCfg.measurementGenerator = beamMeasurementsCreator;
@@ -372,7 +378,7 @@ int main() {
 
   clusterWriterCfg.inputClusters = "Clusters";
   clusterWriterCfg.treeName = "clusters";
-  clusterWriterCfg.filePath = "clusters-ncs-beam.root";
+  clusterWriterCfg.filePath = "clusters-bkg.root";
 
   sequencer.addWriter(
       std::make_shared<RootSimClusterWriter>(clusterWriterCfg, logLevel));

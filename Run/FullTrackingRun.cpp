@@ -10,6 +10,7 @@
 #include "Acts/TrackFitting/GainMatrixUpdater.hpp"
 #include "Acts/TrackFitting/KalmanFitter.hpp"
 #include "Acts/Utilities/Logger.hpp"
+#include <Acts/Definitions/Algebra.hpp>
 
 #include <filesystem>
 #include <iostream>
@@ -207,39 +208,41 @@ int main() {
   seqCfg.trackFpes = false;
   Sequencer sequencer(seqCfg);
 
-  // Add the sim data reader
-  E320Io::E320RootSimDataReader::Config readerCfg;
-  //   readerCfg.clusterFilter = hourglassFilter;
-  readerCfg.treeName = "MyTree";
-  readerCfg.outputSourceLinks = "Measurements";
-  std::string pathToDir =
-      "/home/romanurmanov/lab/LUXE/acts_tracking/E320Pipeline_dataInRootFormat/"
-      "E320Shift_Nov_2024";
-
-  // Get the paths to the files in the directory
-  for (const auto& entry : std::filesystem::directory_iterator(pathToDir)) {
-    std::string pathToFile = entry.path();
-    readerCfg.filePaths.push_back(pathToFile);
-  }
-
-  // The events are not sorted in the directory
-  // but we need to process them in order
-  std::ranges::sort(readerCfg.filePaths, [](const std::string& a,
-                                            const std::string& b) {
-    std::size_t idxRootA = a.find_last_of('.');
-    std::size_t idxEventA = a.find_last_of('t', idxRootA);
-    std::string eventSubstrA = a.substr(idxEventA + 1, idxRootA - idxEventA);
-
-    std::size_t idxRootB = b.find_last_of('.');
-    std::size_t idxEventB = b.find_last_of('t', idxRootB);
-    std::string eventSubstrB = b.substr(idxEventB + 1, idxRootB - idxEventB);
-
-    return std::stoul(eventSubstrA) < std::stoul(eventSubstrB);
-  });
-
-  // Add the reader to the sequencer
-  sequencer.addReader(
-      std::make_shared<E320Io::E320RootSimDataReader>(readerCfg, logLevel));
+  /*// Add the sim data reader*/
+  /*E320Io::E320RootSimDataReader::Config readerCfg;*/
+  /*//   readerCfg.clusterFilter = hourglassFilter;*/
+  /*readerCfg.treeName = "MyTree";*/
+  /*readerCfg.outputSourceLinks = "Measurements";*/
+  /*std::string pathToDir =*/
+  /*    "/home/romanurmanov/lab/LUXE/acts_tracking/E320Pipeline_dataInRootFormat/"*/
+  /*    "E320Shift_Nov_2024";*/
+  /**/
+  /*// Get the paths to the files in the directory*/
+  /*for (const auto& entry : std::filesystem::directory_iterator(pathToDir)) {*/
+  /*  std::string pathToFile = entry.path();*/
+  /*  readerCfg.filePaths.push_back(pathToFile);*/
+  /*}*/
+  /**/
+  /*// The events are not sorted in the directory*/
+  /*// but we need to process them in order*/
+  /*std::ranges::sort(readerCfg.filePaths, [](const std::string& a,*/
+  /*                                          const std::string& b) {*/
+  /*  std::size_t idxRootA = a.find_last_of('.');*/
+  /*  std::size_t idxEventA = a.find_last_of('t', idxRootA);*/
+  /*  std::string eventSubstrA = a.substr(idxEventA + 1, idxRootA -
+   * idxEventA);*/
+  /**/
+  /*  std::size_t idxRootB = b.find_last_of('.');*/
+  /*  std::size_t idxEventB = b.find_last_of('t', idxRootB);*/
+  /*  std::string eventSubstrB = b.substr(idxEventB + 1, idxRootB -
+   * idxEventB);*/
+  /**/
+  /*  return std::stoul(eventSubstrA) < std::stoul(eventSubstrB);*/
+  /*});*/
+  /**/
+  /*// Add the reader to the sequencer*/
+  /*sequencer.addReader(*/
+  /*    std::make_shared<E320Io::E320RootSimDataReader>(readerCfg, logLevel));*/
 
   //  // --------------------------------------------------------------
   //  // Compton background embedding
@@ -440,6 +443,25 @@ int main() {
 
     auto surface = Acts::Surface::makeShared<Acts::PlaneSurface>(
         transform, std::make_shared<Acts::RectangleBounds>(halfX, halfY));
+
+    std::cout << "LAYER CENTER: " << surface->center(gctx).transpose() << "\n";
+    std::cout << "LAYER NORMAL: " << surface->normal(gctx).transpose() << "\n";
+    std::cout << "ON SURFACE"
+              << surface->isOnSurface(gctx, Acts::Vector3(6, 16567, -343),
+                                      Acts::Vector3::UnitY())
+              << "\n";
+    std::cout << "ON SURFACE"
+              << surface->isOnSurface(gctx, Acts::Vector3(-6, 16567, -343),
+                                      Acts::Vector3::UnitY())
+              << "\n";
+    std::cout << "ON SURFACE"
+              << surface->isOnSurface(gctx, Acts::Vector3(6, 16567, -86),
+                                      Acts::Vector3::UnitY())
+              << "\n";
+    std::cout << "ON SURFACE"
+              << surface->isOnSurface(gctx, Acts::Vector3(-6, 16567, -86),
+                                      Acts::Vector3::UnitY())
+              << "\n";
 
     Acts::GeometryIdentifier geoId;
     geoId.setSensitive(i + 1);

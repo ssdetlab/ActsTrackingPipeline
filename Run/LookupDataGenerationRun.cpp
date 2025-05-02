@@ -170,7 +170,7 @@ int main() {
   DummyReader::Config readerCfg;
   readerCfg.outputSimClusters = "SimClusters";
   readerCfg.outputSourceLinks = "SimMeasurements";
-  readerCfg.nEvents = 2e5;
+  readerCfg.nEvents = 1e6;
 
   sequencer.addReader(std::make_shared<DummyReader>(readerCfg));
 
@@ -192,25 +192,31 @@ int main() {
                      {2.0_GeV, 2.5_GeV}, {2.5_GeV, 3.0_GeV}, {3.0_GeV, 3.5_GeV},
                      {3.5_GeV, 4.0_GeV}, {4.0_GeV, 4.5_GeV}};
 
-  //  RootIPPositronTrackParametersReader::Config ptarmiganReaderCfg;
-  //  ptarmiganReaderCfg.filePaths = {
-  //      "/home/romanurmanov/lab/LUXE/acts_tracking/E320Pipeline_sim/"
-  //      "E320Pipeline_analysis/data/lookup_ptarmigan/"
-  //      "raw_e320_a0_10.0_gamma10.0_all_positrons_only_xF1M.root"};
-  //  ptarmiganReaderCfg.treeName = "tt";
-  //  ptarmiganReaderCfg.transform = gOpt.actsToWorld;
-  //
-  //  E320Sim::E320IPPositronGenerator::Config generatorCfg;
-  //  generatorCfg.trackParamsReader =
-  //      std::make_shared<RootIPPositronTrackParametersReader>(ptarmiganReaderCfg);
-  //  auto generator =
-  //      std::make_shared<E320Sim::E320IPPositronGenerator>(generatorCfg);
+  RootIPPositronTrackParametersReader::Config ptarmiganReaderCfg;
+  ptarmiganReaderCfg.filePaths = {
+      "/home/romanurmanov/lab/LUXE/acts_tracking/E320Pipeline_sim/"
+      "E320Pipeline_analysis/data/lookup_ptarmigan/"
+      "raw_e320_a0_10.0_gamma10.0_all_positrons_only_xF1M.root",
+      "/home/romanurmanov/lab/LUXE/acts_tracking/E320Pipeline_sim/"
+      "E320Pipeline_analysis/data/lookup_ptarmigan/"
+      "raw_e320_a0_10.0_gamma10.0_101to200jobs_positrons_only_xF1M.root"
+  };
+  ptarmiganReaderCfg.treeName = "tt";
+  ptarmiganReaderCfg.transform = gOpt.actsToWorld;
+
+  E320Sim::E320IPPositronGenerator::Config generatorCfg;
+  generatorCfg.trackParamsReader =
+      std::make_shared<RootIPPositronTrackParametersReader>(ptarmiganReaderCfg);
+  auto generator =
+      std::make_shared<E320Sim::E320IPPositronGenerator>(generatorCfg);
 
   auto digiizer = std::make_shared<IdealDigitizer>();
 
   MeasurementsCreator::Config mcCfg;
-  mcCfg.vertexGenerator = std::make_shared<StationaryVertexGenerator>();
-  mcCfg.momentumGenerator = momGen;
+  mcCfg.vertexGenerator = generator;
+  mcCfg.momentumGenerator = generator;
+  /*mcCfg.vertexGenerator = std::make_shared<StationaryVertexGenerator>();*/
+  /*mcCfg.momentumGenerator = momGen;*/
   mcCfg.hitDigitizer = digiizer;
   mcCfg.maxSteps = 300;
 
@@ -234,7 +240,7 @@ int main() {
   // Lookup data generation
 
   JsonTrackLookupWriter::Config lookupWriterCfg;
-  lookupWriterCfg.path = "lookup.json";
+  lookupWriterCfg.path = "lookup-parmigan-1000x5.json";
 
   auto lookupWriter = std::make_shared<JsonTrackLookupWriter>(lookupWriterCfg);
 
@@ -247,7 +253,7 @@ int main() {
   TrackLookupEstimationAlgorithm::Config estimatorCfg;
   estimatorCfg.trackLookupGridWriters = {lookupWriter};
   estimatorCfg.refLayers = refLayers;
-  estimatorCfg.bins = {1000, 1};
+  estimatorCfg.bins = {1000, 100};
   estimatorCfg.inputClusters = "Clusters";
 
   sequencer.addAlgorithm(
