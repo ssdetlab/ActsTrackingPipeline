@@ -1,6 +1,6 @@
 #include "TrackingPipeline/Alignment/AlignmentAlgorithm.hpp"
 
-#include <Acts/EventData/TrackParameters.hpp>
+#include "Acts/EventData/TrackParameters.hpp"
 
 AlignmentAlgorithm::AlignmentAlgorithm(Config cfg, Acts::Logging::Level lvl)
     : IAlgorithm("AlignmentAlgorithm", lvl), m_cfg(std::move(cfg)) {

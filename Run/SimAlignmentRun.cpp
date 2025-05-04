@@ -219,7 +219,7 @@ int main() {
 
   // Setup the sequencer
   Sequencer::Config seqCfg;
-  // seqCfg.events = 1e3;
+  /*seqCfg.events = 1e3;*/
   seqCfg.numThreads = 1;
   seqCfg.trackFpes = false;
   Sequencer sequencer(seqCfg);
@@ -249,20 +249,21 @@ int main() {
   auto propagator = Propagator(std::move(stepper), std::move(navigator));
 
   auto momGen = std::make_shared<RangedUniformMomentumGenerator>();
-  momGen->Pranges = {{2.3_GeV, 2.5_GeV}};
+  momGen->Pranges = {
+      {1.9_GeV, 2.1_GeV}, {2.1_GeV, 2.3_GeV}, {2.3_GeV, 2.5_GeV}};
 
   // Digitizer
   auto digitizer = std::make_shared<MisalignedDigitizer>();
   digitizer->resolution = {5_um, 5_um};
   digitizer->shifts = {{8, {0, 0}},
-                       {6, {0_um, 100_um}},
-                       {4, {0_um, 0_um}},
-                       {2, {0_mm, 0_um}},
-                       {0, {0_mm, 0_um}}};
+                       {6, {-12_um, 15_um}},
+                       {4, {18_um, -15_um}},
+                       {2, {-24_um, 20_um}},
+                       {0, {0, 0}}};
 
-  //  auto vertexGen = std::make_shared<GaussianVertexGenerator>(
-  //      Acts::Vector3(0.61872_mm, 16674_mm, -93.775_mm),
-  //      Acts::SquareMatrix3::Identity());
+  /*auto vertexGen = std::make_shared<GaussianVertexGenerator>(*/
+  /*    Acts::Vector3(0.61872_mm, 16674_mm, -93.775_mm),*/
+  /*    Acts::SquareMatrix3::Identity());*/
 
   auto vertexGen = std::make_shared<StationaryVertexGenerator>();
   vertexGen->vertex = Acts::Vector3(0, gOpt.beWindowTranslation[2], 0);
@@ -285,7 +286,7 @@ int main() {
   mcaCfg.measurementGenerator = measurementsCreator;
   mcaCfg.randomNumberSvc =
       std::make_shared<RandomNumbers>(RandomNumbers::Config());
-  mcaCfg.nMeasurements = 1e2;
+  mcaCfg.nMeasurements = 5e2;
 
   sequencer.addAlgorithm(
       std::make_shared<MeasurementsEmbeddingAlgorithm>(mcaCfg, logLevel));
@@ -337,10 +338,10 @@ int main() {
   // Path width provider
   std::map<std::int32_t, std::pair<double, double>> pathWidths = {
       {8, {100_m, 100_m}},
-      {6, {300_m, 300_m}},
-      {4, {350_m, 350_m}},
-      {2, {400_m, 400_m}},
-      {0, {500_m, 500_m}}};
+      {6, {200_um, 200_um}},
+      {4, {200_um, 200_um}},
+      {2, {200_um, 200_um}},
+      {0, {200_um, 200_um}}};
 
   LayerPathWidthProvider pathWidthProvider(pathWidths);
 
@@ -517,12 +518,13 @@ int main() {
       .align = AlignmentAlgorithm::makeAlignmentFunction(detector, field),
       .alignedTransformUpdater = voidAlignUpdater,
       .kfOptions = alignmentKFOptions,
-      .maxNumIterations = 100};
+      .chi2ONdfCutOff = 1e-6,
+      .maxNumIterations = 3};
 
   for (auto& det : detector->detectorElements()) {
     const auto& surface = det->surface();
-    if (surface.geometryId().sensitive() == 7) {
-      /*surface.geometryId().sensitive() == 5) {*/
+    if (surface.geometryId().sensitive() != 9 &&
+        surface.geometryId().sensitive() != 1) {
       alignmentCfg.alignedDetElements.push_back(det.get());
     }
   }
@@ -649,8 +651,8 @@ int main() {
   trackWriterCfg.filePath = "fitted-tracks.root";
   trackWriterCfg.targetTrueTrackSize = 5;
 
-  sequencer.addWriter(
-      std::make_shared<RootSimTrackWriter>(trackWriterCfg, logLevel));
+  //  sequencer.addWriter(
+  //      std::make_shared<RootSimTrackWriter>(trackWriterCfg, logLevel));
 
   sequencer.run();
   for (auto& v : detector->volumes()) {

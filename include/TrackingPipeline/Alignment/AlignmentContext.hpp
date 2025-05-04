@@ -17,5 +17,5 @@ struct AlignmentContext {
   AlignmentContext(
       std::shared_ptr<std::map<Acts::GeometryIdentifier, Acts::Transform3>>
           aStore)
-      : alignmentStore(std::move(aStore)) {}
+      : alignmentStore(aStore) {}
 };

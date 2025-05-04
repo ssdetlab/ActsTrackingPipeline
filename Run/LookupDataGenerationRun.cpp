@@ -148,8 +148,7 @@ int main() {
       gOpt.actsToWorldRotation.inverse() * gOpt.dipoleTranslation);
 
   // TODO: Check if it's the real field
-  // Acts::Vector3 xCorrectorB(0, 0, -0.0536_T);
-  Acts::Vector3 xCorrectorB(0, 0, 0);
+  Acts::Vector3 xCorrectorB(0, 0, -0.0536_T);
   ConstantBoundedField xCorrectorField(xCorrectorB, xCorrectorExtent);
 
   CompositeMagField::FieldComponents fieldComponents = {
@@ -160,6 +159,22 @@ int main() {
       {dipoleExtent, &dipoleField}};
 
   auto field = std::make_shared<CompositeMagField>(fieldComponents);
+
+  // --------------------------------------------------------------
+  // Alignment store initial guess
+  auto aStore =
+      std::make_shared<std::map<Acts::GeometryIdentifier, Acts::Transform3>>();
+  std::cout << "\n\n\n\n";
+  for (auto& v : detector->volumes()) {
+    for (auto& s : v->surfaces()) {
+      if (s->geometryId().sensitive()) {
+        Acts::Transform3 nominal = s->transform(gctx);
+        nominal.pretranslate(Acts::Vector3(-18_mm, 0, 0));
+        std::cout << nominal.translation().transpose() << "\n";
+        aStore->emplace(s->geometryId(), nominal);
+      }
+    }
+  }
 
   // --------------------------------------------------------------
   // Event reading
@@ -177,7 +192,7 @@ int main() {
   DummyReader::Config dummyReaderCfg;
   dummyReaderCfg.outputSourceLinks = "SimMeasurements";
   dummyReaderCfg.outputSimClusters = "SimClusters";
-  dummyReaderCfg.nEvents = 2e5;
+  dummyReaderCfg.nEvents = 1e4;
 
   sequencer.addReader(std::make_shared<DummyReader>(dummyReaderCfg));
 
@@ -197,11 +212,15 @@ int main() {
   auto propagator = Propagator(std::move(stepper), std::move(navigator));
 
   auto momGen = std::make_shared<RangedUniformMomentumGenerator>();
-  momGen->Pranges = {{1.9_GeV, 2.1_GeV},
-                     {2.1_GeV, 2.3_GeV},
-                     {2.3_GeV, 2.5_GeV},
-                     {2.5_GeV, 2.7_GeV},
-                     {2.7_GeV, 2.9_GeV}};
+  /*momGen->Pranges = {{1.9_GeV, 2.1_GeV},*/
+  /*                   {2.1_GeV, 2.3_GeV},*/
+  /*                   {2.3_GeV, 2.5_GeV},*/
+  /*                   {2.5_GeV, 2.7_GeV},*/
+  /*                   {2.7_GeV, 2.9_GeV}};*/
+  momGen->Pranges = {{0.0_GeV, 1.0_GeV}, {1.0_GeV, 2.0_GeV}, {2.0_GeV, 3.0_GeV},
+                     {3.0_GeV, 4.0_GeV}, {4.0_GeV, 5.0_GeV}, {5.0_GeV, 6.0_GeV},
+                     {6.0_GeV, 7.0_GeV}, {7.0_GeV, 8.0_GeV}, {8.0_GeV, 9.0_GeV},
+                     {9.0_GeV, 10.0_GeV}};
 
   auto vertexGen = std::make_shared<StationaryVertexGenerator>();
   vertexGen->vertex =

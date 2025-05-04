@@ -24,8 +24,8 @@ struct MisalignedDigitizer : public IDigitizer {
         pos + shift +
         res.cwiseProduct(Acts::Vector2(normalDist(rng), normalDist(rng)));
     Acts::Vector2 stdDev = {
-        /*std::hypot(resolution.first, 1e5 * shifts.at(staveId).first),*/
-        /*std::hypot(resolution.second, 1e5 * shifts.at(staveId).second)};*/
+        /*std::hypot(resolution.first, 1e2 * shifts.at(staveId).first),*/
+        /*std::hypot(resolution.second, 1e2 * shifts.at(staveId).second)};*/
         resolution.first,
         resolution.second};
     Acts::SquareMatrix2 cov = stdDev.cwiseProduct(stdDev).asDiagonal();

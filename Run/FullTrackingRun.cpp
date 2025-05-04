@@ -33,10 +33,10 @@
 #include "TrackingPipeline/MagneticField/DipoleMagField.hpp"
 #include "TrackingPipeline/MagneticField/QuadrupoleMagField.hpp"
 #include "TrackingPipeline/TrackFinding/CKFTrackFindingAlgorithm.hpp"
+#include "TrackingPipeline/TrackFinding/E320SourceLinkGridConstructor.hpp"
 #include "TrackingPipeline/TrackFinding/ForwardOrderedIntersectionFinder.hpp"
 #include "TrackingPipeline/TrackFinding/LayerPathWidthProvider.hpp"
 #include "TrackingPipeline/TrackFinding/PathSeedingAlgorithm.hpp"
-#include "TrackingPipeline/TrackFinding/E320SourceLinkGridConstructor.hpp"
 #include "TrackingPipeline/TrackFinding/TrackLookupProvider.hpp"
 #include "TrackingPipeline/TrackFitting/TrackFittingAlgorithm.hpp"
 
@@ -193,13 +193,27 @@ int main() {
 
   auto field = std::make_shared<CompositeMagField>(fieldComponents);
 
+  auto aStore =
+      std::make_shared<std::map<Acts::GeometryIdentifier, Acts::Transform3>>();
+  std::cout << "\n\n\n\n";
+  for (auto& v : detector->volumes()) {
+    for (auto& s : v->surfaces()) {
+      if (s->geometryId().sensitive()) {
+        Acts::Transform3 nominal = s->transform(gctx);
+        nominal.pretranslate(Acts::Vector3(-18_mm, 0, 0));
+        std::cout << nominal.translation().transpose() << "\n";
+        aStore->emplace(s->geometryId(), nominal);
+      }
+    }
+  }
+
   // --------------------------------------------------------------
   // Event reading
   SimpleSourceLink::SurfaceAccessor surfaceAccessor{detector.get()};
 
   // Setup the sequencer
   Sequencer::Config seqCfg;
-  seqCfg.events = 1e3;
+  // seqCfg.events = 1e3;
   seqCfg.numThreads = 1;
   seqCfg.trackFpes = false;
   Sequencer sequencer(seqCfg);
@@ -227,124 +241,97 @@ int main() {
   sequencer.addReader(
       std::make_shared<E320Io::E320RootDataReader>(readerCfg, logLevel));
 
-  //  // --------------------------------------------------------------
-  //  // The path seeding setup
-  //  auto pathSeederCfg = Acts::PathSeeder::Config();
-  //
-  //  // Combine layers into surfaces to take care of the gaps
-  //  std::vector<std::shared_ptr<Acts::Surface>> layerPtrs;
-  //  for (int i = 0; i < gOpt.staveZ.size(); i++) {
-  //    // Bounds
-  //    double halfX = gOpt.chipSizeX / 2;
-  //    double halfY = ((gOpt.chipY.at(8) + gOpt.chipSizeY / 2) -
-  //                    (gOpt.chipY.at(0) - gOpt.chipSizeY / 2)) /
-  //                   2;
-  //
-  //    // Center
-  //    double centerY = ((-gOpt.chipY.at(8) - gOpt.chipSizeY / 2) +
-  //                      (-gOpt.chipY.at(0) + gOpt.chipSizeY / 2)) /
-  //                     2;
-  //
-  //    Acts::Transform3 transform(Acts::Translation3(Acts::Vector3(
-  //                                   gOpt.chipX, gOpt.staveZ.at(i), centerY))
-  //                                   *
-  //                               gOpt.actsToWorldRotation.inverse());
-  //
-  //    auto surface = Acts::Surface::makeShared<Acts::PlaneSurface>(
-  //        transform, std::make_shared<Acts::RectangleBounds>(halfX, halfY));
-  //
-  //    Acts::GeometryIdentifier geoId;
-  //    geoId.setSensitive(i + 1);
-  //    surface->assignGeometryId(std::move(geoId));
-  //    layerPtrs.push_back(surface);
-  //
-  //    if (i == 0) {
-  //      pathSeederCfg.refLayerIds.push_back(geoId);
-  //    }
-  //  }
-  //
-  //  // Intersection finder
-  //  std::vector<const Acts::Surface*> layers;
-  //  for (auto layer : layerPtrs) {
-  //    layers.push_back(layer.get());
-  //  }
-  //
-  //  ForwardOrderedIntersectionFinder::Config intersectionFinderCfg;
-  //  intersectionFinderCfg.layers = std::move(layers);
-  //  intersectionFinderCfg.tol = (gOpt.chipY.at(1) - gOpt.chipSizeY / 2) -
-  //                              (gOpt.chipY.at(0) + gOpt.chipSizeY / 2) +
-  //                              1_mm;
-  //  ForwardOrderedIntersectionFinder
-  //  intersectionFinder(intersectionFinderCfg);
-  //
-  //  pathSeederCfg.intersectionFinder
-  //      .connect<&ForwardOrderedIntersectionFinder::operator()>(
-  //          &intersectionFinder);
-  //
-  //  // Path width provider
-  //  std::map<std::int32_t, std::pair<double, double>> pathWidths = {
-  //      {0, {100_um, 100_um}},
-  //      {1, {300_um, 300_um}},
-  //      {2, {305_um, 350_um}},
-  //      {3, {310_um, 400_um}},
-  //  };
-  //
-  //  LayerPathWidthProvider pathWidthProvider(pathWidths);
-  //
-  //  pathSeederCfg.pathWidthProvider.connect<&LayerPathWidthProvider::operator()>(
-  //      &pathWidthProvider);
-  //
-  //  // Grid to bin the source links
-  //  std::unordered_map<Acts::GeometryIdentifier, const Acts::Surface*>
-  //  layerMap; for (auto layer : layerPtrs) {
-  //    layerMap.insert({layer->geometryId(), layer.get()});
-  //  }
-  //
-  //  SourceLinkGridConstructor::Config gridConstructorCfg{
-  //      .bins = std::make_pair(1, 1000), .layers = layerMap};
-  //  gridConstructorCfg.surfaceAccessor
-  //      .connect<&SimpleSourceLink::SurfaceAccessor::operator()>(
-  //          &surfaceAccessor);
-  //
-  //  auto gridConstructor =
-  //      std::make_shared<SourceLinkGridConstructor>(gridConstructorCfg);
-  //
-  //  // Estimator of the IP and first hit
-  //  // parameters of the track
-  //  std::unordered_map<Acts::GeometryIdentifier, const Acts::Surface*>
-  //  refLayers; const auto& refVolume = detector->findDetectorVolume("layer0");
-  //  for (const auto* surf : refVolume->surfaces()) {
-  //    refLayers.try_emplace(surf->geometryId(), surf);
-  //  }
-  //
-  //  JsonTrackLookupReader::Config lookupReaderCfg;
-  //  lookupReaderCfg.refLayers = refLayers;
-  //  lookupReaderCfg.bins = {1000, 1};
-  //
-  //  TrackLookupProvider::Config lookupProviderCfg;
-  //  lookupProviderCfg.lookupPath =
-  //      "/home/romanurmanov/lab/LUXE/acts_tracking/E320Pipeline_lookups/"
-  //      "RangedUniform_05_45_Stationary_000_1000x1_200k/lookup.json";
-  //  lookupProviderCfg.trackLookupReader =
-  //      std::make_shared<JsonTrackLookupReader>(lookupReaderCfg);
-  //  TrackLookupProvider lookupProvider(lookupProviderCfg);
-  //
-  //  pathSeederCfg.trackEstimator.connect<&TrackLookupProvider::lookup>(
-  //      &lookupProvider);
-  //
-  //  // Create the path seeder algorithm
-  //  auto seedingAlgoCfg = PathSeedingAlgorithm::Config();
-  //  seedingAlgoCfg.seeder = std::make_shared<Acts::PathSeeder>(pathSeederCfg);
-  //  seedingAlgoCfg.sourceLinkGridConstructor = gridConstructor;
-  //  seedingAlgoCfg.inputSourceLinks = "Measurements";
-  //  seedingAlgoCfg.outputSeeds = "PathSeeds";
-  //  seedingAlgoCfg.minSeedSize = 4;
-  //  seedingAlgoCfg.maxSeedSize = 100;
-  //  sequencer.addAlgorithm(
-  //      std::make_shared<PathSeedingAlgorithm>(seedingAlgoCfg, logLevel));
-  //
+  // --------------------------------------------------------------
+  // The path seeding setup
+  auto pathSeederCfg = Acts::PathSeeder::Config();
+
+  // Intersection finder
+  std::vector<const Acts::Surface*> layers;
+  for (const auto& vol : detector->volumes()) {
+    for (const auto& surf : vol->surfaces()) {
+      if (surf->geometryId().sensitive()) {
+        layers.push_back(surf);
+      }
+    }
+  }
+
+  ForwardOrderedIntersectionFinder::Config intersectionFinderCfg;
+  intersectionFinderCfg.layers = std::move(layers);
+  ForwardOrderedIntersectionFinder intersectionFinder(intersectionFinderCfg);
+
+  pathSeederCfg.intersectionFinder
+      .connect<&ForwardOrderedIntersectionFinder::operator()>(
+          &intersectionFinder);
+
+  // Path width provider
+  std::map<std::int32_t, std::pair<double, double>> pathWidths = {
+      {0, {100_um, 100_um}},
+      {1, {300_um, 300_um}},
+      {2, {305_um, 350_um}},
+      {3, {310_um, 400_um}},
+  };
+
+  LayerPathWidthProvider pathWidthProvider(pathWidths);
+
+  pathSeederCfg.pathWidthProvider.connect<&LayerPathWidthProvider::operator()>(
+      &pathWidthProvider);
+
+  // Grid to bin the source links
+  std::unordered_map<Acts::GeometryIdentifier, const Acts::Surface*> layerMap;
+  for (const auto& vol : detector->volumes()) {
+    for (const auto& surf : vol->surfaces()) {
+      if (surf->geometryId().sensitive()) {
+        layerMap.insert({surf->geometryId(), surf});
+      }
+    }
+  }
+
+  E320SourceLinkGridConstructor::Config gridConstructorCfg{
+      .bins = std::make_pair(1, 1000), .layers = layerMap};
+  gridConstructorCfg.surfaceAccessor
+      .connect<&SimpleSourceLink::SurfaceAccessor::operator()>(
+          &surfaceAccessor);
+
+  auto gridConstructor =
+      std::make_shared<E320SourceLinkGridConstructor>(gridConstructorCfg);
+
+  // Estimator of the IP and first hit
+  // parameters of the track
+  std::unordered_map<Acts::GeometryIdentifier, const Acts::Surface*> refLayers;
+  const auto& refVolume = detector->findDetectorVolume("layer0");
+  for (const auto* surf : refVolume->surfaces()) {
+    refLayers.try_emplace(surf->geometryId(), surf);
+  }
+
+  JsonTrackLookupReader::Config lookupReaderCfg;
+  lookupReaderCfg.refLayers = refLayers;
+  lookupReaderCfg.bins = {1000, 1};
+
+  TrackLookupProvider::Config lookupProviderCfg;
+  lookupProviderCfg.lookupPath =
+      "/home/romanurmanov/lab/LUXE/acts_tracking/E320Pipeline_lookups/"
+      "RangedUniform_05_45_Stationary_000_1000x1_200k/lookup.json";
+  lookupProviderCfg.trackLookupReader =
+      std::make_shared<JsonTrackLookupReader>(lookupReaderCfg);
+  TrackLookupProvider lookupProvider(lookupProviderCfg);
+
+  pathSeederCfg.trackEstimator.connect<&TrackLookupProvider::lookup>(
+      &lookupProvider);
+
+  // Create the path seeder algorithm
+  auto seedingAlgoCfg = PathSeedingAlgorithm::Config();
+  seedingAlgoCfg.seeder = std::make_shared<Acts::PathSeeder>(pathSeederCfg);
+  seedingAlgoCfg.sourceLinkGridConstructor = gridConstructor;
+  seedingAlgoCfg.inputSourceLinks = "Measurements";
+  seedingAlgoCfg.outputSeeds = "PathSeeds";
+  seedingAlgoCfg.minSeedSize = 1;
+  seedingAlgoCfg.maxSeedSize = 100;
+  sequencer.addAlgorithm(
+      std::make_shared<PathSeedingAlgorithm>(seedingAlgoCfg, logLevel));
+
   //  // --------------------------------------------------------------
   //  // Track finding
+  //
   //  Acts::Experimental::DetectorNavigator::Config ckfNavigatorCfg;
   //  ckfNavigatorCfg.detector = detector.get();
   //  ckfNavigatorCfg.resolvePassive = false;
@@ -408,7 +395,7 @@ int main() {
   //  auto trackFindingAlgorithm =
   //      std::make_shared<CKFTrackFindingAlgorithm>(trackFindingCfg, logLevel);
   //  sequencer.addAlgorithm(trackFindingAlgorithm);
-  //
+
   //  // --------------------------------------------------------------
   //  // Track fitting
   //
@@ -482,7 +469,7 @@ int main() {
   //
   //  sequencer.addAlgorithm(
   //      std::make_shared<TrackFittingAlgorithm>(fitterCfg, logLevel));
-  //
+
   // --------------------------------------------------------------
   // Event write out
 
@@ -495,7 +482,7 @@ int main() {
 
   clusterWriterCfg.inputMeasurements = "Measurements";
   clusterWriterCfg.treeName = "clusters";
-  clusterWriterCfg.filePath = "clusters.root";
+  clusterWriterCfg.filePath = "clusters-data.root";
 
   sequencer.addWriter(
       std::make_shared<RootMeasurementWriter>(clusterWriterCfg, logLevel));

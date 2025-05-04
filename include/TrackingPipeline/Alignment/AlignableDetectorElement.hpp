@@ -27,7 +27,7 @@ class AlignableDetectorElement : public Acts::DetectorElementBase {
     if (!gctx.hasValue()) {
       return m_transform;
     }
-    auto alignContext = gctx.get<AlignmentContext>();
+    const auto& alignContext = gctx.get<AlignmentContext&>();
     if (alignContext.alignmentStore != nullptr &&
         !alignContext.alignmentStore->empty()) {
       return alignContext.alignmentStore->at(surface().geometryId());
