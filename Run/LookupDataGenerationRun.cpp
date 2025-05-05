@@ -170,7 +170,7 @@ int main() {
   DummyReader::Config readerCfg;
   readerCfg.outputSimClusters = "SimClusters";
   readerCfg.outputSourceLinks = "SimMeasurements";
-  readerCfg.nEvents = 1e6;
+  readerCfg.nEvents = 2e5;
 
   sequencer.addReader(std::make_shared<DummyReader>(readerCfg));
 
@@ -196,10 +196,10 @@ int main() {
   ptarmiganReaderCfg.filePaths = {
       "/home/romanurmanov/lab/LUXE/acts_tracking/E320Pipeline_sim/"
       "E320Pipeline_analysis/data/lookup_ptarmigan/"
-      "raw_e320_a0_10.0_gamma10.0_all_positrons_only_xF1M.root",
-      "/home/romanurmanov/lab/LUXE/acts_tracking/E320Pipeline_sim/"
-      "E320Pipeline_analysis/data/lookup_ptarmigan/"
-      "raw_e320_a0_10.0_gamma10.0_101to200jobs_positrons_only_xF1M.root"
+      "raw_e320_a0_10.0_gamma10.0_all_positrons_only_xF1M.root"
+      /*"/home/romanurmanov/lab/LUXE/acts_tracking/E320Pipeline_sim/"*/
+      /*"E320Pipeline_analysis/data/lookup_ptarmigan/"*/
+      /*"raw_e320_a0_10.0_gamma10.0_101to200jobs_positrons_only_xF1M.root"*/
   };
   ptarmiganReaderCfg.treeName = "tt";
   ptarmiganReaderCfg.transform = gOpt.actsToWorld;
@@ -240,7 +240,7 @@ int main() {
   // Lookup data generation
 
   JsonTrackLookupWriter::Config lookupWriterCfg;
-  lookupWriterCfg.path = "lookup-parmigan-1000x5.json";
+  lookupWriterCfg.path = "lookup-parmigan-test.json";
 
   auto lookupWriter = std::make_shared<JsonTrackLookupWriter>(lookupWriterCfg);
 
@@ -253,7 +253,7 @@ int main() {
   TrackLookupEstimationAlgorithm::Config estimatorCfg;
   estimatorCfg.trackLookupGridWriters = {lookupWriter};
   estimatorCfg.refLayers = refLayers;
-  estimatorCfg.bins = {1000, 100};
+  estimatorCfg.bins = {1000, 1};
   estimatorCfg.inputClusters = "Clusters";
 
   sequencer.addAlgorithm(

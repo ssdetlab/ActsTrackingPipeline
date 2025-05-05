@@ -153,50 +153,131 @@ int main() {
   // --------------------------------------------------------------
   // Event reading
 
+  //  // Setup the sequencer
+  //  Sequencer::Config seqCfg;
+  //  // seqCfg.events = 2e5;
+  //  seqCfg.numThreads = 1;
+  //  seqCfg.trackFpes = false;
+  //  Sequencer sequencer(seqCfg);
+  //
+  //  // Add the sim data reader
+  //  E320Io::E320RootSimDataReader::Config readerCfg =
+  //  E320Io::defaultSimConfig(); readerCfg.clusterFilter = hourglassFilter;
+  //  readerCfg.outputSourceLinks = "SimMeasurements";
+  //  readerCfg.outputSimClusters = "SimClusters";
+  //  std::string pathToDir =
+  //      "/home/romanurmanov/lab/LUXE/acts_tracking/E320Pipeline_sim/"
+  //      "E320Pipeline_dataInRootFormat/temp";
+  //
+  //  // Get the paths to the files in the directory
+  //  for (const auto& entry :
+  //       std::filesystem::recursive_directory_iterator(pathToDir)) {
+  //    if (entry.path().extension() != ".root") {
+  //      continue;
+  //    }
+  //    std::string pathToFile = entry.path();
+  //    readerCfg.filePaths.push_back(pathToFile);
+  //  }
+  //
+  //  // The events are not sorted in the directory
+  //  // but we need to process them in order
+  //  std::ranges::sort(readerCfg.filePaths, [](const std::string& a,
+  //                                            const std::string& b) {
+  //    std::size_t idxRootA = a.find_last_of('.');
+  //    std::size_t idxEventA = a.find_last_of('t', idxRootA);
+  //    std::string eventSubstrA = a.substr(idxEventA + 1, idxRootA -
+  //    idxEventA);
+  //
+  //    std::size_t idxRootB = b.find_last_of('.');
+  //    std::size_t idxEventB = b.find_last_of('t', idxRootB);
+  //    std::string eventSubstrB = b.substr(idxEventB + 1, idxRootB -
+  //    idxEventB);
+  //
+  //    return std::stoul(eventSubstrA) < std::stoul(eventSubstrB);
+  //  });
+  //
+  //  // Add the reader to the sequencer
+  //  sequencer.addReader(
+  //      std::make_shared<E320Io::E320RootSimDataReader>(readerCfg, logLevel));
+
   // Setup the sequencer
   Sequencer::Config seqCfg;
-  // seqCfg.events = 2e5;
+  // seqCfg.events = 10000;
   seqCfg.numThreads = 1;
+  seqCfg.skip = 2e5;
   seqCfg.trackFpes = false;
   Sequencer sequencer(seqCfg);
 
-  // Add the sim data reader
-  E320Io::E320RootSimDataReader::Config readerCfg = E320Io::defaultSimConfig();
-  readerCfg.clusterFilter = hourglassFilter;
-  readerCfg.outputSourceLinks = "SimMeasurements";
-  readerCfg.outputSimClusters = "SimClusters";
-  std::string pathToDir =
+  // Setup dummy reader
+  DummyReader::Config readerCfg;
+  readerCfg.outputSimClusters = "SimClustersDummy";
+  readerCfg.outputSourceLinks = "SimMeasurementsDummy";
+  readerCfg.nEvents = 2e5 + 2e4;
+
+  sequencer.addReader(std::make_shared<DummyReader>(readerCfg));
+
+  // Setup the measurements creator
+  Acts::Experimental::DetectorNavigator::Config navCfg;
+  navCfg.detector = detector.get();
+  navCfg.resolvePassive = false;
+  navCfg.resolveMaterial = true;
+  navCfg.resolveSensitive = true;
+
+  Acts::Experimental::DetectorNavigator navigator(
+      navCfg, Acts::getDefaultLogger("DetectorNavigator", logLevel));
+  Acts::EigenStepper<> stepper(field);
+
+  auto propagator = Propagator(std::move(stepper), std::move(navigator));
+
+  auto momGen = std::make_shared<RangedUniformMomentumGenerator>();
+  momGen->Pranges = {{0.5_GeV, 1.0_GeV}, {1.0_GeV, 1.5_GeV}, {1.5_GeV, 2.0_GeV},
+                     {2.0_GeV, 2.5_GeV}, {2.5_GeV, 3.0_GeV}, {3.0_GeV, 3.5_GeV},
+                     {3.5_GeV, 4.0_GeV}, {4.0_GeV, 4.5_GeV}};
+
+  RootIPPositronTrackParametersReader::Config ptarmiganReaderCfg;
+  ptarmiganReaderCfg.filePaths = {
       "/home/romanurmanov/lab/LUXE/acts_tracking/E320Pipeline_sim/"
-      "E320Pipeline_dataInRootFormat/temp";
+      "E320Pipeline_analysis/data/lookup_ptarmigan/"
+      "raw_e320_a0_10.0_gamma10.0_all_positrons_only_xF1M.root"
+      /*"/home/romanurmanov/lab/LUXE/acts_tracking/E320Pipeline_sim/"*/
+      /*"E320Pipeline_analysis/data/lookup_ptarmigan/"*/
+      /*"raw_e320_a0_10.0_gamma10.0_101to200jobs_positrons_only_xF1M.root"*/
+  };
+  ptarmiganReaderCfg.treeName = "tt";
+  ptarmiganReaderCfg.transform = gOpt.actsToWorld;
 
-  // Get the paths to the files in the directory
-  for (const auto& entry :
-       std::filesystem::recursive_directory_iterator(pathToDir)) {
-    if (entry.path().extension() != ".root") {
-      continue;
-    }
-    std::string pathToFile = entry.path();
-    readerCfg.filePaths.push_back(pathToFile);
-  }
+  E320Sim::E320IPPositronGenerator::Config generatorCfg;
+  generatorCfg.trackParamsReader =
+      std::make_shared<RootIPPositronTrackParametersReader>(ptarmiganReaderCfg);
+  auto generator =
+      std::make_shared<E320Sim::E320IPPositronGenerator>(generatorCfg);
 
-  // The events are not sorted in the directory
-  // but we need to process them in order
-  std::ranges::sort(readerCfg.filePaths, [](const std::string& a,
-                                            const std::string& b) {
-    std::size_t idxRootA = a.find_last_of('.');
-    std::size_t idxEventA = a.find_last_of('t', idxRootA);
-    std::string eventSubstrA = a.substr(idxEventA + 1, idxRootA - idxEventA);
+  auto digiizer = std::make_shared<IdealDigitizer>();
 
-    std::size_t idxRootB = b.find_last_of('.');
-    std::size_t idxEventB = b.find_last_of('t', idxRootB);
-    std::string eventSubstrB = b.substr(idxEventB + 1, idxRootB - idxEventB);
+  MeasurementsCreator::Config mcCfg;
+  mcCfg.vertexGenerator = generator;
+  mcCfg.momentumGenerator = generator;
+  /*mcCfg.vertexGenerator = std::make_shared<StationaryVertexGenerator>();*/
+  /*mcCfg.momentumGenerator = momGen;*/
+  mcCfg.hitDigitizer = digiizer;
+  mcCfg.maxSteps = 300;
+  mcCfg.isSignal = true;
 
-    return std::stoul(eventSubstrA) < std::stoul(eventSubstrB);
-  });
+  auto measurementsCreator =
+      std::make_shared<MeasurementsCreator>(propagator, mcCfg);
 
-  // Add the reader to the sequencer
-  sequencer.addReader(
-      std::make_shared<E320Io::E320RootSimDataReader>(readerCfg, logLevel));
+  MeasurementsEmbeddingAlgorithm::Config mcaCfg;
+  mcaCfg.inputSourceLinks = "SimMeasurementsDummy";
+  mcaCfg.inputSimClusters = "SimClustersDummy";
+  mcaCfg.outputSourceLinks = "SimMeasurements";
+  mcaCfg.outputSimClusters = "SimClusters";
+  mcaCfg.measurementGenerator = measurementsCreator;
+  mcaCfg.randomNumberSvc =
+      std::make_shared<RandomNumbers>(RandomNumbers::Config());
+  mcaCfg.nMeasurements = 1;
+
+  sequencer.addAlgorithm(
+      std::make_shared<MeasurementsEmbeddingAlgorithm>(mcaCfg, logLevel));
 
   /*// Setup dummy reader*/
   /*DummyReader::Config readerCfg;*/
@@ -262,13 +343,13 @@ int main() {
 
   JsonTrackLookupReader::Config lookupReaderCfg;
   lookupReaderCfg.refLayers = refLayers;
-  lookupReaderCfg.bins = {1000, 5};
+  lookupReaderCfg.bins = {1000, 1};
 
   // Validation algorithm
   TrackLookupValidationAlgorithm::Config validatorCfg;
 
   TrackLookupProvider::Config providerCfg;
-  providerCfg.lookupPath = "lookup-parmigan-1000x5.json";
+  providerCfg.lookupPath = "lookup-parmigan-test.json";
   providerCfg.trackLookupReader =
       std::make_shared<JsonTrackLookupReader>(lookupReaderCfg);
   TrackLookupProvider provider(providerCfg);
@@ -289,7 +370,7 @@ int main() {
   validationWriterCfg.inputIpParsEst = "ipParsEst";
   validationWriterCfg.inputRefLayerPars = "refPars";
   validationWriterCfg.inputRefLayerParsEst = "refParsEst";
-  validationWriterCfg.path = "lookup-validation-data-1000x5.root";
+  validationWriterCfg.path = "lookup-validation-test.root";
   validationWriterCfg.treeName = "validation";
 
   sequencer.addWriter(std::make_shared<RootTrackLookupValidationWriter>(
