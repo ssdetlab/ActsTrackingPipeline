@@ -101,7 +101,7 @@ ProcessCode RootSimTrackCandidateWriter::write(const AlgorithmContext& ctx) {
   std::lock_guard<std::mutex> lock(m_mutex);
 
   // Collect true track statistics
-  std::map<TrackID, std::int32_t> trueTracksSig;
+  std::map<TrackID, int> trueTracksSig;
 
   // Collect true track statistics
   auto trueTrackIds =
@@ -124,9 +124,9 @@ ProcessCode RootSimTrackCandidateWriter::write(const AlgorithmContext& ctx) {
   m_eventId = ctx.eventNumber;
 
   // Iterate over the fitted tracks
-  for (std::size_t tid = 0; tid < inputCandidates.size(); tid++) {
+  for (std::size_t tid = 0; tid < inputCandidates.tracks.size(); tid++) {
     // Get the track object and the track id
-    const auto& track = inputCandidates.getTrack(tid);
+    const auto& track = inputCandidates.tracks.getTrack(tid);
 
     // Track hits from the true information
     std::vector<TVector3> trueTrackHits;
@@ -163,7 +163,7 @@ ProcessCode RootSimTrackCandidateWriter::write(const AlgorithmContext& ctx) {
     std::vector<double> chi2Filtered;
 
     // Iterate over the track states
-    std::map<TrackID, std::vector<std::int32_t>> trackStateIds;
+    std::map<TrackID, std::vector<int>> trackStateIds;
     for (const auto& state : track.trackStatesReversed()) {
       // Skip the states without meaningful information
       if (!state.hasProjector()) {
@@ -342,7 +342,7 @@ ProcessCode RootSimTrackCandidateWriter::write(const AlgorithmContext& ctx) {
       matchingDegree = 0;
     } else {
       // Get the true IP parameters
-      std::int32_t refIndex = refTrackId->second.at(0);
+      int refIndex = refTrackId->second.at(0);
       auto cluster = inputTruthClusters.at(refIndex);
       auto pivotHit =
           std::ranges::find_if(cluster.truthHits, [&](const auto& hit) {
@@ -363,10 +363,6 @@ ProcessCode RootSimTrackCandidateWriter::write(const AlgorithmContext& ctx) {
       // Compute matching degree
       double trueTrackSize =
           std::ranges::count(trueTrackIds, refTrackId->first);
-
-      if (trueTrackSize != m_cfg.targetTrueTrackSize) {
-        continue;
-      }
 
       matchingDegree = refTrackId->second.size() / trueTrackSize;
     }

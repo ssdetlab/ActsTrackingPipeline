@@ -1,5 +1,5 @@
-#ifndef DetectorEvent_h
-#define DetectorEvent_h
+#ifndef EudaqDetectorEvent_h
+#define EudaqDetectorEvent_h
 
 #include <string>
 #include <vector>

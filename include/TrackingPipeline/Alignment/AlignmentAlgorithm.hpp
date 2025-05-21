@@ -93,7 +93,7 @@ class AlignmentAlgorithm final : public IAlgorithm {
     /// Output aligned parameters collection.
     std::string outputAlignmentParameters;
     /// Reference suface
-    std::shared_ptr<Acts::Surface> referenceSurface;
+    const Acts::Surface* referenceSurface;
     /// Type erased fitter function.
     std::shared_ptr<AlignmentFunction> align;
     /// The aligned transform updater

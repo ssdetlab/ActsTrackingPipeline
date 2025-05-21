@@ -31,8 +31,6 @@ void E320GeometryIdGenerator::assignGeometryId(
 
   if (m_cfg.resetSubCounters) {
     ccache.portalCount = 0u;
-    ccache.sensitiveCount = 0u;
-    ccache.passiveCount = 0u;
   }
 
   // Sub volumes
@@ -72,10 +70,10 @@ void E320GeometryIdGenerator::assignGeometryId(
     Acts::Vector3 center = surface.center(Acts::GeometryContext());
     std::cout << center.transpose() << "\n";
     ACTS_VERBOSE("Processing surface " << center.transpose());
-    std::int32_t geoIDval = 0u;
+    int geoIDval = 0u;
 
     // Determine the layer
-    std::int32_t chipId = -1;
+    int chipId = -1;
     for (auto [id, z] : m_cfg.gOpt.staveZ) {
       // These are already rotated surfaces
       if (std::abs(center.y() - z) < 1e-1) {

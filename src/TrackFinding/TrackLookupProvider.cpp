@@ -65,10 +65,9 @@ std::optional<TrackLookupGrid::index_t> TrackLookupProvider::findClosestFilled(
     }
   }
   for (const auto& n : neighbours) {
-    Acts::Vector2 newDir{static_cast<std::int32_t>(n.at(0)) -
-                             static_cast<std::int32_t>(bin.at(0)),
-                         static_cast<std::int32_t>(n.at(1)) -
-                             static_cast<std::int32_t>(bin.at(1))};
+    Acts::Vector2 newDir{
+        static_cast<int>(n.at(0)) - static_cast<int>(bin.at(0)),
+        static_cast<int>(n.at(1)) - static_cast<int>(bin.at(1))};
     auto res = findClosestFilled(grid, n, newDir);
     if (res.has_value()) {
       return res;

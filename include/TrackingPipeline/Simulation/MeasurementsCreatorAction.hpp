@@ -27,7 +27,7 @@ using namespace Acts::UnitLiterals;
 struct MeasurementsCreatorAction {
   using result_type = std::vector<Acts::BoundTrackParameters>;
 
-  std::int32_t sourceId = 0;
+  int sourceId = 0;
 
   /// @brief Operator that is callable by an ActionList. The function
   /// collects the surfaces

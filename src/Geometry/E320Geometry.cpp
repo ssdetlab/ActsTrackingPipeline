@@ -14,6 +14,7 @@
 #include "TrackingPipeline/Geometry/E320GeometryConstraints.hpp"
 #include "TrackingPipeline/Geometry/E320GeometryIdGenerator.hpp"
 #include "TrackingPipeline/Geometry/LayerBuilderConstruction.hpp"
+#include "TrackingPipeline/Geometry/PlaneSurfaceStructureBuilder.hpp"
 #include "TrackingPipeline/Material/NoMaterialDecorator.hpp"
 
 namespace E320Geometry {
@@ -76,6 +77,24 @@ std::unique_ptr<Acts::Experimental::Blueprint::Node> makeBlueprintE320(
 
     trackerBP->add(std::move(layerNode));
   }
+  // Be window
+  auto beWindowZBounds =
+      std::make_tuple(gOpt.beWindowTranslation.z() - gOpt.beWindowBounds.at(2),
+                      gOpt.beWindowTranslation.z() + gOpt.beWindowBounds.at(2));
+
+  Acts::Transform3 beWindowTransform = Acts::Transform3::Identity();
+  beWindowTransform.rotate(gOpt.actsToWorld.rotation().inverse());
+  beWindowTransform.translate(gOpt.beWindowTranslation);
+
+  auto beWindowLayerBuilder = std::make_shared<PlaneSurfaceStructureBuilder>(
+      PlaneSurfaceStructureBuilder::Config{beWindowTransform, 2000_mm,
+                                           2000_mm});
+
+  auto beWindowNode = std::make_unique<Acts::Experimental::Blueprint::Node>(
+      "beWindow", beWindowTransform, Acts::VolumeBounds::eCuboid,
+      gOpt.beWindowBounds, beWindowLayerBuilder);
+
+  trackerBP->add(std::move(beWindowNode));
 
   // PDC window
   auto pdcWindowZBounds = std::make_tuple(

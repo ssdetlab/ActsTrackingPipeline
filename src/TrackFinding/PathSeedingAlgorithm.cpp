@@ -1,5 +1,11 @@
 #include "TrackingPipeline/TrackFinding/PathSeedingAlgorithm.hpp"
 
+#include <Acts/Utilities/Logger.hpp>
+
+#include <cstddef>
+
+#include "TrackingPipeline/EventData/SimpleSourceLink.hpp"
+
 /// @brief Constructor
 PathSeedingAlgorithm::PathSeedingAlgorithm(const Config& config,
                                            Acts::Logging::Level level)
@@ -16,8 +22,10 @@ ProcessCode PathSeedingAlgorithm::execute(const AlgorithmContext& ctx) const {
   // from the context
   auto input = m_inputSourceLinks(ctx);
 
-  std::cout << "SOURCE LINKS " << input.size() << "\n";
+  ACTS_DEBUG("Received " << input.size() << " source links");
+
   if (input.empty()) {
+    ACTS_DEBUG("Input is empty. Skipping");
     m_outputSeeds(ctx, Seeds());
     return ProcessCode::SUCCESS;
   }
@@ -38,23 +46,30 @@ ProcessCode PathSeedingAlgorithm::execute(const AlgorithmContext& ctx) const {
 
   std::vector<Acts::PathSeeder::PathSeed> pathSeeds;
   m_cfg.seeder->findSeeds(ctx.geoContext, gridLookup, pathSeeds);
-  std::cout << "PATH SEEDS " << pathSeeds.size() << "\n";
+  ACTS_DEBUG("Found " << pathSeeds.size() << " seeds");
 
   Seeds outSeeds;
   auto me = 0.511 * Acts::UnitConstants::MeV;
 
-  for (std::int32_t i = 0; i < pathSeeds.size(); i++) {
+  for (std::size_t i = 0; i < pathSeeds.size(); i++) {
     const auto& seed = pathSeeds.at(i);
 
+    std::set<Acts::GeometryIdentifier> seedGeoIds;
+    for (const auto& sl : seed.second) {
+      seedGeoIds.insert(sl.get<SimpleSourceLink>().geometryId());
+    }
+    if (seedGeoIds.size() < m_cfg.minLayers ||
+        seedGeoIds.size() > m_cfg.maxLayers) {
+      continue;
+    }
     if (seed.second.size() < m_cfg.minSeedSize ||
         seed.second.size() > m_cfg.maxSeedSize) {
       continue;
     }
 
-    outSeeds.push_back(Seed{seed.second, seed.first, i});
+    outSeeds.push_back(Seed{seed.second, seed.first, static_cast<int>(i)});
   }
-
-  std::cout << "SEEDS " << outSeeds.size() << "\n";
+  ACTS_DEBUG("Sending " << outSeeds.size() << " seeds");
   m_outputSeeds(ctx, std::move(outSeeds));
 
   return ProcessCode::SUCCESS;

@@ -8,6 +8,7 @@
 
 #include "TrackingPipeline/Geometry/E320Geometry.hpp"
 #include "TrackingPipeline/Geometry/E320GeometryConstraints.hpp"
+#include "TrackingPipeline/Geometry/GeometryContextDecorator.hpp"
 #include "TrackingPipeline/Infrastructure/Sequencer.hpp"
 #include "TrackingPipeline/Io/DummyReader.hpp"
 #include "TrackingPipeline/Io/JsonTrackLookupWriter.hpp"
@@ -16,11 +17,11 @@
 #include "TrackingPipeline/MagneticField/ConstantBoundedField.hpp"
 #include "TrackingPipeline/MagneticField/DipoleMagField.hpp"
 #include "TrackingPipeline/MagneticField/QuadrupoleMagField.hpp"
+#include "TrackingPipeline/Simulation/GaussianVertexGenerator.hpp"
 #include "TrackingPipeline/Simulation/IdealDigitizer.hpp"
 #include "TrackingPipeline/Simulation/MeasurementsCreator.hpp"
 #include "TrackingPipeline/Simulation/MeasurementsEmbeddingAlgorithm.hpp"
 #include "TrackingPipeline/Simulation/RangedUniformMomentumGenerator.hpp"
-#include "TrackingPipeline/Simulation/StationaryVertexGenerator.hpp"
 #include "TrackingPipeline/TrackFinding/TrackLookupEstimationAlgorithm.hpp"
 
 using namespace Acts::UnitLiterals;
@@ -169,7 +170,7 @@ int main() {
     for (auto& s : v->surfaces()) {
       if (s->geometryId().sensitive()) {
         Acts::Transform3 nominal = s->transform(gctx);
-        nominal.pretranslate(Acts::Vector3(-18_mm, 0, 0));
+        nominal.pretranslate(Acts::Vector3(-16_mm, 0, 3.75_mm));
         std::cout << nominal.translation().transpose() << "\n";
         aStore->emplace(s->geometryId(), nominal);
       }
@@ -187,12 +188,15 @@ int main() {
   seqCfg.trackFpes = false;
   Sequencer sequencer(seqCfg);
 
+  sequencer.addContextDecorator(
+      std::make_shared<GeometryContextDecorator>(aStore));
+
   // --------------------------------------------------------------
   // Add dummy reader
   DummyReader::Config dummyReaderCfg;
   dummyReaderCfg.outputSourceLinks = "SimMeasurements";
   dummyReaderCfg.outputSimClusters = "SimClusters";
-  dummyReaderCfg.nEvents = 1e4;
+  dummyReaderCfg.nEvents = 2e5;
 
   sequencer.addReader(std::make_shared<DummyReader>(dummyReaderCfg));
 
@@ -211,21 +215,16 @@ int main() {
 
   auto propagator = Propagator(std::move(stepper), std::move(navigator));
 
+  // Momentum generator
   auto momGen = std::make_shared<RangedUniformMomentumGenerator>();
-  /*momGen->Pranges = {{1.9_GeV, 2.1_GeV},*/
-  /*                   {2.1_GeV, 2.3_GeV},*/
-  /*                   {2.3_GeV, 2.5_GeV},*/
-  /*                   {2.5_GeV, 2.7_GeV},*/
-  /*                   {2.7_GeV, 2.9_GeV}};*/
-  momGen->Pranges = {{0.0_GeV, 1.0_GeV}, {1.0_GeV, 2.0_GeV}, {2.0_GeV, 3.0_GeV},
-                     {3.0_GeV, 4.0_GeV}, {4.0_GeV, 5.0_GeV}, {5.0_GeV, 6.0_GeV},
-                     {6.0_GeV, 7.0_GeV}, {7.0_GeV, 8.0_GeV}, {8.0_GeV, 9.0_GeV},
-                     {9.0_GeV, 10.0_GeV}};
+  momGen->Pranges = {{1.7_GeV, 1.9_GeV}, {1.9_GeV, 2.1_GeV},
+                     {2.1_GeV, 2.3_GeV}, {2.3_GeV, 2.5_GeV},
+                     {2.5_GeV, 2.7_GeV}, {2.7_GeV, 2.9_GeV}};
 
-  auto vertexGen = std::make_shared<StationaryVertexGenerator>();
-  vertexGen->vertex =
-      Acts::Vector3(gOpt.beWindowTranslation[0], gOpt.beWindowTranslation[2],
-                    -gOpt.beWindowTranslation[1]);
+  // Vertex generator
+  auto vertexGen = std::make_shared<GaussianVertexGenerator>(
+      Acts::Vector3(0, gOpt.beWindowTranslation[2], 0),
+      30_um * Acts::SquareMatrix3::Identity());
 
   // Digitizer
   auto digitizer = std::make_shared<IdealDigitizer>();
@@ -234,7 +233,8 @@ int main() {
   mcCfg.vertexGenerator = vertexGen;
   mcCfg.momentumGenerator = momGen;
   mcCfg.hitDigitizer = digitizer;
-  mcCfg.maxSteps = 300;
+  mcCfg.maxSteps = 1000;
+  mcCfg.isSignal = true;
 
   auto measurementsCreator =
       std::make_shared<MeasurementsCreator>(propagator, mcCfg);

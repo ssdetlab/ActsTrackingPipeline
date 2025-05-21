@@ -5,6 +5,7 @@
 
 #include "TFile.h"
 #include "TLorentzVector.h"
+#include "TMatrixD.h"
 #include "TTree.h"
 #include "TVector3.h"
 #include "TrackingPipeline/EventData/DataContainers.hpp"
@@ -74,22 +75,33 @@ class RootTrackWriter : public IWriter {
 
  protected:
   /// Measurement hits
-  std::vector<TVector3> m_trackHits;
+  std::vector<TVector3> m_trackHitsGlobal;
+  std::vector<TVector2> m_trackHitsLocal;
+
+  /// Covariances of the track hits
+  std::vector<TMatrixD> m_trackHitCovs;
+
+  /// Geometry ids of the track hits
+  std::vector<int> m_geometryIds;
 
   /// KF predicted track hits
-  std::vector<TVector3> m_predictedTrackHits;
-  std::vector<TVector3> m_filteredTrackHits;
-  std::vector<TVector3> m_smoothedTrackHits;
+  std::vector<TVector3> m_predictedTrackHitsGlobal;
+  std::vector<TVector3> m_filteredTrackHitsGlobal;
+  std::vector<TVector3> m_smoothedTrackHitsGlobal;
+
+  std::vector<TVector2> m_predictedTrackHitsLocal;
+  std::vector<TVector2> m_filteredTrackHitsLocal;
+  std::vector<TVector2> m_smoothedTrackHitsLocal;
 
   /// KF residuals with respect to the measurements
-  std::vector<TVector3> m_predictedResiduals;
-  std::vector<TVector3> m_filteredResiduals;
-  std::vector<TVector3> m_smoothedResiduals;
+  std::vector<TVector2> m_predictedResiduals;
+  std::vector<TVector2> m_filteredResiduals;
+  std::vector<TVector2> m_smoothedResiduals;
 
   /// KF pulls with respect to the measurements
-  std::vector<TVector3> m_predictedPulls;
-  std::vector<TVector3> m_filteredPulls;
-  std::vector<TVector3> m_smoothedPulls;
+  std::vector<TVector2> m_predictedPulls;
+  std::vector<TVector2> m_filteredPulls;
+  std::vector<TVector2> m_smoothedPulls;
 
   /// Chi2 of the track
   /// with respect ot the
@@ -103,16 +115,26 @@ class RootTrackWriter : public IWriter {
   int m_ndf;
 
   /// TrackId
-  int m_trackId;
+  std::vector<int> m_trackId;
 
   /// EventId
   int m_eventId;
 
+  /// Initial guess of the momentum at the IP
+  TLorentzVector m_ipMomentumGuess;
+  TVector3 m_vertexGuess;
+
   /// KF predicted momentum at the IP
-  TLorentzVector m_ipMomentum;
+  TLorentzVector m_ipMomentumEst;
   TVector3 m_ipMomentumError;
-  TVector3 m_vertex;
+  TVector3 m_vertexEst;
   TVector3 m_vertexError;
+
+  /// PDG ID
+  int m_pdgId;
+
+  /// Charge
+  int m_charge;
 
   /// Mutex to protect the tree filling
   std::mutex m_mutex;

@@ -7,16 +7,15 @@
 
 class LayerPathWidthProvider {
  public:
-  LayerPathWidthProvider(
-      std::map<std::int32_t, std::pair<double, double>> widths)
+  LayerPathWidthProvider(std::map<int, std::pair<double, double>> widths)
       : m_widths(widths) {}
 
-  std::map<std::int32_t, std::pair<double, double>> m_widths;
+  std::map<int, std::pair<double, double>> m_widths;
 
   std::pair<double, double> operator()(
       const Acts::GeometryContext& /*gctx*/,
       const Acts::GeometryIdentifier& geoId) const {
-    std::int32_t staveId = static_cast<std::int32_t>(geoId.sensitive() - 1);
+    int staveId = static_cast<int>(geoId.sensitive() - 1);
     return m_widths.at(staveId);
   }
 };

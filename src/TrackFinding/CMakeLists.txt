@@ -5,6 +5,7 @@ target_sources(
     ForwardOrderedIntersectionFinder.cpp
     PathSeedingAlgorithm.cpp
     TrackLookupProvider.cpp
+    DipoleTrackLookupProvider.cpp
     TrackLookupAccumulator.cpp
     TrackLookupEstimationAlgorithm.cpp
     TrackLookupValidationAlgorithm.cpp

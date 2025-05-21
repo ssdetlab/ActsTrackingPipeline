@@ -39,21 +39,11 @@ E320SourceLinkGridConstructor::constructGrid(
     lookupTable.insert({id, grid});
   }
   // Fill the grid with source links
-  for (auto& sl : sourceLinks) {
+  for (const auto& sl : sourceLinks) {
     auto ssl = sl.get<SimpleSourceLink>();
     Acts::GeometryIdentifier geoId = ssl.geometryId();
 
-    // Convert hit from Detector surface to global
-    Acts::Vector3 globalPos = m_cfg.surfaceAccessor(sl)->localToGlobal(
-        gctx, ssl.parameters(), Acts::Vector3{0, 1, 0});
-
-    // Convert hit from global to Layer surface
-    Acts::Vector2 localPos =
-        m_cfg.layers.at(geoId)
-            ->globalToLocal(gctx, globalPos, Acts::Vector3(0, 1, 0), 1e-1)
-            .value();
-
-    auto bin = lookupTable.at(geoId).localBinsFromPosition(localPos);
+    auto bin = lookupTable.at(geoId).localBinsFromPosition(ssl.parameters());
 
     lookupTable.at(geoId).atLocalBins(bin).push_back(sl);
   }

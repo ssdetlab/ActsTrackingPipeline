@@ -16,7 +16,7 @@
 
 using namespace Acts::UnitLiterals;
 
-using TrackID = std::tuple<std::int32_t, std::int32_t, std::int32_t>;
+using TrackID = std::tuple<int, int, int>;
 
 /// @brief Writer to store fitted track data in
 /// ROOT file
@@ -89,15 +89,19 @@ class RootSimClusterWriter : public IWriter {
   int m_isSignal;
 
   /// Measurement hits
-  std::vector<TVector3> m_trackHits;
+  std::vector<TVector3> m_trackHitsGlobal;
+  std::vector<TVector2> m_trackHitsLocal;
 
   std::vector<int> m_trackId;
   std::vector<int> m_parentTrackId;
   std::vector<int> m_runId;
 
-  std::vector<TLorentzVector> m_onSurfMomemtum;
   std::vector<TLorentzVector> m_originMomentum;
+  std::vector<TLorentzVector> m_onSurfaceMomentum;
   std::vector<TVector3> m_vertex;
+
+  std::vector<int> m_charge;
+  std::vector<int> m_pdgId;
 
   /// Mutex to protect the tree filling
   std::mutex m_mutex;

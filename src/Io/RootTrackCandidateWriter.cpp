@@ -72,9 +72,9 @@ ProcessCode RootTrackCandidateWriter::write(const AlgorithmContext& ctx) {
   m_eventId = ctx.eventNumber;
 
   // Iterate over the fitted tracks
-  for (std::size_t tid = 0; tid < inputCandidates.size(); tid++) {
+  for (std::size_t tid = 0; tid < inputCandidates.tracks.size(); tid++) {
     // Get the track object and the track id
-    const auto& track = inputCandidates.getTrack(tid);
+    const auto& track = inputCandidates.tracks.getTrack(tid);
 
     // Track hits from the measurements
     std::vector<TVector3> trackHits;

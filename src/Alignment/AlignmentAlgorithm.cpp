@@ -1,6 +1,14 @@
 #include "TrackingPipeline/Alignment/AlignmentAlgorithm.hpp"
 
+#include "Acts/Definitions/Algebra.hpp"
 #include "Acts/EventData/TrackParameters.hpp"
+
+#include <utility>
+#include <vector>
+
+#include "TrackingPipeline/EventData/SimpleSourceLink.hpp"
+
+using namespace Acts::UnitLiterals;
 
 AlignmentAlgorithm::AlignmentAlgorithm(Config cfg, Acts::Logging::Level lvl)
     : IAlgorithm("AlignmentAlgorithm", lvl), m_cfg(std::move(cfg)) {
@@ -23,6 +31,11 @@ ProcessCode AlignmentAlgorithm::execute(const AlgorithmContext& ctx) const {
 
   std::size_t numTracksUsed = trackCandidates.size();
 
+  SimpleSourceLink vertexConstraint{
+      Acts::Vector2::Zero(), 100_um * 100_um * Acts::SquareMatrix2::Identity(),
+      m_cfg.referenceSurface->geometryId(), static_cast<int>(ctx.eventNumber),
+      999999};
+
   // Prepare the input track collection
   std::vector<std::vector<Acts::SourceLink>> sourceLinkTrackContainer;
   sourceLinkTrackContainer.reserve(numTracksUsed);
@@ -31,7 +44,9 @@ ProcessCode AlignmentAlgorithm::execute(const AlgorithmContext& ctx) const {
   for (std::size_t itrack = 0; itrack < numTracksUsed; ++itrack) {
     // The list of hits and the initial start parameters
     const auto& candidate = trackCandidates.at(itrack);
-    sourceLinkTrackContainer.push_back(candidate.sourceLinks);
+    std::vector<Acts::SourceLink> sourceLinks = candidate.sourceLinks;
+    /*sourceLinks.push_back(Acts::SourceLink{vertexConstraint});*/
+    sourceLinkTrackContainer.push_back(std::move(sourceLinks));
     trackParametersContainer.push_back(candidate.ipParameters);
   }
 

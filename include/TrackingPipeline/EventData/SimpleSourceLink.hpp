@@ -33,8 +33,7 @@ class SimpleSourceLink {
   /// Construct a 2d source link
   SimpleSourceLink(const Acts::ActsVector<2>& params,
                    const Acts::ActsSquareMatrix<2>& cov,
-                   Acts::GeometryIdentifier gid, std::int32_t eid,
-                   std::int32_t idx)
+                   Acts::GeometryIdentifier gid, int eid, int idx)
       : m_geometryId(gid),
         m_eventId(eid),
         m_index(idx),
@@ -58,9 +57,9 @@ class SimpleSourceLink {
 
   std::array<Acts::BoundIndices, 2> indices() const { return m_indices; }
 
-  std::int32_t index() const { return m_index; }
+  int index() const { return m_index; }
 
-  std::int32_t eventId() const { return m_eventId; }
+  int eventId() const { return m_eventId; }
 
   Acts::GeometryIdentifier geometryId() const { return m_geometryId; }
 
@@ -68,19 +67,19 @@ class SimpleSourceLink {
 
   Acts::SquareMatrix2 covariance() const { return m_covariance; }
 
-  void setIndex(std::int32_t idx) { m_index = idx; }
+  void setIndex(int idx) { m_index = idx; }
 
-  void setEventId(std::int32_t eid) { m_eventId = eid; }
+  void setEventId(int eid) { m_eventId = eid; }
 
  private:
   /// Geometry identifier
   Acts::GeometryIdentifier m_geometryId;
 
   /// Event identifier
-  std::int32_t m_eventId = 0u;
+  int m_eventId = 0u;
 
   /// Index for enumeration within event
-  std::int32_t m_index = 0u;
+  int m_index = 0u;
 
   /// Indices of the local coordinates
   std::array<Acts::BoundIndices, 2> m_indices = {Acts::eBoundLoc0,

@@ -28,10 +28,11 @@ struct GeometryOptions {
   double chipY = 93.775_mm;
 
   // Stave Id to the translation in the z direction
-  const std::map<std::int32_t, double> staveZ{
-      {8, 16674.4_mm}, {6, 16694.4_mm}, {4, 16714.4_mm},
-      {2, 16734.4_mm}, {0, 16754.4_mm},
-  };
+  const std::map<int, double> staveZ{{8, 16674.4_mm},
+                                     {6, 16694.4_mm},
+                                     {4, 16714.4_mm},
+                                     {2, 16734.4_mm},
+                                     {0, 16754.4_mm}};
 
   // All the staves are at the same y position
   double chipX = 0.61872_mm;
@@ -46,27 +47,29 @@ struct GeometryOptions {
   const Acts::Vector3 trackerTranslation{0_mm, 0_mm, 8550_mm};
 
   const std::vector<double> trackerBounds = {
-      chipSizeX / 2 + 1000_mm, chipY + chipSizeY / 2 + 1000_mm, 8600_mm};
+      chipSizeX / 2 + 2000_mm, chipY + chipSizeY / 2 + 2000_mm, 8600_mm};
 
   // Be window poisiton
   const Acts::Vector3 beWindowTranslation{0_mm, 0_mm, 3279_mm};
+  const std::vector<double> beWindowBounds = {
+      chipSizeX / 2 + 2000_mm, chipY + chipSizeY / 2 + 2000_mm, 10_mm};
 
   // Quadrupole volume encapsulating the
   // magnetic field
   const Acts::Vector3 quad1Translation{0_mm, 0_mm, 4157_mm};
 
   const std::vector<double> quad1Bounds = {
-      chipSizeX / 2 + 1000_mm, chipY + chipSizeY / 2 + 1000_mm, 486.664_mm};
+      chipSizeX / 2 + 2000_mm, chipY + chipSizeY / 2 + 2000_mm, 486.664_mm};
 
   const Acts::Vector3 quad2Translation{0_mm, 0_mm, 6382_mm};
 
   const std::vector<double> quad2Bounds = {
-      chipSizeX / 2 + 1000_mm, chipY + chipSizeY / 2 + 1000_mm, 486.664_mm};
+      chipSizeX / 2 + 2000_mm, chipY + chipSizeY / 2 + 2000_mm, 486.664_mm};
 
   const Acts::Vector3 quad3Translation{0_mm, 0_mm, 8606_mm};
 
   const std::vector<double> quad3Bounds = {
-      chipSizeX / 2 + 1000_mm, chipY + chipSizeY / 2 + 1000_mm, 486.664_mm};
+      chipSizeX / 2 + 2000_mm, chipY + chipSizeY / 2 + 2000_mm, 486.664_mm};
 
   // Dipole and quadrupole field parameters
   const std::tuple<Acts::Vector2, Acts::Vector4, Acts::Vector4> dipoleParams = {
@@ -74,29 +77,33 @@ struct GeometryOptions {
       {-165.0_mm, 165.0_mm, 7.7_mm, 7.7_mm},
       {-457.0_mm, 457.0_mm, 25.0_mm, 25.0_mm}};
 
-  const Acts::Vector3 quadrupolesParams = {4.0_T / 1_m, -7.0_T / 1_m,
-                                           4.0_T / 1_m};
+  // Run 489
+  /*const Acts::Vector3 quadrupolesParams = {-3.218_T / 1_m, 4.719_T / 1_m,*/
+  /*                                         -3.218_T / 1_m};*/
+  // Run 502
+  const Acts::Vector3 quadrupolesParams = {-0.7637_T / 1_m, 2.855_T / 1_m,
+                                           -0.7637_T / 1_m};
 
   // X-corrector volume encapsulating the
   // magnetic field
   const Acts::Vector3 xCorrectorTranslation{0_mm, 0_mm, 9992.9032_mm};
 
   const std::vector<double> xCorrectorBounds = {
-      chipSizeX / 2 + 1000_mm, chipY + chipSizeY / 2 + 1000_mm, 118.11_mm};
+      chipSizeX / 2 + 2000_mm, chipY + chipSizeY / 2 + 2000_mm, 118.11_mm};
 
   // Dipole volume encapsulating the
   // magnetic field
   const Acts::Vector3 dipoleTranslation{0_mm, 0_mm, 13113_mm};
 
   const std::vector<double> dipoleBounds = {
-      chipSizeX / 2 + 1000_mm, chipY + chipSizeY / 2 + 1000_mm, 1000_mm};
+      chipSizeX / 2 + 2000_mm, chipY + chipSizeY / 2 + 2000_mm, 1000_mm};
 
   // PDC window volume
   // TODO: Add machinery to move the PDC window
   const Acts::Vector3 pdcWindowTranslation{0_mm, 0_mm, 16549.7_mm};
 
   const std::vector<double> pdcWindowBounds = {
-      chipSizeX / 2 + 1000_mm, chipY + chipSizeY / 2 + 1000_mm, 2_mm};
+      chipSizeX / 2 + 2000_mm, chipY + chipSizeY / 2 + 2000_mm, 2_mm};
 
   // Arm volume encapsulating the layers
   const Acts::Vector3 armTranslation{0_mm, 0_mm,
@@ -106,7 +113,7 @@ struct GeometryOptions {
   const double deltaZ = (staveZ.at(6) - staveZ.at(8)) / 10 + 1_mm;
 
   const std::vector<double> layerBounds = {
-      chipSizeX / 2 + 1000_mm, chipY + chipSizeY / 2 + 1000_mm, deltaZ};
+      chipSizeX / 2 + 2000_mm, chipY + chipSizeY / 2 + 2000_mm, deltaZ};
 
   /// Global rotation of the world volume
   /// in the Acts format for volumes

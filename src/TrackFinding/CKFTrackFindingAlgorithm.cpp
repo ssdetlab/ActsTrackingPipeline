@@ -7,7 +7,9 @@ ProcessCode CKFTrackFindingAlgorithm::execute(
     const AlgorithmContext& ctx) const {
   // Get the input seeds
   // from the context
-  auto input = m_inputSeeds(ctx);
+  auto inputSeeds = m_inputSeeds(ctx);
+
+  ACTS_DEBUG("Received " << inputSeeds.size() << " seeds");
 
   auto options = CKFOptions(
       ctx.geoContext, ctx.magFieldContext, ctx.calibContext,
@@ -24,16 +26,21 @@ ProcessCode CKFTrackFindingAlgorithm::execute(
   auto trajectory = std::make_shared<Acts::VectorMultiTrajectory>();
   Acts::TrackContainer candidateContainer{container, trajectory};
 
+  std::vector<int> trackIds;
+  trackIds.reserve(inputSeeds.size());
+
+  std::vector<Acts::CurvilinearTrackParameters> ipParametersGuesses;
+  ipParametersGuesses.reserve(inputSeeds.size());
+
   Seeds trackCandidates;
   std::size_t idx = 0;
-  for (const auto& seed : input) {
+  for (const auto& seed : inputSeeds) {
     SimpleSourceLinkContainer ckfSourceLinks;
     for (auto& sl : seed.sourceLinks) {
       auto ssl = sl.get<SimpleSourceLink>();
       ckfSourceLinks.insert({ssl.geometryId(), ssl});
     }
     slAccessor.container = &ckfSourceLinks;
-    std::cout << "GOT " << ckfSourceLinks.size() << " SOURCE LINKS\n";
 
     // run the CKF for all initial track states
     Acts::CurvilinearTrackParameters ipParameters = seed.ipParameters;
@@ -43,11 +50,9 @@ ProcessCode CKFTrackFindingAlgorithm::execute(
       continue;
     }
 
-    std::cout << "CANDIDATE CONSTAINER " << candidateContainer.size() << "\n";
     for (std::size_t tid = idx; tid < candidateContainer.size(); tid++) {
       const auto& track = candidateContainer.getTrack(tid);
 
-      std::cout << "track.nOutliers() == " << track.nOutliers() << "\n";
       if (track.nOutliers() > 0) {
         continue;
       }
@@ -58,7 +63,6 @@ ProcessCode CKFTrackFindingAlgorithm::execute(
         }
         sourceLinks.push_back(trackState.getUncalibratedSourceLink());
       }
-      std::cout << "SOURCE LINKS " << sourceLinks.size() << "\n";
 
       if (sourceLinks.size() < m_cfg.minCandidateSize ||
           sourceLinks.size() > m_cfg.maxCandidateSize) {
@@ -70,10 +74,10 @@ ProcessCode CKFTrackFindingAlgorithm::execute(
     idx = candidateContainer.size();
   }
 
-  std::cout << "CANDIDATES: " << trackCandidates.size() << "\n";
-
+  ACTS_DEBUG("Sending " << trackCandidates.size() << " track candidates");
   m_outputTrackCandidates(ctx, std::move(trackCandidates));
-  m_outputTrackView(ctx, std::move(candidateContainer));
+  m_outputTrackView(ctx,
+                    Tracks{candidateContainer, trackIds, ipParametersGuesses});
 
   return ProcessCode::SUCCESS;
 }

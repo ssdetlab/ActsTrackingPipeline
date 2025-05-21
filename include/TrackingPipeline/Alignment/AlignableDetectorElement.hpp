@@ -25,7 +25,7 @@ class AlignableDetectorElement : public Acts::DetectorElementBase {
   const Acts::Transform3& transform(
       const Acts::GeometryContext& gctx) const override {
     if (!gctx.hasValue()) {
-      return m_transform;
+      return nominalTransform();
     }
     const auto& alignContext = gctx.get<AlignmentContext&>();
     if (alignContext.alignmentStore != nullptr &&
@@ -35,6 +35,8 @@ class AlignableDetectorElement : public Acts::DetectorElementBase {
       throw std::runtime_error("Invalid alignment context");
     }
   }
+
+  const Acts::Transform3& nominalTransform() const { return m_transform; }
 
   /// Return surface representation - const return pattern
   const Acts::Surface& surface() const override { return *m_surface; }

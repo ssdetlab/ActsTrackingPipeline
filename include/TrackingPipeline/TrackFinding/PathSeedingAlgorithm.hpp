@@ -30,6 +30,10 @@ class PathSeedingAlgorithm : public IAlgorithm {
     std::size_t minSeedSize;
     /// Higher cutoff on the seed size
     std::size_t maxSeedSize;
+    /// Lower cutoff on the number of layers in a seed
+    std::size_t minLayers;
+    /// Higher cutoff on the number of layers in a seed
+    std::size_t maxLayers;
   };
 
   /// @brief Constructor

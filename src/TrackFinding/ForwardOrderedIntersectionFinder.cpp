@@ -5,6 +5,8 @@
 #include "Acts/Surfaces/Surface.hpp"
 #include <Acts/Definitions/Algebra.hpp>
 
+#include <iostream>
+
 ForwardOrderedIntersectionFinder::ForwardOrderedIntersectionFinder(
     const Config& config)
     : m_cfg(config) {};
@@ -16,11 +18,11 @@ ForwardOrderedIntersectionFinder::operator()(
   std::vector<std::pair<Acts::GeometryIdentifier, Acts::Vector2>>
       sIntersections;
 
-  Acts::Vector3 position = refParameters.position(gctx);
+  Acts::Vector3 position = refParameters.position();
   Acts::Vector3 direction = refParameters.direction();
 
   // Intersect the surfaces
-  for (auto& layer : m_cfg.layers) {
+  for (const auto& layer : m_cfg.layers) {
     // Get the intersection
     auto sMultiIntersection = layer->intersect(
         gctx, position, direction, Acts::BoundaryTolerance::Infinite());

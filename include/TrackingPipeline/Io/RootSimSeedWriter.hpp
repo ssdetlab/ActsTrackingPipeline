@@ -12,7 +12,7 @@
 #include "TrackingPipeline/Infrastructure/IWriter.hpp"
 #include "TrackingPipeline/Infrastructure/ProcessCode.hpp"
 
-using TrackID = std::tuple<std::int32_t, std::int32_t, std::int32_t>;
+using TrackID = std::tuple<int, int, int>;
 
 class RootSimSeedWriter : public IWriter {
  public:

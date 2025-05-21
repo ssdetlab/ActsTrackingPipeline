@@ -21,11 +21,12 @@
 #include "TrackingPipeline/MagneticField/ConstantBoundedField.hpp"
 #include "TrackingPipeline/MagneticField/DipoleMagField.hpp"
 #include "TrackingPipeline/MagneticField/QuadrupoleMagField.hpp"
+#include "TrackingPipeline/Simulation/BremsstrahlungMomentumGenerator.hpp"
 #include "TrackingPipeline/Simulation/GaussianVertexGenerator.hpp"
-#include "TrackingPipeline/Simulation/IdealDigitizer.hpp"
 #include "TrackingPipeline/Simulation/MeasurementsCreator.hpp"
 #include "TrackingPipeline/Simulation/MeasurementsEmbeddingAlgorithm.hpp"
 #include "TrackingPipeline/Simulation/RangedUniformMomentumGenerator.hpp"
+#include "TrackingPipeline/Simulation/SimpleDigitizer.hpp"
 
 using ActionList = Acts::ActionList<>;
 using AbortList = Acts::AbortList<Acts::EndOfWorldReached>;
@@ -35,9 +36,9 @@ using Propagator = Acts::Propagator<Acts::EigenStepper<>,
 using PropagatorOptions =
     typename Propagator::template Options<ActionList, AbortList>;
 
-using KFTrajectory = Acts::VectorMultiTrajectory;
-using KFTrackContainer = Acts::VectorTrackContainer;
-using KF = Acts::KalmanFitter<Propagator, KFTrajectory>;
+using RecoTrajectory = Acts::VectorMultiTrajectory;
+using RecoTrackContainer = Acts::VectorTrackContainer;
+using KF = Acts::KalmanFitter<Propagator, RecoTrajectory>;
 
 using CKFTrackContainer = Acts::TrackContainer<Acts::VectorTrackContainer,
                                                Acts::VectorMultiTrajectory,
@@ -166,7 +167,7 @@ int main() {
       gOpt.dipoleParams, dipoleB, gOpt.actsToWorldRotation,
       gOpt.actsToWorldRotation.inverse() * gOpt.dipoleTranslation);
 
-  Acts::Vector3 xCorrectorB(0, 0, -0.0536_T);
+  Acts::Vector3 xCorrectorB(0, 0, -0.026107_T);
   /*Acts::Vector3 xCorrectorB(0, 0, 0);*/
   ConstantBoundedField xCorrectorField(xCorrectorB, xCorrectorExtent);
 
@@ -181,12 +182,17 @@ int main() {
 
   auto aStore =
       std::make_shared<std::map<Acts::GeometryIdentifier, Acts::Transform3>>();
-  std::cout << "\n\n\n\n";
+  std::map<int, Acts::Vector3> shifts{
+      {8, Acts::Vector3(-11.7_mm - 0_um, 0, 3.5_mm + 0_um)},
+      {6, Acts::Vector3(-11.7_mm + 0_um, 0, 3.5_mm - 0_um)},
+      {4, Acts::Vector3(-11.7_mm + 0_um, 0, 3.5_mm - 0_um)},
+      {2, Acts::Vector3(-11.7_mm - 0_um, 0, 3.5_mm + 0_um)},
+      {0, Acts::Vector3(-11.7_mm + 0_um, 0, 3.5_mm + 0_um)}};
   for (auto& v : detector->volumes()) {
     for (auto& s : v->surfaces()) {
       if (s->geometryId().sensitive()) {
         Acts::Transform3 nominal = s->transform(gctx);
-        nominal.pretranslate(Acts::Vector3(-18_mm, 0, 0));
+        nominal.pretranslate(shifts.at(s->geometryId().sensitive() - 1));
         std::cout << nominal.translation().transpose() << "\n";
         aStore->emplace(s->geometryId(), nominal);
       }
@@ -212,12 +218,12 @@ int main() {
   DummyReader::Config dummyReaderCfg;
   dummyReaderCfg.outputSourceLinks = "SimMeasurements";
   dummyReaderCfg.outputSimClusters = "SimClusters";
-  dummyReaderCfg.nEvents = 1e4;
+  dummyReaderCfg.nEvents = 1e3;
 
   sequencer.addReader(std::make_shared<DummyReader>(dummyReaderCfg));
 
   // --------------------------------------------------------------
-  // Compton background embedding
+  // Simulate track propagation
 
   // Setup the measurements creator
   Acts::Experimental::DetectorNavigator::Config cptNavCfg;
@@ -234,18 +240,20 @@ int main() {
                                    std::move(measCreatorNavigator));
 
   // Digitizer
-  auto digitizer = std::make_shared<IdealDigitizer>();
+  auto digitizer = std::make_shared<SimpleDigitizer>();
+  digitizer->resolution = {5_um, 5_um};
 
   // Vertex generator
   auto vertexGen = std::make_shared<GaussianVertexGenerator>(
-      Acts::Vector3(0, gOpt.beWindowTranslation[2], 0),
-      30_um * Acts::SquareMatrix3::Identity());
+      Acts::Vector3(0, gOpt.beWindowBounds[2], 0),
+      30_um * 30_um * Acts::SquareMatrix3::Identity());
 
   // Momentum generator
   auto momGen = std::make_shared<RangedUniformMomentumGenerator>();
-  momGen->Pranges = {{1.7_GeV, 1.9_GeV}, {1.9_GeV, 2.1_GeV},
-                     {2.1_GeV, 2.3_GeV}, {2.3_GeV, 2.5_GeV},
-                     {2.5_GeV, 2.7_GeV}, {2.7_GeV, 2.9_GeV}};
+  momGen->Pranges = {{2.1_GeV, 2.1_GeV}};
+  /*auto momGen = std::make_shared<BremsstrahlungMomentumGenerator>(*/
+  /*    Acts::Vector3(0, 0, 0),*/
+  /*    0.3_MeV * 0.3_MeV * Acts::SquareMatrix3::Identity());*/
 
   // Measurement creator
   MeasurementsCreator::Config measCreatorCfg;
@@ -283,7 +291,7 @@ int main() {
 
   clusterWriterCfg.inputClusters = "Clusters";
   clusterWriterCfg.treeName = "clusters";
-  clusterWriterCfg.filePath = "clusters-sim.root";
+  clusterWriterCfg.filePath = "clusters-sim-corrector.root";
 
   sequencer.addWriter(
       std::make_shared<RootSimClusterWriter>(clusterWriterCfg, logLevel));

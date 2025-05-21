@@ -37,7 +37,6 @@ find_package(
     Net
     Physics
     GeomPainter
-    Minuit
     REQUIRED
 )
 
@@ -52,6 +51,7 @@ ROOT_GENERATE_DICTIONARY(
     ./include/TrackingPipeline/Io/detail/AlpideRegisters.h
     ./include/TrackingPipeline/Io/detail/MosaicRegisters.h
     ./include/TrackingPipeline/Io/detail/EudaqDetectorEvent.h
+    ./include/TrackingPipeline/Io/detail/DetectorEvent.hpp
     MODULE 
     SimEventDict 
     LINKDEF 
@@ -100,7 +100,6 @@ target_link_libraries(
     ROOT::Hist
     ROOT::Gpad
     ROOT::Net
-    ROOT::Minuit
     G__SimEventDict
     ActsCore
     ActsFatras
