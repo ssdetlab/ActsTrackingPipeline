@@ -3,7 +3,9 @@
 #include "Acts/Geometry/DetectorElementBase.hpp"
 
 #include "TFile.h"
+#include "TMatrixD.h"
 #include "TTree.h"
+#include "TVector3.h"
 #include "TrackingPipeline/Infrastructure/AlgorithmContext.hpp"
 #include "TrackingPipeline/Infrastructure/DataHandle.hpp"
 #include "TrackingPipeline/Infrastructure/IWriter.hpp"
@@ -63,9 +65,25 @@ class AlignmentParametersWriter : public IWriter {
   TTree *m_tree = nullptr;
 
  protected:
-  /// Number of source links
-  /// in a seed
-  int m_size;
+  /// Detector element geometry ID
+  int m_geoId;
+
+  /// Detector element nominal transform
+  TVector3 m_nominalTranslation;
+  TMatrixD m_nominalRotation = TMatrixD(3, 3);
+
+  /// Detector element new aligned transform
+  TVector3 m_newTranslation;
+  TMatrixD m_newRotation = TMatrixD(3, 3);
+
+  /// Difference between nominal and aligned
+  ///
+  /// Note: to apply to the nominal the order is as follows:
+  /// nominal.pretranslate(delta)
+  /// nominal.rotate(delta)
+  ///
+  TVector3 m_deltaTranslation;
+  TMatrixD m_deltaRotation = TMatrixD(3, 3);
 
   /// Mutex to protect the tree filling
   std::mutex m_mutex;
