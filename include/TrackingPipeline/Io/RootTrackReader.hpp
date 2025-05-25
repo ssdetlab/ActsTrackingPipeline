@@ -30,6 +30,8 @@ class RootTrackReader : public IReader {
     std::string treeName;
     /// Batch flag
     bool batch;
+    /// Stack flag
+    bool stack;
     /// Batch size for the tracks
     std::size_t batchSize;
     /// Covariance annealing factor

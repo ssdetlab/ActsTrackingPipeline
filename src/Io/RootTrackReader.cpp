@@ -100,11 +100,11 @@ RootTrackReader::RootTrackReader(const Config& config,
 
   // Disable all branches and only enable event-id for a first scan of the
   // file
-  /*m_chain->SetBranchStatus("*", false);*/
-  /*if (!m_chain->GetBranch("eventId")) {*/
-  /*  throw std::invalid_argument("Missing eventId SetbranchAddress");*/
-  /*}*/
-  /*m_chain->SetBranchStatus("eventId", true);*/
+  m_chain->SetBranchStatus("*", false);
+  if (!m_chain->GetBranch("eventId")) {
+    throw std::invalid_argument("Missing eventId SetbranchAddress");
+  }
+  m_chain->SetBranchStatus("eventId", true);
   auto nEntries = static_cast<std::size_t>(m_chain->GetEntries());
 
   // Go through all entries and store the position of the events
@@ -116,6 +116,8 @@ RootTrackReader::RootTrackReader(const Config& config,
                               (i + 1) * m_cfg.batchSize);
       evId++;
     }
+  } else if (m_cfg.stack) {
+    m_eventMap.emplace_back(0, 0, nEntries - 1);
   } else {
     m_chain->GetEntry(0);
     m_eventMap.emplace_back(m_eventId, 0, 0);
@@ -196,7 +198,7 @@ ProcessCode RootTrackReader::read(const AlgorithmContext& ctx) {
   std::size_t sslIdx = 0;
   for (auto entry = std::get<1>(*it); entry < std::get<2>(*it); entry++) {
     m_chain->GetEntry(entry);
-    if (m_chi2Smoothed < 2e1 || m_chi2Smoothed > 3e2) {
+    if (m_chi2Filtered > 3e2) {
       continue;
     }
 
