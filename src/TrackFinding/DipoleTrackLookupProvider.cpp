@@ -57,25 +57,9 @@ E320DipoleTrackLookupProvider::lookup(const Acts::GeometryContext& gctx,
   ACTS_VERBOSE("Reference layer momentum theta " << theta);
   ACTS_VERBOSE("Momentum magnitude " << P);
 
-  /*Acts::CurvilinearTrackParameters ipPars(*/
-  /*    Acts::Vector4(0, 0, 0, 0), Acts::Vector3(0, 1, 0), 1_e / P, m_cov,*/
-  /*    Acts::ParticleHypothesis::electron());*/
-  /*Acts::CurvilinearTrackParameters ipPars(*/
-  /*    Acts::Vector4(globalPos.x() - 126_mm * std::cos(theta) *
-   * std::sin(phi),*/
-  /*                  globalPos.y() - 126_mm * std::cos(theta) *
-   * std::cos(phi),*/
-  /*                  globalPos.z() - 126_mm * std::sin(theta), 0),*/
-  /*    Acts::Vector3(std::cos(theta) * std::sin(phi),*/
-  /*                  std::cos(theta) * std::cos(phi), std::sin(theta)),*/
-  /*    1_e / P, m_cov, Acts::ParticleHypothesis::electron());*/
   Acts::CurvilinearTrackParameters ipPars(
-      Acts::Vector4(globalPos.x() - 1_mm * std::cos(theta) * std::sin(phi),
-                    globalPos.y() - 1_mm * std::cos(theta) * std::cos(phi),
-                    globalPos.z() - 1_mm * std::sin(theta), 0),
-      Acts::Vector3(std::cos(theta) * std::sin(phi),
-                    std::cos(theta) * std::cos(phi), std::sin(theta)),
-      1_e / P, m_cov, Acts::ParticleHypothesis::electron());
+      Acts::Vector4(0, 3279_mm, 0, 0), Acts::Vector3(0, 1, 0), 1_e / P, m_cov,
+      Acts::ParticleHypothesis::electron());
   Acts::CurvilinearTrackParameters refPars(
       Acts::Vector4(globalPos.x(), globalPos.y(), globalPos.z(), 0),
       Acts::Vector3(std::cos(theta) * std::sin(phi),

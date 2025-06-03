@@ -3,6 +3,7 @@
 #include "Acts/EventData/SourceLink.hpp"
 #include <Acts/Utilities/Logger.hpp>
 
+#include <cstddef>
 #include <stdexcept>
 #include <string>
 
@@ -39,7 +40,9 @@ ProcessCode MeasurementsEmbeddingAlgorithm::execute(
 
   // Create the measurements
   ACTS_DEBUG("Starting propagation of " << m_cfg.nMeasurements << " tracks");
-  for (std::size_t i = 0; i < m_cfg.nMeasurements; i++) {
+  std::size_t inputSize = sourceLinks.size();
+  std::size_t outputSize = inputSize + m_cfg.nMeasurements;
+  for (std::size_t i = inputSize; i < outputSize; i++) {
     auto [sls, cls] = m_cfg.measurementGenerator->gen(ctx, rng, i);
 
     ACTS_VERBOSE("Created " << sls.size() << " measurements");

@@ -34,6 +34,12 @@ class E320RootDataReader : public IReader {
     std::shared_ptr<E320ClusterFilter> clusterFilter = nullptr;
     /// Event filter
     std::shared_ptr<E320EventFilter> dataFilter = nullptr;
+    
+
+    /// Surface accessor
+    Acts::SourceLinkSurfaceAccessor surfaceAccessor;
+
+
     /// Collection with the measurement data
     std::string outputSourceLinks;
     /// The names of the input files

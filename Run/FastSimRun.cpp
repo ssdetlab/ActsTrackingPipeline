@@ -9,6 +9,7 @@
 
 #include <initializer_list>
 #include <memory>
+#include <vector>
 
 #include "TrackingPipeline/Alignment/AlignmentContext.hpp"
 #include "TrackingPipeline/Geometry/E320Geometry.hpp"
@@ -27,6 +28,7 @@
 #include "TrackingPipeline/Simulation/MeasurementsEmbeddingAlgorithm.hpp"
 #include "TrackingPipeline/Simulation/RangedUniformMomentumGenerator.hpp"
 #include "TrackingPipeline/Simulation/SimpleDigitizer.hpp"
+#include "TrackingPipeline/Simulation/UniformBackgroundCreator.hpp"
 
 using ActionList = Acts::ActionList<>;
 using AbortList = Acts::AbortList<Acts::EndOfWorldReached>;
@@ -51,7 +53,7 @@ using namespace Acts::UnitLiterals;
 
 int main() {
   // Set the log level
-  Acts::Logging::Level logLevel = Acts::Logging::INFO;
+  Acts::Logging::Level logLevel = Acts::Logging::DEBUG;
 
   // Dummy context and options
   Acts::GeometryContext gctx;
@@ -168,7 +170,6 @@ int main() {
       gOpt.actsToWorldRotation.inverse() * gOpt.dipoleTranslation);
 
   Acts::Vector3 xCorrectorB(0, 0, -0.026107_T);
-  /*Acts::Vector3 xCorrectorB(0, 0, 0);*/
   ConstantBoundedField xCorrectorField(xCorrectorB, xCorrectorExtent);
 
   CompositeMagField::FieldComponents fieldComponents = {
@@ -183,21 +184,88 @@ int main() {
   auto aStore =
       std::make_shared<std::map<Acts::GeometryIdentifier, Acts::Transform3>>();
   std::map<int, Acts::Vector3> shifts{
-      {8, Acts::Vector3(-11.7_mm - 0_um, 0, 3.5_mm + 0_um)},
-      {6, Acts::Vector3(-11.7_mm + 0_um, 0, 3.5_mm - 0_um)},
-      {4, Acts::Vector3(-11.7_mm + 0_um, 0, 3.5_mm - 0_um)},
-      {2, Acts::Vector3(-11.7_mm - 0_um, 0, 3.5_mm + 0_um)},
-      {0, Acts::Vector3(-11.7_mm + 0_um, 0, 3.5_mm + 0_um)}};
+      {8, Acts::Vector3(-11.7_mm + 0.2_mm, -3.5_mm - 0.12_mm, 0_mm)},
+      {6, Acts::Vector3(-11.7_mm + 0.2_mm - 1.93_um, -3.5_mm - 0.12_mm + 16.2_um, 0_mm)},
+      {4, Acts::Vector3(-11.7_mm + 0.2_mm + 41.8_um, -3.5_mm - 0.12_mm - 63.3_um, 0_mm)},
+      {2, Acts::Vector3(-11.7_mm + 0.2_mm + 74.6_um, -3.5_mm - 0.12_mm - 69.5_um, 0_mm)},
+      {0, Acts::Vector3(-11.7_mm + 0.2_mm - 17.6_um, -3.5_mm - 0.12_mm + 27.5_um, 0_mm)}};
+  Acts::RotationMatrix3 mat8 = 
+      Acts::AngleAxis3(2.14e-4, Acts::Vector3::UnitZ()).toRotationMatrix();
+  Acts::RotationMatrix3 mat6 =
+      Acts::AngleAxis3(1.73e-3, Acts::Vector3::UnitZ()).toRotationMatrix();
+  Acts::RotationMatrix3 mat4 =
+      Acts::AngleAxis3(-1.46e-3, Acts::Vector3::UnitZ()).toRotationMatrix();
+  Acts::RotationMatrix3 mat2 =
+      Acts::AngleAxis3(1.49e-3, Acts::Vector3::UnitZ()).toRotationMatrix();
+  Acts::RotationMatrix3 mat0 =
+      Acts::AngleAxis3(5.16e-4, Acts::Vector3::UnitZ()).toRotationMatrix();
+
+  std::map<int, Acts::RotationMatrix3> rots{
+      {8, mat8}, {6, mat6}, {4, mat4}, {2, mat2}, {0, mat0}};
   for (auto& v : detector->volumes()) {
     for (auto& s : v->surfaces()) {
       if (s->geometryId().sensitive()) {
-        Acts::Transform3 nominal = s->transform(gctx);
-        nominal.pretranslate(shifts.at(s->geometryId().sensitive() - 1));
-        std::cout << nominal.translation().transpose() << "\n";
+        // Surface is in origin, normal along z, no rotation in xy plane
+        Acts::Transform3 nominal = Acts::Transform3::Identity();
+
+        // Global detector rotation
+        nominal.rotate(gOpt.actsToWorldRotation.inverse());
+
+        // Global detector translation
+        nominal.translate(
+            Acts::Vector3(gOpt.chipX, gOpt.chipY,
+                          gOpt.staveZ.at(s->geometryId().sensitive() - 1)));
+
+        // Apply relative translations of the rotated surfaces
+        nominal.translate(shifts.at(s->geometryId().sensitive() - 1));
+
+        // Rotate surface in the origin around global origin
+        nominal.rotate(rots.at(s->geometryId().sensitive() - 1));
+
+        // Account for G4 rotation
+        nominal.rotate(Acts::AngleAxis3(-M_PI_2, Acts::Vector3::UnitZ())
+                           .toRotationMatrix());
+
         aStore->emplace(s->geometryId(), nominal);
       }
     }
   }
+
+  AlignmentContext alignCtx(aStore);
+  Acts::GeometryContext testCtx{alignCtx};
+  std::vector<const Acts::Surface*> surfaces;
+  for (const auto* v : detector->volumes()) {
+    for (const auto* s : v->surfaces()) {
+      if (s->geometryId().sensitive()) {
+        std::cout << "-----------------------------------\n";
+        std::cout << "SURFACE " << s->geometryId() << "\n";
+        std::cout << "CENTER " << s->center(testCtx).transpose() << " -- "
+                  << s->center(Acts::GeometryContext()).transpose() << "\n";
+        std::cout << "NORMAL "
+                  << s->normal(testCtx, s->center(testCtx),
+                               Acts::Vector3::UnitY())
+                         .transpose()
+                  << " -- "
+                  << s->normal(testCtx, s->center(Acts::GeometryContext()),
+                               Acts::Vector3::UnitY())
+                         .transpose()
+                  << "\n";
+        std::cout << "ROTATION \n"
+                  << s->transform(testCtx).rotation() << " -- \n"
+                  << "\n"
+                  << s->transform(Acts::GeometryContext()).rotation() << "\n";
+        std::cout << "EXTENT "
+                  << s->polyhedronRepresentation(testCtx, 1000).extent()
+                  << "\n -- \n"
+                  << s->polyhedronRepresentation(Acts::GeometryContext(), 1000)
+                         .extent()
+                  << "\n";
+
+        surfaces.push_back(s);
+      }
+    }
+  }
+  gctx = Acts::GeometryContext{alignCtx};
 
   // --------------------------------------------------------------
   // Event reading
@@ -218,7 +286,7 @@ int main() {
   DummyReader::Config dummyReaderCfg;
   dummyReaderCfg.outputSourceLinks = "SimMeasurements";
   dummyReaderCfg.outputSimClusters = "SimClusters";
-  dummyReaderCfg.nEvents = 1e3;
+  dummyReaderCfg.nEvents = 1e2;
 
   sequencer.addReader(std::make_shared<DummyReader>(dummyReaderCfg));
 
@@ -240,20 +308,19 @@ int main() {
                                    std::move(measCreatorNavigator));
 
   // Digitizer
-  auto digitizer = std::make_shared<SimpleDigitizer>();
-  digitizer->resolution = {5_um, 5_um};
+  SimpleDigitizer::Config digitizerCfg;
+  digitizerCfg.resolution = {5_um, 5_um};
+  auto digitizer = std::make_shared<SimpleDigitizer>(digitizerCfg);
 
   // Vertex generator
   auto vertexGen = std::make_shared<GaussianVertexGenerator>(
-      Acts::Vector3(0, gOpt.beWindowBounds[2], 0),
-      30_um * 30_um * Acts::SquareMatrix3::Identity());
+      Acts::Vector3(0, gOpt.beWindowTranslation[2], 0),
+      75_um * 75_um * Acts::SquareMatrix3::Identity());
 
   // Momentum generator
-  auto momGen = std::make_shared<RangedUniformMomentumGenerator>();
-  momGen->Pranges = {{2.1_GeV, 2.1_GeV}};
-  /*auto momGen = std::make_shared<BremsstrahlungMomentumGenerator>(*/
-  /*    Acts::Vector3(0, 0, 0),*/
-  /*    0.3_MeV * 0.3_MeV * Acts::SquareMatrix3::Identity());*/
+  auto momGen = std::make_shared<BremsstrahlungMomentumGenerator>(
+      Acts::Vector3(0, 0, 0),
+      0.3_MeV * 0.3_MeV * Acts::SquareMatrix3::Identity());
 
   // Measurement creator
   MeasurementsCreator::Config measCreatorCfg;
@@ -269,15 +336,39 @@ int main() {
   MeasurementsEmbeddingAlgorithm::Config measCreatorAlgoCfg;
   measCreatorAlgoCfg.inputSourceLinks = "SimMeasurements";
   measCreatorAlgoCfg.inputSimClusters = "SimClusters";
-  measCreatorAlgoCfg.outputSourceLinks = "Measurements";
-  measCreatorAlgoCfg.outputSimClusters = "Clusters";
+  measCreatorAlgoCfg.outputSourceLinks = "Measurements1";
+  measCreatorAlgoCfg.outputSimClusters = "Clusters1";
   measCreatorAlgoCfg.measurementGenerator = measCreator;
   measCreatorAlgoCfg.randomNumberSvc =
       std::make_shared<RandomNumbers>(RandomNumbers::Config());
-  measCreatorAlgoCfg.nMeasurements = 1;
+  measCreatorAlgoCfg.nMeasurements = 20;
 
   sequencer.addAlgorithm(std::make_shared<MeasurementsEmbeddingAlgorithm>(
       measCreatorAlgoCfg, logLevel));
+
+  // --------------------------------------------------------------
+  // Add background
+
+  // Background creator
+  UniformBackgroundCreator::Config bkgCreatorCfg;
+  bkgCreatorCfg.resolution = {5_um, 5_um};
+  bkgCreatorCfg.nMeasurements = 600;
+  bkgCreatorCfg.surfaces = surfaces;
+
+  auto bkgCreator = std::make_shared<UniformBackgroundCreator>(bkgCreatorCfg);
+
+  MeasurementsEmbeddingAlgorithm::Config bkgCreatorAlgoCfg;
+  bkgCreatorAlgoCfg.inputSourceLinks = "Measurements1";
+  bkgCreatorAlgoCfg.inputSimClusters = "Clusters1";
+  bkgCreatorAlgoCfg.outputSourceLinks = "Measurements";
+  bkgCreatorAlgoCfg.outputSimClusters = "Clusters";
+  bkgCreatorAlgoCfg.measurementGenerator = bkgCreator;
+  bkgCreatorAlgoCfg.randomNumberSvc =
+      std::make_shared<RandomNumbers>(RandomNumbers::Config());
+  bkgCreatorAlgoCfg.nMeasurements = 1;
+
+  sequencer.addAlgorithm(std::make_shared<MeasurementsEmbeddingAlgorithm>(
+      bkgCreatorAlgoCfg, logLevel));
 
   // --------------------------------------------------------------
   // Event write out
@@ -291,7 +382,9 @@ int main() {
 
   clusterWriterCfg.inputClusters = "Clusters";
   clusterWriterCfg.treeName = "clusters";
-  clusterWriterCfg.filePath = "clusters-sim-corrector.root";
+  clusterWriterCfg.filePath =
+      "/home/romanurmanov/lab/LUXE/acts_tracking/E320Prototype/"
+      "E320Prototype_analysis/sim/clusters-sim.root";
 
   sequencer.addWriter(
       std::make_shared<RootSimClusterWriter>(clusterWriterCfg, logLevel));

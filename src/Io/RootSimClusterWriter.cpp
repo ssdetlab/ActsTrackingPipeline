@@ -2,6 +2,7 @@
 
 #include "Acts/Definitions/Algebra.hpp"
 #include <Acts/Definitions/TrackParametrization.hpp>
+#include <Acts/Utilities/Logger.hpp>
 
 #include <cmath>
 #include <stdexcept>
@@ -67,6 +68,8 @@ ProcessCode RootSimClusterWriter::finalize() {
 
 ProcessCode RootSimClusterWriter::write(const AlgorithmContext& ctx) {
   auto inputClusters = m_inputClusters(ctx);
+
+  ACTS_DEBUG("Received " << inputClusters.size() << " clusters");
 
   std::lock_guard<std::mutex> lock(m_mutex);
 

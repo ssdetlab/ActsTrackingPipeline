@@ -12,6 +12,7 @@
 #include "Acts/Utilities/Logger.hpp"
 #include <Acts/Definitions/Algebra.hpp>
 
+#include <filesystem>
 #include <iostream>
 #include <limits>
 #include <memory>
@@ -25,6 +26,8 @@
 #include "TrackingPipeline/Geometry/E320GeometryConstraints.hpp"
 #include "TrackingPipeline/Geometry/GeometryContextDecorator.hpp"
 #include "TrackingPipeline/Infrastructure/Sequencer.hpp"
+#include "TrackingPipeline/Io/AlignmentParametersProvider.hpp"
+#include "TrackingPipeline/Io/AlignmentParametersWriter.hpp"
 #include "TrackingPipeline/Io/RootTrackReader.hpp"
 #include "TrackingPipeline/Io/RootTrackWriter.hpp"
 #include "TrackingPipeline/MagneticField/CompositeMagField.hpp"
@@ -89,16 +92,6 @@ int main() {
 
   auto aStore =
       std::make_shared<std::map<Acts::GeometryIdentifier, Acts::Transform3>>();
-  /*std::map<int, Acts::Vector3> shifts{{8, Acts::Vector3(-11.7_mm,
-   * 0, 3.5_mm)},*/
-  /*                                    {6, Acts::Vector3(-12351.5_um, 0,
-   * 3313.49_um)},*/
-  /*                                    {4, Acts::Vector3(-11952.8_um, 0,
-   * 3494.97_um)},*/
-  /*                                    {2, Acts::Vector3(-11594.4_um, 0,
-   * 3657.83_um)},*/
-  /*                                    {0, Acts::Vector3(-11309.0_um, 0,
-   * 3830.02_um)}};*/
   std::map<int, Acts::Vector3> shifts{{8, Acts::Vector3(-11.7_mm, 0, 3.5_mm)},
                                       {6, Acts::Vector3(-11.7_mm, 0, 3.5_mm)},
                                       {4, Acts::Vector3(-11.7_mm, 0, 3.5_mm)},
@@ -216,7 +209,7 @@ int main() {
 
   // Setup the sequencer
   Sequencer::Config seqCfg;
-  /*seqCfg.events = 3;*/
+  seqCfg.events = 1e0;
   seqCfg.numThreads = 1;
   seqCfg.trackFpes = false;
   Sequencer sequencer(seqCfg);
@@ -227,16 +220,26 @@ int main() {
   // --------------------------------------------------------------
   // Add sim clusters reader
   RootTrackReader::Config readerCfg;
-  readerCfg.filePaths = {
-      "/home/romanurmanov/lab/LUXE/acts_tracking/TrackingPipeline_build/"
-      "fitted-tracks-data.root"};
   readerCfg.treeName = "fitted-tracks";
   readerCfg.outputMeasurements = "Measurements";
   readerCfg.outputSeeds = "PreFittedTrackCandidates";
-  readerCfg.batch = false;
+  readerCfg.batch = true;
+  readerCfg.stack = false;
   readerCfg.batchSize = 1e3;
   readerCfg.covAnnealingFactor = 1e3;
+  std::string pathToDir =
+      "/home/romanurmanov/lab/LUXE/acts_tracking/E320Prototype/"
+      "E320Prototype_analysis/data/"
+      "fitted_tracks";
 
+  // Get the paths to the files in the directory
+  for (const auto& entry : std::filesystem::directory_iterator(pathToDir)) {
+    if (!entry.is_regular_file() || entry.path().extension() != ".root") {
+      continue;
+    }
+    std::string pathToFile = entry.path();
+    readerCfg.filePaths.push_back(pathToFile);
+  }
   sequencer.addReader(std::make_shared<RootTrackReader>(readerCfg, logLevel));
 
   // --------------------------------------------------------------
@@ -395,18 +398,39 @@ int main() {
   sequencer.addWriter(
       std::make_shared<RootTrackWriter>(trackWriterCfg, logLevel));
 
+  // Alignment writer
+  auto alignmentWriterCfg = AlignmentParametersWriter::Config();
+
+  alignmentWriterCfg.inputAlignmentResults = "AlignmentParameters";
+  alignmentWriterCfg.treeName = "alignment-results";
+  alignmentWriterCfg.filePath = "alignment-results.root";
+
+  sequencer.addWriter(std::make_shared<AlignmentParametersWriter>(
+      alignmentWriterCfg, logLevel));
+
   sequencer.run();
+
+  // Alignment provider
+  auto alignmentProviderCfg = AlignmentParametersProvider::Config();
+
+  alignmentProviderCfg.treeName = "alignment-results";
+  alignmentProviderCfg.filePath =
+      "/home/romanurmanov/lab/LUXE/acts_tracking/TrackingPipeline_build/"
+      "alignment-results.root";
+
+  AlignmentParametersProvider alignmentProvider(alignmentProviderCfg);
   for (auto& v : detector->volumes()) {
     for (auto& s : v->surfaces()) {
-      if (s->geometryId().sensitive()) {
-        std::cout << "SURFACE: " << s->geometryId() << " -- ["
-                  << (s->center(gctx) - s->center(Acts::GeometryContext()))
-                             .transpose() *
-                         1e3
-                  << "]\n";
-        std::cout << s->transform(gctx).rotation() -
-                         s->transform(Acts::GeometryContext()).rotation()
-                  << "\n";
+      if (s->geometryId().sensitive() && s->geometryId().sensitive() != 9) {
+        std::cout << "--------------------------------\n";
+        std::cout << "SURFACE " << s->geometryId() << "\n";
+        Acts::Transform3 nominal = s->transform(Acts::GeometryContext());
+        const auto [shift, rot] =
+            alignmentProvider.getAlignedTransform(s->geometryId());
+        nominal.pretranslate(shift);
+        nominal.rotate(rot);
+        std::cout << nominal.translation().transpose() << "\n";
+        std::cout << nominal.rotation() << "\n";
       }
     }
   }

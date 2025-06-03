@@ -171,6 +171,16 @@ ProcessCode RootSimTrackWriter::write(const AlgorithmContext& ctx) {
 
   m_eventId = ctx.eventNumber;
 
+  auto checkOverlaps = [](const std::vector<TVector3>& hitsA,
+                          const std::vector<TVector3>& hitsB) {
+    for (std::size_t i = 0; i < hitsA.size(); i++) {
+      if ((hitsA.at(i) - hitsB.at(i)).Mag() < 1e-3) {
+        return true;
+      }
+    }
+    return false;
+  };
+
   // Iterate over the fitted tracks
   for (std::size_t tid = 0; tid < inputTracks.tracks.size(); tid++) {
     // Get the track object and the track id

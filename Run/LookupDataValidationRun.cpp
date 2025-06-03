@@ -1,4 +1,5 @@
 #include "Acts/Utilities/Logger.hpp"
+#include <Acts/Definitions/Algebra.hpp>
 
 #include <memory>
 
@@ -12,11 +13,11 @@
 #include "TrackingPipeline/MagneticField/ConstantBoundedField.hpp"
 #include "TrackingPipeline/MagneticField/DipoleMagField.hpp"
 #include "TrackingPipeline/MagneticField/QuadrupoleMagField.hpp"
-#include "TrackingPipeline/Simulation/IdealDigitizer.hpp"
+#include "TrackingPipeline/Simulation/BremsstrahlungMomentumGenerator.hpp"
+#include "TrackingPipeline/Simulation/GaussianVertexGenerator.hpp"
 #include "TrackingPipeline/Simulation/MeasurementsCreator.hpp"
 #include "TrackingPipeline/Simulation/MeasurementsEmbeddingAlgorithm.hpp"
-#include "TrackingPipeline/Simulation/RangedUniformMomentumGenerator.hpp"
-#include "TrackingPipeline/Simulation/StationaryVertexGenerator.hpp"
+#include "TrackingPipeline/Simulation/SimpleDigitizer.hpp"
 #include "TrackingPipeline/TrackFinding/DipoleTrackLookupProvider.hpp"
 #include "TrackingPipeline/TrackFinding/TrackLookupValidationAlgorithm.hpp"
 
@@ -31,7 +32,7 @@ using TrackParameters = Acts::CurvilinearTrackParameters;
 /// energy vs position histograms for each layer
 int main() {
   // Set the log level
-  Acts::Logging::Level logLevel = Acts::Logging::DEBUG;
+  Acts::Logging::Level logLevel = Acts::Logging::INFO;
 
   // Dummy context and options
   Acts::GeometryContext gctx;
@@ -147,8 +148,7 @@ int main() {
       gOpt.dipoleParams, dipoleB, gOpt.actsToWorldRotation,
       gOpt.actsToWorldRotation.inverse() * gOpt.dipoleTranslation);
 
-  Acts::Vector3 xCorrectorB(0, 0, -0.0536_T);
-  /*Acts::Vector3 xCorrectorB(0, 0, 0);*/
+  Acts::Vector3 xCorrectorB(0, 0, -0.026107_T);
   ConstantBoundedField xCorrectorField(xCorrectorB, xCorrectorExtent);
 
   CompositeMagField::FieldComponents fieldComponents = {
@@ -162,22 +162,85 @@ int main() {
 
   auto aStore =
       std::make_shared<std::map<Acts::GeometryIdentifier, Acts::Transform3>>();
-  std::map<int, Acts::Vector3> shifts{{8, Acts::Vector3(-16_mm, 0, 0)},
-                                      {6, Acts::Vector3(-16_mm, 0, 0)},
-                                      {4, Acts::Vector3(-16_mm, 0, 0)},
-                                      {2, Acts::Vector3(-16_mm, 0, 0)},
-                                      {0, Acts::Vector3(-16_mm, 0, 0)}};
+  std::map<int, Acts::Vector3> shifts{
+      {8, Acts::Vector3(-11.7_mm, -3.5_mm, 0_mm)},
+      {6, Acts::Vector3(-11.7_mm, -3.5_mm, 0_mm)},
+      {4, Acts::Vector3(-11.7_mm, -3.5_mm, 0_mm)},
+      {2, Acts::Vector3(-11.7_mm, -3.5_mm, 0_mm)},
+      {0, Acts::Vector3(-11.7_mm, -3.5_mm, 0_mm)}};
+  Acts::RotationMatrix3 mat8 =
+      Acts::AngleAxis3(0, Acts::Vector3::UnitZ()).toRotationMatrix();
+  Acts::RotationMatrix3 mat6 =
+      Acts::AngleAxis3(0, Acts::Vector3::UnitZ()).toRotationMatrix();
+  Acts::RotationMatrix3 mat4 =
+      Acts::AngleAxis3(0, Acts::Vector3::UnitZ()).toRotationMatrix();
+  Acts::RotationMatrix3 mat2 =
+      Acts::AngleAxis3(0, Acts::Vector3::UnitZ()).toRotationMatrix();
+  Acts::RotationMatrix3 mat0 =
+      Acts::AngleAxis3(0, Acts::Vector3::UnitZ()).toRotationMatrix();
+
+  std::map<int, Acts::RotationMatrix3> rots{
+      {8, mat8}, {6, mat6}, {4, mat4}, {2, mat2}, {0, mat0}};
   for (auto& v : detector->volumes()) {
     for (auto& s : v->surfaces()) {
       if (s->geometryId().sensitive()) {
-        Acts::Transform3 nominal = s->transform(gctx);
-        nominal.pretranslate(shifts.at(s->geometryId().sensitive() - 1));
-        std::cout << nominal.translation().transpose() << "\n";
+        // Surface is in origin, normal along z, no rotation in xy plane
+        Acts::Transform3 nominal = Acts::Transform3::Identity();
+
+        // Global detector rotation
+        nominal.rotate(gOpt.actsToWorldRotation.inverse());
+
+        // Global detector translation
+        nominal.translate(
+            Acts::Vector3(gOpt.chipX, gOpt.chipY,
+                          gOpt.staveZ.at(s->geometryId().sensitive() - 1)));
+
+        // Apply relative translations of the rotated surfaces
+        nominal.translate(shifts.at(s->geometryId().sensitive() - 1));
+
+        // Rotate surface in the origin around global origin
+        nominal.rotate(rots.at(s->geometryId().sensitive() - 1));
+
+        // Account for G4 rotation
+        nominal.rotate(Acts::AngleAxis3(-M_PI_2, Acts::Vector3::UnitZ())
+                           .toRotationMatrix());
+
         aStore->emplace(s->geometryId(), nominal);
       }
     }
   }
+
   AlignmentContext alignCtx(aStore);
+  Acts::GeometryContext testCtx{alignCtx};
+  for (auto& v : detector->volumes()) {
+    for (auto& s : v->surfaces()) {
+      if (s->geometryId().sensitive()) {
+        std::cout << "-----------------------------------\n";
+        std::cout << "SURFACE " << s->geometryId() << "\n";
+        std::cout << "CENTER " << s->center(testCtx).transpose() << " -- "
+                  << s->center(Acts::GeometryContext()).transpose() << "\n";
+        std::cout << "NORMAL "
+                  << s->normal(testCtx, s->center(testCtx),
+                               Acts::Vector3::UnitY())
+                         .transpose()
+                  << " -- "
+                  << s->normal(testCtx, s->center(Acts::GeometryContext()),
+                               Acts::Vector3::UnitY())
+                         .transpose()
+                  << "\n";
+        std::cout << "ROTATION \n"
+                  << s->transform(testCtx).rotation() << " -- \n"
+                  << "\n"
+                  << s->transform(Acts::GeometryContext()).rotation() << "\n";
+        std::cout << "EXTENT "
+                  << s->polyhedronRepresentation(testCtx, 1000).extent()
+                  << "\n -- \n"
+                  << s->polyhedronRepresentation(Acts::GeometryContext(), 1000)
+                         .extent()
+                  << "\n";
+      }
+    }
+  }
   gctx = Acts::GeometryContext{alignCtx};
 
   // --------------------------------------------------------------
@@ -199,12 +262,12 @@ int main() {
   DummyReader::Config dummyReaderCfg;
   dummyReaderCfg.outputSourceLinks = "SimMeasurements";
   dummyReaderCfg.outputSimClusters = "SimClusters";
-  dummyReaderCfg.nEvents = 1e3;
+  dummyReaderCfg.nEvents = 1e4;
 
   sequencer.addReader(std::make_shared<DummyReader>(dummyReaderCfg));
 
   // --------------------------------------------------------------
-  // Compton background embedding
+  // Simulate track propagation
 
   // Setup the measurements creator
   Acts::Experimental::DetectorNavigator::Config cptNavCfg;
@@ -221,17 +284,19 @@ int main() {
                                    std::move(measCreatorNavigator));
 
   // Digitizer
-  auto digitizer = std::make_shared<IdealDigitizer>();
+  SimpleDigitizer::Config digitizerCfg;
+  digitizerCfg.resolution = {5_um, 5_um};
+  auto digitizer = std::make_shared<SimpleDigitizer>(digitizerCfg);
 
   // Vertex generator
-  auto vertexGen = std::make_shared<StationaryVertexGenerator>();
-  vertexGen->vertex = Acts::Vector3(0, gOpt.beWindowTranslation[2], 0);
+  auto vertexGen = std::make_shared<GaussianVertexGenerator>(
+      Acts::Vector3(0, gOpt.beWindowTranslation[2], 0),
+      75_um * 75_um * Acts::SquareMatrix3::Identity());
 
   // Momentum generator
-  auto momGen = std::make_shared<RangedUniformMomentumGenerator>();
-  momGen->Pranges = {{1.7_GeV, 1.9_GeV}, {1.9_GeV, 2.1_GeV},
-                     {2.1_GeV, 2.3_GeV}, {2.3_GeV, 2.5_GeV},
-                     {2.5_GeV, 2.7_GeV}, {2.7_GeV, 2.9_GeV}};
+  auto momGen = std::make_shared<BremsstrahlungMomentumGenerator>(
+      Acts::Vector3(0, 0, 0),
+      0.3_MeV * 0.3_MeV * Acts::SquareMatrix3::Identity());
 
   // Measurement creator
   MeasurementsCreator::Config measCreatorCfg;
@@ -274,7 +339,7 @@ int main() {
   lookupProviderCfg.dipolePosition = gOpt.dipoleTranslation[2];
   lookupProviderCfg.dipoleSize = 0.914;
 
-  lookupProviderCfg.correctorAmplidute = -0.0536;
+  lookupProviderCfg.correctorAmplidute = -0.026107_T;
   lookupProviderCfg.correctorPosition = gOpt.xCorrectorTranslation[2];
   lookupProviderCfg.correctorSize = 0.23622;
 
@@ -299,7 +364,9 @@ int main() {
   validationWriterCfg.inputIpParsEst = "ipParsEst";
   validationWriterCfg.inputRefLayerPars = "refPars";
   validationWriterCfg.inputRefLayerParsEst = "refParsEst";
-  validationWriterCfg.path = "lookup-validation.root";
+  validationWriterCfg.path =
+      "/home/romanurmanov/lab/LUXE/acts_tracking/E320Prototype/"
+      "E320Prototype_analysis/sim/lookup-validation.root";
   validationWriterCfg.treeName = "validation";
 
   sequencer.addWriter(std::make_shared<RootTrackLookupValidationWriter>(

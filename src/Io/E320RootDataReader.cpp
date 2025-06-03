@@ -1,5 +1,7 @@
 #include "TrackingPipeline/Io/E320RootDataReader.hpp"
 
+#include <Acts/Definitions/Algebra.hpp>
+
 #include <cstddef>
 
 #include <RtypesCore.h>
@@ -525,6 +527,8 @@ ProcessCode E320Io::E320RootDataReader::read(const AlgorithmContext& context) {
 
           Acts::Vector2 hitLoc{hitX, hitY};
 
+          std::cout << "HIT LOC " << hitLoc.transpose() << "\n";
+
           // TODO: Estimate from the simulation
           // Estimate error from the cluster size
           double errX = m_gOpt.pixelSizeY * sizeY;
@@ -537,6 +541,12 @@ ProcessCode E320Io::E320RootDataReader::read(const AlgorithmContext& context) {
 
           // Fill the measurement
           SimpleSourceLink ssl(hitLoc, cov, geoId, eventId, sourceLinks.size());
+          std::cout << "HIT GLOB "
+                    << m_cfg.surfaceAccessor(Acts::SourceLink(ssl))
+                           ->localToGlobal(context.geoContext, ssl.parameters(),
+                                           Acts::Vector3::UnitY())
+                           .transpose()
+                    << "\n";
           sourceLinks.push_back(Acts::SourceLink(ssl));
         }
       }

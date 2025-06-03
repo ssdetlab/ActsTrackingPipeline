@@ -199,25 +199,31 @@ int main() {
 
   auto aStore =
       std::make_shared<std::map<Acts::GeometryIdentifier, Acts::Transform3>>();
-  /*std::map<int, Acts::Vector3> shifts{*/
-  /*    {8, Acts::Vector3(-11700.0_um, 0, 3500.00_um)},*/
-  /*    {6, Acts::Vector3(-11670.5_um, 0, 3559.65_um)},*/
-  /*    {4, Acts::Vector3(-11637.2_um, 0, 3579.90_um)},*/
-  /*    {2, Acts::Vector3(-11651.1_um, 0, 3623.34_um)},*/
-  /*    {0, Acts::Vector3(-11672.6_um, 0, 3615.44_um)}};*/
   std::map<int, Acts::Vector3> shifts{{8, Acts::Vector3(-11.7_mm, 0, 3.5_mm)},
                                       {6, Acts::Vector3(-11.7_mm, 0, 3.5_mm)},
                                       {4, Acts::Vector3(-11.7_mm, 0, 3.5_mm)},
                                       {2, Acts::Vector3(-11.7_mm, 0, 3.5_mm)},
                                       {0, Acts::Vector3(-11.7_mm, 0, 3.5_mm)}};
-  std::cout << "\n\n\n\n";
+  Acts::RotationMatrix3 mat8 =
+      Acts::AngleAxis3(0, Acts::Vector3(0., 1., 0.)).toRotationMatrix();
+  Acts::RotationMatrix3 mat6 =
+      Acts::AngleAxis3(1.73e-3, Acts::Vector3(0., 1., 0.)).toRotationMatrix();
+  Acts::RotationMatrix3 mat4 =
+      Acts::AngleAxis3(-1.46e-3, Acts::Vector3(0., 1., 0.)).toRotationMatrix();
+  Acts::RotationMatrix3 mat2 =
+      Acts::AngleAxis3(1.49e-3, Acts::Vector3(0., 1., 0.)).toRotationMatrix();
+  Acts::RotationMatrix3 mat0 =
+      Acts::AngleAxis3(-5.16e-4, Acts::Vector3(0., 1., 0.)).toRotationMatrix();
+  std::map<int, Acts::RotationMatrix3> rots{
+      {8, mat8}, {6, mat6}, {4, mat4}, {2, mat2}, {0, mat0}};
   for (auto& v : detector->volumes()) {
     for (auto& s : v->surfaces()) {
       if (s->geometryId().sensitive()) {
         Acts::Transform3 nominal = s->transform(gctx);
         nominal.pretranslate(shifts.at(s->geometryId().sensitive() - 1));
+        nominal.rotate(rots.at(s->geometryId().sensitive() - 1));
         std::cout << nominal.translation().transpose() << "\n";
-
+        std::cout << nominal.rotation() << "\n";
         aStore->emplace(s->geometryId(), nominal);
       }
     }
@@ -230,10 +236,15 @@ int main() {
       if (s->geometryId().sensitive()) {
         std::cout << "--------------------------------\n";
         std::cout << s->center(gctx).transpose() << "\n";
+        std::cout << s->normal(gctx, s->center(gctx), Acts::Vector3::UnitY())
+                         .transpose()
+                  << "\n";
         std::cout << s->transform(gctx).rotation() << "\n";
       }
     }
   }
+
+  return 0;
   // --------------------------------------------------------------
   // Event reading
   SimpleSourceLink::SurfaceAccessor surfaceAccessor{detector.get()};
@@ -253,10 +264,13 @@ int main() {
   readerCfg.treeName = "MyTree";
   readerCfg.dataFilter = nullptr;
   readerCfg.outputSourceLinks = "Measurements";
+  readerCfg.surfaceAccessor
+      .connect<&SimpleSourceLink::SurfaceAccessor::operator()>(
+          &surfaceAccessor);
   std::string pathToDir =
       "/home/romanurmanov/lab/LUXE/acts_tracking/E320Prototype/"
       "E320Prototype_dataInRootFormat/"
-      "E320Shift_Nov_2024/filtered/data_Run502";
+      "E320Shift_Nov_2024/filtered/test";
 
   // Get the paths to the files in the directory
   for (const auto& entry : std::filesystem::directory_iterator(pathToDir)) {
@@ -364,8 +378,8 @@ int main() {
   seedingAlgoCfg.maxSeedSize = 1e5;
   seedingAlgoCfg.minLayers = 5;
   seedingAlgoCfg.maxLayers = 5;
-  sequencer.addAlgorithm(
-      std::make_shared<PathSeedingAlgorithm>(seedingAlgoCfg, logLevel));
+  /*sequencer.addAlgorithm(*/
+  /*    std::make_shared<PathSeedingAlgorithm>(seedingAlgoCfg, logLevel));*/
 
   // --------------------------------------------------------------
   // Track finding
@@ -434,7 +448,7 @@ int main() {
 
   auto trackFindingAlgorithm =
       std::make_shared<CKFTrackFindingAlgorithm>(trackFindingCfg, logLevel);
-  sequencer.addAlgorithm(trackFindingAlgorithm);
+  /*sequencer.addAlgorithm(trackFindingAlgorithm);*/
 
   // --------------------------------------------------------------
   // Track fitting
@@ -507,8 +521,8 @@ int main() {
       .fitter = fitter,
       .kfOptions = options};
 
-  sequencer.addAlgorithm(
-      std::make_shared<KFTrackFittingAlgorithm>(fitterCfg, logLevel));
+  /*sequencer.addAlgorithm(*/
+  /*    std::make_shared<KFTrackFittingAlgorithm>(fitterCfg, logLevel));*/
 
   // --------------------------------------------------------------
   // Event write out
@@ -538,8 +552,8 @@ int main() {
       .connect<&SimpleSourceLink::SurfaceAccessor::operator()>(
           &surfaceAccessor);
 
-  sequencer.addWriter(
-      std::make_shared<RootSeedWriter>(seedWriterCfg, logLevel));
+  /*sequencer.addWriter(*/
+  /*    std::make_shared<RootSeedWriter>(seedWriterCfg, logLevel));*/
 
   // Track candidate writer
   auto trackCandidateWriterCfg = RootTrackCandidateWriter::Config();
@@ -551,8 +565,8 @@ int main() {
   trackCandidateWriterCfg.treeName = "track-candidates";
   trackCandidateWriterCfg.filePath = "track-candidates-data.root";
 
-  sequencer.addWriter(std::make_shared<RootTrackCandidateWriter>(
-      trackCandidateWriterCfg, logLevel));
+  /*sequencer.addWriter(std::make_shared<RootTrackCandidateWriter>(*/
+  /*    trackCandidateWriterCfg, logLevel));*/
 
   // Fitted track writer
   auto trackWriterCfg = RootTrackWriter::Config();
@@ -564,8 +578,8 @@ int main() {
   trackWriterCfg.treeName = "fitted-tracks";
   trackWriterCfg.filePath = "fitted-tracks-data.root";
 
-  sequencer.addWriter(
-      std::make_shared<RootTrackWriter>(trackWriterCfg, logLevel));
+  /*sequencer.addWriter(*/
+  /*    std::make_shared<RootTrackWriter>(trackWriterCfg, logLevel));*/
 
   return sequencer.run();
 }
