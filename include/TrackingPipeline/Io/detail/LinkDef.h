@@ -5,6 +5,13 @@
 #pragma link C++ class vector < TMatrixD> + ;
 #pragma link C++ class tuple < int, int> + ;
 #pragma link C++ class tuple < double, double> + ;
+
+#pragma link C++ class pixel + ;
+#pragma link C++ class chip + ;
+#pragma link C++ class stave + ;
+#pragma link C++ class event + ;
+#pragma link C++ class run_meta_data + ;
+
 #pragma link C++ class chip_event + ;
 #pragma link C++ class vector < chip_event> + ;
 #pragma link C++ class E320Io::ChipEvent::Cluster + ;

@@ -1,22 +1,17 @@
 #pragma once
 
-#include "Acts/EventData/TrackContainer.hpp"
+#include "Acts/EventData/TrackParameters.hpp"
+#include "Acts/EventData/VectorMultiTrajectory.hpp"
 #include "Acts/EventData/VectorTrackContainer.hpp"
 #include "Acts/Geometry/GeometryHierarchyMap.hpp"
-#include "Acts/Navigation/DetectorNavigator.hpp"
-#include "Acts/Propagator/EigenStepper.hpp"
-#include "Acts/TrackFinding/CombinatorialKalmanFilter.hpp"
+#include "Acts/MagneticField/MagneticFieldProvider.hpp"
 #include "Acts/TrackFitting/KalmanFitter.hpp"
 #include "ActsAlignment/Kernel/Alignment.hpp"
-#include <Acts/EventData/TrackParameters.hpp>
-#include <Acts/EventData/VectorMultiTrajectory.hpp>
 
-#include <functional>
 #include <memory>
 #include <vector>
 
 #include "TrackingPipeline/EventData/DataContainers.hpp"
-#include "TrackingPipeline/EventData/SimpleSourceLink.hpp"
 #include "TrackingPipeline/Infrastructure/DataHandle.hpp"
 #include "TrackingPipeline/Infrastructure/IAlgorithm.hpp"
 

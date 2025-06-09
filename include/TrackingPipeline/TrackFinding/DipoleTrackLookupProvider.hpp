@@ -9,14 +9,24 @@ class E320DipoleTrackLookupProvider {
     /// Reference surface
     const Acts::Surface* referenceSurface;
 
+    /// Reference surface z-position in mm
     double layerPosition;
 
+    /// Detector tilt in yz-plane as a whole in rad
+    double detectorYZTilt;
+
+    /// Dipole z-length in m
     double dipoleSize;
+    /// Dipole z-position in mm
     double dipolePosition;
+    /// Dipole field amplitude in T
     double dipoleAmplidute;
 
+    /// Corrector z-length in m
     double correctorSize;
+    /// Corrector z-position in mm
     double correctorPosition;
+    /// Corrector field amplitude in T
     double correctorAmplidute;
   };
 

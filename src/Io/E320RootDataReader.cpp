@@ -527,26 +527,15 @@ ProcessCode E320Io::E320RootDataReader::read(const AlgorithmContext& context) {
 
           Acts::Vector2 hitLoc{hitX, hitY};
 
-          std::cout << "HIT LOC " << hitLoc.transpose() << "\n";
-
-          // TODO: Estimate from the simulation
           // Estimate error from the cluster size
           double errX = m_gOpt.pixelSizeY * sizeY;
           double errY = m_gOpt.pixelSizeX * sizeX;
-          /*double errX = m_gOpt.pixelSizeY / std::sqrt(12 * size);*/
-          /*double errY = m_gOpt.pixelSizeX / std::sqrt(12 * size);*/
 
           Acts::Vector2 stdDev(errX, errY);
           Acts::SquareMatrix2 cov = stdDev.cwiseProduct(stdDev).asDiagonal();
 
           // Fill the measurement
           SimpleSourceLink ssl(hitLoc, cov, geoId, eventId, sourceLinks.size());
-          std::cout << "HIT GLOB "
-                    << m_cfg.surfaceAccessor(Acts::SourceLink(ssl))
-                           ->localToGlobal(context.geoContext, ssl.parameters(),
-                                           Acts::Vector3::UnitY())
-                           .transpose()
-                    << "\n";
           sourceLinks.push_back(Acts::SourceLink(ssl));
         }
       }

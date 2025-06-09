@@ -11,7 +11,6 @@
 #include "TrackingPipeline/Infrastructure/DataHandle.hpp"
 #include "TrackingPipeline/Infrastructure/IReader.hpp"
 #include "TrackingPipeline/Infrastructure/ProcessCode.hpp"
-#include "TrackingPipeline/Io/detail/AcceleratorState.hpp"
 #include "TrackingPipeline/Io/detail/DetectorEvent.hpp"
 
 namespace E320Io {
@@ -22,16 +21,16 @@ class E320ClusterFilter;
 /// @brief ROOT file reader designed for the EUDAQ2 format
 ///
 /// @note The events are assumed to be ordered
-class E320RootDataReader : public IReader {
+class RootNoamSplitDataReader : public IReader {
  public:
   using Hit = std::pair<std::size_t, std::size_t>;
 
   /// @brief The nested configuration struct
   struct Config {
-    /// Cluster filter
-    std::shared_ptr<E320ClusterFilter> clusterFilter = nullptr;
-    /// Event filter
-    std::shared_ptr<E320EventFilter> dataFilter = nullptr;
+    /// Surface accessor
+    Acts::SourceLinkSurfaceAccessor surfaceAccessor;
+
+
     /// Collection with the measurement data
     std::string outputSourceLinks;
     /// The names of the input files
@@ -44,16 +43,16 @@ class E320RootDataReader : public IReader {
     std::size_t skip = 0;
   };
 
-  E320RootDataReader(const E320RootDataReader&) = delete;
-  E320RootDataReader(const E320RootDataReader&&) = delete;
+  RootNoamSplitDataReader(const RootNoamSplitDataReader&) = delete;
+  RootNoamSplitDataReader(const RootNoamSplitDataReader&&) = delete;
 
   /// Constructor
   /// @param config The Configuration struct
   /// @param level The log level
-  E320RootDataReader(const Config& config, Acts::Logging::Level level);
+  RootNoamSplitDataReader(const Config& config, Acts::Logging::Level level);
 
   /// Reader name() method
-  virtual std::string name() const override { return "E320RootDataReader"; }
+  virtual std::string name() const override { return "RootNoamSplitDataReader"; }
 
   /// Return the available events range.
   std::pair<std::size_t, std::size_t> availableEvents() const final;
@@ -90,57 +89,8 @@ class E320RootDataReader : public IReader {
 
  protected:
   /// Detector event handle
-  DetectorEvent* m_detEvent = nullptr;
-  /// Stable accelerator state
-  AcceleratorState m_stableAcceleratorState;
-  /// Event number handle
-  ULong64_t m_eventId;
+  event* m_detEvent = nullptr;
 };
 
-class E320EventFilter {
- public:
-  struct Config {
-    /// Maximum allowed turnaround time in ms
-    double maxTurnaroundTime;
-    /// Maximum allowed number of standard deviations
-    /// from the mean of the accelerator state
-    double nStdDevs;
-  };
-
-  E320EventFilter(const E320EventFilter&) = delete;
-  E320EventFilter(const E320EventFilter&&) = delete;
-
-  /// Constructor
-  /// @param config The Configuration struct
-  /// @param level The log level
-  E320EventFilter(const Config& config, Acts::Logging::Level level);
-
-  void appendAcceleratorState(const EpicsFrame& epicsFrame);
-
-  void finalizeAcceleratorState();
-
-  bool checkCuts(const DetectorEvent& detEvent);
-
- private:
-  Config m_cfg;
-  AcceleratorState m_state;
-  std::size_t m_stateSize = 0;
-};
-
-class E320ClusterFilter {
- public:
-  double a1 = 0.11672788;
-  double b1 = 5.3475191;
-
-  double a2 = 0.13025286;
-  double b2 = 3.9499999;
-
-  bool operator()(double hitX, double hitY) {
-    if (hitY > a2 * hitX + b2 && hitY < a1 * hitX + b1) {
-      return true;
-    } else {
-      return false;
-    }
-  }
-};
 }  // namespace E320Io
+

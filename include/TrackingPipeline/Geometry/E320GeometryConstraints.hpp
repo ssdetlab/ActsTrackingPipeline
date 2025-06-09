@@ -50,7 +50,7 @@ struct GeometryOptions {
       chipSizeX / 2 + 2000_mm, chipY + chipSizeY / 2 + 2000_mm, 8600_mm};
 
   // Be window poisiton
-  const Acts::Vector3 beWindowTranslation{0_mm, 0_mm, 3279_mm};
+  const Acts::Vector3 beWindowTranslation{0_mm, 0_mm, -842_mm};
   const std::vector<double> beWindowBounds = {
       chipSizeX / 2 + 2000_mm, chipY + chipSizeY / 2 + 2000_mm, 10_mm};
 

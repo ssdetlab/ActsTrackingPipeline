@@ -5,11 +5,40 @@
 #include <set>
 #include <tuple>
 
+#include <RtypesCore.h>
 #include <TObject.h>
 
 #include "AlpideRegisters.h"
 #include "EpicsFrame.h"
 #include "MosaicRegisters.h"
+
+struct pixel {
+  Int_t ix;
+  Int_t iy;
+};
+
+struct chip {
+  Int_t chip_id;
+  std::vector<pixel> hits;
+};
+
+struct stave {
+  Int_t stave_id;
+  std::vector<chip> ch_ev_buffer;
+};
+
+struct event {
+  Int_t trg_n;
+  Double_t ts_begin;
+  Double_t ts_end;
+  std::vector<stave> st_ev_buffer;
+};
+
+struct run_meta_data {
+  Int_t run_number;
+  Double_t run_start;
+  Double_t run_end;
+};
 
 namespace E320Io {
 
@@ -30,7 +59,8 @@ class ChipEvent {
   };
 
   // hit map of the chip in the event
-  /*std::set<std::tuple<double, double, std::size_t, std::size_t, std::size_t>>*/
+  /*std::set<std::tuple<double, double, std::size_t, std::size_t,
+   * std::size_t>>*/
   /*    hits;*/
   std::set<Cluster> hits;
 

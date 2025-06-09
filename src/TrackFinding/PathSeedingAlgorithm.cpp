@@ -30,17 +30,6 @@ ProcessCode PathSeedingAlgorithm::execute(const AlgorithmContext& ctx) const {
     return ProcessCode::SUCCESS;
   }
 
-  // Create IP covariance matrix from
-  // reasonable standard deviations
-  Acts::BoundVector ipStdDev;
-  ipStdDev[Acts::eBoundLoc0] = 100_um;
-  ipStdDev[Acts::eBoundLoc1] = 100_um;
-  ipStdDev[Acts::eBoundTime] = 25_ns;
-  ipStdDev[Acts::eBoundPhi] = 2_degree;
-  ipStdDev[Acts::eBoundTheta] = 2_degree;
-  ipStdDev[Acts::eBoundQOverP] = 1 / 100_GeV;
-  Acts::BoundSquareMatrix ipCov = ipStdDev.cwiseProduct(ipStdDev).asDiagonal();
-
   auto gridLookup =
       m_cfg.sourceLinkGridConstructor->constructGrid(ctx.geoContext, input);
 

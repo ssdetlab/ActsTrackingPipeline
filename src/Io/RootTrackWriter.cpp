@@ -288,20 +288,10 @@ ProcessCode RootTrackWriter::write(const AlgorithmContext& ctx) {
       // Get the residuals between the measurements and the predicted hits
       Acts::Vector2 predictedResidual = hit - predictedHit;
 
-      // With respect to truth
-      Acts::SquareMatrix2 predictedCovTruth =
-          measurementCov + state.effectiveProjector() *
-                               state.predictedCovariance() *
-                               state.effectiveProjector().transpose();
-
       // With respect to measurement
       Acts::SquareMatrix2 predictedCov = state.effectiveProjector() *
                                          state.predictedCovariance() *
                                          state.effectiveProjector().transpose();
-
-      // Extract diagonals
-      Acts::Vector2 predictedDiagTruth =
-          predictedCovTruth.cwiseAbs().diagonal().cwiseInverse().cwiseSqrt();
 
       Acts::Vector2 predictedDiag =
           predictedCov.cwiseAbs().diagonal().cwiseInverse().cwiseSqrt();

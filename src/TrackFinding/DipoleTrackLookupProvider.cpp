@@ -17,11 +17,11 @@ E320DipoleTrackLookupProvider::E320DipoleTrackLookupProvider(
     throw std::runtime_error("Reference surface is not initialized");
   }
   Acts::BoundVector ipStdDev;
-  ipStdDev[Acts::eBoundLoc0] = 100_um;
-  ipStdDev[Acts::eBoundLoc1] = 100_um;
+  ipStdDev[Acts::eBoundLoc0] = 100_mm;
+  ipStdDev[Acts::eBoundLoc1] = 100_mm;
   ipStdDev[Acts::eBoundTime] = 25_ns;
-  ipStdDev[Acts::eBoundPhi] = 2_degree;
-  ipStdDev[Acts::eBoundTheta] = 2_degree;
+  ipStdDev[Acts::eBoundPhi] = 20_degree;
+  ipStdDev[Acts::eBoundTheta] = 20_degree;
   ipStdDev[Acts::eBoundQOverP] = 1 / 100_GeV;
   m_cov = ipStdDev.cwiseProduct(ipStdDev).asDiagonal();
 
@@ -49,7 +49,8 @@ E320DipoleTrackLookupProvider::lookup(const Acts::GeometryContext& gctx,
       gctx, ssl.parameters(), Acts::Vector3::UnitY());
 
   double phi = std::atan(globalPos.x() / m_layerCorrectorDistance);
-  double theta = std::atan(globalPos.z() / m_layerDipoleDistance);
+  double theta =
+      std::atan(globalPos.z() / m_layerDipoleDistance) + m_cfg.detectorYZTilt;
   double P = std::abs(0.3 * m_cfg.dipoleAmplidute * m_cfg.dipoleSize /
                       (std::sin(theta) * std::cos(phi)));
 
@@ -58,7 +59,7 @@ E320DipoleTrackLookupProvider::lookup(const Acts::GeometryContext& gctx,
   ACTS_VERBOSE("Momentum magnitude " << P);
 
   Acts::CurvilinearTrackParameters ipPars(
-      Acts::Vector4(0, 3279_mm, 0, 0), Acts::Vector3(0, 1, 0), 1_e / P, m_cov,
+      Acts::Vector4(0, -842_mm, 0, 0), Acts::Vector3(0, 1, 0), 1_e / P, m_cov,
       Acts::ParticleHypothesis::electron());
   Acts::CurvilinearTrackParameters refPars(
       Acts::Vector4(globalPos.x(), globalPos.y(), globalPos.z(), 0),

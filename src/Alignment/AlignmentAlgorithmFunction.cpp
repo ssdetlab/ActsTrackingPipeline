@@ -1,4 +1,5 @@
 #include "Acts/Propagator/EigenStepper.hpp"
+#include "Acts/Navigation/DetectorNavigator.hpp"
 #include "Acts/Propagator/Propagator.hpp"
 #include "Acts/TrackFitting/GainMatrixSmoother.hpp"
 #include "Acts/TrackFitting/GainMatrixUpdater.hpp"

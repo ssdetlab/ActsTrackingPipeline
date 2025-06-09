@@ -100,11 +100,11 @@ RootTrackReader::RootTrackReader(const Config& config,
 
   // Disable all branches and only enable event-id for a first scan of the
   // file
-  m_chain->SetBranchStatus("*", false);
-  if (!m_chain->GetBranch("eventId")) {
-    throw std::invalid_argument("Missing eventId SetbranchAddress");
-  }
-  m_chain->SetBranchStatus("eventId", true);
+  // m_chain->SetBranchStatus("*", false);
+  // if (!m_chain->GetBranch("eventId")) {
+  //   throw std::invalid_argument("Missing eventId SetbranchAddress");
+  // }
+  // m_chain->SetBranchStatus("eventId", true);
   auto nEntries = static_cast<std::size_t>(m_chain->GetEntries());
 
   // Go through all entries and store the position of the events
@@ -198,9 +198,6 @@ ProcessCode RootTrackReader::read(const AlgorithmContext& ctx) {
   std::size_t sslIdx = 0;
   for (auto entry = std::get<1>(*it); entry < std::get<2>(*it); entry++) {
     m_chain->GetEntry(entry);
-    if (m_chi2Filtered > 3e2) {
-      continue;
-    }
 
     Acts::Vector4 vertex(m_vertexGuess->X(), m_vertexGuess->Y(),
                          m_vertexGuess->Z(), 0);
