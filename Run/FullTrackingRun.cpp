@@ -15,6 +15,7 @@
 #include "Acts/Utilities/Logger.hpp"
 #include <Acts/Definitions/Algebra.hpp>
 
+#include <cmath>
 #include <filesystem>
 #include <iostream>
 #include <memory>
@@ -26,8 +27,10 @@
 #include "TrackingPipeline/Geometry/E320GeometryConstraints.hpp"
 #include "TrackingPipeline/Geometry/GeometryContextDecorator.hpp"
 #include "TrackingPipeline/Infrastructure/Sequencer.hpp"
+#include "TrackingPipeline/Io/AlignmentParametersProvider.hpp"
 #include "TrackingPipeline/Io/E320RootDataReader.hpp"
 #include "TrackingPipeline/Io/RootMeasurementWriter.hpp"
+#include "TrackingPipeline/Io/RootNoamSplitDataReader.hpp"
 #include "TrackingPipeline/Io/RootSeedWriter.hpp"
 #include "TrackingPipeline/Io/RootTrackCandidateWriter.hpp"
 #include "TrackingPipeline/Io/RootTrackWriter.hpp"
@@ -102,6 +105,7 @@ int main() {
   auto trackerBP = E320Geometry::makeBlueprintE320(gdmlPath, names, gOpt);
   auto detector = E320Geometry::buildE320Detector(
       std::move(trackerBP), gctx, gOpt, materialPath, materialVeto);
+  // std::move(trackerBP), gctx, gOpt, materialVeto);
 
   // --------------------------------------------------------------
   // The magnetic field setup
@@ -185,7 +189,7 @@ int main() {
 
   // TODO: Check if it's the real field
   Acts::Vector3 xCorrectorB(0, 0, -0.026107_T);
-  /*Acts::Vector3 xCorrectorB(0, 0, 0);*/
+  // Acts::Vector3 xCorrectorB(0, 0, 0);
   ConstantBoundedField xCorrectorField(xCorrectorB, xCorrectorExtent);
 
   CompositeMagField::FieldComponents fieldComponents = {
@@ -199,31 +203,92 @@ int main() {
 
   auto aStore =
       std::make_shared<std::map<Acts::GeometryIdentifier, Acts::Transform3>>();
-  std::map<int, Acts::Vector3> shifts{{8, Acts::Vector3(-11.7_mm, 0, 3.5_mm)},
-                                      {6, Acts::Vector3(-11.7_mm, 0, 3.5_mm)},
-                                      {4, Acts::Vector3(-11.7_mm, 0, 3.5_mm)},
-                                      {2, Acts::Vector3(-11.7_mm, 0, 3.5_mm)},
-                                      {0, Acts::Vector3(-11.7_mm, 0, 3.5_mm)}};
-  Acts::RotationMatrix3 mat8 =
-      Acts::AngleAxis3(0, Acts::Vector3(0., 1., 0.)).toRotationMatrix();
-  Acts::RotationMatrix3 mat6 =
-      Acts::AngleAxis3(1.73e-3, Acts::Vector3(0., 1., 0.)).toRotationMatrix();
-  Acts::RotationMatrix3 mat4 =
-      Acts::AngleAxis3(-1.46e-3, Acts::Vector3(0., 1., 0.)).toRotationMatrix();
-  Acts::RotationMatrix3 mat2 =
-      Acts::AngleAxis3(1.49e-3, Acts::Vector3(0., 1., 0.)).toRotationMatrix();
-  Acts::RotationMatrix3 mat0 =
-      Acts::AngleAxis3(-5.16e-4, Acts::Vector3(0., 1., 0.)).toRotationMatrix();
-  std::map<int, Acts::RotationMatrix3> rots{
-      {8, mat8}, {6, mat6}, {4, mat4}, {2, mat2}, {0, mat0}};
+  // std::map<int, Acts::Vector3> shifts{
+  //     {8, Acts::Vector3(-11.7_mm, -3.5_mm, 0_mm)},
+  //     {6, Acts::Vector3(-11.7_mm + 1.93_um, -3.5_mm + 16.5_um, 0_mm)},
+  //     {4, Acts::Vector3(-11.7_mm - 41.8_um, -3.5_mm - 63.3_um, 0_mm)},
+  //     {2, Acts::Vector3(-11.7_mm - 74.6_um, -3.5_mm - 69.5_um, 0_mm)},
+  //     {0, Acts::Vector3(-11.7_mm + 17.6_um, -3.5_mm + 27.5_um, 0_mm)}};
+  // std::map<int, Acts::Vector3> shifts{
+  //     {8, Acts::Vector3(0_mm, -3.5_mm, 0_mm)},
+  //     {6, Acts::Vector3(0_mm + 1.93_um, -3.5_mm + 16.5_um, 0_mm)},
+  //     {4, Acts::Vector3(0_mm - 41.8_um, -3.5_mm - 63.3_um, 0_mm)},
+  //     {2, Acts::Vector3(0_mm - 74.6_um, -3.5_mm - 69.5_um, 0_mm)},
+  //     {0, Acts::Vector3(0_mm + 17.6_um, -3.5_mm + 27.5_um, 0_mm)}};
+  // Acts::RotationMatrix3 mat8 =
+  //     Acts::AngleAxis3(0, Acts::Vector3::UnitZ()).toRotationMatrix();
+  // Acts::RotationMatrix3 mat6 =
+  //     Acts::AngleAxis3(-1.73e-3, Acts::Vector3::UnitZ()).toRotationMatrix();
+  // Acts::RotationMatrix3 mat4 =
+  //     Acts::AngleAxis3(1.46e-3, Acts::Vector3::UnitZ()).toRotationMatrix();
+  // Acts::RotationMatrix3 mat2 =
+  //     Acts::AngleAxis3(-1.49e-3, Acts::Vector3::UnitZ()).toRotationMatrix();
+  // Acts::RotationMatrix3 mat0 =
+  //     Acts::AngleAxis3(5.16e-4, Acts::Vector3::UnitZ()).toRotationMatrix();
+
+  // std::map<int, Acts::RotationMatrix3> rots{
+  //     {8, mat8}, {6, mat6}, {4, mat4}, {2, mat2}, {0, mat0}};
+
+  // for (auto& v : detector->volumes()) {
+  //   for (auto& s : v->surfaces()) {
+  //     if (s->geometryId().sensitive()) {
+  //       // Surface is in origin, normal along z, no rotation in xy plane
+  //       Acts::Transform3 nominal = Acts::Transform3::Identity();
+
+  //       // Global detector rotation
+  //       nominal.rotate(gOpt.actsToWorldRotation.inverse());
+
+  //       // Global detector translation
+  //       nominal.translate(
+  //           Acts::Vector3(gOpt.chipX, gOpt.chipY,
+  //                         gOpt.staveZ.at(s->geometryId().sensitive() - 1)));
+
+  //       // Apply relative translations of the rotated surfaces
+  //       nominal.translate(shifts.at(s->geometryId().sensitive() - 1));
+
+  //       // Rotate surface in the origin around global origin
+  //       nominal.rotate(rots.at(s->geometryId().sensitive() - 1));
+
+  //       // Account for G4 rotation
+  //       nominal.rotate(Acts::AngleAxis3(-M_PI_2, Acts::Vector3::UnitZ())
+  //                          .toRotationMatrix());
+
+  //       aStore->emplace(s->geometryId(), nominal);
+  //     }
+  //   }
+  // }
+
+  double detectorTilt = 0.0;
+  std::map<int, Acts::Vector3> shifts{{8, Acts::Vector3(-10.7_mm, 0, -13.0_mm)},
+                                      {6, Acts::Vector3(-10.7_mm, 0, -13.0_mm)},
+                                      {4, Acts::Vector3(-10.7_mm, 0, -13.0_mm)},
+                                      {2, Acts::Vector3(-10.7_mm, 0, -13.0_mm)},
+                                      {0, Acts::Vector3(-10.7_mm, 0, -13.0_mm)}};
+  // Alignment provider
+  auto alignmentProviderCfg = AlignmentParametersProvider::Config();
+
+  alignmentProviderCfg.treeName = "alignment-results";
+  alignmentProviderCfg.filePath =
+      "/home/romanurmanov/lab/LUXE/acts_tracking/E320Prototype/"
+      "E320Prototype_analysis/data/noam_split/global_x_scan/"
+      "y_shift_-13.0_yz_tilt_0.0/"
+      "x_shift_-10.7/"
+      "alignment_run/alignment-results.root";
+
+  AlignmentParametersProvider alignmentProvider(alignmentProviderCfg);
   for (auto& v : detector->volumes()) {
     for (auto& s : v->surfaces()) {
-      if (s->geometryId().sensitive()) {
-        Acts::Transform3 nominal = s->transform(gctx);
+      if (s->geometryId().sensitive() && s->geometryId().sensitive() != 9) {
+        Acts::Transform3 nominal = s->transform(Acts::GeometryContext());
+        const auto [shift, rot] =
+            alignmentProvider.getAlignedTransform(s->geometryId());
+        nominal.pretranslate(shift);
+        nominal.rotate(rot);
+        aStore->emplace(s->geometryId(), nominal);
+      } else if (s->geometryId().sensitive() == 9) {
+      // if (s->geometryId().sensitive()) {
+        Acts::Transform3 nominal = s->transform(Acts::GeometryContext());
         nominal.pretranslate(shifts.at(s->geometryId().sensitive() - 1));
-        nominal.rotate(rots.at(s->geometryId().sensitive() - 1));
-        std::cout << nominal.translation().transpose() << "\n";
-        std::cout << nominal.rotation() << "\n";
         aStore->emplace(s->geometryId(), nominal);
       }
     }
@@ -231,27 +296,60 @@ int main() {
   AlignmentContext alignCtx(aStore);
   gctx = Acts::GeometryContext{alignCtx};
 
+  Acts::GeometryIdentifier midGeoId;
+  midGeoId.setSensitive(5);
+  Acts::Vector3 detectorCenter = detector->findSurface(midGeoId)->center(gctx);
   for (auto& v : detector->volumes()) {
     for (auto& s : v->surfaces()) {
       if (s->geometryId().sensitive()) {
-        std::cout << "--------------------------------\n";
-        std::cout << s->center(gctx).transpose() << "\n";
-        std::cout << s->normal(gctx, s->center(gctx), Acts::Vector3::UnitY())
-                         .transpose()
-                  << "\n";
-        std::cout << s->transform(gctx).rotation() << "\n";
+        Acts::Transform3 nominal = aStore->at(s->geometryId());
+        nominal.pretranslate(-detectorCenter);
+        nominal.prerotate(Acts::AngleAxis3(detectorTilt, Acts::Vector3::UnitX())
+                              .toRotationMatrix());
+        nominal.pretranslate(detectorCenter);
+        aStore->at(s->geometryId()) = nominal;
       }
     }
   }
 
-  return 0;
+  for (auto& v : detector->volumes()) {
+    for (auto& s : v->surfaces()) {
+      if (s->geometryId().sensitive()) {
+        std::cout << "-----------------------------------\n";
+        std::cout << "SURFACE " << s->geometryId() << "\n";
+        std::cout << "CENTER " << s->center(gctx).transpose() << " -- "
+                  << s->center(Acts::GeometryContext()).transpose() << "\n";
+        std::cout << "NORMAL "
+                  << s->normal(gctx, s->center(gctx), Acts::Vector3::UnitY())
+                         .transpose()
+                  << " -- "
+                  << s->normal(Acts::GeometryContext(),
+                               s->center(Acts::GeometryContext()),
+                               Acts::Vector3::UnitY())
+                         .transpose()
+                  << "\n";
+        std::cout << "ROTATION \n"
+                  << s->transform(gctx).rotation() << " -- \n"
+                  << "\n"
+                  << s->transform(Acts::GeometryContext()).rotation() << "\n";
+        std::cout << "EXTENT "
+                  << s->polyhedronRepresentation(gctx, 1000).extent()
+                  << "\n -- \n"
+                  << s->polyhedronRepresentation(Acts::GeometryContext(), 1000)
+                         .extent()
+                  << "\n";
+      }
+    }
+  }
+
   // --------------------------------------------------------------
   // Event reading
   SimpleSourceLink::SurfaceAccessor surfaceAccessor{detector.get()};
 
   // Setup the sequencer
   Sequencer::Config seqCfg;
-  /*seqCfg.events = 5e0;*/
+  // seqCfg.events = 1e0;
+  // seqCfg.skip = 1;
   seqCfg.numThreads = 1;
   seqCfg.trackFpes = false;
   Sequencer sequencer(seqCfg);
@@ -260,9 +358,8 @@ int main() {
       std::make_shared<GeometryContextDecorator>(aStore));
 
   // Add the sim data reader
-  E320Io::E320RootDataReader::Config readerCfg;
+  E320Io::RootNoamSplitDataReader::Config readerCfg;
   readerCfg.treeName = "MyTree";
-  readerCfg.dataFilter = nullptr;
   readerCfg.outputSourceLinks = "Measurements";
   readerCfg.surfaceAccessor
       .connect<&SimpleSourceLink::SurfaceAccessor::operator()>(
@@ -270,7 +367,20 @@ int main() {
   std::string pathToDir =
       "/home/romanurmanov/lab/LUXE/acts_tracking/E320Prototype/"
       "E320Prototype_dataInRootFormat/"
-      "E320Shift_Nov_2024/filtered/test";
+      "E320Shift_Nov_2024/noam_split";
+
+  // // Add the sim data reader
+  // E320Io::E320RootDataReader::Config readerCfg;
+  // readerCfg.treeName = "MyTree";
+  // readerCfg.dataFilter = nullptr;
+  // readerCfg.outputSourceLinks = "Measurements";
+  // readerCfg.surfaceAccessor
+  //     .connect<&SimpleSourceLink::SurfaceAccessor::operator()>(
+  //         &surfaceAccessor);
+  // std::string pathToDir =
+  //     "/home/romanurmanov/lab/LUXE/acts_tracking/E320Prototype/"
+  //     "E320Prototype_dataInRootFormat/"
+  //     "E320Shift_Nov_2024/filtered/test";
 
   // Get the paths to the files in the directory
   for (const auto& entry : std::filesystem::directory_iterator(pathToDir)) {
@@ -283,7 +393,7 @@ int main() {
 
   // Add the reader to the sequencer
   sequencer.addReader(
-      std::make_shared<E320Io::E320RootDataReader>(readerCfg, logLevel));
+      std::make_shared<E320Io::RootNoamSplitDataReader>(readerCfg, logLevel));
 
   // --------------------------------------------------------------
   // The path seeding setup
@@ -349,7 +459,6 @@ int main() {
   std::unordered_map<Acts::GeometryIdentifier, const Acts::Surface*> refLayers;
   for (const auto* surf : refVolume->surfaces()) {
     refLayers.try_emplace(surf->geometryId(), surf);
-    pathSeederCfg.refLayerIds.push_back(surf->geometryId());
   }
 
   E320DipoleTrackLookupProvider::Config lookupProviderCfg;
@@ -362,6 +471,7 @@ int main() {
   lookupProviderCfg.correctorSize = 0.23622;
 
   lookupProviderCfg.layerPosition = gOpt.staveZ.at(8);
+  lookupProviderCfg.detectorYZTilt = detectorTilt;
   lookupProviderCfg.referenceSurface = refLayers.begin()->second;
   E320DipoleTrackLookupProvider lookupProvider(lookupProviderCfg);
 
@@ -378,8 +488,8 @@ int main() {
   seedingAlgoCfg.maxSeedSize = 1e5;
   seedingAlgoCfg.minLayers = 5;
   seedingAlgoCfg.maxLayers = 5;
-  /*sequencer.addAlgorithm(*/
-  /*    std::make_shared<PathSeedingAlgorithm>(seedingAlgoCfg, logLevel));*/
+  sequencer.addAlgorithm(
+      std::make_shared<PathSeedingAlgorithm>(seedingAlgoCfg, logLevel));
 
   // --------------------------------------------------------------
   // Track finding
@@ -448,7 +558,7 @@ int main() {
 
   auto trackFindingAlgorithm =
       std::make_shared<CKFTrackFindingAlgorithm>(trackFindingCfg, logLevel);
-  /*sequencer.addAlgorithm(trackFindingAlgorithm);*/
+  sequencer.addAlgorithm(trackFindingAlgorithm);
 
   // --------------------------------------------------------------
   // Track fitting
@@ -484,8 +594,7 @@ int main() {
   double halfX = std::numeric_limits<double>::max();
   double halfY = std::numeric_limits<double>::max();
 
-  /*double refZ = gOpt.pdcWindowTranslation[2] - 2_mm;*/
-  double refZ = gOpt.staveZ.at(8) - 2_mm;
+  double refZ = gOpt.beWindowTranslation[2];
   Acts::Transform3 transform(Acts::Translation3(Acts::Vector3(0, refZ, 0)) *
                              gOpt.actsToWorldRotation.inverse());
 
@@ -521,8 +630,8 @@ int main() {
       .fitter = fitter,
       .kfOptions = options};
 
-  /*sequencer.addAlgorithm(*/
-  /*    std::make_shared<KFTrackFittingAlgorithm>(fitterCfg, logLevel));*/
+  sequencer.addAlgorithm(
+      std::make_shared<KFTrackFittingAlgorithm>(fitterCfg, logLevel));
 
   // --------------------------------------------------------------
   // Event write out
@@ -536,7 +645,9 @@ int main() {
 
   clusterWriterCfg.inputMeasurements = "Measurements";
   clusterWriterCfg.treeName = "clusters";
-  clusterWriterCfg.filePath = "clusters-data.root";
+  clusterWriterCfg.filePath =
+      "/home/romanurmanov/lab/LUXE/acts_tracking/E320Prototype/"
+      "E320Prototype_analysis/data/noam_split/clusters-data.root";
 
   sequencer.addWriter(
       std::make_shared<RootMeasurementWriter>(clusterWriterCfg, logLevel));
@@ -546,14 +657,16 @@ int main() {
 
   seedWriterCfg.inputSeeds = "PathSeeds";
   seedWriterCfg.treeName = "seeds";
-  seedWriterCfg.filePath = "seeds-data.root";
+  seedWriterCfg.filePath =
+      "/home/romanurmanov/lab/LUXE/acts_tracking/E320Prototype/"
+      "E320Prototype_analysis/data/noam_split/seeds-data.root";
 
   seedWriterCfg.surfaceAccessor
       .connect<&SimpleSourceLink::SurfaceAccessor::operator()>(
           &surfaceAccessor);
 
-  /*sequencer.addWriter(*/
-  /*    std::make_shared<RootSeedWriter>(seedWriterCfg, logLevel));*/
+  sequencer.addWriter(
+      std::make_shared<RootSeedWriter>(seedWriterCfg, logLevel));
 
   // Track candidate writer
   auto trackCandidateWriterCfg = RootTrackCandidateWriter::Config();
@@ -563,10 +676,12 @@ int main() {
 
   trackCandidateWriterCfg.inputTrackCandidates = "CandidatesTrackView";
   trackCandidateWriterCfg.treeName = "track-candidates";
-  trackCandidateWriterCfg.filePath = "track-candidates-data.root";
+  trackCandidateWriterCfg.filePath =
+      "/home/romanurmanov/lab/LUXE/acts_tracking/E320Prototype/"
+      "E320Prototype_analysis/data/noam_split/track-candidates-data.root";
 
-  /*sequencer.addWriter(std::make_shared<RootTrackCandidateWriter>(*/
-  /*    trackCandidateWriterCfg, logLevel));*/
+  sequencer.addWriter(std::make_shared<RootTrackCandidateWriter>(
+      trackCandidateWriterCfg, logLevel));
 
   // Fitted track writer
   auto trackWriterCfg = RootTrackWriter::Config();
@@ -576,10 +691,12 @@ int main() {
 
   trackWriterCfg.inputTracks = "Tracks";
   trackWriterCfg.treeName = "fitted-tracks";
-  trackWriterCfg.filePath = "fitted-tracks-data.root";
+  trackWriterCfg.filePath =
+      "/home/romanurmanov/lab/LUXE/acts_tracking/E320Prototype/"
+      "E320Prototype_analysis/data/noam_split/fitted-tracks-data.root";
 
-  /*sequencer.addWriter(*/
-  /*    std::make_shared<RootTrackWriter>(trackWriterCfg, logLevel));*/
+  sequencer.addWriter(
+      std::make_shared<RootTrackWriter>(trackWriterCfg, logLevel));
 
   return sequencer.run();
 }

@@ -92,11 +92,14 @@ int main() {
 
   auto aStore =
       std::make_shared<std::map<Acts::GeometryIdentifier, Acts::Transform3>>();
-  std::map<int, Acts::Vector3> shifts{{8, Acts::Vector3(-11.7_mm, 0, 3.5_mm)},
-                                      {6, Acts::Vector3(-11.7_mm, 0, 3.5_mm)},
-                                      {4, Acts::Vector3(-11.7_mm, 0, 3.5_mm)},
-                                      {2, Acts::Vector3(-11.7_mm, 0, 3.5_mm)},
-                                      {0, Acts::Vector3(-11.7_mm, 0, 3.5_mm)}};
+
+  double detectorTilt = 0.0;
+  std::map<int, Acts::Vector3> shifts{
+      {8, Acts::Vector3(-10.7_mm, 0, -13.0_mm)},
+      {6, Acts::Vector3(-10.7_mm, 0, -13.0_mm)},
+      {4, Acts::Vector3(-10.7_mm, 0, -13.0_mm)},
+      {2, Acts::Vector3(-10.7_mm, 0, -13.0_mm)},
+      {0, Acts::Vector3(-10.7_mm, 0, -13.0_mm)}};
   for (auto& v : detector->volumes()) {
     for (auto& s : v->surfaces()) {
       if (s->geometryId().sensitive()) {
@@ -109,6 +112,22 @@ int main() {
   }
   AlignmentContext alignCtx(aStore);
   gctx = Acts::GeometryContext{alignCtx};
+
+  Acts::GeometryIdentifier midGeoId;
+  midGeoId.setSensitive(5);
+  Acts::Vector3 detectorCenter = detector->findSurface(midGeoId)->center(gctx);
+  for (auto& v : detector->volumes()) {
+    for (auto& s : v->surfaces()) {
+      if (s->geometryId().sensitive()) {
+        Acts::Transform3 nominal = aStore->at(s->geometryId());
+        nominal.pretranslate(-detectorCenter);
+        nominal.prerotate(Acts::AngleAxis3(detectorTilt, Acts::Vector3::UnitX())
+                              .toRotationMatrix());
+        nominal.pretranslate(detectorCenter);
+        aStore->at(s->geometryId()) = nominal;
+      }
+    }
+  }
 
   // --------------------------------------------------------------
   // The magnetic field setup
@@ -190,7 +209,6 @@ int main() {
       gOpt.dipoleParams, dipoleB, gOpt.actsToWorldRotation,
       gOpt.actsToWorldRotation.inverse() * gOpt.dipoleTranslation);
 
-  // TODO: Add the real field value
   Acts::Vector3 xCorrectorB(0, 0, -0.026107_T);
   ConstantBoundedField xCorrectorField(xCorrectorB, xCorrectorExtent);
 
@@ -223,23 +241,25 @@ int main() {
   readerCfg.treeName = "fitted-tracks";
   readerCfg.outputMeasurements = "Measurements";
   readerCfg.outputSeeds = "PreFittedTrackCandidates";
-  readerCfg.batch = true;
-  readerCfg.stack = false;
+  readerCfg.batch = false;
+  readerCfg.stack = true;
   readerCfg.batchSize = 1e3;
-  readerCfg.covAnnealingFactor = 1e3;
-  std::string pathToDir =
+  readerCfg.covAnnealingFactor = 1e0;
+  readerCfg.filePaths = {
       "/home/romanurmanov/lab/LUXE/acts_tracking/E320Prototype/"
-      "E320Prototype_analysis/data/"
-      "fitted_tracks";
+      "E320Prototype_analysis/data/noam_split/global_x_scan/"
+      "y_shift_-13.0_yz_tilt_0.0/"
+      "x_shift_-10.7/"
+      "initial_full_tracking_run/fitted-tracks-data.root"};
 
-  // Get the paths to the files in the directory
-  for (const auto& entry : std::filesystem::directory_iterator(pathToDir)) {
-    if (!entry.is_regular_file() || entry.path().extension() != ".root") {
-      continue;
-    }
-    std::string pathToFile = entry.path();
-    readerCfg.filePaths.push_back(pathToFile);
-  }
+  // // Get the paths to the files in the directory
+  // for (const auto& entry : std::filesystem::directory_iterator(pathToDir)) {
+  //   if (!entry.is_regular_file() || entry.path().extension() != ".root") {
+  //     continue;
+  //   }
+  //   std::string pathToFile = entry.path();
+  //   readerCfg.filePaths.push_back(pathToFile);
+  // }
   sequencer.addReader(std::make_shared<RootTrackReader>(readerCfg, logLevel));
 
   // --------------------------------------------------------------
@@ -247,8 +267,7 @@ int main() {
   double halfX = std::numeric_limits<double>::max();
   double halfY = std::numeric_limits<double>::max();
 
-  /*double refZ = gOpt.pdcWindowBounds[2] - 2_mm;*/
-  double refZ = gOpt.staveZ.at(8) - 2_mm;
+  double refZ = gOpt.beWindowTranslation[2];
   Acts::Transform3 transform(Acts::Translation3(Acts::Vector3(0, refZ, 0)) *
                              gOpt.actsToWorldRotation.inverse());
 
@@ -299,6 +318,10 @@ int main() {
         std::cout << "TRANSLATION: " << transform.translation().transpose()
                   << "\n";
         std::cout << "ROTATION: " << transform.rotation() << "\n";
+        std::cout << element->surface()
+                         .polyhedronRepresentation(
+                             Acts::GeometryContext(alignCtx), 1000)
+                         .extent();
         alignCtx.alignmentStore->at(element->surface().geometryId()) =
             transform;
         return true;
@@ -314,12 +337,11 @@ int main() {
       .alignedTransformUpdater = voidAlignUpdater,
       .kfOptions = alignmentKFOptions,
       .chi2ONdfCutOff = 1e-6,
-      .maxNumIterations = 10};
+      .maxNumIterations = 3};
 
   for (auto& det : detector->detectorElements()) {
     const auto& surface = det->surface();
     if (surface.geometryId().sensitive() != 9) {
-      /*if (surface.geometryId().sensitive()) {*/
       alignmentCfg.alignedDetElements.push_back(det.get());
     }
   }
@@ -393,7 +415,9 @@ int main() {
 
   trackWriterCfg.inputTracks = "Tracks";
   trackWriterCfg.treeName = "fitted-tracks";
-  trackWriterCfg.filePath = "fitted-tracks-track-base-aligned.root";
+  trackWriterCfg.filePath =
+      "/home/romanurmanov/lab/LUXE/acts_tracking/E320Prototype/"
+      "E320Prototype_analysis/data/noam_split/fitted-tracks-aligned.root";
 
   sequencer.addWriter(
       std::make_shared<RootTrackWriter>(trackWriterCfg, logLevel));
@@ -403,7 +427,9 @@ int main() {
 
   alignmentWriterCfg.inputAlignmentResults = "AlignmentParameters";
   alignmentWriterCfg.treeName = "alignment-results";
-  alignmentWriterCfg.filePath = "alignment-results.root";
+  alignmentWriterCfg.filePath =
+      "/home/romanurmanov/lab/LUXE/acts_tracking/E320Prototype/"
+      "E320Prototype_analysis/data/noam_split/alignment-results.root";
 
   sequencer.addWriter(std::make_shared<AlignmentParametersWriter>(
       alignmentWriterCfg, logLevel));
@@ -415,22 +441,53 @@ int main() {
 
   alignmentProviderCfg.treeName = "alignment-results";
   alignmentProviderCfg.filePath =
-      "/home/romanurmanov/lab/LUXE/acts_tracking/TrackingPipeline_build/"
-      "alignment-results.root";
+      "/home/romanurmanov/lab/LUXE/acts_tracking/E320Prototype/"
+      "E320Prototype_analysis/data/noam_split/alignment-results.root";
 
   AlignmentParametersProvider alignmentProvider(alignmentProviderCfg);
+  auto bStore =
+      std::make_shared<std::map<Acts::GeometryIdentifier, Acts::Transform3>>();
   for (auto& v : detector->volumes()) {
     for (auto& s : v->surfaces()) {
       if (s->geometryId().sensitive() && s->geometryId().sensitive() != 9) {
-        std::cout << "--------------------------------\n";
-        std::cout << "SURFACE " << s->geometryId() << "\n";
         Acts::Transform3 nominal = s->transform(Acts::GeometryContext());
         const auto [shift, rot] =
             alignmentProvider.getAlignedTransform(s->geometryId());
         nominal.pretranslate(shift);
         nominal.rotate(rot);
-        std::cout << nominal.translation().transpose() << "\n";
-        std::cout << nominal.rotation() << "\n";
+        bStore->emplace(s->geometryId(), nominal);
+      } else if (s->geometryId().sensitive() == 9) {
+        Acts::Transform3 nominal = s->transform(Acts::GeometryContext());
+        nominal.pretranslate(shifts.at(s->geometryId().sensitive() - 1));
+        bStore->emplace(s->geometryId(), nominal);
+      }
+    }
+  }
+  AlignmentContext blignCtx(bStore);
+  Acts::GeometryContext testCtx{blignCtx};
+  for (auto& v : detector->volumes()) {
+    for (auto& s : v->surfaces()) {
+      if (s->geometryId().sensitive()) {
+        std::cout << "-----------------------------------\n";
+        std::cout << "SURFACE " << s->geometryId() << "\n";
+        std::cout << "CENTER " << s->center(testCtx).transpose() << " -- "
+                  << s->center(gctx).transpose() << "\n";
+        std::cout << "NORMAL "
+                  << s->normal(testCtx, s->center(testCtx),
+                               Acts::Vector3::UnitY())
+                         .transpose()
+                  << " -- "
+                  << s->normal(testCtx, s->center(gctx), Acts::Vector3::UnitY())
+                         .transpose()
+                  << "\n";
+        std::cout << "ROTATION \n"
+                  << s->transform(testCtx).rotation() << " -- \n"
+                  << "\n"
+                  << s->transform(gctx).rotation() << "\n";
+        std::cout << "EXTENT "
+                  << s->polyhedronRepresentation(testCtx, 1000).extent()
+                  << "\n -- \n"
+                  << s->polyhedronRepresentation(gctx, 1000).extent() << "\n";
       }
     }
   }
