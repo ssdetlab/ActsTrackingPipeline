@@ -162,78 +162,65 @@ int main() {
 
   auto aStore =
       std::make_shared<std::map<Acts::GeometryIdentifier, Acts::Transform3>>();
-  std::map<int, Acts::Vector3> shifts{
-      {8, Acts::Vector3(-11.7_mm, -3.5_mm, 0_mm)},
-      {6, Acts::Vector3(-11.7_mm, -3.5_mm, 0_mm)},
-      {4, Acts::Vector3(-11.7_mm, -3.5_mm, 0_mm)},
-      {2, Acts::Vector3(-11.7_mm, -3.5_mm, 0_mm)},
-      {0, Acts::Vector3(-11.7_mm, -3.5_mm, 0_mm)}};
-  Acts::RotationMatrix3 mat8 =
-      Acts::AngleAxis3(0, Acts::Vector3::UnitZ()).toRotationMatrix();
-  Acts::RotationMatrix3 mat6 =
-      Acts::AngleAxis3(0, Acts::Vector3::UnitZ()).toRotationMatrix();
-  Acts::RotationMatrix3 mat4 =
-      Acts::AngleAxis3(0, Acts::Vector3::UnitZ()).toRotationMatrix();
-  Acts::RotationMatrix3 mat2 =
-      Acts::AngleAxis3(0, Acts::Vector3::UnitZ()).toRotationMatrix();
-  Acts::RotationMatrix3 mat0 =
-      Acts::AngleAxis3(0, Acts::Vector3::UnitZ()).toRotationMatrix();
 
-  std::map<int, Acts::RotationMatrix3> rots{
-      {8, mat8}, {6, mat6}, {4, mat4}, {2, mat2}, {0, mat0}};
+  double detectorTilt = -0.00297;
+  std::map<int, Acts::Vector3> shifts{
+      {8, Acts::Vector3(-11.1_mm, -0.75_mm, 0_mm)},
+      {6, Acts::Vector3(-11.1_mm, -0.75_mm, 0_mm)},
+      {4, Acts::Vector3(-11.1_mm, -0.75_mm, 0_mm)},
+      {2, Acts::Vector3(-11.1_mm, -0.75_mm, 0_mm)},
+      {0, Acts::Vector3(-11.1_mm, -0.75_mm, 0_mm)}};
+
   for (auto& v : detector->volumes()) {
     for (auto& s : v->surfaces()) {
       if (s->geometryId().sensitive()) {
-        // Surface is in origin, normal along z, no rotation in xy plane
-        Acts::Transform3 nominal = Acts::Transform3::Identity();
-
-        // Global detector rotation
-        nominal.rotate(gOpt.actsToWorldRotation.inverse());
-
-        // Global detector translation
-        nominal.translate(
-            Acts::Vector3(gOpt.chipX, gOpt.chipY,
-                          gOpt.staveZ.at(s->geometryId().sensitive() - 1)));
-
-        // Apply relative translations of the rotated surfaces
-        nominal.translate(shifts.at(s->geometryId().sensitive() - 1));
-
-        // Rotate surface in the origin around global origin
-        nominal.rotate(rots.at(s->geometryId().sensitive() - 1));
-
-        // Account for G4 rotation
-        nominal.rotate(Acts::AngleAxis3(-M_PI_2, Acts::Vector3::UnitZ())
-                           .toRotationMatrix());
-
+        Acts::Transform3 nominal = s->transform(Acts::GeometryContext());
+        nominal.pretranslate(shifts.at(s->geometryId().sensitive() - 1));
         aStore->emplace(s->geometryId(), nominal);
       }
     }
   }
-
   AlignmentContext alignCtx(aStore);
-  Acts::GeometryContext testCtx{alignCtx};
+  gctx = Acts::GeometryContext{alignCtx};
+
+  Acts::GeometryIdentifier midGeoId;
+  midGeoId.setSensitive(5);
+  Acts::Vector3 detectorCenter = detector->findSurface(midGeoId)->center(gctx);
+  for (auto& v : detector->volumes()) {
+    for (auto& s : v->surfaces()) {
+      if (s->geometryId().sensitive()) {
+        Acts::Transform3 nominal = aStore->at(s->geometryId());
+        nominal.pretranslate(-detectorCenter);
+        nominal.prerotate(Acts::AngleAxis3(detectorTilt, Acts::Vector3::UnitX())
+                              .toRotationMatrix());
+        nominal.pretranslate(detectorCenter);
+        aStore->at(s->geometryId()) = nominal;
+      }
+    }
+  }
+
   for (auto& v : detector->volumes()) {
     for (auto& s : v->surfaces()) {
       if (s->geometryId().sensitive()) {
         std::cout << "-----------------------------------\n";
         std::cout << "SURFACE " << s->geometryId() << "\n";
-        std::cout << "CENTER " << s->center(testCtx).transpose() << " -- "
+        std::cout << "CENTER " << s->center(gctx).transpose() << " -- "
                   << s->center(Acts::GeometryContext()).transpose() << "\n";
         std::cout << "NORMAL "
-                  << s->normal(testCtx, s->center(testCtx),
-                               Acts::Vector3::UnitY())
+                  << s->normal(gctx, s->center(gctx), Acts::Vector3::UnitY())
                          .transpose()
                   << " -- "
-                  << s->normal(testCtx, s->center(Acts::GeometryContext()),
+                  << s->normal(Acts::GeometryContext(),
+                               s->center(Acts::GeometryContext()),
                                Acts::Vector3::UnitY())
                          .transpose()
                   << "\n";
         std::cout << "ROTATION \n"
-                  << s->transform(testCtx).rotation() << " -- \n"
+                  << s->transform(gctx).rotation() << " -- \n"
                   << "\n"
                   << s->transform(Acts::GeometryContext()).rotation() << "\n";
         std::cout << "EXTENT "
-                  << s->polyhedronRepresentation(testCtx, 1000).extent()
+                  << s->polyhedronRepresentation(gctx, 1000).extent()
                   << "\n -- \n"
                   << s->polyhedronRepresentation(Acts::GeometryContext(), 1000)
                          .extent()
@@ -241,7 +228,6 @@ int main() {
       }
     }
   }
-  gctx = Acts::GeometryContext{alignCtx};
 
   // --------------------------------------------------------------
   // Event reading
@@ -341,7 +327,7 @@ int main() {
 
   lookupProviderCfg.correctorAmplidute = -0.026107_T;
   lookupProviderCfg.correctorPosition = gOpt.xCorrectorTranslation[2];
-  lookupProviderCfg.correctorSize = 0.23622;
+  lookupProviderCfg.correctorSize = 0.23368;
 
   lookupProviderCfg.layerPosition = gOpt.staveZ.at(8);
   lookupProviderCfg.referenceSurface = refLayers.begin()->second;
@@ -364,9 +350,7 @@ int main() {
   validationWriterCfg.inputIpParsEst = "ipParsEst";
   validationWriterCfg.inputRefLayerPars = "refPars";
   validationWriterCfg.inputRefLayerParsEst = "refParsEst";
-  validationWriterCfg.path =
-      "/home/romanurmanov/lab/LUXE/acts_tracking/E320Prototype/"
-      "E320Prototype_analysis/sim/lookup-validation.root";
+  validationWriterCfg.path = "lookup-validation.root";
   validationWriterCfg.treeName = "validation";
 
   sequencer.addWriter(std::make_shared<RootTrackLookupValidationWriter>(

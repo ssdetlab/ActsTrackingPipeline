@@ -106,11 +106,11 @@ int main() {
   auto aStore =
       std::make_shared<std::map<Acts::GeometryIdentifier, Acts::Transform3>>();
   std::map<int, Acts::Vector3> shifts{
-      {8, Acts::Vector3(-11.7_mm, -3.5_mm, 0_mm)},
-      {6, Acts::Vector3(-11.7_mm, -3.5_mm, 0_mm)},
-      {4, Acts::Vector3(-11.7_mm, -3.5_mm, 0_mm)},
-      {2, Acts::Vector3(-11.7_mm, -3.5_mm, 0_mm)},
-      {0, Acts::Vector3(-11.7_mm, -3.5_mm, 0_mm)}};
+      {8, Acts::Vector3(-9.7_mm, -3.5_mm, 0_mm)},
+      {6, Acts::Vector3(-9.7_mm, -3.5_mm, 0_mm)},
+      {4, Acts::Vector3(-9.7_mm, -3.5_mm, 0_mm)},
+      {2, Acts::Vector3(-9.7_mm, -3.5_mm, 0_mm)},
+      {0, Acts::Vector3(-9.7_mm, -3.5_mm, 0_mm)}};
   Acts::RotationMatrix3 mat8 =
       Acts::AngleAxis3(0, Acts::Vector3::UnitZ()).toRotationMatrix();
   Acts::RotationMatrix3 mat6 =

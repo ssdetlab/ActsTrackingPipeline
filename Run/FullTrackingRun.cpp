@@ -105,7 +105,6 @@ int main() {
   auto trackerBP = E320Geometry::makeBlueprintE320(gdmlPath, names, gOpt);
   auto detector = E320Geometry::buildE320Detector(
       std::move(trackerBP), gctx, gOpt, materialPath, materialVeto);
-  // std::move(trackerBP), gctx, gOpt, materialVeto);
 
   // --------------------------------------------------------------
   // The magnetic field setup
@@ -187,9 +186,7 @@ int main() {
       gOpt.dipoleParams, dipoleB, gOpt.actsToWorldRotation,
       gOpt.actsToWorldRotation.inverse() * gOpt.dipoleTranslation);
 
-  // TODO: Check if it's the real field
   Acts::Vector3 xCorrectorB(0, 0, -0.026107_T);
-  // Acts::Vector3 xCorrectorB(0, 0, 0);
   ConstantBoundedField xCorrectorField(xCorrectorB, xCorrectorExtent);
 
   CompositeMagField::FieldComponents fieldComponents = {
@@ -203,77 +200,21 @@ int main() {
 
   auto aStore =
       std::make_shared<std::map<Acts::GeometryIdentifier, Acts::Transform3>>();
-  // std::map<int, Acts::Vector3> shifts{
-  //     {8, Acts::Vector3(-11.7_mm, -3.5_mm, 0_mm)},
-  //     {6, Acts::Vector3(-11.7_mm + 1.93_um, -3.5_mm + 16.5_um, 0_mm)},
-  //     {4, Acts::Vector3(-11.7_mm - 41.8_um, -3.5_mm - 63.3_um, 0_mm)},
-  //     {2, Acts::Vector3(-11.7_mm - 74.6_um, -3.5_mm - 69.5_um, 0_mm)},
-  //     {0, Acts::Vector3(-11.7_mm + 17.6_um, -3.5_mm + 27.5_um, 0_mm)}};
-  // std::map<int, Acts::Vector3> shifts{
-  //     {8, Acts::Vector3(0_mm, -3.5_mm, 0_mm)},
-  //     {6, Acts::Vector3(0_mm + 1.93_um, -3.5_mm + 16.5_um, 0_mm)},
-  //     {4, Acts::Vector3(0_mm - 41.8_um, -3.5_mm - 63.3_um, 0_mm)},
-  //     {2, Acts::Vector3(0_mm - 74.6_um, -3.5_mm - 69.5_um, 0_mm)},
-  //     {0, Acts::Vector3(0_mm + 17.6_um, -3.5_mm + 27.5_um, 0_mm)}};
-  // Acts::RotationMatrix3 mat8 =
-  //     Acts::AngleAxis3(0, Acts::Vector3::UnitZ()).toRotationMatrix();
-  // Acts::RotationMatrix3 mat6 =
-  //     Acts::AngleAxis3(-1.73e-3, Acts::Vector3::UnitZ()).toRotationMatrix();
-  // Acts::RotationMatrix3 mat4 =
-  //     Acts::AngleAxis3(1.46e-3, Acts::Vector3::UnitZ()).toRotationMatrix();
-  // Acts::RotationMatrix3 mat2 =
-  //     Acts::AngleAxis3(-1.49e-3, Acts::Vector3::UnitZ()).toRotationMatrix();
-  // Acts::RotationMatrix3 mat0 =
-  //     Acts::AngleAxis3(5.16e-4, Acts::Vector3::UnitZ()).toRotationMatrix();
 
-  // std::map<int, Acts::RotationMatrix3> rots{
-  //     {8, mat8}, {6, mat6}, {4, mat4}, {2, mat2}, {0, mat0}};
-
-  // for (auto& v : detector->volumes()) {
-  //   for (auto& s : v->surfaces()) {
-  //     if (s->geometryId().sensitive()) {
-  //       // Surface is in origin, normal along z, no rotation in xy plane
-  //       Acts::Transform3 nominal = Acts::Transform3::Identity();
-
-  //       // Global detector rotation
-  //       nominal.rotate(gOpt.actsToWorldRotation.inverse());
-
-  //       // Global detector translation
-  //       nominal.translate(
-  //           Acts::Vector3(gOpt.chipX, gOpt.chipY,
-  //                         gOpt.staveZ.at(s->geometryId().sensitive() - 1)));
-
-  //       // Apply relative translations of the rotated surfaces
-  //       nominal.translate(shifts.at(s->geometryId().sensitive() - 1));
-
-  //       // Rotate surface in the origin around global origin
-  //       nominal.rotate(rots.at(s->geometryId().sensitive() - 1));
-
-  //       // Account for G4 rotation
-  //       nominal.rotate(Acts::AngleAxis3(-M_PI_2, Acts::Vector3::UnitZ())
-  //                          .toRotationMatrix());
-
-  //       aStore->emplace(s->geometryId(), nominal);
-  //     }
-  //   }
-  // }
-
-  double detectorTilt = 0.0;
-  std::map<int, Acts::Vector3> shifts{{8, Acts::Vector3(-10.7_mm, 0, -13.0_mm)},
-                                      {6, Acts::Vector3(-10.7_mm, 0, -13.0_mm)},
-                                      {4, Acts::Vector3(-10.7_mm, 0, -13.0_mm)},
-                                      {2, Acts::Vector3(-10.7_mm, 0, -13.0_mm)},
-                                      {0, Acts::Vector3(-10.7_mm, 0, -13.0_mm)}};
+  double detectorTilt = 0.0036;
+  std::map<int, Acts::Vector3> shifts{{8, Acts::Vector3(-9.2_mm, 0, -1.5_mm)},
+                                      {6, Acts::Vector3(-9.2_mm, 0, -1.5_mm)},
+                                      {4, Acts::Vector3(-9.2_mm, 0, -1.5_mm)},
+                                      {2, Acts::Vector3(-9.2_mm, 0, -1.5_mm)},
+                                      {0, Acts::Vector3(-9.2_mm, 0, -1.5_mm)}};
   // Alignment provider
   auto alignmentProviderCfg = AlignmentParametersProvider::Config();
 
   alignmentProviderCfg.treeName = "alignment-results";
   alignmentProviderCfg.filePath =
       "/home/romanurmanov/lab/LUXE/acts_tracking/E320Prototype/"
-      "E320Prototype_analysis/data/noam_split/global_x_scan/"
-      "y_shift_-13.0_yz_tilt_0.0/"
-      "x_shift_-10.7/"
-      "alignment_run/alignment-results.root";
+      "E320Prototype_analysis/noam_split/refine_4_align_iters/"
+      "alignment_run/alignment-results_-9.200000_-1.500000_0.003600.root";
 
   AlignmentParametersProvider alignmentProvider(alignmentProviderCfg);
   for (auto& v : detector->volumes()) {
@@ -286,7 +227,7 @@ int main() {
         nominal.rotate(rot);
         aStore->emplace(s->geometryId(), nominal);
       } else if (s->geometryId().sensitive() == 9) {
-      // if (s->geometryId().sensitive()) {
+        // if (s->geometryId().sensitive()) {
         Acts::Transform3 nominal = s->transform(Acts::GeometryContext());
         nominal.pretranslate(shifts.at(s->geometryId().sensitive() - 1));
         aStore->emplace(s->geometryId(), nominal);
@@ -301,7 +242,8 @@ int main() {
   Acts::Vector3 detectorCenter = detector->findSurface(midGeoId)->center(gctx);
   for (auto& v : detector->volumes()) {
     for (auto& s : v->surfaces()) {
-      if (s->geometryId().sensitive()) {
+      // if (s->geometryId().sensitive()) {
+      if (s->geometryId().sensitive() == 9) {
         Acts::Transform3 nominal = aStore->at(s->geometryId());
         nominal.pretranslate(-detectorCenter);
         nominal.prerotate(Acts::AngleAxis3(detectorTilt, Acts::Vector3::UnitX())
@@ -426,10 +368,10 @@ int main() {
 
   // Path width provider
   std::map<int, std::pair<double, double>> pathWidths = {{8, {100_m, 100_m}},
-                                                         {6, {250_um, 250_um}},
-                                                         {4, {400_um, 400_um}},
-                                                         {2, {550_um, 550_um}},
-                                                         {0, {600_um, 600_um}}};
+                                                         {6, {150_um, 150_um}},
+                                                         {4, {250_um, 250_um}},
+                                                         {2, {350_um, 350_um}},
+                                                         {0, {500_um, 500_um}}};
   LayerPathWidthProvider pathWidthProvider(pathWidths);
 
   pathSeederCfg.pathWidthProvider.connect<&LayerPathWidthProvider::operator()>(
@@ -446,7 +388,7 @@ int main() {
   }
 
   E320SourceLinkGridConstructor::Config gridConstructorCfg{
-      .bins = std::make_pair(1000, 1), .layers = layerMap};
+      .bins = std::make_pair(150, 125), .layers = layerMap};
   gridConstructorCfg.surfaceAccessor
       .connect<&SimpleSourceLink::SurfaceAccessor::operator()>(
           &surfaceAccessor);
@@ -468,7 +410,7 @@ int main() {
 
   lookupProviderCfg.correctorAmplidute = -0.026107_T;
   lookupProviderCfg.correctorPosition = gOpt.xCorrectorTranslation[2];
-  lookupProviderCfg.correctorSize = 0.23622;
+  lookupProviderCfg.correctorSize = 0.23368;
 
   lookupProviderCfg.layerPosition = gOpt.staveZ.at(8);
   lookupProviderCfg.detectorYZTilt = detectorTilt;

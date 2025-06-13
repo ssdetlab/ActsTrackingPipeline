@@ -95,11 +95,11 @@ int main() {
 
   double detectorTilt = 0.0;
   std::map<int, Acts::Vector3> shifts{
-      {8, Acts::Vector3(-10.7_mm, 0, -13.0_mm)},
-      {6, Acts::Vector3(-10.7_mm, 0, -13.0_mm)},
-      {4, Acts::Vector3(-10.7_mm, 0, -13.0_mm)},
-      {2, Acts::Vector3(-10.7_mm, 0, -13.0_mm)},
-      {0, Acts::Vector3(-10.7_mm, 0, -13.0_mm)}};
+      {8, Acts::Vector3(-9.7_mm, 0, -3.5_mm)},
+      {6, Acts::Vector3(-9.7_mm, 0, -3.5_mm)},
+      {4, Acts::Vector3(-9.7_mm, 0, -3.5_mm)},
+      {2, Acts::Vector3(-9.7_mm, 0, -3.5_mm)},
+      {0, Acts::Vector3(-9.7_mm, 0, -3.5_mm)}};
   for (auto& v : detector->volumes()) {
     for (auto& s : v->surfaces()) {
       if (s->geometryId().sensitive()) {
@@ -247,9 +247,8 @@ int main() {
   readerCfg.covAnnealingFactor = 1e0;
   readerCfg.filePaths = {
       "/home/romanurmanov/lab/LUXE/acts_tracking/E320Prototype/"
-      "E320Prototype_analysis/data/noam_split/global_x_scan/"
-      "y_shift_-13.0_yz_tilt_0.0/"
-      "x_shift_-10.7/"
+      "E320Prototype_analysis/data/noam_split/global_yz_tilt_scan/"
+      "yz_tilt_test/"
       "initial_full_tracking_run/fitted-tracks-data.root"};
 
   // // Get the paths to the files in the directory
@@ -337,7 +336,7 @@ int main() {
       .alignedTransformUpdater = voidAlignUpdater,
       .kfOptions = alignmentKFOptions,
       .chi2ONdfCutOff = 1e-6,
-      .maxNumIterations = 3};
+      .maxNumIterations = 10};
 
   for (auto& det : detector->detectorElements()) {
     const auto& surface = det->surface();
@@ -465,6 +464,19 @@ int main() {
   }
   AlignmentContext blignCtx(bStore);
   Acts::GeometryContext testCtx{blignCtx};
+
+  for (auto& v : detector->volumes()) {
+    for (auto& s : v->surfaces()) {
+      if (s->geometryId().sensitive() == 9) {
+        Acts::Transform3 nominal = bStore->at(s->geometryId());
+        nominal.pretranslate(-detectorCenter);
+        nominal.prerotate(Acts::AngleAxis3(detectorTilt, Acts::Vector3::UnitX())
+                              .toRotationMatrix());
+        nominal.pretranslate(detectorCenter);
+        bStore->at(s->geometryId()) = nominal;
+      }
+    }
+  }
   for (auto& v : detector->volumes()) {
     for (auto& s : v->surfaces()) {
       if (s->geometryId().sensitive()) {
