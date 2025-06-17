@@ -20,9 +20,9 @@ E320DipoleTrackLookupProvider::E320DipoleTrackLookupProvider(
   ipStdDev[Acts::eBoundLoc0] = 100_um;
   ipStdDev[Acts::eBoundLoc1] = 100_um;
   ipStdDev[Acts::eBoundTime] = 25_ns;
-  ipStdDev[Acts::eBoundPhi] = 2_degree;
-  ipStdDev[Acts::eBoundTheta] = 2_degree;
-  ipStdDev[Acts::eBoundQOverP] = 1 / 10_GeV;
+  ipStdDev[Acts::eBoundPhi] = 0.2_degree;
+  ipStdDev[Acts::eBoundTheta] = 0.2_degree;
+  ipStdDev[Acts::eBoundQOverP] = 1 / 100_GeV;
   m_cov = ipStdDev.cwiseProduct(ipStdDev).asDiagonal();
 
   m_layerDipoleDistance = (m_cfg.layerPosition - m_cfg.dipolePosition);
@@ -58,8 +58,9 @@ E320DipoleTrackLookupProvider::lookup(const Acts::GeometryContext& gctx,
   ACTS_VERBOSE("Reference layer momentum theta " << theta);
   ACTS_VERBOSE("Momentum magnitude " << P);
 
+  Acts::Vector3 surfCenter = m_cfg.referenceSurface->center(gctx);
   Acts::CurvilinearTrackParameters ipPars(
-      Acts::Vector4(0, -842_mm, 0, 0),
+      Acts::Vector4(surfCenter.x(), surfCenter.y() - 0.1_mm, surfCenter.z(), 0),
       Acts::Vector3(0, 1, 0), 1_e / P, m_cov,
       Acts::ParticleHypothesis::electron());
   Acts::CurvilinearTrackParameters refPars(
