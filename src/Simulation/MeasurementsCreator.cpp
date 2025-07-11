@@ -48,6 +48,7 @@ std::tuple<std::vector<Acts::SourceLink>, SimClusters> MeasurementsCreator::gen(
   // Generate initial track parameters
   rng.seed(std::chrono::system_clock::now().time_since_epoch().count());
 
+  // std::cout << "------------------------------------------\n";
   Acts::Vector3 spatial = m_cfg.vertexGenerator->genVertex(rng);
   Acts::Vector4 mPos4 = {spatial.x(), spatial.y(), spatial.z(), 0};
 

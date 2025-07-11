@@ -21,6 +21,7 @@
 #include "TrackingPipeline/MagneticField/CompositeMagField.hpp"
 #include "TrackingPipeline/MagneticField/ConstantBoundedField.hpp"
 #include "TrackingPipeline/MagneticField/DipoleMagField.hpp"
+#include "TrackingPipeline/MagneticField/IdealQuadrupoleMagField.hpp"
 #include "TrackingPipeline/MagneticField/QuadrupoleMagField.hpp"
 #include "TrackingPipeline/Simulation/BremsstrahlungMomentumGenerator.hpp"
 #include "TrackingPipeline/Simulation/GaussianVertexGenerator.hpp"
@@ -53,7 +54,7 @@ using namespace Acts::UnitLiterals;
 
 int main() {
   // Set the log level
-  Acts::Logging::Level logLevel = Acts::Logging::DEBUG;
+  Acts::Logging::Level logLevel = Acts::Logging::INFO;
 
   // Dummy context and options
   Acts::GeometryContext gctx;
@@ -151,18 +152,33 @@ int main() {
       gOpt.xCorrectorTranslation.z() - gOpt.xCorrectorBounds[2],
       gOpt.xCorrectorTranslation.z() + gOpt.xCorrectorBounds[2]);
 
+  // IdealQuadrupoleMagField quad1Field(
+  //     gOpt.quadrupolesParams[0],
+  //     gOpt.actsToWorldRotation.inverse() * gOpt.quad1Translation,
+  //     gOpt.actsToWorldRotation);
+  // IdealQuadrupoleMagField quad2Field(
+  //     gOpt.quadrupolesParams[1],
+  //     gOpt.actsToWorldRotation.inverse() * gOpt.quad2Translation,
+  //     gOpt.actsToWorldRotation);
+  // IdealQuadrupoleMagField quad3Field(
+  //     gOpt.quadrupolesParams[2],
+  //     gOpt.actsToWorldRotation.inverse() * gOpt.quad3Translation,
+  //     gOpt.actsToWorldRotation);
+
+  double quadLength = 486.664_mm * 2;
+  double quadFactor = 1.0 / 0.98800096;
   QuadrupoleMagField quad1Field(
-      gOpt.quadrupolesParams[0],
+      quadFactor * gOpt.quadrupolesParams[0],
       gOpt.actsToWorldRotation.inverse() * gOpt.quad1Translation,
-      gOpt.actsToWorldRotation);
+      gOpt.actsToWorldRotation, quadLength, 5);
   QuadrupoleMagField quad2Field(
-      gOpt.quadrupolesParams[1],
+      quadFactor * gOpt.quadrupolesParams[1],
       gOpt.actsToWorldRotation.inverse() * gOpt.quad2Translation,
-      gOpt.actsToWorldRotation);
+      gOpt.actsToWorldRotation, quadLength, 5);
   QuadrupoleMagField quad3Field(
-      gOpt.quadrupolesParams[2],
+      quadFactor * gOpt.quadrupolesParams[2],
       gOpt.actsToWorldRotation.inverse() * gOpt.quad3Translation,
-      gOpt.actsToWorldRotation);
+      gOpt.actsToWorldRotation, quadLength, 5);
 
   double dipoleB = 0.2192_T;
   DipoleMagField dipoleField(
@@ -184,55 +200,24 @@ int main() {
   auto aStore =
       std::make_shared<std::map<Acts::GeometryIdentifier, Acts::Transform3>>();
   std::map<int, Acts::Vector3> shifts{
-      {8, Acts::Vector3(-11.7_mm + 0.2_mm, -3.5_mm - 0.12_mm, 0_mm)},
-      {6, Acts::Vector3(-11.7_mm + 0.2_mm - 1.93_um, -3.5_mm - 0.12_mm + 16.2_um, 0_mm)},
-      {4, Acts::Vector3(-11.7_mm + 0.2_mm + 41.8_um, -3.5_mm - 0.12_mm - 63.3_um, 0_mm)},
-      {2, Acts::Vector3(-11.7_mm + 0.2_mm + 74.6_um, -3.5_mm - 0.12_mm - 69.5_um, 0_mm)},
-      {0, Acts::Vector3(-11.7_mm + 0.2_mm - 17.6_um, -3.5_mm - 0.12_mm + 27.5_um, 0_mm)}};
-  Acts::RotationMatrix3 mat8 = 
-      Acts::AngleAxis3(2.14e-4, Acts::Vector3::UnitZ()).toRotationMatrix();
-  Acts::RotationMatrix3 mat6 =
-      Acts::AngleAxis3(1.73e-3, Acts::Vector3::UnitZ()).toRotationMatrix();
-  Acts::RotationMatrix3 mat4 =
-      Acts::AngleAxis3(-1.46e-3, Acts::Vector3::UnitZ()).toRotationMatrix();
-  Acts::RotationMatrix3 mat2 =
-      Acts::AngleAxis3(1.49e-3, Acts::Vector3::UnitZ()).toRotationMatrix();
-  Acts::RotationMatrix3 mat0 =
-      Acts::AngleAxis3(5.16e-4, Acts::Vector3::UnitZ()).toRotationMatrix();
+      {8, Acts::Vector3(-10.0_mm, 0_mm, -0.75_mm)},
+      {6, Acts::Vector3(-10.0_mm, 0_mm, -0.75_mm)},
+      {4, Acts::Vector3(-10.0_mm, 0_mm, -0.75_mm)},
+      {2, Acts::Vector3(-10.0_mm, 0_mm, -0.75_mm)},
+      {0, Acts::Vector3(-10.0_mm, 0_mm, -0.75_mm)}};
 
-  std::map<int, Acts::RotationMatrix3> rots{
-      {8, mat8}, {6, mat6}, {4, mat4}, {2, mat2}, {0, mat0}};
   for (auto& v : detector->volumes()) {
     for (auto& s : v->surfaces()) {
       if (s->geometryId().sensitive()) {
-        // Surface is in origin, normal along z, no rotation in xy plane
-        Acts::Transform3 nominal = Acts::Transform3::Identity();
-
-        // Global detector rotation
-        nominal.rotate(gOpt.actsToWorldRotation.inverse());
-
-        // Global detector translation
-        nominal.translate(
-            Acts::Vector3(gOpt.chipX, gOpt.chipY,
-                          gOpt.staveZ.at(s->geometryId().sensitive() - 1)));
-
-        // Apply relative translations of the rotated surfaces
-        nominal.translate(shifts.at(s->geometryId().sensitive() - 1));
-
-        // Rotate surface in the origin around global origin
-        nominal.rotate(rots.at(s->geometryId().sensitive() - 1));
-
-        // Account for G4 rotation
-        nominal.rotate(Acts::AngleAxis3(-M_PI_2, Acts::Vector3::UnitZ())
-                           .toRotationMatrix());
-
+        Acts::Transform3 nominal = s->transform(Acts::GeometryContext());
+        nominal.pretranslate(shifts.at(s->geometryId().sensitive() - 1));
         aStore->emplace(s->geometryId(), nominal);
       }
     }
   }
-
   AlignmentContext alignCtx(aStore);
   Acts::GeometryContext testCtx{alignCtx};
+
   std::vector<const Acts::Surface*> surfaces;
   for (const auto* v : detector->volumes()) {
     for (const auto* s : v->surfaces()) {
@@ -286,7 +271,7 @@ int main() {
   DummyReader::Config dummyReaderCfg;
   dummyReaderCfg.outputSourceLinks = "SimMeasurements";
   dummyReaderCfg.outputSimClusters = "SimClusters";
-  dummyReaderCfg.nEvents = 1e2;
+  dummyReaderCfg.nEvents = 1e4;
 
   sequencer.addReader(std::make_shared<DummyReader>(dummyReaderCfg));
 
@@ -314,13 +299,13 @@ int main() {
 
   // Vertex generator
   auto vertexGen = std::make_shared<GaussianVertexGenerator>(
-      Acts::Vector3(0, gOpt.beWindowTranslation[2], 0),
+      Acts::Vector3(100_um, gOpt.beWindowTranslation[2], 0),
       75_um * 75_um * Acts::SquareMatrix3::Identity());
 
   // Momentum generator
   auto momGen = std::make_shared<BremsstrahlungMomentumGenerator>(
       Acts::Vector3(0, 0, 0),
-      0.3_MeV * 0.3_MeV * Acts::SquareMatrix3::Identity());
+      3.0_MeV * 3.0_MeV * Acts::SquareMatrix3::Identity());
 
   // Measurement creator
   MeasurementsCreator::Config measCreatorCfg;
@@ -336,12 +321,12 @@ int main() {
   MeasurementsEmbeddingAlgorithm::Config measCreatorAlgoCfg;
   measCreatorAlgoCfg.inputSourceLinks = "SimMeasurements";
   measCreatorAlgoCfg.inputSimClusters = "SimClusters";
-  measCreatorAlgoCfg.outputSourceLinks = "Measurements1";
-  measCreatorAlgoCfg.outputSimClusters = "Clusters1";
+  measCreatorAlgoCfg.outputSourceLinks = "Measurements";
+  measCreatorAlgoCfg.outputSimClusters = "Clusters";
   measCreatorAlgoCfg.measurementGenerator = measCreator;
   measCreatorAlgoCfg.randomNumberSvc =
       std::make_shared<RandomNumbers>(RandomNumbers::Config());
-  measCreatorAlgoCfg.nMeasurements = 20;
+  measCreatorAlgoCfg.nMeasurements = 1;
 
   sequencer.addAlgorithm(std::make_shared<MeasurementsEmbeddingAlgorithm>(
       measCreatorAlgoCfg, logLevel));
@@ -367,8 +352,8 @@ int main() {
       std::make_shared<RandomNumbers>(RandomNumbers::Config());
   bkgCreatorAlgoCfg.nMeasurements = 1;
 
-  sequencer.addAlgorithm(std::make_shared<MeasurementsEmbeddingAlgorithm>(
-      bkgCreatorAlgoCfg, logLevel));
+  // sequencer.addAlgorithm(std::make_shared<MeasurementsEmbeddingAlgorithm>(
+  //     bkgCreatorAlgoCfg, logLevel));
 
   // --------------------------------------------------------------
   // Event write out
@@ -382,9 +367,7 @@ int main() {
 
   clusterWriterCfg.inputClusters = "Clusters";
   clusterWriterCfg.treeName = "clusters";
-  clusterWriterCfg.filePath =
-      "/home/romanurmanov/lab/LUXE/acts_tracking/E320Prototype/"
-      "E320Prototype_analysis/sim/clusters-sim.root";
+  clusterWriterCfg.filePath = "clusters-real-quad-5.root";
 
   sequencer.addWriter(
       std::make_shared<RootSimClusterWriter>(clusterWriterCfg, logLevel));

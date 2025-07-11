@@ -33,7 +33,7 @@
 #include "TrackingPipeline/MagneticField/CompositeMagField.hpp"
 #include "TrackingPipeline/MagneticField/ConstantBoundedField.hpp"
 #include "TrackingPipeline/MagneticField/DipoleMagField.hpp"
-#include "TrackingPipeline/MagneticField/QuadrupoleMagField.hpp"
+#include "TrackingPipeline/MagneticField/IdealQuadrupoleMagField.hpp"
 #include "TrackingPipeline/TrackFitting/KFTrackFittingAlgorithm.hpp"
 
 // Propagator short-hands
@@ -93,13 +93,13 @@ int main() {
   auto aStore =
       std::make_shared<std::map<Acts::GeometryIdentifier, Acts::Transform3>>();
 
-  double detectorTilt = 0.0;
+  double detectorTilt = 0.00297;
   std::map<int, Acts::Vector3> shifts{
-      {8, Acts::Vector3(-9.7_mm, 0, -3.5_mm)},
-      {6, Acts::Vector3(-9.7_mm, 0, -3.5_mm)},
-      {4, Acts::Vector3(-9.7_mm, 0, -3.5_mm)},
-      {2, Acts::Vector3(-9.7_mm, 0, -3.5_mm)},
-      {0, Acts::Vector3(-9.7_mm, 0, -3.5_mm)}};
+      {8, Acts::Vector3(-11.1_mm, 0, -0.75_mm)},
+      {6, Acts::Vector3(-11.1_mm, 0, -0.75_mm)},
+      {4, Acts::Vector3(-11.1_mm, 0, -0.75_mm)},
+      {2, Acts::Vector3(-11.1_mm, 0, -0.75_mm)},
+      {0, Acts::Vector3(-11.1_mm, 0, -0.75_mm)}};
   for (auto& v : detector->volumes()) {
     for (auto& s : v->surfaces()) {
       if (s->geometryId().sensitive()) {
@@ -191,15 +191,15 @@ int main() {
       gOpt.xCorrectorTranslation.z() - gOpt.xCorrectorBounds[2],
       gOpt.xCorrectorTranslation.z() + gOpt.xCorrectorBounds[2]);
 
-  QuadrupoleMagField quad1Field(
+  IdealQuadrupoleMagField quad1Field(
       gOpt.quadrupolesParams[0],
       gOpt.actsToWorldRotation.inverse() * gOpt.quad1Translation,
       gOpt.actsToWorldRotation);
-  QuadrupoleMagField quad2Field(
+  IdealQuadrupoleMagField quad2Field(
       gOpt.quadrupolesParams[1],
       gOpt.actsToWorldRotation.inverse() * gOpt.quad2Translation,
       gOpt.actsToWorldRotation);
-  QuadrupoleMagField quad3Field(
+  IdealQuadrupoleMagField quad3Field(
       gOpt.quadrupolesParams[2],
       gOpt.actsToWorldRotation.inverse() * gOpt.quad3Translation,
       gOpt.actsToWorldRotation);
@@ -247,8 +247,7 @@ int main() {
   readerCfg.covAnnealingFactor = 1e0;
   readerCfg.filePaths = {
       "/home/romanurmanov/lab/LUXE/acts_tracking/E320Prototype/"
-      "E320Prototype_analysis/data/noam_split/global_yz_tilt_scan/"
-      "yz_tilt_test/"
+      "E320Prototype_analysis/noam_split/temp/"
       "initial_full_tracking_run/fitted-tracks-data.root"};
 
   // // Get the paths to the files in the directory
@@ -267,6 +266,7 @@ int main() {
   double halfY = std::numeric_limits<double>::max();
 
   double refZ = gOpt.beWindowTranslation[2];
+  // double refZ = gOpt.staveZ.at(8) - 0.1_mm;
   Acts::Transform3 transform(Acts::Translation3(Acts::Vector3(0, refZ, 0)) *
                              gOpt.actsToWorldRotation.inverse());
 
@@ -336,11 +336,13 @@ int main() {
       .alignedTransformUpdater = voidAlignUpdater,
       .kfOptions = alignmentKFOptions,
       .chi2ONdfCutOff = 1e-6,
-      .maxNumIterations = 10};
+      .maxNumIterations = 20};
 
   for (auto& det : detector->detectorElements()) {
     const auto& surface = det->surface();
-    if (surface.geometryId().sensitive() != 9) {
+    // if (surface.geometryId().sensitive() != 9) {
+    if (surface.geometryId().sensitive() != 9 &&
+        surface.geometryId().sensitive() != 1) {
       alignmentCfg.alignedDetElements.push_back(det.get());
     }
   }
@@ -416,7 +418,8 @@ int main() {
   trackWriterCfg.treeName = "fitted-tracks";
   trackWriterCfg.filePath =
       "/home/romanurmanov/lab/LUXE/acts_tracking/E320Prototype/"
-      "E320Prototype_analysis/data/noam_split/fitted-tracks-aligned.root";
+      "E320Prototype_analysis/noam_split/temp/"
+      "fitted-tracks-aligned.root";
 
   sequencer.addWriter(
       std::make_shared<RootTrackWriter>(trackWriterCfg, logLevel));
@@ -428,7 +431,8 @@ int main() {
   alignmentWriterCfg.treeName = "alignment-results";
   alignmentWriterCfg.filePath =
       "/home/romanurmanov/lab/LUXE/acts_tracking/E320Prototype/"
-      "E320Prototype_analysis/data/noam_split/alignment-results.root";
+      "E320Prototype_analysis/noam_split/temp/"
+      "alignment-results.root";
 
   sequencer.addWriter(std::make_shared<AlignmentParametersWriter>(
       alignmentWriterCfg, logLevel));
@@ -441,21 +445,26 @@ int main() {
   alignmentProviderCfg.treeName = "alignment-results";
   alignmentProviderCfg.filePath =
       "/home/romanurmanov/lab/LUXE/acts_tracking/E320Prototype/"
-      "E320Prototype_analysis/data/noam_split/alignment-results.root";
+      "E320Prototype_analysis/noam_split/temp/"
+      "alignment-results.root";
 
   AlignmentParametersProvider alignmentProvider(alignmentProviderCfg);
   auto bStore =
       std::make_shared<std::map<Acts::GeometryIdentifier, Acts::Transform3>>();
   for (auto& v : detector->volumes()) {
     for (auto& s : v->surfaces()) {
-      if (s->geometryId().sensitive() && s->geometryId().sensitive() != 9) {
+      // if (s->geometryId().sensitive() && s->geometryId().sensitive() != 9) {
+      if (s->geometryId().sensitive() && s->geometryId().sensitive() != 9 &&
+          s->geometryId().sensitive() != 1) {
         Acts::Transform3 nominal = s->transform(Acts::GeometryContext());
         const auto [shift, rot] =
             alignmentProvider.getAlignedTransform(s->geometryId());
         nominal.pretranslate(shift);
         nominal.rotate(rot);
         bStore->emplace(s->geometryId(), nominal);
-      } else if (s->geometryId().sensitive() == 9) {
+        // } else if (s->geometryId().sensitive() == 9) {
+      } else if (s->geometryId().sensitive() == 9 ||
+                 s->geometryId().sensitive() == 1) {
         Acts::Transform3 nominal = s->transform(Acts::GeometryContext());
         nominal.pretranslate(shifts.at(s->geometryId().sensitive() - 1));
         bStore->emplace(s->geometryId(), nominal);
@@ -467,7 +476,9 @@ int main() {
 
   for (auto& v : detector->volumes()) {
     for (auto& s : v->surfaces()) {
-      if (s->geometryId().sensitive() == 9) {
+      // if (s->geometryId().sensitive() == 9) {
+      if (s->geometryId().sensitive() == 9 ||
+          s->geometryId().sensitive() == 1) {
         Acts::Transform3 nominal = bStore->at(s->geometryId());
         nominal.pretranslate(-detectorCenter);
         nominal.prerotate(Acts::AngleAxis3(detectorTilt, Acts::Vector3::UnitX())

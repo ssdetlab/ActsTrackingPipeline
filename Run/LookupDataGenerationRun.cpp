@@ -16,7 +16,7 @@
 #include "TrackingPipeline/MagneticField/CompositeMagField.hpp"
 #include "TrackingPipeline/MagneticField/ConstantBoundedField.hpp"
 #include "TrackingPipeline/MagneticField/DipoleMagField.hpp"
-#include "TrackingPipeline/MagneticField/QuadrupoleMagField.hpp"
+#include "TrackingPipeline/MagneticField/IdealQuadrupoleMagField.hpp"
 #include "TrackingPipeline/Simulation/GaussianVertexGenerator.hpp"
 #include "TrackingPipeline/Simulation/IdealDigitizer.hpp"
 #include "TrackingPipeline/Simulation/MeasurementsCreator.hpp"
@@ -130,15 +130,15 @@ int main() {
       gOpt.xCorrectorTranslation.z() - gOpt.xCorrectorBounds[2],
       gOpt.xCorrectorTranslation.z() + gOpt.xCorrectorBounds[2]);
 
-  QuadrupoleMagField quad1Field(
+  IdealQuadrupoleMagField quad1Field(
       gOpt.quadrupolesParams[0],
       gOpt.actsToWorldRotation.inverse() * gOpt.quad1Translation,
       gOpt.actsToWorldRotation);
-  QuadrupoleMagField quad2Field(
+  IdealQuadrupoleMagField quad2Field(
       gOpt.quadrupolesParams[1],
       gOpt.actsToWorldRotation.inverse() * gOpt.quad2Translation,
       gOpt.actsToWorldRotation);
-  QuadrupoleMagField quad3Field(
+  IdealQuadrupoleMagField quad3Field(
       gOpt.quadrupolesParams[2],
       gOpt.actsToWorldRotation.inverse() * gOpt.quad3Translation,
       gOpt.actsToWorldRotation);

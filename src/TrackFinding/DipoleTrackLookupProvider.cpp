@@ -1,7 +1,7 @@
 #include "TrackingPipeline/TrackFinding/DipoleTrackLookupProvider.hpp"
 
-#include <Acts/Definitions/Algebra.hpp>
-#include <Acts/Utilities/Logger.hpp>
+#include "Acts/Definitions/Algebra.hpp"
+#include "Acts/Utilities/Logger.hpp"
 
 #include <stdexcept>
 
@@ -17,12 +17,12 @@ E320DipoleTrackLookupProvider::E320DipoleTrackLookupProvider(
     throw std::runtime_error("Reference surface is not initialized");
   }
   Acts::BoundVector ipStdDev;
-  ipStdDev[Acts::eBoundLoc0] = 100_um;
-  ipStdDev[Acts::eBoundLoc1] = 100_um;
+  ipStdDev[Acts::eBoundLoc0] = 30_um;
+  ipStdDev[Acts::eBoundLoc1] = 30_um;
   ipStdDev[Acts::eBoundTime] = 25_ns;
-  ipStdDev[Acts::eBoundPhi] = 0.2_degree;
-  ipStdDev[Acts::eBoundTheta] = 0.2_degree;
-  ipStdDev[Acts::eBoundQOverP] = 1 / 100_GeV;
+  ipStdDev[Acts::eBoundPhi] = 0.2_rad;
+  ipStdDev[Acts::eBoundTheta] = 0.2_rad;
+  ipStdDev[Acts::eBoundQOverP] = 1 / 3_GeV;
   m_cov = ipStdDev.cwiseProduct(ipStdDev).asDiagonal();
 
   m_layerDipoleDistance = (m_cfg.layerPosition - m_cfg.dipolePosition);
@@ -60,8 +60,7 @@ E320DipoleTrackLookupProvider::lookup(const Acts::GeometryContext& gctx,
 
   Acts::Vector3 surfCenter = m_cfg.referenceSurface->center(gctx);
   Acts::CurvilinearTrackParameters ipPars(
-      Acts::Vector4(surfCenter.x(), surfCenter.y() - 0.1_mm, surfCenter.z(), 0),
-      Acts::Vector3(0, 1, 0), 1_e / P, m_cov,
+      Acts::Vector4(0, -842_mm, 0, 0), Acts::Vector3(0, 1, 0), 1_e / P, m_cov,
       Acts::ParticleHypothesis::electron());
   Acts::CurvilinearTrackParameters refPars(
       Acts::Vector4(globalPos.x(), globalPos.y(), globalPos.z(), 0),

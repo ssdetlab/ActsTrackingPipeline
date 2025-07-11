@@ -54,6 +54,7 @@ std::unique_ptr<Acts::Experimental::Blueprint::Node> makeBlueprintE320(
     // the selection has to happen along the y-axis
     auto layerBuilder = makeLayerBuilder(world, gOpt.g4ToWorld, names,
                                          {zBounds}, {Acts::BinningValue::binY});
+                                         // {zBounds}, {Acts::BinningValue::binZ});
 
     auto detElementBuilder =
         std::make_shared<AlignableDetectorElementBuilder>();
@@ -104,6 +105,7 @@ std::unique_ptr<Acts::Experimental::Blueprint::Node> makeBlueprintE320(
   auto pdcWindowLayerBuilder =
       makeLayerBuilder(world, gOpt.g4ToWorld, names, {pdcWindowZBounds},
                        {Acts::BinningValue::binY}, true);
+                       // {Acts::BinningValue::binZ}, true);
 
   Acts::Transform3 pdcWindowTransform = Acts::Transform3::Identity();
   pdcWindowTransform.rotate(gOpt.actsToWorld.rotation().inverse());

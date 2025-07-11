@@ -77,6 +77,7 @@ void E320GeometryIdGenerator::assignGeometryId(
     for (auto [id, z] : m_cfg.gOpt.staveZ) {
       // These are already rotated surfaces
       if (std::abs(center.y() - z) < 1e-1) {
+      // if (std::abs(center.z() - z) < 1e-1) {
         chipId = id;
         break;
       }

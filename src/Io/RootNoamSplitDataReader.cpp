@@ -3,6 +3,7 @@
 #include <Acts/Definitions/Algebra.hpp>
 
 #include <cstddef>
+#include <iterator>
 #include <random>
 
 #include <RtypesCore.h>
@@ -181,6 +182,8 @@ ProcessCode E320Io::RootNoamSplitDataReader::read(
   for (auto entry = std::get<1>(*it); entry < std::get<2>(*it); entry++) {
     m_chain->GetEntry(entry);
 
+    std::cout << "-------------------------------------\n";
+    std::cout << "TRG N " << m_detEvent->trg_n << "\n";
     for (const auto& staveEv : m_detEvent->st_ev_buffer) {
       for (const auto& chipEv : staveEv.ch_ev_buffer) {
         // Apply the Geometry ID convention
@@ -193,13 +196,40 @@ ProcessCode E320Io::RootNoamSplitDataReader::read(
           hits.insert({pix.ix, pix.iy});
         }
 
+        std::cout << "GEOID " << geoId << "\n";
+        for (std::size_t i = 0; i < chipEv.cls0.size(); i++) {
+          std::cout << std::setprecision(7) << "CLS0: " << chipEv.cls0.at(i).x()
+                    << ", " << chipEv.cls0.at(i).y() << ", "
+                    << chipEv.cls0.at(i).z() << "\n";
+          std::cout << std::setprecision(7) << "CLS1: " << chipEv.cls1.at(i).x()
+                    << ", " << chipEv.cls1.at(i).y() << ", "
+                    << chipEv.cls1.at(i).z() << "\n";
+          std::cout << "DIFF01 "
+                    << chipEv.cls0.at(i).x() - chipEv.cls1.at(i).x() << ", "
+                    << chipEv.cls0.at(i).y() - chipEv.cls1.at(i).y() << ", "
+                    << chipEv.cls0.at(i).z() - chipEv.cls1.at(i).z() << "\n";
+
+          std::cout << std::setprecision(7) << "CLS2: " << chipEv.cls2.at(i).x()
+                    << ", " << chipEv.cls2.at(i).y() << ", "
+                    << chipEv.cls2.at(i).z() << "\n";
+          std::cout << std::setprecision(7) << "CLS3: " << chipEv.cls3.at(i).x()
+                    << ", " << chipEv.cls3.at(i).y() << ", "
+                    << chipEv.cls3.at(i).z() << "\n";
+          std::cout << "DIFF23 "
+                    << chipEv.cls2.at(i).x() - chipEv.cls3.at(i).x() << ", "
+                    << chipEv.cls2.at(i).y() - chipEv.cls3.at(i).y() << ", "
+                    << chipEv.cls2.at(i).z() - chipEv.cls3.at(i).z() << "\n";
+        }
+
         std::set<E320Io::ChipEvent::Cluster> outHits;
         auto clusters = getClusters(hits);
         for (auto& [hitX, hitY, sizeX, sizeY, size] : clusters) {
+          std::cout << "HITXY: " << hitX << ", " << hitY << "\n";
           // Convert cluster center to mm
           double xPix = (hitX + 0.5) * m_gOpt.pixelSizeY;
           double yPix = (hitY + 0.5) * m_gOpt.pixelSizeX;
 
+          std::cout << "HITXYmm " << xPix << ", " << yPix << "\n";
           // PI rotation
           xPix *= -1;
           yPix *= -1;
@@ -209,6 +239,7 @@ ProcessCode E320Io::RootNoamSplitDataReader::read(
           double yPixLoc = yPix + m_gOpt.chipSizeX / 2;
 
           Acts::Vector2 hitLoc{xPixLoc, yPixLoc};
+          std::cout << "HITXYmm LOC " << hitLoc.transpose() << "\n";
 
           // Estimate error from the cluster size
           double errX = m_gOpt.pixelSizeY / std::sqrt(12 * size);
@@ -219,11 +250,24 @@ ProcessCode E320Io::RootNoamSplitDataReader::read(
 
           // Fill the measurement
           SimpleSourceLink ssl(hitLoc, cov, geoId, eventId, sourceLinks.size());
+
+          Acts::Vector3 hitGlob =
+              m_cfg.surfaceAccessor(Acts::SourceLink(ssl))
+                  ->localToGlobal(context.geoContext, hitLoc,
+                                  Acts::Vector3::UnitY());
+          std::cout << "HITXYmm GLOB: " << hitGlob.transpose() << "\n";
+
           sourceLinks.push_back(Acts::SourceLink(ssl));
         }
       }
     }
   }
+  // if (sourceLinks.size() != 5) {
+  //   m_outputSourceLinks(context, {});
+
+  //   // Return success flag
+  //   return ProcessCode::SUCCESS;
+  // }
 
   m_outputSourceLinks(context, std::move(sourceLinks));
 

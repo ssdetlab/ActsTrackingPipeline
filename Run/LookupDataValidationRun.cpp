@@ -12,6 +12,7 @@
 #include "TrackingPipeline/MagneticField/CompositeMagField.hpp"
 #include "TrackingPipeline/MagneticField/ConstantBoundedField.hpp"
 #include "TrackingPipeline/MagneticField/DipoleMagField.hpp"
+#include "TrackingPipeline/MagneticField/IdealQuadrupoleMagField.hpp"
 #include "TrackingPipeline/MagneticField/QuadrupoleMagField.hpp"
 #include "TrackingPipeline/Simulation/BremsstrahlungMomentumGenerator.hpp"
 #include "TrackingPipeline/Simulation/GaussianVertexGenerator.hpp"
@@ -130,18 +131,32 @@ int main() {
       gOpt.xCorrectorTranslation.z() - gOpt.xCorrectorBounds[2],
       gOpt.xCorrectorTranslation.z() + gOpt.xCorrectorBounds[2]);
 
+  // IdealQuadrupoleMagField quad1Field(
+  //     gOpt.quadrupolesParams[0],
+  //     gOpt.actsToWorldRotation.inverse() * gOpt.quad1Translation,
+  //     gOpt.actsToWorldRotation);
+  // IdealQuadrupoleMagField quad2Field(
+  //     gOpt.quadrupolesParams[1],
+  //     gOpt.actsToWorldRotation.inverse() * gOpt.quad2Translation,
+  //     gOpt.actsToWorldRotation);
+  // IdealQuadrupoleMagField quad3Field(
+  //     gOpt.quadrupolesParams[2],
+  //     gOpt.actsToWorldRotation.inverse() * gOpt.quad3Translation,
+  //     gOpt.actsToWorldRotation);
+
+  double quadLength = 486.664_mm * 2;
   QuadrupoleMagField quad1Field(
       gOpt.quadrupolesParams[0],
       gOpt.actsToWorldRotation.inverse() * gOpt.quad1Translation,
-      gOpt.actsToWorldRotation);
+      gOpt.actsToWorldRotation, quadLength, 5);
   QuadrupoleMagField quad2Field(
       gOpt.quadrupolesParams[1],
       gOpt.actsToWorldRotation.inverse() * gOpt.quad2Translation,
-      gOpt.actsToWorldRotation);
+      gOpt.actsToWorldRotation, quadLength, 5);
   QuadrupoleMagField quad3Field(
       gOpt.quadrupolesParams[2],
       gOpt.actsToWorldRotation.inverse() * gOpt.quad3Translation,
-      gOpt.actsToWorldRotation);
+      gOpt.actsToWorldRotation, quadLength, 5);
 
   double dipoleB = 0.2192_T;
   DipoleMagField dipoleField(
@@ -163,13 +178,13 @@ int main() {
   auto aStore =
       std::make_shared<std::map<Acts::GeometryIdentifier, Acts::Transform3>>();
 
-  double detectorTilt = -0.00297;
+  double detectorTilt = 0.0;
   std::map<int, Acts::Vector3> shifts{
-      {8, Acts::Vector3(-11.1_mm, -0.75_mm, 0_mm)},
-      {6, Acts::Vector3(-11.1_mm, -0.75_mm, 0_mm)},
-      {4, Acts::Vector3(-11.1_mm, -0.75_mm, 0_mm)},
-      {2, Acts::Vector3(-11.1_mm, -0.75_mm, 0_mm)},
-      {0, Acts::Vector3(-11.1_mm, -0.75_mm, 0_mm)}};
+      {8, Acts::Vector3(-10.0_mm, 0_mm, -0.75_mm)},
+      {6, Acts::Vector3(-10.0_mm, 0_mm, -0.75_mm)},
+      {4, Acts::Vector3(-10.0_mm, 0_mm, -0.75_mm)},
+      {2, Acts::Vector3(-10.0_mm, 0_mm, -0.75_mm)},
+      {0, Acts::Vector3(-10.0_mm, 0_mm, -0.75_mm)}};
 
   for (auto& v : detector->volumes()) {
     for (auto& s : v->surfaces()) {
@@ -276,13 +291,13 @@ int main() {
 
   // Vertex generator
   auto vertexGen = std::make_shared<GaussianVertexGenerator>(
-      Acts::Vector3(0, gOpt.beWindowTranslation[2], 0),
+      Acts::Vector3(100_um, gOpt.beWindowTranslation[2], 0),
       75_um * 75_um * Acts::SquareMatrix3::Identity());
 
   // Momentum generator
   auto momGen = std::make_shared<BremsstrahlungMomentumGenerator>(
       Acts::Vector3(0, 0, 0),
-      0.3_MeV * 0.3_MeV * Acts::SquareMatrix3::Identity());
+      3.0_MeV * 3.0_MeV * Acts::SquareMatrix3::Identity());
 
   // Measurement creator
   MeasurementsCreator::Config measCreatorCfg;
@@ -330,6 +345,7 @@ int main() {
   lookupProviderCfg.correctorSize = 0.23368;
 
   lookupProviderCfg.layerPosition = gOpt.staveZ.at(8);
+  lookupProviderCfg.detectorYZTilt = detectorTilt;
   lookupProviderCfg.referenceSurface = refLayers.begin()->second;
   E320DipoleTrackLookupProvider lookupProvider(lookupProviderCfg);
 
@@ -350,7 +366,7 @@ int main() {
   validationWriterCfg.inputIpParsEst = "ipParsEst";
   validationWriterCfg.inputRefLayerPars = "refPars";
   validationWriterCfg.inputRefLayerParsEst = "refParsEst";
-  validationWriterCfg.path = "lookup-validation.root";
+  validationWriterCfg.path = "lookup-validation-real-quad-5.root";
   validationWriterCfg.treeName = "validation";
 
   sequencer.addWriter(std::make_shared<RootTrackLookupValidationWriter>(

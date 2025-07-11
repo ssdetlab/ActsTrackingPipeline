@@ -33,11 +33,12 @@
 #include "TrackingPipeline/Io/RootNoamSplitDataReader.hpp"
 #include "TrackingPipeline/Io/RootSeedWriter.hpp"
 #include "TrackingPipeline/Io/RootTrackCandidateWriter.hpp"
+#include "TrackingPipeline/Io/RootTrackReader.hpp"
 #include "TrackingPipeline/Io/RootTrackWriter.hpp"
 #include "TrackingPipeline/MagneticField/CompositeMagField.hpp"
 #include "TrackingPipeline/MagneticField/ConstantBoundedField.hpp"
 #include "TrackingPipeline/MagneticField/DipoleMagField.hpp"
-#include "TrackingPipeline/MagneticField/QuadrupoleMagField.hpp"
+#include "TrackingPipeline/MagneticField/IdealQuadrupoleMagField.hpp"
 #include "TrackingPipeline/TrackFinding/CKFTrackFindingAlgorithm.hpp"
 #include "TrackingPipeline/TrackFinding/DipoleTrackLookupProvider.hpp"
 #include "TrackingPipeline/TrackFinding/E320SourceLinkGridConstructor.hpp"
@@ -168,15 +169,15 @@ int main() {
       gOpt.xCorrectorTranslation.z() - gOpt.xCorrectorBounds[2],
       gOpt.xCorrectorTranslation.z() + gOpt.xCorrectorBounds[2]);
 
-  QuadrupoleMagField quad1Field(
+  IdealQuadrupoleMagField quad1Field(
       gOpt.quadrupolesParams[0],
       gOpt.actsToWorldRotation.inverse() * gOpt.quad1Translation,
       gOpt.actsToWorldRotation);
-  QuadrupoleMagField quad2Field(
+  IdealQuadrupoleMagField quad2Field(
       gOpt.quadrupolesParams[1],
       gOpt.actsToWorldRotation.inverse() * gOpt.quad2Translation,
       gOpt.actsToWorldRotation);
-  QuadrupoleMagField quad3Field(
+  IdealQuadrupoleMagField quad3Field(
       gOpt.quadrupolesParams[2],
       gOpt.actsToWorldRotation.inverse() * gOpt.quad3Translation,
       gOpt.actsToWorldRotation);
@@ -201,35 +202,47 @@ int main() {
   auto aStore =
       std::make_shared<std::map<Acts::GeometryIdentifier, Acts::Transform3>>();
 
-  double detectorTilt = 0.0036;
-  std::map<int, Acts::Vector3> shifts{{8, Acts::Vector3(-9.2_mm, 0, -1.5_mm)},
-                                      {6, Acts::Vector3(-9.2_mm, 0, -1.5_mm)},
-                                      {4, Acts::Vector3(-9.2_mm, 0, -1.5_mm)},
-                                      {2, Acts::Vector3(-9.2_mm, 0, -1.5_mm)},
-                                      {0, Acts::Vector3(-9.2_mm, 0, -1.5_mm)}};
+  double detectorTilt = 0.0;
+  std::map<int, Acts::Vector3> shifts{
+      {8, Acts::Vector3(-11.10528_mm + 0.00_um, 0_mm, -(0.7354_mm + 0.00_um))},
+      {6, Acts::Vector3(-11.10528_mm - 1.93_um, 0_mm, -(0.7354_mm + 16.5_um))},
+      {4, Acts::Vector3(-11.10528_mm + 41.8_um, 0_mm, -(0.7354_mm - 63.3_um))},
+      {2, Acts::Vector3(-11.10528_mm + 74.6_um, 0_mm, -(0.7354_mm - 69.5_um))},
+      {0, Acts::Vector3(-11.10528_mm - 17.6_um, 0_mm, -(0.7354_mm + 27.5_um))}};
+  std::map<int, double> rots{{8, 0_rad},
+                             {6, -1.73e-3_rad},
+                             {4, 1.46e-3_rad},
+                             {2, -1.49e-3_rad},
+                             {0, 5.16e-4_rad}};
+
   // Alignment provider
   auto alignmentProviderCfg = AlignmentParametersProvider::Config();
 
   alignmentProviderCfg.treeName = "alignment-results";
   alignmentProviderCfg.filePath =
       "/home/romanurmanov/lab/LUXE/acts_tracking/E320Prototype/"
-      "E320Prototype_analysis/noam_split/refine_4_align_iters/"
-      "alignment_run/alignment-results_-9.200000_-1.500000_0.003600.root";
+      "E320Prototype_analysis/noam_split/temp/alignment_15/"
+      "alignment-results.root";
 
-  AlignmentParametersProvider alignmentProvider(alignmentProviderCfg);
+  // AlignmentParametersProvider alignmentProvider(alignmentProviderCfg);
   for (auto& v : detector->volumes()) {
     for (auto& s : v->surfaces()) {
-      if (s->geometryId().sensitive() && s->geometryId().sensitive() != 9) {
-        Acts::Transform3 nominal = s->transform(Acts::GeometryContext());
-        const auto [shift, rot] =
-            alignmentProvider.getAlignedTransform(s->geometryId());
-        nominal.pretranslate(shift);
-        nominal.rotate(rot);
-        aStore->emplace(s->geometryId(), nominal);
-      } else if (s->geometryId().sensitive() == 9) {
-        // if (s->geometryId().sensitive()) {
+      // if (s->geometryId().sensitive() && s->geometryId().sensitive() != 9 &&
+      //     s->geometryId().sensitive() != 1) {
+      //   Acts::Transform3 nominal = s->transform(Acts::GeometryContext());
+      //   const auto [shift, rot] =
+      //       alignmentProvider.getAlignedTransform(s->geometryId());
+      //   nominal.pretranslate(shifts.at(s->geometryId().sensitive() - 1));
+      //   nominal.pretranslate(shift);
+      //   nominal.rotate(rot);
+      //   aStore->emplace(s->geometryId(), nominal);
+      // } else if (s->geometryId().sensitive() == 9 ||
+      //            s->geometryId().sensitive() == 1) {
+      if (s->geometryId().sensitive()) {
         Acts::Transform3 nominal = s->transform(Acts::GeometryContext());
         nominal.pretranslate(shifts.at(s->geometryId().sensitive() - 1));
+        nominal.rotate(Acts::AngleAxis3(
+            rots.at(s->geometryId().sensitive() - 1), Acts::Vector3::UnitZ()));
         aStore->emplace(s->geometryId(), nominal);
       }
     }
@@ -242,8 +255,9 @@ int main() {
   Acts::Vector3 detectorCenter = detector->findSurface(midGeoId)->center(gctx);
   for (auto& v : detector->volumes()) {
     for (auto& s : v->surfaces()) {
-      // if (s->geometryId().sensitive()) {
-      if (s->geometryId().sensitive() == 9) {
+      if (s->geometryId().sensitive()) {
+        // if (s->geometryId().sensitive() == 9 ||
+        //     s->geometryId().sensitive() == 1) {
         Acts::Transform3 nominal = aStore->at(s->geometryId());
         nominal.pretranslate(-detectorCenter);
         nominal.prerotate(Acts::AngleAxis3(detectorTilt, Acts::Vector3::UnitX())
@@ -290,7 +304,7 @@ int main() {
 
   // Setup the sequencer
   Sequencer::Config seqCfg;
-  // seqCfg.events = 1e0;
+  // seqCfg.events = 1e1;
   // seqCfg.skip = 1;
   seqCfg.numThreads = 1;
   seqCfg.trackFpes = false;
@@ -309,20 +323,7 @@ int main() {
   std::string pathToDir =
       "/home/romanurmanov/lab/LUXE/acts_tracking/E320Prototype/"
       "E320Prototype_dataInRootFormat/"
-      "E320Shift_Nov_2024/noam_split";
-
-  // // Add the sim data reader
-  // E320Io::E320RootDataReader::Config readerCfg;
-  // readerCfg.treeName = "MyTree";
-  // readerCfg.dataFilter = nullptr;
-  // readerCfg.outputSourceLinks = "Measurements";
-  // readerCfg.surfaceAccessor
-  //     .connect<&SimpleSourceLink::SurfaceAccessor::operator()>(
-  //         &surfaceAccessor);
-  // std::string pathToDir =
-  //     "/home/romanurmanov/lab/LUXE/acts_tracking/E320Prototype/"
-  //     "E320Prototype_dataInRootFormat/"
-  //     "E320Shift_Nov_2024/filtered/test";
+      "E320Shift_Nov_2024/noam_split/test";
 
   // Get the paths to the files in the directory
   for (const auto& entry : std::filesystem::directory_iterator(pathToDir)) {
@@ -334,6 +335,8 @@ int main() {
   }
 
   // Add the reader to the sequencer
+  // sequencer.addReader(std::make_shared<RootTrackReader>(readerCfg,
+  // logLevel));
   sequencer.addReader(
       std::make_shared<E320Io::RootNoamSplitDataReader>(readerCfg, logLevel));
 
@@ -388,7 +391,7 @@ int main() {
   }
 
   E320SourceLinkGridConstructor::Config gridConstructorCfg{
-      .bins = std::make_pair(150, 125), .layers = layerMap};
+      .bins = std::make_pair(250, 125), .layers = layerMap};
   gridConstructorCfg.surfaceAccessor
       .connect<&SimpleSourceLink::SurfaceAccessor::operator()>(
           &surfaceAccessor);
@@ -527,7 +530,7 @@ int main() {
 
   auto propOptions = PropagatorOptions(gctx, mctx);
 
-  propOptions.maxSteps = 1000;
+  propOptions.maxSteps = 1e5;
 
   auto options =
       Acts::KalmanFitterOptions(gctx, mctx, cctx, extensions, propOptions);
@@ -536,7 +539,9 @@ int main() {
   double halfX = std::numeric_limits<double>::max();
   double halfY = std::numeric_limits<double>::max();
 
+  // double refZ = 13060.6_mm + 914_mm / 2;
   double refZ = gOpt.beWindowTranslation[2];
+  // double refZ = gOpt.staveZ.at(8) - 0.1_mm;
   Acts::Transform3 transform(Acts::Translation3(Acts::Vector3(0, refZ, 0)) *
                              gOpt.actsToWorldRotation.inverse());
 
@@ -588,8 +593,8 @@ int main() {
   clusterWriterCfg.inputMeasurements = "Measurements";
   clusterWriterCfg.treeName = "clusters";
   clusterWriterCfg.filePath =
-      "/home/romanurmanov/lab/LUXE/acts_tracking/E320Prototype/"
-      "E320Prototype_analysis/data/noam_split/clusters-data.root";
+      "/home/romanurmanov/lab/LUXE/acts_tracking/TrackingPipeline_build/"
+      "clusters-data.root";
 
   sequencer.addWriter(
       std::make_shared<RootMeasurementWriter>(clusterWriterCfg, logLevel));
@@ -600,8 +605,8 @@ int main() {
   seedWriterCfg.inputSeeds = "PathSeeds";
   seedWriterCfg.treeName = "seeds";
   seedWriterCfg.filePath =
-      "/home/romanurmanov/lab/LUXE/acts_tracking/E320Prototype/"
-      "E320Prototype_analysis/data/noam_split/seeds-data.root";
+      "/home/romanurmanov/lab/LUXE/acts_tracking/TrackingPipeline_build/"
+      "seeds-data.root";
 
   seedWriterCfg.surfaceAccessor
       .connect<&SimpleSourceLink::SurfaceAccessor::operator()>(
@@ -619,8 +624,8 @@ int main() {
   trackCandidateWriterCfg.inputTrackCandidates = "CandidatesTrackView";
   trackCandidateWriterCfg.treeName = "track-candidates";
   trackCandidateWriterCfg.filePath =
-      "/home/romanurmanov/lab/LUXE/acts_tracking/E320Prototype/"
-      "E320Prototype_analysis/data/noam_split/track-candidates-data.root";
+      "/home/romanurmanov/lab/LUXE/acts_tracking/TrackingPipeline_build/"
+      "track-candidates-data.root";
 
   sequencer.addWriter(std::make_shared<RootTrackCandidateWriter>(
       trackCandidateWriterCfg, logLevel));
@@ -634,8 +639,8 @@ int main() {
   trackWriterCfg.inputTracks = "Tracks";
   trackWriterCfg.treeName = "fitted-tracks";
   trackWriterCfg.filePath =
-      "/home/romanurmanov/lab/LUXE/acts_tracking/E320Prototype/"
-      "E320Prototype_analysis/data/noam_split/fitted-tracks-data.root";
+      "/home/romanurmanov/lab/LUXE/acts_tracking/TrackingPipeline_build/"
+      "fitted-tracks-data.root";
 
   sequencer.addWriter(
       std::make_shared<RootTrackWriter>(trackWriterCfg, logLevel));

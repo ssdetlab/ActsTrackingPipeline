@@ -11,6 +11,7 @@
 #include "AlpideRegisters.h"
 #include "EpicsFrame.h"
 #include "MosaicRegisters.h"
+#include "TVector3.h"
 
 struct pixel {
   Int_t ix;
@@ -20,6 +21,10 @@ struct pixel {
 struct chip {
   Int_t chip_id;
   std::vector<pixel> hits;
+  std::vector<TVector3> cls0;
+  std::vector<TVector3> cls1;
+  std::vector<TVector3> cls2;
+  std::vector<TVector3> cls3;
 };
 
 struct stave {
