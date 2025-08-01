@@ -7,7 +7,9 @@ ProcessCode CKFTrackFindingAlgorithm::execute(
     const AlgorithmContext& ctx) const {
   // Get the input seeds
   // from the context
-  auto input = m_inputSeeds(ctx);
+  auto inputSeeds = m_inputSeeds(ctx);
+
+  ACTS_DEBUG("Received " << inputSeeds.size() << " seeds");
 
   auto options = CKFOptions(
       ctx.geoContext, ctx.magFieldContext, ctx.calibContext,
@@ -24,9 +26,15 @@ ProcessCode CKFTrackFindingAlgorithm::execute(
   auto trajectory = std::make_shared<Acts::VectorMultiTrajectory>();
   Acts::TrackContainer candidateContainer{container, trajectory};
 
+  std::vector<int> trackIds;
+  trackIds.reserve(inputSeeds.size());
+
+  std::vector<Acts::CurvilinearTrackParameters> ipParametersGuesses;
+  ipParametersGuesses.reserve(inputSeeds.size());
+
   Seeds trackCandidates;
   std::size_t idx = 0;
-  for (const auto& seed : input) {
+  for (const auto& seed : inputSeeds) {
     SimpleSourceLinkContainer ckfSourceLinks;
     for (auto& sl : seed.sourceLinks) {
       auto ssl = sl.get<SimpleSourceLink>();
@@ -66,8 +74,10 @@ ProcessCode CKFTrackFindingAlgorithm::execute(
     idx = candidateContainer.size();
   }
 
+  ACTS_DEBUG("Sending " << trackCandidates.size() << " track candidates");
   m_outputTrackCandidates(ctx, std::move(trackCandidates));
-  m_outputTrackView(ctx, std::move(candidateContainer));
+  m_outputTrackView(ctx,
+                    Tracks{candidateContainer, trackIds, ipParametersGuesses});
 
   return ProcessCode::SUCCESS;
 }

@@ -88,7 +88,7 @@ ProcessCode RootSimDataReader::read(const AlgorithmContext& context) {
   auto it = std::ranges::find_if(m_eventMap, [&](const auto& a) {
     return std::get<0>(a) == context.eventNumber;
   });
-  
+
   if (it == m_eventMap.end()) {
     // explicitly warn if it happens for the first or last event as that might
     // indicate a human error

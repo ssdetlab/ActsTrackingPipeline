@@ -1,12 +1,11 @@
 #include "TrackingPipeline/Io/RootTrackWriter.hpp"
 
-#include <algorithm>
-#include <ranges>
+#include <Acts/Definitions/Algebra.hpp>
 
 #include "TrackingPipeline/EventData/SimpleSourceLink.hpp"
 
 RootTrackWriter::RootTrackWriter(const Config& config,
-                                                   Acts::Logging::Level level)
+                                 Acts::Logging::Level level)
     : m_cfg(config), m_logger(Acts::getDefaultLogger(name(), level)) {
   if (m_cfg.filePath.empty()) {
     throw std::invalid_argument("Missing filename");
@@ -24,14 +23,28 @@ RootTrackWriter::RootTrackWriter(const Config& config,
   int split_lvl = 0;
 
   // Measurement hits
-  m_tree->Branch("trackHits", &m_trackHits, buf_size, split_lvl);
+  m_tree->Branch("trackHitsGlobal", &m_trackHitsGlobal, buf_size, split_lvl);
+  m_tree->Branch("trackHitsLocal", &m_trackHitsLocal, buf_size, split_lvl);
+
+  // Covariances of the track hits
+  m_tree->Branch("trackHitsCovs", &m_trackHitCovs, buf_size, split_lvl);
+
+  // Geometry ids of the track hits
+  m_tree->Branch("geometryIds", &m_geometryIds, buf_size, split_lvl);
 
   // KF predicted track hits
-  m_tree->Branch("predictedTrackHits", &m_predictedTrackHits, buf_size,
+  m_tree->Branch("predictedTrackHitsGlobal", &m_predictedTrackHitsGlobal,
+                 buf_size, split_lvl);
+  m_tree->Branch("filteredTrackHitsGlobal", &m_filteredTrackHitsGlobal,
+                 buf_size, split_lvl);
+  m_tree->Branch("smoothedTrackHitsGlobal", &m_smoothedTrackHitsGlobal,
+                 buf_size, split_lvl);
+
+  m_tree->Branch("predictedTrackHitsLocal", &m_predictedTrackHitsLocal,
+                 buf_size, split_lvl);
+  m_tree->Branch("filteredTrackHitsLocal", &m_filteredTrackHitsLocal, buf_size,
                  split_lvl);
-  m_tree->Branch("filteredTrackHits", &m_filteredTrackHits, buf_size,
-                 split_lvl);
-  m_tree->Branch("smoothedTrackHits", &m_smoothedTrackHits, buf_size,
+  m_tree->Branch("smoothedTrackHitsLocal", &m_smoothedTrackHitsLocal, buf_size,
                  split_lvl);
 
   // KF residuals with respect to the measurements
@@ -47,10 +60,14 @@ RootTrackWriter::RootTrackWriter(const Config& config,
   m_tree->Branch("filteredPulls", &m_filteredPulls, buf_size, split_lvl);
   m_tree->Branch("smoothedPulls", &m_smoothedPulls, buf_size, split_lvl);
 
+  // Initial guess of the momentum at the IP
+  m_tree->Branch("ipMomentumGuess", &m_ipMomentumGuess);
+  m_tree->Branch("vertexGuess", &m_vertexGuess);
+
   // KF predicted momentum at the IP
-  m_tree->Branch("ipMomentum", &m_ipMomentum);
+  m_tree->Branch("ipMomentumEst", &m_ipMomentumEst);
   m_tree->Branch("ipMomentumError", &m_ipMomentumError);
-  m_tree->Branch("vertex", &m_vertex);
+  m_tree->Branch("vertexEst", &m_vertexEst);
   m_tree->Branch("vertexError", &m_vertexError);
 
   // Chi2 and ndf of the fitted track
@@ -60,10 +77,16 @@ RootTrackWriter::RootTrackWriter(const Config& config,
   m_tree->Branch("ndf", &m_ndf, "ndf/I");
 
   // Track ID
-  m_tree->Branch("trackId", &m_trackId, "trackId/I");
+  m_tree->Branch("trackId", &m_trackId, buf_size, split_lvl);
 
   // Event ID
   m_tree->Branch("eventId", &m_eventId, "eventId/I");
+
+  // PDG ID
+  m_tree->Branch("pdgId", &m_pdgId, "pdgId/I");
+
+  // Charge
+  m_tree->Branch("charge", &m_charge, "charge/I");
 
   //------------------------------------------------------------------
   // Initialize the data handles
@@ -74,7 +97,6 @@ ProcessCode RootTrackWriter::finalize() {
   if (m_file) {
     m_file->Write();
     m_file->Close();
-    delete m_file;
   }
   return ProcessCode::SUCCESS;
 }
@@ -87,15 +109,42 @@ ProcessCode RootTrackWriter::write(const AlgorithmContext& ctx) {
   m_eventId = ctx.eventNumber;
 
   // Iterate over the fitted tracks
-  for (std::size_t tid = 0; tid < inputTracks.size(); tid++) {
+  for (std::size_t tid = 0; tid < inputTracks.tracks.size(); tid++) {
     // Get the track object and the track id
-    const auto& track = inputTracks.getTrack(tid);
+    const auto& track = inputTracks.tracks.getTrack(tid);
+
+    // Get PDG id
+    m_pdgId = inputTracks.ipParametersGuesses.at(tid)
+                  .particleHypothesis()
+                  .absolutePdg();
+
+    // Get charge
+    m_charge = inputTracks.ipParametersGuesses.at(tid).charge();
+
+    // Guess momentum used for the KF fit
+    m_ipMomentumGuess.SetPxPyPzE(
+        inputTracks.ipParametersGuesses.at(tid).momentum().x(),
+        inputTracks.ipParametersGuesses.at(tid).momentum().y(),
+        inputTracks.ipParametersGuesses.at(tid).momentum().z(),
+        std::hypot(inputTracks.ipParametersGuesses.at(tid).momentum().norm(),
+                   inputTracks.ipParametersGuesses.at(tid)
+                       .particleHypothesis()
+                       .mass()));
+
+    // Guess vertex used for the KF fit
+    m_vertexGuess =
+        TVector3(inputTracks.ipParametersGuesses.at(tid).position().x(),
+                 inputTracks.ipParametersGuesses.at(tid).position().y(),
+                 inputTracks.ipParametersGuesses.at(tid).position().z());
 
     // KF predicted momentum at the IP
-    double me = 0.511 * Acts::UnitConstants::MeV;
     Acts::Vector3 pVec = track.momentum();
     double pMag = pVec.norm();
-    m_ipMomentum.SetPxPyPzE(pVec.x(), pVec.y(), pVec.z(), std::hypot(pMag, me));
+    m_ipMomentumEst.SetPxPyPzE(
+        pVec.x(), pVec.y(), pVec.z(),
+        std::hypot(pMag, inputTracks.ipParametersGuesses.at(tid)
+                             .particleHypothesis()
+                             .mass()));
 
     // KF predicted IP momentum error
     m_ipMomentumError =
@@ -103,8 +152,10 @@ ProcessCode RootTrackWriter::write(const AlgorithmContext& ctx) {
                  std::sqrt(track.covariance().diagonal().head<4>()[3]), 0);
 
     // KF predicted vertex position
-    Acts::Vector3 vertex = {track.loc0(), 0, -track.loc1()};
-    m_vertex = TVector3(vertex.x(), vertex.y(), vertex.z());
+    Acts::Vector3 vertex = track.referenceSurface().localToGlobal(
+        ctx.geoContext, Acts::Vector2{track.loc0(), track.loc1()},
+        Acts::Vector3::UnitY());
+    m_vertexEst = TVector3(vertex.x(), vertex.y(), vertex.z());
 
     // KF predicted vertex error
     Acts::Vector3 vertexError = {
@@ -112,24 +163,67 @@ ProcessCode RootTrackWriter::write(const AlgorithmContext& ctx) {
         std::sqrt(track.covariance().diagonal().head<2>()[1])};
     m_vertexError = TVector3(vertexError.x(), vertexError.y(), vertexError.z());
 
+    std::size_t nStates = track.nTrackStates();
+
+    // Covariances of the track hits
+    std::vector<TMatrixD> trackHitCovs;
+    trackHitCovs.reserve(nStates);
+
+    // Track hits gometry identifiers
+    std::vector<int> geometryIds;
+    geometryIds.reserve(nStates);
+
     // Track hits from the measurements
-    std::vector<TVector3> trackHits;
+    std::vector<TVector3> trackHitsGlobal;
+    trackHitsGlobal.reserve(nStates);
+
+    std::vector<TVector2> trackHitsLocal;
+    trackHitsLocal.reserve(nStates);
 
     // KF predicted track hits
-    std::vector<TVector3> predictedTrackHits;
-    std::vector<TVector3> filteredTrackHits;
-    std::vector<TVector3> smoothedTrackHits;
+    std::vector<TVector3> predictedTrackHitsGlobal;
+    predictedTrackHitsGlobal.reserve(nStates);
+
+    std::vector<TVector3> filteredTrackHitsGlobal;
+    filteredTrackHitsGlobal.reserve(nStates);
+
+    std::vector<TVector3> smoothedTrackHitsGlobal;
+    smoothedTrackHitsGlobal.reserve(nStates);
+
+    std::vector<TVector2> predictedTrackHitsLocal;
+    predictedTrackHitsLocal.reserve(nStates);
+
+    std::vector<TVector2> filteredTrackHitsLocal;
+    filteredTrackHitsLocal.reserve(nStates);
+
+    std::vector<TVector2> smoothedTrackHitsLocal;
+    smoothedTrackHitsLocal.reserve(nStates);
 
     // KF residuals with respect to the measurements
-    std::vector<TVector3> predictedResiduals;
-    std::vector<TVector3> filteredResiduals;
-    std::vector<TVector3> smoothedResiduals;
+    std::vector<TVector2> predictedResiduals;
+    predictedResiduals.reserve(nStates);
+
+    std::vector<TVector2> filteredResiduals;
+    filteredResiduals.reserve(nStates);
+
+    std::vector<TVector2> smoothedResiduals;
+    smoothedResiduals.reserve(nStates);
 
     // KF pulls with respect to the measurements
-    std::vector<TVector3> predictedPulls;
-    std::vector<TVector3> filteredPulls;
-    std::vector<TVector3> smoothedPulls;
+    std::vector<TVector2> predictedPulls;
+    predictedPulls.reserve(nStates);
 
+    std::vector<TVector2> filteredPulls;
+    filteredPulls.reserve(nStates);
+
+    std::vector<TVector2> smoothedPulls;
+    smoothedPulls.reserve(nStates);
+
+    // Track ids
+    std::vector<int> trackIds;
+    trackIds.reserve(nStates);
+
+    // Chi2 at different states
     double chi2Predicted = 0;
     double chi2Filtered = 0;
     double chi2Smoothed = 0;
@@ -140,115 +234,188 @@ ProcessCode RootTrackWriter::write(const AlgorithmContext& ctx) {
       if (!state.hasProjector()) {
         continue;
       }
+      if (!state.hasUncalibratedSourceLink()) {
+        continue;
+      }
 
       // Get the measurements source link
       auto sl = state.getUncalibratedSourceLink();
       auto ssl = sl.get<SimpleSourceLink>();
 
+      geometryIds.push_back(ssl.geometryId().sensitive());
+      TArrayD data(4);
+      TMatrixD cov(2, 2);
+      for (std::size_t i = 0; i < 4; i++) {
+        data[i] = ssl.covariance()(i);
+      }
+      cov.Use(2, 2, data.GetArray());
+      trackHitCovs.push_back(cov);
+
+      trackIds.push_back(inputTracks.trackIds.at(tid));
+
+      // ---------------------------------------------
+      // Track hit info
+
       // Get the measurements hit
-      auto hit = state.effectiveCalibrated();
+      Acts::Vector2 hit = state.effectiveCalibrated();
+      trackHitsLocal.push_back(TVector2(hit.x(), hit.y()));
 
-      // Project onto the prediction space
-      auto predictedHit = state.effectiveProjector() * state.predicted();
-      auto filteredHit = state.effectiveProjector() * state.filtered();
-      auto smoothedHit = state.effectiveProjector() * state.smoothed();
-
-      auto hitGlobal = state.referenceSurface().localToGlobal(
+      // Transform the hits to the global coordinates
+      Acts::Vector3 hitGlobal = state.referenceSurface().localToGlobal(
           ctx.geoContext, hit, Acts::Vector3(1, 0, 0));
-      auto predictedHitGlobal = state.referenceSurface().localToGlobal(
-          ctx.geoContext, predictedHit, Acts::Vector3(1, 0, 0));
-      auto filteredHitGlobal = state.referenceSurface().localToGlobal(
-          ctx.geoContext, filteredHit, Acts::Vector3(1, 0, 0));
-      auto smoothedHitGlobal = state.referenceSurface().localToGlobal(
-          ctx.geoContext, smoothedHit, Acts::Vector3(1, 0, 0));
 
-      // Get the residuals between the measurements and the predicted hits
-      auto predictedResidual = hitGlobal - predictedHitGlobal;
-      auto filteredResidual = hitGlobal - filteredHitGlobal;
-      auto smoothedResidual = hitGlobal - smoothedHitGlobal;
-
-      // KF predicted covariances
-      auto measurementCov = state.effectiveCalibratedCovariance();
-
-      // With respect to measurement
-      auto predictedCov = state.effectiveProjector() *
-                          state.predictedCovariance() *
-                          state.effectiveProjector().transpose();
-
-      auto filteredCov = state.effectiveProjector() *
-                             state.filteredCovariance() *
-                             state.effectiveProjector().transpose() -
-                         measurementCov;
-
-      auto smoothedCov = state.effectiveProjector() *
-                             state.smoothedCovariance() *
-                             state.effectiveProjector().transpose() -
-                         measurementCov;
-
-      auto predictedDiag =
-          predictedCov.cwiseAbs().diagonal().cwiseInverse().cwiseSqrt();
-      auto filteredDiag =
-          filteredCov.cwiseAbs().diagonal().cwiseInverse().cwiseSqrt();
-      auto smoothedDiag =
-          smoothedCov.cwiseAbs().diagonal().cwiseInverse().cwiseSqrt();
-
-      // KF pulls with respect to the measurements
-      auto predictedPull = predictedDiag.cwiseProduct(hit - predictedHit);
-      auto filteredPull = filteredDiag.cwiseProduct(hit - filteredHit);
-      auto smoothedPull = smoothedDiag.cwiseProduct(hit - smoothedHit);
+      // Covariance
+      Acts::SquareMatrix2 measurementCov =
+          state.effectiveCalibratedCovariance();
 
       // Store the measurements hits
-      trackHits.push_back(
+      trackHitsGlobal.push_back(
           TVector3(hitGlobal.x(), hitGlobal.y(), hitGlobal.z()));
 
+      // ---------------------------------------------
+      // Predicted state info
+
+      // Project onto the prediction space
+      Acts::Vector2 predictedHit =
+          state.effectiveProjector() * state.predicted();
+
+      predictedTrackHitsLocal.push_back(
+          TVector2(predictedHit.x(), predictedHit.y()));
+
+      Acts::Vector3 predictedHitGlobal = state.referenceSurface().localToGlobal(
+          ctx.geoContext, predictedHit, Acts::Vector3(1, 0, 0));
+
+      // Get the residuals between the measurements and the predicted hits
+      Acts::Vector2 predictedResidual = hit - predictedHit;
+
+      // With respect to measurement
+      Acts::SquareMatrix2 predictedCov = state.effectiveProjector() *
+                                         state.predictedCovariance() *
+                                         state.effectiveProjector().transpose();
+
+      Acts::Vector2 predictedDiag =
+          predictedCov.cwiseAbs().diagonal().cwiseInverse().cwiseSqrt();
+
+      // KF pulls with respect to the measurements
+      Acts::Vector2 predictedPull =
+          predictedDiag.cwiseProduct(hit - predictedHit);
+
       // Store the KF predicted hits
-      predictedTrackHits.push_back(TVector3(predictedHitGlobal.x(),
-                                            predictedHitGlobal.y(),
-                                            predictedHitGlobal.z()));
-      filteredTrackHits.push_back(TVector3(
-          filteredHitGlobal.x(), filteredHitGlobal.y(), filteredHitGlobal.z()));
-      smoothedTrackHits.push_back(TVector3(
-          smoothedHitGlobal.x(), smoothedHitGlobal.y(), smoothedHitGlobal.z()));
+      predictedTrackHitsGlobal.push_back(TVector3(predictedHitGlobal.x(),
+                                                  predictedHitGlobal.y(),
+                                                  predictedHitGlobal.z()));
 
       // Store the residuals with respect to the measurements
-      predictedResiduals.push_back(TVector3(
-          predictedResidual.x(), predictedResidual.y(), predictedResidual.z()));
-      filteredResiduals.push_back(TVector3(
-          filteredResidual.x(), filteredResidual.y(), filteredResidual.z()));
-      smoothedResiduals.push_back(TVector3(
-          smoothedResidual.x(), smoothedResidual.y(), smoothedResidual.z()));
+      predictedResiduals.push_back(
+          TVector2(predictedResidual.x(), predictedResidual.y()));
 
       // Store the pulls with respect to the measurements
-      predictedPulls.push_back(
-          TVector3(predictedPull.x(), 0, -predictedPull.y()));
-      filteredPulls.push_back(TVector3(filteredPull.x(), 0, -filteredPull.y()));
-      smoothedPulls.push_back(TVector3(smoothedPull.x(), 0, -smoothedPull.y()));
+      predictedPulls.push_back(TVector2(predictedPull.x(), predictedPull.y()));
 
       // Add to the track chi2
       chi2Predicted += predictedPull.dot(predictedPull);
-      chi2Filtered += filteredPull.dot(filteredPull);
-      chi2Smoothed += smoothedPull.dot(smoothedPull);
-    }
 
+      // ---------------------------------------------
+      // Filtered state info
+      if (state.hasFiltered()) {
+        Acts::Vector2 filteredHit =
+            state.effectiveProjector() * state.filtered();
+
+        filteredTrackHitsLocal.push_back(
+            TVector2(filteredHit.x(), filteredHit.y()));
+
+        Acts::Vector3 filteredHitGlobal =
+            state.referenceSurface().localToGlobal(ctx.geoContext, filteredHit,
+                                                   Acts::Vector3(1, 0, 0));
+
+        Acts::Vector2 filteredResidual = hit - filteredHit;
+
+        Acts::SquareMatrix2 filteredCov =
+            state.effectiveProjector() * state.filteredCovariance() *
+                state.effectiveProjector().transpose() -
+            measurementCov;
+        Acts::Vector2 filteredDiag =
+            filteredCov.cwiseAbs().diagonal().cwiseInverse().cwiseSqrt();
+
+        Acts::Vector2 filteredPull =
+            filteredDiag.cwiseProduct(hit - filteredHit);
+
+        filteredTrackHitsGlobal.push_back(TVector3(filteredHitGlobal.x(),
+                                                   filteredHitGlobal.y(),
+                                                   filteredHitGlobal.z()));
+        filteredResiduals.push_back(
+            TVector2(filteredResidual.x(), filteredResidual.y()));
+
+        filteredPulls.push_back(TVector2(filteredPull.x(), filteredPull.y()));
+
+        chi2Filtered += filteredPull.dot(filteredPull);
+      }
+
+      // ---------------------------------------------
+      // Smoothed state info
+      if (state.hasSmoothed()) {
+        Acts::Vector2 smoothedHit =
+            state.effectiveProjector() * state.smoothed();
+
+        smoothedTrackHitsLocal.push_back(
+            TVector2(smoothedHit.x(), smoothedHit.y()));
+        Acts::Vector3 smoothedHitGlobal =
+            state.referenceSurface().localToGlobal(ctx.geoContext, smoothedHit,
+                                                   Acts::Vector3(1, 0, 0));
+
+        Acts::Vector2 smoothedResidual = hit - smoothedHit;
+
+        Acts::SquareMatrix2 smoothedCov =
+            state.effectiveProjector() * state.smoothedCovariance() *
+                state.effectiveProjector().transpose() -
+            measurementCov;
+        Acts::Vector2 smoothedDiag =
+            smoothedCov.cwiseAbs().diagonal().cwiseInverse().cwiseSqrt();
+
+        Acts::Vector2 smoothedPull =
+            smoothedDiag.cwiseProduct(hit - smoothedHit);
+
+        smoothedTrackHitsGlobal.push_back(TVector3(smoothedHitGlobal.x(),
+                                                   smoothedHitGlobal.y(),
+                                                   smoothedHitGlobal.z()));
+        smoothedResiduals.push_back(
+            TVector2(smoothedResidual.x(), smoothedResidual.y()));
+
+        smoothedPulls.push_back(TVector2(smoothedPull.x(), smoothedPull.y()));
+
+        chi2Smoothed += smoothedPull.dot(smoothedPull);
+      }
+    }
     // Measurement hits
-    m_trackHits = trackHits;
+    m_trackHitsGlobal = std::move(trackHitsGlobal);
+    m_trackHitsLocal = std::move(trackHitsLocal);
+
+    // Covariances of the track hits
+    m_trackHitCovs = std::move(trackHitCovs);
+
+    // Geometry ids of the track hits
+    m_geometryIds = std::move(geometryIds);
 
     // KF predicted track hits
-    m_predictedTrackHits = predictedTrackHits;
-    m_filteredTrackHits = filteredTrackHits;
-    m_smoothedTrackHits = smoothedTrackHits;
+    m_predictedTrackHitsGlobal = std::move(predictedTrackHitsGlobal);
+    m_filteredTrackHitsGlobal = std::move(filteredTrackHitsGlobal);
+    m_smoothedTrackHitsGlobal = std::move(smoothedTrackHitsGlobal);
+
+    m_predictedTrackHitsLocal = std::move(predictedTrackHitsLocal);
+    m_filteredTrackHitsLocal = std::move(filteredTrackHitsLocal);
+    m_smoothedTrackHitsLocal = std::move(smoothedTrackHitsLocal);
 
     // KF residuals with respect to the measurements
-    m_predictedResiduals = predictedResiduals;
-    m_filteredResiduals = filteredResiduals;
-    m_smoothedResiduals = smoothedResiduals;
+    m_predictedResiduals = std::move(predictedResiduals);
+    m_filteredResiduals = std::move(filteredResiduals);
+    m_smoothedResiduals = std::move(smoothedResiduals);
 
     // KF pulls with respect to the measurements
-    m_predictedPulls = predictedPulls;
-    m_filteredPulls = filteredPulls;
-    m_smoothedPulls = smoothedPulls;
+    m_predictedPulls = std::move(predictedPulls);
+    m_filteredPulls = std::move(filteredPulls);
+    m_smoothedPulls = std::move(smoothedPulls);
 
-    // Chi2 of the tracks from different 
+    // Chi2 of the tracks from different
     // KF states
     m_chi2Predicted = chi2Predicted;
     m_chi2Filtered = chi2Filtered;
@@ -258,7 +425,7 @@ ProcessCode RootTrackWriter::write(const AlgorithmContext& ctx) {
     m_ndf = track.nDoF();
 
     // Track Id
-    m_trackId = tid;
+    m_trackId = std::move(trackIds);
 
     // Fill the tree
     m_tree->Fill();

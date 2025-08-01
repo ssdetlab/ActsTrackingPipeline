@@ -17,7 +17,7 @@
 
 using namespace Acts::UnitLiterals;
 
-using TrackID = std::tuple<std::int32_t, std::int32_t, std::int32_t>;
+using TrackID = std::tuple<int, int, int>;
 
 /// @brief Writer to store track candidate data in
 /// ROOT file
@@ -42,8 +42,6 @@ class RootSimTrackCandidateWriter : public IWriter {
     std::string treeName;
     /// The names of the input files
     std::string filePath;
-    /// Target size of the true track
-    std::size_t targetTrueTrackSize;
   };
 
   RootSimTrackCandidateWriter(const RootSimTrackCandidateWriter &) = delete;
@@ -131,13 +129,17 @@ class RootSimTrackCandidateWriter : public IWriter {
   /// EventId
   int m_eventId;
 
-  /// True momentum at the IP
+  /// True IP parameters
   TLorentzVector m_ipMomentumTruth;
   TVector3 m_vertexTruth;
 
+  /// Predicted IP parameters
+  TLorentzVector m_ipMomentumEst;
+  TVector3 m_vertexEst;
+
   /// Number of true tracks prior to
   /// applying the cuts
-  std::int32_t m_truthSig;
+  int m_truthSig;
 
   /// Mutex to protect the tree filling
   std::mutex m_mutex;

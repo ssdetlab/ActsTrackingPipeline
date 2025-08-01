@@ -3,6 +3,8 @@
 #include "Acts/EventData/SourceLink.hpp"
 #include "Acts/Utilities/Logger.hpp"
 
+#include <cstddef>
+
 #include "TChain.h"
 #include "TLorentzVector.h"
 #include "TVector3.h"
@@ -88,16 +90,15 @@ class RootSimDataReader : public IReader {
   std::mutex m_read_mutex;
 
   /// Vector of {eventNr, entryMin, entryMax}
-  std::vector<std::tuple<uint32_t, std::size_t, std::size_t>> m_eventMap;
+  std::vector<std::tuple<std::size_t, std::size_t, std::size_t>> m_eventMap;
 
   /// The input tree name
   TChain* m_chain = nullptr;
 
  protected:
   /// The exausitive list of columns
-  std::unordered_map<std::string_view, std::int32_t> m_intColumns;
-  std::unordered_map<std::string_view, std::vector<std::int32_t>*>
-      m_vIntColumns;
+  std::unordered_map<std::string_view, int> m_intColumns;
+  std::unordered_map<std::string_view, std::vector<int>*> m_vIntColumns;
 
   std::unordered_map<std::string_view, std::double_t> m_doubleColumns;
   std::unordered_map<std::string_view, std::vector<std::double_t>*>

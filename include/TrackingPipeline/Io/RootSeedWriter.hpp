@@ -22,6 +22,8 @@ class RootSeedWriter : public IWriter {
     std::string treeName;
     /// The names of the input files
     std::string filePath;
+    /// Surface accessor
+    Acts::SourceLinkSurfaceAccessor surfaceAccessor;
   };
 
   RootSeedWriter(const RootSeedWriter &) = delete;
@@ -62,9 +64,24 @@ class RootSeedWriter : public IWriter {
   TTree *m_tree = nullptr;
 
  protected:
+  /// Pivot position
+  TVector3 m_geoCenterPivot;
+
+  /// Measurements in a given seed
+  std::vector<TVector3> m_seedMeasurements;
+
   /// Number of source links
   /// in a seed
-  int m_size;
+  std::size_t m_size;
+
+  /// Number of unique layers
+  /// in a seed
+  std::size_t m_nLayers;
+
+  /// Estimated momentum, vertex at the IP
+  /// associated with a pivot
+  TLorentzVector m_ipMomentumEst;
+  TLorentzVector m_vertexEst;
 
   /// Mutex to protect the tree filling
   std::mutex m_mutex;

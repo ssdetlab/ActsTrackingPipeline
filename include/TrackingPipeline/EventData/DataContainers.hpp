@@ -7,7 +7,6 @@
 #include "Acts/EventData/TrackProxy.hpp"
 #include "Acts/EventData/VectorMultiTrajectory.hpp"
 #include "Acts/EventData/VectorTrackContainer.hpp"
-#include <Acts/Utilities/Holders.hpp>
 
 #include <memory>
 #include <vector>
@@ -18,19 +17,16 @@
 /// Simulated and truth data containers
 
 struct SimHit {
-  /// Source link for compatibility
-  /// with some algorithms
-  Acts::SourceLink sourceLink;
-  /// Truth parameters
+  /// True parameters at the surface
   Acts::BoundVector truthParameters;
   /// True IP parameters
   Acts::CurvilinearTrackParameters ipParameters;
   /// True track Ids
-  std::int32_t trackId;
+  int trackId;
   /// True parent track Ids
-  std::int32_t parentTrackId;
+  int parentTrackId;
   /// Run ID for unique identification
-  std::int32_t runId;
+  int runId;
 };
 
 /// @brief Collection of SimHits
@@ -60,13 +56,18 @@ struct Seed {
   /// IP parameters
   Acts::CurvilinearTrackParameters ipParameters;
   /// Track Id
-  std::int32_t trackId;
+  int trackId;
 };
 
 /// @brief Collection of Seeds
 using Seeds = std::vector<Seed>;
 
 /// @brief Collection of Tracks
-using Tracks =
+using ActsTracks =
     Acts::TrackContainer<Acts::VectorTrackContainer,
                          Acts::VectorMultiTrajectory, std::shared_ptr>;
+struct Tracks {
+  ActsTracks tracks;
+  std::vector<int> trackIds;
+  std::vector<Acts::CurvilinearTrackParameters> ipParametersGuesses;
+};

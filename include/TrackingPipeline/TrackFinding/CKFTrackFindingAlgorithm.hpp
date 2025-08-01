@@ -5,7 +5,7 @@
 #include "Acts/Navigation/DetectorNavigator.hpp"
 #include "Acts/Propagator/EigenStepper.hpp"
 #include "Acts/TrackFinding/CombinatorialKalmanFilter.hpp"
-#include <Acts/Utilities/Holders.hpp>
+#include "Acts/Utilities/Holders.hpp"
 
 #include <cstddef>
 #include <memory>

@@ -1,14 +1,12 @@
 #include "TrackingPipeline/Io/RootSimClusterWriter.hpp"
 
-#include <Acts/Definitions/Algebra.hpp>
+#include "Acts/Definitions/Algebra.hpp"
 #include <Acts/Definitions/TrackParametrization.hpp>
-#include <Acts/EventData/SourceLink.hpp>
+#include <Acts/Utilities/Logger.hpp>
 
+#include <cmath>
 #include <stdexcept>
 #include <vector>
-
-#include <TLorentzVector.h>
-#include <TVector3.h>
 
 #include "TrackingPipeline/EventData/SimpleSourceLink.hpp"
 
@@ -31,13 +29,21 @@ RootSimClusterWriter::RootSimClusterWriter(const Config& config,
   int split_lvl = 0;
 
   // Parameters at measurements
-  m_tree->Branch("geoCenter", &m_geoCenter, buf_size, split_lvl);
-  m_tree->Branch("trackHits", &m_trackHits, buf_size, split_lvl);
-  m_tree->Branch("onSurfMomemtum", &m_onSurfMomemtum, buf_size, split_lvl);
+  m_tree->Branch("geoCenterGlobal", &m_geoCenterGlobal, buf_size, split_lvl);
+  m_tree->Branch("geoCenterLocal", &m_geoCenterLocal, buf_size, split_lvl);
+  m_tree->Branch("cov", &m_cov, buf_size, split_lvl);
+  m_tree->Branch("geoId", &m_geoId, buf_size, split_lvl);
+  m_tree->Branch("trackHitsGlobal", &m_trackHitsGlobal, buf_size, split_lvl);
+  m_tree->Branch("trackHitsLocal", &m_trackHitsLocal, buf_size, split_lvl);
+  m_tree->Branch("eventId", &m_eventId, buf_size, split_lvl);
+  m_tree->Branch("charge", &m_charge, buf_size, split_lvl);
+  m_tree->Branch("pdgId", &m_pdgId, buf_size, split_lvl);
 
   // Parameters at the origin
   m_tree->Branch("originMomentum", &m_originMomentum, buf_size, split_lvl);
   m_tree->Branch("vertex", &m_vertex, buf_size, split_lvl);
+  m_tree->Branch("onSurfaceMomentum", &m_onSurfaceMomentum, buf_size,
+                 split_lvl);
 
   // Track ID
   m_tree->Branch("trackId", &m_trackId, buf_size, split_lvl);
@@ -63,6 +69,8 @@ ProcessCode RootSimClusterWriter::finalize() {
 ProcessCode RootSimClusterWriter::write(const AlgorithmContext& ctx) {
   auto inputClusters = m_inputClusters(ctx);
 
+  ACTS_DEBUG("Received " << inputClusters.size() << " clusters");
+
   std::lock_guard<std::mutex> lock(m_mutex);
 
   for (const auto& cluster : inputClusters) {
@@ -70,13 +78,27 @@ ProcessCode RootSimClusterWriter::write(const AlgorithmContext& ctx) {
 
     const auto* surf = m_cfg.surfaceAccessor(Acts::SourceLink(clusterSsl));
 
-    Acts::Vector3 geoCenter = surf->localToGlobal(
+    Acts::Vector2 geoCenterLocal = clusterSsl.parameters();
+    Acts::Vector3 geoCenterGlobal = surf->localToGlobal(
         ctx.geoContext, clusterSsl.parameters(), Acts::Vector3(0, 1, 0));
 
-    m_geoCenter = TVector3(geoCenter.x(), geoCenter.y(), geoCenter.z());
+    m_geoCenterGlobal =
+        TVector3(geoCenterGlobal.x(), geoCenterGlobal.y(), geoCenterGlobal.z());
+    m_geoCenterLocal = TVector2(geoCenterLocal.x(), geoCenterLocal.y());
+    m_geoId = clusterSsl.geometryId().sensitive();
+    m_eventId = clusterSsl.eventId();
 
-    std::vector<TVector3> trackHits;
-    trackHits.reserve(cluster.truthHits.size());
+    TArrayD data(4);
+    for (std::size_t i = 0; i < 4; i++) {
+      data[i] = clusterSsl.covariance()(i);
+    }
+    m_cov.Use(2, 2, data.GetArray());
+
+    std::vector<TVector3> trackHitsGlobal;
+    trackHitsGlobal.reserve(cluster.truthHits.size());
+
+    std::vector<TVector2> trackHitsLocal;
+    trackHitsLocal.reserve(cluster.truthHits.size());
 
     std::vector<int> trackId;
     trackId.reserve(cluster.truthHits.size());
@@ -87,6 +109,12 @@ ProcessCode RootSimClusterWriter::write(const AlgorithmContext& ctx) {
     std::vector<int> runId;
     runId.reserve(cluster.truthHits.size());
 
+    std::vector<int> charge;
+    charge.reserve(cluster.truthHits.size());
+
+    std::vector<int> pdgId;
+    pdgId.reserve(cluster.truthHits.size());
+
     std::vector<TLorentzVector> momenta;
     momenta.reserve(cluster.truthHits.size());
 
@@ -96,54 +124,67 @@ ProcessCode RootSimClusterWriter::write(const AlgorithmContext& ctx) {
     std::vector<TVector3> vertices;
     vertices.reserve(cluster.truthHits.size());
 
+    std::vector<TLorentzVector> onSurfaceMomenta;
+    onSurfaceMomenta.reserve(cluster.truthHits.size());
+
     for (const auto& hit : cluster.truthHits) {
-      const auto& hitSsl = hit.sourceLink.get<SimpleSourceLink>();
+      trackHitsLocal.push_back(TVector2(hit.truthParameters[Acts::eBoundLoc0],
+                                        hit.truthParameters[Acts::eBoundLoc1]));
 
-      Acts::Vector3 trackHit = surf->localToGlobal(
-          ctx.geoContext, hitSsl.parameters(), Acts::Vector3(0, 1, 0));
+      Acts::Vector3 trackHitGlobal = surf->localToGlobal(
+          ctx.geoContext,
+          Acts::Vector2(hit.truthParameters[Acts::eBoundLoc0],
+                        hit.truthParameters[Acts::eBoundLoc1]),
+          Acts::Vector3(0, 1, 0));
 
-      trackHits.push_back(TVector3(trackHit.x(), trackHit.y(), trackHit.z()));
+      trackHitsGlobal.push_back(
+          TVector3(trackHitGlobal.x(), trackHitGlobal.y(), trackHitGlobal.z()));
 
       trackId.push_back(hit.trackId);
       parentTrackId.push_back(hit.parentTrackId);
       runId.push_back(hit.runId);
 
-      Acts::FreeVector onSurfParameters = Acts::transformBoundToFreeParameters(
-          *surf, ctx.geoContext, hit.truthParameters);
-
-      double onSurfE = std::abs(onSurfParameters[Acts::eFreeQOverP]);
-
-      Acts::Vector3 onSurfMomentum =
-          onSurfE * Acts::Vector3(onSurfParameters[Acts::eFreeDir0],
-                                  onSurfParameters[Acts::eFreeDir1],
-                                  onSurfParameters[Acts::eFreeDir2]);
-
-      TLorentzVector mom;
-      mom.SetPxPyPzE(onSurfMomentum.x(), onSurfMomentum.y(), onSurfMomentum.z(),
-                     onSurfE);
-      momenta.push_back(mom);
+      charge.push_back(hit.ipParameters.charge());
+      pdgId.push_back(hit.ipParameters.particleHypothesis().absolutePdg());
 
       TLorentzVector originMom;
       originMom.SetPxPyPzE(
           hit.ipParameters.momentum().x(), hit.ipParameters.momentum().y(),
-          hit.ipParameters.momentum().z(), hit.ipParameters.absoluteMomentum());
+          hit.ipParameters.momentum().z(),
+          std::hypot(hit.ipParameters.absoluteMomentum(),
+                     hit.ipParameters.particleHypothesis().mass()));
       originMomenta.push_back(originMom);
 
       TVector3 vertex(hit.ipParameters.position().x(),
                       hit.ipParameters.position().y(),
                       hit.ipParameters.position().z());
       vertices.push_back(vertex);
+
+      TLorentzVector onSurfaceMom;
+      double onSurfP = std::abs(1. / hit.truthParameters[Acts::eBoundQOverP]);
+      onSurfaceMom.SetPxPyPzE(
+          onSurfP * std::sin(hit.truthParameters[Acts::eBoundTheta]) *
+              std::cos(hit.truthParameters[Acts::eBoundPhi]),
+          onSurfP * std::sin(hit.truthParameters[Acts::eBoundTheta]) *
+              std::sin(hit.truthParameters[Acts::eBoundPhi]),
+          onSurfP * std::cos(hit.truthParameters[Acts::eBoundTheta]),
+          std::hypot(onSurfP, hit.ipParameters.particleHypothesis().mass()));
+      onSurfaceMomenta.push_back(onSurfaceMom);
     }
 
-    m_trackHits = trackHits;
+    m_trackHitsGlobal = trackHitsGlobal;
+    m_trackHitsLocal = trackHitsLocal;
 
     m_trackId = trackId;
     m_parentTrackId = parentTrackId;
     m_runId = runId;
 
-    m_onSurfMomemtum = momenta;
+    m_charge = charge;
+    m_pdgId = pdgId;
+
     m_originMomentum = originMomenta;
     m_vertex = vertices;
+    m_onSurfaceMomentum = onSurfaceMomenta;
 
     m_isSignal = cluster.isSignal;
 

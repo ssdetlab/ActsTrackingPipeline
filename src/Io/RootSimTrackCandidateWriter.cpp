@@ -57,9 +57,13 @@ RootSimTrackCandidateWriter::RootSimTrackCandidateWriter(
   m_tree->Branch("predictedPulls", &m_predictedPulls, buf_size, split_lvl);
   m_tree->Branch("filteredPulls", &m_filteredPulls, buf_size, split_lvl);
 
-  // True momentum at the IP
+  // True IP parameters
   m_tree->Branch("ipMomentumTruth", &m_ipMomentumTruth);
   m_tree->Branch("vertexTruth", &m_vertexTruth);
+
+  // Predicted IP parameters
+  m_tree->Branch("ipMomentumEst", &m_ipMomentumEst);
+  m_tree->Branch("vertexEst", &m_vertexEst);
 
   // Chi2 and ndf of the fitted track
   m_tree->Branch("chi2Predicted", &m_chi2Predicted, buf_size, split_lvl);
@@ -97,7 +101,7 @@ ProcessCode RootSimTrackCandidateWriter::write(const AlgorithmContext& ctx) {
   std::lock_guard<std::mutex> lock(m_mutex);
 
   // Collect true track statistics
-  std::map<TrackID, std::int32_t> trueTracksSig;
+  std::map<TrackID, int> trueTracksSig;
 
   // Collect true track statistics
   auto trueTrackIds =
@@ -120,9 +124,9 @@ ProcessCode RootSimTrackCandidateWriter::write(const AlgorithmContext& ctx) {
   m_eventId = ctx.eventNumber;
 
   // Iterate over the fitted tracks
-  for (std::size_t tid = 0; tid < inputCandidates.size(); tid++) {
+  for (std::size_t tid = 0; tid < inputCandidates.tracks.size(); tid++) {
     // Get the track object and the track id
-    const auto& track = inputCandidates.getTrack(tid);
+    const auto& track = inputCandidates.tracks.getTrack(tid);
 
     // Track hits from the true information
     std::vector<TVector3> trueTrackHits;
@@ -159,7 +163,7 @@ ProcessCode RootSimTrackCandidateWriter::write(const AlgorithmContext& ctx) {
     std::vector<double> chi2Filtered;
 
     // Iterate over the track states
-    std::map<TrackID, std::vector<std::int32_t>> trackStateIds;
+    std::map<TrackID, std::vector<int>> trackStateIds;
     for (const auto& state : track.trackStatesReversed()) {
       // Skip the states without meaningful information
       if (!state.hasProjector()) {
@@ -311,6 +315,14 @@ ProcessCode RootSimTrackCandidateWriter::write(const AlgorithmContext& ctx) {
       chi2Filtered.push_back(filteredPull.dot(filteredPull));
     }
     double me = 0.511 * Acts::UnitConstants::MeV;
+    // TODO: Add sampling surface
+    //    Acts::Vector3 pVec = track.momentum();
+    //    double pMag = pVec.norm();
+    //    m_ipMomentumEst.SetPxPyPzE(pVec.x(), pVec.y(), pVec.z(),
+    //                               std::hypot(pMag, me));
+    //
+    //    Acts::Vector3 vertex = {track.loc0(), 0, -track.loc1()};
+    //    m_vertexEst = TVector3(vertex.x(), vertex.y(), vertex.z());
 
     // Matching degree is computed with respect
     // to the most often occuring signal track
@@ -330,7 +342,7 @@ ProcessCode RootSimTrackCandidateWriter::write(const AlgorithmContext& ctx) {
       matchingDegree = 0;
     } else {
       // Get the true IP parameters
-      std::int32_t refIndex = refTrackId->second.at(0);
+      int refIndex = refTrackId->second.at(0);
       auto cluster = inputTruthClusters.at(refIndex);
       auto pivotHit =
           std::ranges::find_if(cluster.truthHits, [&](const auto& hit) {
@@ -344,13 +356,13 @@ ProcessCode RootSimTrackCandidateWriter::write(const AlgorithmContext& ctx) {
           pivotHit->ipParameters.momentum().z(),
           std::hypot(pivotHit->ipParameters.absoluteMomentum(), me));
 
+      m_vertexTruth.SetX(pivotHit->ipParameters.position(ctx.geoContext).x());
+      m_vertexTruth.SetY(pivotHit->ipParameters.position(ctx.geoContext).y());
+      m_vertexTruth.SetZ(pivotHit->ipParameters.position(ctx.geoContext).z());
+
       // Compute matching degree
       double trueTrackSize =
           std::ranges::count(trueTrackIds, refTrackId->first);
-
-      if (trueTrackSize != m_cfg.targetTrueTrackSize) {
-        continue;
-      }
 
       matchingDegree = refTrackId->second.size() / trueTrackSize;
     }

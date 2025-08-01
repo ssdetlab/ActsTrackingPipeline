@@ -41,28 +41,28 @@ find_package(
 )
 
 # Dictionary for the sim data
-add_library(SimEventDict SHARED)
-include_directories(
-    ${CMAKE_CURRENT_SOURCE_DIR}/include/TrackingPipeline/Io/detail
-)
-ROOT_GENERATE_DICTIONARY(
-    G__SimEventDict
-    ./include/TrackingPipeline/Io/detail/ROOTDictDefs.h
-    ./include/TrackingPipeline/Io/detail/AlpideRegisters.h
-    ./include/TrackingPipeline/Io/detail/MosaicRegisters.h
-    ./include/TrackingPipeline/Io/detail/EudaqDetectorEvent.h
-    MODULE 
-    SimEventDict 
-    LINKDEF 
-    ./include/TrackingPipeline/Io/detail/LinkDef.h
-)
-target_link_libraries(
-    SimEventDict 
-    PRIVATE 
-    ROOT::RIO
-    ROOT::Physics
-    ROOT::GeomPainter
-)
+# add_library(SimEventDict SHARED)
+# include_directories(
+#     ${CMAKE_CURRENT_SOURCE_DIR}/include/TrackingPipeline/Io/detail
+# )
+# ROOT_GENERATE_DICTIONARY(
+#     G__SimEventDict
+#     ./include/TrackingPipeline/Io/detail/ROOTDictDefs.h
+#     ./include/TrackingPipeline/Io/detail/AlpideRegisters.h
+#     ./include/TrackingPipeline/Io/detail/MosaicRegisters.h
+#     ./include/TrackingPipeline/Io/detail/EudaqDetectorEvent.h
+#     MODULE 
+#     SimEventDict 
+#     LINKDEF 
+#     ./include/TrackingPipeline/Io/detail/LinkDef.h
+# )
+# target_link_libraries(
+#     SimEventDict 
+#     PRIVATE 
+#     ROOT::RIO
+#     ROOT::Physics
+#     ROOT::GeomPainter
+# )
 
 # Geant4 is required for the geometry
 find_package(Geant4 REQUIRED)
@@ -98,7 +98,7 @@ target_link_libraries(
     ROOT::Hist
     ROOT::Gpad
     ROOT::Net
-    G__SimEventDict
+    # G__SimEventDict
     ActsCore
     ActsFatras
     ActsPluginGeant4

@@ -5,6 +5,7 @@
 
 #include "TFile.h"
 #include "TLorentzVector.h"
+#include "TMatrixD.h"
 #include "TTree.h"
 #include "TVector3.h"
 #include "TrackingPipeline/EventData/DataContainers.hpp"
@@ -15,7 +16,7 @@
 
 using namespace Acts::UnitLiterals;
 
-using TrackID = std::tuple<std::int32_t, std::int32_t, std::int32_t>;
+using TrackID = std::tuple<int, int, int>;
 
 /// @brief Writer to store fitted track data in
 /// ROOT file
@@ -40,8 +41,6 @@ class RootSimTrackWriter : public IWriter {
     std::string treeName;
     /// The names of the input files
     std::string filePath;
-    /// Target size of the true track
-    std::size_t targetTrueTrackSize;
   };
 
   RootSimTrackWriter(const RootSimTrackWriter &) = delete;
@@ -85,35 +84,49 @@ class RootSimTrackWriter : public IWriter {
 
  protected:
   /// True hits
-  std::vector<TVector3> m_trueTrackHits;
+  std::vector<TVector3> m_trueTrackHitsGlobal;
+  std::vector<TVector2> m_trueTrackHitsLocal;
+  std::vector<TLorentzVector> m_onSurfaceMomentum;
+  std::vector<int> m_isSignal;
 
   /// Measurement hits
-  std::vector<TVector3> m_trackHits;
+  std::vector<TVector3> m_trackHitsGlobal;
+  std::vector<TVector2> m_trackHitsLocal;
+
+  /// Covariances of the track hits
+  std::vector<TMatrixD> m_trackHitCovs;
+
+  /// Geometry ids of the track hits
+  std::vector<int> m_geometryIds;
 
   /// KF predicted track hits
-  std::vector<TVector3> m_predictedTrackHits;
-  std::vector<TVector3> m_filteredTrackHits;
-  std::vector<TVector3> m_smoothedTrackHits;
+  std::vector<TVector3> m_predictedTrackHitsGlobal;
+  std::vector<TVector3> m_filteredTrackHitsGlobal;
+  std::vector<TVector3> m_smoothedTrackHitsGlobal;
+
+  std::vector<TVector2> m_predictedTrackHitsLocal;
+  std::vector<TVector2> m_filteredTrackHitsLocal;
+  std::vector<TVector2> m_smoothedTrackHitsLocal;
 
   /// KF residuals with respect to the true hits
-  std::vector<TVector3> m_truePredictedResiduals;
-  std::vector<TVector3> m_trueFilteredResiduals;
-  std::vector<TVector3> m_trueSmoothedResiduals;
+  std::vector<TVector2> m_truePredictedResiduals;
+  std::vector<TVector2> m_trueFilteredResiduals;
+  std::vector<TVector2> m_trueSmoothedResiduals;
 
   /// KF residuals with respect to the measurements
-  std::vector<TVector3> m_predictedResiduals;
-  std::vector<TVector3> m_filteredResiduals;
-  std::vector<TVector3> m_smoothedResiduals;
+  std::vector<TVector2> m_predictedResiduals;
+  std::vector<TVector2> m_filteredResiduals;
+  std::vector<TVector2> m_smoothedResiduals;
 
   /// KF pulls with respect to the true hits
-  std::vector<TVector3> m_truePredictedPulls;
-  std::vector<TVector3> m_trueFilteredPulls;
-  std::vector<TVector3> m_trueSmoothedPulls;
+  std::vector<TVector2> m_truePredictedPulls;
+  std::vector<TVector2> m_trueFilteredPulls;
+  std::vector<TVector2> m_trueSmoothedPulls;
 
   /// KF pulls with respect to the measurements
-  std::vector<TVector3> m_predictedPulls;
-  std::vector<TVector3> m_filteredPulls;
-  std::vector<TVector3> m_smoothedPulls;
+  std::vector<TVector2> m_predictedPulls;
+  std::vector<TVector2> m_filteredPulls;
+  std::vector<TVector2> m_smoothedPulls;
 
   /// Chi2 of the track
   /// with respect ot the
@@ -130,24 +143,35 @@ class RootSimTrackWriter : public IWriter {
   double m_matchingDegree;
 
   /// TrackId
-  int m_trackId;
+  std::vector<int> m_trackId;
+  std::vector<int> m_parentTrackId;
+  std::vector<int> m_runId;
 
   /// EventId
   int m_eventId;
 
+  /// True track size
+  int m_trueTrackSize;
+
+  /// PDG ID
+  int m_pdgId;
+
+  /// Charge
+  int m_charge;
+
+  /// Initial guess of the momentum at the IP
+  TLorentzVector m_ipMomentumGuess;
+  TVector3 m_vertexGuess;
+
   /// KF predicted momentum at the IP
-  TLorentzVector m_ipMomentum;
+  TLorentzVector m_ipMomentumEst;
   TVector3 m_ipMomentumError;
-  TVector3 m_vertex;
+  TVector3 m_vertexEst;
   TVector3 m_vertexError;
 
   /// True momentum at the IP
   TLorentzVector m_ipMomentumTruth;
   TVector3 m_vertexTruth;
-
-  /// Number of true tracks prior to
-  /// applying the cuts
-  std::int32_t m_truthSig;
 
   /// Mutex to protect the tree filling
   std::mutex m_mutex;

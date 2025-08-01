@@ -4,12 +4,13 @@
 #include "Acts/TrackFitting/KalmanFitter.hpp"
 #include <Acts/Navigation/DetectorNavigator.hpp>
 #include <Acts/Propagator/EigenStepper.hpp>
+#include <Acts/TrackFitting/GlobalChiSquareFitter.hpp>
 
 #include "TrackingPipeline/EventData/DataContainers.hpp"
 #include "TrackingPipeline/Infrastructure/DataHandle.hpp"
 #include "TrackingPipeline/Infrastructure/IAlgorithm.hpp"
 
-class TrackFittingAlgorithm : public IAlgorithm {
+class KFTrackFittingAlgorithm : public IAlgorithm {
  public:
   using ActionList = Acts::ActionList<>;
   using AbortList = Acts::AbortList<Acts::EndOfWorldReached>;
@@ -33,12 +34,12 @@ class TrackFittingAlgorithm : public IAlgorithm {
   };
 
   /// @brief Constructor
-  TrackFittingAlgorithm(Config config, Acts::Logging::Level level)
+  KFTrackFittingAlgorithm(Config config, Acts::Logging::Level level)
       : IAlgorithm("TrackFittingAlgorithm", level), m_cfg(std::move(config)) {
     m_inputTrackCandidates.initialize(m_cfg.inputTrackCandidates);
     m_outputTracks.initialize(m_cfg.outputTracks);
   }
-  ~TrackFittingAlgorithm() = default;
+  ~KFTrackFittingAlgorithm() = default;
 
   /// @brief The execute method
   ProcessCode execute(const AlgorithmContext& ctx) const override;

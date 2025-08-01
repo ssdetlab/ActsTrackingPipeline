@@ -56,8 +56,8 @@ std::tuple<std::vector<Acts::SourceLink>, SimClusters> MeasurementsCreator::gen(
   double phi = Acts::VectorHelpers::phi(mom);
   double theta = Acts::VectorHelpers::theta(mom);
 
-  TrackParameters trackParameters(mPos4, phi, theta, 1_e / p, ipCov,
-                                  Acts::ParticleHypothesis::electron());
+  TrackParameters trackParameters(mPos4, phi, theta, m_cfg.charge / p, ipCov,
+                                  m_cfg.hypothesis);
 
   // Launch propagation and collect the measurements
   SimClusters simClusters;
@@ -99,12 +99,8 @@ std::tuple<std::vector<Acts::SourceLink>, SimClusters> MeasurementsCreator::gen(
                                  -1);
     Acts::SourceLink hitSl(hitSimpleSl);
 
-    SimHit sm{hitSl,
-              boundVec,
-              trackParameters,
-              trackId,
-              static_cast<int32_t>(id),
-              static_cast<int32_t>(ctx.eventNumber)};
+    SimHit sm{boundVec, trackParameters, trackId, static_cast<int>(id),
+              static_cast<int>(ctx.eventNumber)};
 
     // Observable information
     SimpleSourceLink simpleSl(digLocalPos, digCov, geoId, ctx.eventNumber, -1);
