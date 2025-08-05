@@ -17,6 +17,8 @@
 #include <memory>
 #include <string>
 
+#include <unistd.h>
+
 #include "TrackingPipeline/Geometry/ApollonGeometryConstraints.hpp"
 #include "TrackingPipeline/MagneticField/ConstantBoundedField.hpp"
 
@@ -82,177 +84,41 @@ std::shared_ptr<const Acts::Experimental::Detector> buildDetector(
   double longVolumeCenter = (posLongEdge + negLongEdge) / 2.0;
   double shortVolumeCenter = (posShortEdge + negShortEdge) / 2.0;
 
-  std::cout << longVolumeCenter << "\n";
-  std::cout << longVolumeSize << "\n";
+  auto constructVolume =
+      [&](double halfPrimary, double centerPrimary,
+          const std::string& namePrefix, std::size_t id,
+          const std::vector<std::shared_ptr<Acts::Surface>>& surfaces) {
+        Acts::Transform3 transform = Acts::Transform3::Identity();
 
-  auto constructTrackingChamber =
-      [&](const go::TrackingChamberParameters& pars) {
-        for (const auto& parameters : pars) {
-          int id = parameters.geoId;
-
-          std::cout << "--------------------------------------------\n";
-
-          Acts::Transform3 surfTransform = Acts::Transform3::Identity();
-
-          Acts::RotationMatrix3 surfRotationPrimary =
-              Acts::AngleAxis3(parameters.rotationAnglePrimary,
-                               detail::binningValueToDirection(
-                                   go::instance()->primaryBinValue))
-                  .toRotationMatrix();
-          Acts::RotationMatrix3 surfRotationLong =
-              Acts::AngleAxis3(
-                  parameters.rotationAngleLong,
-                  detail::binningValueToDirection(go::instance()->longBinValue))
-                  .toRotationMatrix();
-          Acts::RotationMatrix3 surfRotationShort =
-              Acts::AngleAxis3(parameters.rotationAngleShort,
-                               detail::binningValueToDirection(
-                                   go::instance()->shortBinValue))
-                  .toRotationMatrix();
-
-          surfTransform.translate(parameters.center);
-          surfTransform.rotate(surfRotationPrimary);
-          surfTransform.rotate(surfRotationLong);
-          surfTransform.rotate(surfRotationShort);
-
-          auto surf = Acts::Surface::makeShared<Acts::PlaneSurface>(
-              surfTransform, chipBounds);
-
-          Acts::GeometryIdentifier surfGeoId;
-          surfGeoId.setSensitive(id);
-          surf->assignGeometryId(surfGeoId);
-
-          std::array<double, 3> volBoundsArray;
-          volBoundsArray.at(primaryIdx) =
-              go::instance()->interChipDistance / 2.0;
-          volBoundsArray.at(longIdx) = longVolumeSize;
-          volBoundsArray.at(shortIdx) = shortVolumeSize;
-          auto volBounds =
-              std::make_unique<Acts::CuboidVolumeBounds>(volBoundsArray);
-
-          Acts::Transform3 volTransform = Acts::Transform3::Identity();
-
-          Acts::Vector3 volTranslation(0, 0, 0);
-          volTranslation[primaryIdx] = parameters.center[primaryIdx];
-          volTranslation[longIdx] = longVolumeCenter;
-          volTranslation[shortIdx] = shortVolumeCenter;
-
-          volTransform.translate(volTranslation);
-          auto vol = Acts::Experimental::DetectorVolumeFactory::construct(
-              Acts::Experimental::defaultPortalAndSubPortalGenerator(), gctx,
-              "sensVol" + std::to_string(id), volTransform,
-              std::move(volBounds), {surf}, {},
-              Acts::Experimental::tryNoVolumes(),
-              Acts::Experimental::tryAllPortalsAndSurfaces());
-
-          std::cout << vol->name() << "\n";
-          std::cout << vol->extent(gctx) << "\n";
-
-          Acts::GeometryIdentifier volGeoId;
-          volGeoId.setVolume(id);
-          vol->assignGeometryId(volGeoId);
-
-          int portId = 1;
-          for (auto& port : vol->portalPtrs()) {
-            Acts::GeometryIdentifier portGeoId;
-            portGeoId.setVolume(id);
-            portGeoId.setApproach(portId);
-            port->surface().assignGeometryId(id);
-            portId++;
-          }
-
-          detectorVolumes.push_back(vol);
-        }
-      };
-
-  auto constructDipoleVolume = [&](const go::DipoleParameters& pars) {
-    Acts::Transform3 transform = Acts::Transform3::Identity();
-
-    std::cout << "--------------------------------------------\n";
-
-    std::array<double, 3> volBoundsArray;
-    volBoundsArray.at(primaryIdx) = go::instance()->dipoleHalfPrimary;
-    volBoundsArray.at(longIdx) = longVolumeSize;
-    volBoundsArray.at(shortIdx) = shortVolumeSize;
-    auto volBounds = std::make_unique<Acts::CuboidVolumeBounds>(volBoundsArray);
-
-    int id = go::instance()->magVolumeIdPrefactor + magVolumeCounter;
-    magVolumeCounter++;
-
-    Acts::Transform3 volTransform = Acts::Transform3::Identity();
-
-    Acts::Vector3 volTranslation(0, 0, 0);
-    volTranslation[primaryIdx] = pars.center[primaryIdx];
-    volTranslation[longIdx] = longVolumeCenter;
-    volTranslation[shortIdx] = shortVolumeCenter;
-
-    volTransform.translate(volTranslation);
-    auto vol = Acts::Experimental::DetectorVolumeFactory::construct(
-        Acts::Experimental::defaultPortalAndSubPortalGenerator(), gctx,
-        "magVol" + std::to_string(id), volTransform, std::move(volBounds), {},
-        {}, Acts::Experimental::tryNoVolumes(),
-        Acts::Experimental::tryAllPortalsAndSurfaces());
-
-    Acts::GeometryIdentifier volGeoId;
-    volGeoId.setVolume(id);
-    vol->assignGeometryId(volGeoId);
-
-    std::cout << vol->name() << "\n";
-    std::cout << vol->extent(gctx) << "\n";
-
-    int portId = 1;
-    for (auto& port : vol->portalPtrs()) {
-      Acts::GeometryIdentifier portGeoId;
-      portGeoId.setVolume(id);
-      portGeoId.setApproach(portId);
-      port->surface().assignGeometryId(id);
-      portId++;
-    }
-
-    detectorVolumes.push_back(vol);
-  };
-
-  auto constructGapVolume =
-      [&](const std::shared_ptr<Acts::Experimental::DetectorVolume>& vol1,
-          const std::shared_ptr<Acts::Experimental::DetectorVolume>& vol2) {
-        std::cout << "--------------------------------------------\n";
-
-        Acts::Transform3 volTransform = Acts::Transform3::Identity();
-        Acts::Vector3 translation(0, 0, 0);
-        translation[primaryIdx] =
-            (vol2->transform(gctx).translation()[primaryIdx] -
-             vol2->volumeBounds().values().at(primaryIdx) +
-             vol1->transform(gctx).translation()[primaryIdx] +
-             vol1->volumeBounds().values().at(primaryIdx)) /
-            2.0;
-        translation[longIdx] = vol2->transform(gctx).translation()[longIdx];
-        translation[shortIdx] = vol2->transform(gctx).translation()[shortIdx];
-        volTransform.translate(translation);
+        std::cout << "-----------------------------------------------\n";
+        std::cout << namePrefix + std::to_string(id) << "\n";
 
         std::array<double, 3> volBoundsArray;
-        volBoundsArray.at(primaryIdx) =
-            (vol2->transform(gctx).translation()[primaryIdx] -
-             vol2->volumeBounds().values().at(primaryIdx) -
-             vol1->transform(gctx).translation()[primaryIdx] -
-             vol1->volumeBounds().values().at(primaryIdx)) /
-            2.0;
-        volBoundsArray.at(longIdx) = vol1->volumeBounds().values().at(longIdx);
-        volBoundsArray.at(shortIdx) =
-            vol1->volumeBounds().values().at(shortIdx);
+        volBoundsArray.at(primaryIdx) = halfPrimary;
+        volBoundsArray.at(longIdx) = longVolumeSize;
+        volBoundsArray.at(shortIdx) = shortVolumeSize;
         auto volBounds =
             std::make_unique<Acts::CuboidVolumeBounds>(volBoundsArray);
 
+        Acts::Transform3 volTransform = Acts::Transform3::Identity();
+
+        Acts::Vector3 volTranslation(0, 0, 0);
+        volTranslation[primaryIdx] = centerPrimary;
+        volTranslation[longIdx] = longVolumeCenter;
+        volTranslation[shortIdx] = shortVolumeCenter;
+
+        volTransform.translate(volTranslation);
         auto vol = Acts::Experimental::DetectorVolumeFactory::construct(
             Acts::Experimental::defaultPortalAndSubPortalGenerator(), gctx,
-            "gapVol" + std::to_string(gapVolumeCounter), volTransform,
-            std::move(volBounds), {}, {}, Acts::Experimental::tryNoVolumes(),
+            namePrefix + std::to_string(id), volTransform, std::move(volBounds),
+            surfaces, {}, Acts::Experimental::tryNoVolumes(),
             Acts::Experimental::tryAllPortalsAndSurfaces());
 
-        int id = go::instance()->gapVolumeIdPrefactor + gapVolumeCounter;
-        gapVolumeCounter++;
         Acts::GeometryIdentifier volGeoId;
         volGeoId.setVolume(id);
         vol->assignGeometryId(volGeoId);
+
+        std::cout << vol->extent(gctx) << "\n";
 
         int portId = 1;
         for (auto& port : vol->portalPtrs()) {
@@ -263,11 +129,88 @@ std::shared_ptr<const Acts::Experimental::Detector> buildDetector(
           portId++;
         }
 
-        std::cout << vol->name() << "\n";
-        std::cout << vol->extent(gctx) << "\n";
-
         detectorVolumes.push_back(vol);
       };
+
+  auto constructTrackingChamber =
+      [&](const go::TrackingChamberParameters& pars) {
+        double tcBoxCenterPrimary =
+            (pars.front().toWorldTranslation[primaryIdx] -
+             go::instance()->tcWindowToFirstChipDistance +
+             pars.back().toWorldTranslation[primaryIdx] +
+             go::instance()->tcWindowToLastChipDistance) /
+            2.0;
+        for (const auto& parameters : pars) {
+          int id = parameters.geoId;
+
+          Acts::Transform3 surfTransform = Acts::Transform3::Identity();
+
+          Acts::RotationMatrix3 surfToWorldRotationPrimary =
+              Acts::AngleAxis3(parameters.toWorldAnglePrimary,
+                               detail::binningValueToDirection(
+                                   go::instance()->primaryBinValue))
+                  .toRotationMatrix();
+          Acts::RotationMatrix3 surfToWorldRotationLong =
+              Acts::AngleAxis3(
+                  parameters.toWorldAngleLong,
+                  detail::binningValueToDirection(go::instance()->longBinValue))
+                  .toRotationMatrix();
+          Acts::RotationMatrix3 surfToWorldRotationShort =
+              Acts::AngleAxis3(parameters.toWorldAngleShort,
+                               detail::binningValueToDirection(
+                                   go::instance()->shortBinValue))
+                  .toRotationMatrix();
+
+          surfTransform.translate(parameters.toWorldTranslation);
+
+          surfTransform.rotate(surfToWorldRotationPrimary);
+          surfTransform.rotate(surfToWorldRotationLong);
+          surfTransform.rotate(surfToWorldRotationShort);
+
+          auto surf = Acts::Surface::makeShared<Acts::PlaneSurface>(
+              surfTransform, chipBounds);
+
+          Acts::GeometryIdentifier surfGeoId;
+          surfGeoId.setSensitive(id);
+          surf->assignGeometryId(surfGeoId);
+
+          constructVolume(go::instance()->interChipDistance / 2.0,
+                          parameters.toWorldTranslation[primaryIdx], "sensVol",
+                          id, {surf});
+        }
+      };
+
+  auto constructDipoleVolume = [&](const go::DipoleParameters& pars) {
+    int id = go::instance()->magVolumeIdPrefactor + magVolumeCounter;
+    constructVolume(go::instance()->dipoleHalfPrimary, pars.center[primaryIdx],
+                    "magVol", id, {});
+    magVolumeCounter++;
+  };
+
+  auto constructGapVolume =
+      [&](const std::shared_ptr<Acts::Experimental::DetectorVolume>& vol1,
+          const std::shared_ptr<Acts::Experimental::DetectorVolume>& vol2) {
+        double primaryCenter =
+            (vol2->transform(gctx).translation()[primaryIdx] -
+             vol2->volumeBounds().values().at(primaryIdx) +
+             vol1->transform(gctx).translation()[primaryIdx] +
+             vol1->volumeBounds().values().at(primaryIdx)) /
+            2.0;
+        double primaryHalf = (vol2->transform(gctx).translation()[primaryIdx] -
+                              vol2->volumeBounds().values().at(primaryIdx) -
+                              vol1->transform(gctx).translation()[primaryIdx] -
+                              vol1->volumeBounds().values().at(primaryIdx)) /
+                             2.0;
+        int id = go::instance()->gapVolumeIdPrefactor + gapVolumeCounter;
+        constructVolume(primaryHalf, primaryCenter, "gapVol", id, {});
+        gapVolumeCounter++;
+      };
+
+  if (go::instance()->ipTc1Distance > 0) {
+    constructVolume(
+        go::instance()->ipTc1Distance - go::instance()->interChipDistance / 2.0,
+        0, "ipVol", go::instance()->ipVolumeIdPrefactor, {});
+  }
 
   constructTrackingChamber(go::instance()->tc1Parameters);
   std::size_t lastTc1VolumeIdx = detectorVolumes.size() - 1;

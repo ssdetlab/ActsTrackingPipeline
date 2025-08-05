@@ -37,6 +37,7 @@ class RootSimDataReader : public IReader {
     std::vector<std::string> filePaths;
     /// The keys we have in the ROOT file
     std::vector<const char*> vVector3Keys;
+    std::vector<const char*> vVector2Keys;
     std::vector<const char*> vector3Keys;
     std::vector<const char*> vLorentzKeys;
     std::vector<const char*> vIntKeys;
@@ -103,6 +104,10 @@ class RootSimDataReader : public IReader {
   std::unordered_map<std::string_view, std::double_t> m_doubleColumns;
   std::unordered_map<std::string_view, std::vector<std::double_t>*>
       m_vDoubleColumns;
+
+  std::unordered_map<std::string_view, TVector2*> m_vector2Columns;
+  std::unordered_map<std::string_view, std::vector<TVector2>*>
+      m_vVector2Columns;
 
   std::unordered_map<std::string_view, TVector3*> m_vector3Columns;
   std::unordered_map<std::string_view, std::vector<TVector3>*>

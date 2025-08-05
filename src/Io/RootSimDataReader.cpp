@@ -32,6 +32,7 @@ RootSimDataReader::RootSimDataReader(const Config& config,
 
   // Set the branches
   setBranches(m_chain, m_cfg.vVector3Keys, m_vVector3Columns);
+  setBranches(m_chain, m_cfg.vVector2Keys, m_vVector2Columns);
   setBranches(m_chain, m_cfg.vector3Keys, m_vector3Columns);
   setBranches(m_chain, m_cfg.vLorentzKeys, m_vLorentzColumns);
   setBranches(m_chain, m_cfg.vIntKeys, m_vIntColumns);

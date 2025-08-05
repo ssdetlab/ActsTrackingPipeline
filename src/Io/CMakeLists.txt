@@ -19,4 +19,5 @@ target_sources(
     RootTrackReader.cpp
     JsonTrackLookupReader.cpp
     JsonTrackLookupWriter.cpp
+    ApollonRootSimDataReader.cpp
 )

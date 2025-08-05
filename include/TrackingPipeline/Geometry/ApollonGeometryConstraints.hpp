@@ -63,28 +63,29 @@ struct GeometryOptions {
   ~GeometryOptions() = default;
 
   struct ChipParameters {
-    using AxisTriple = std::tuple<Acts::BinningValue, double, double>;
+    /// Axis -- to world translation -- to world angle --
+    /// -- in place angle
+    using AxisPars = std::tuple<Acts::BinningValue, double, double>;
 
-    ChipParameters(AxisTriple tPrimary, AxisTriple tLong, AxisTriple tShort,
-                   int id)
-        : rotationAnglePrimary(std::get<2>(tPrimary)),
-          rotationAngleLong(std::get<2>(tLong)),
-          rotationAngleShort(std::get<2>(tShort)),
+    ChipParameters(AxisPars tPrimary, AxisPars tLong, AxisPars tShort, int id)
+        : toWorldAnglePrimary(std::get<2>(tPrimary)),
+          toWorldAngleLong(std::get<2>(tLong)),
+          toWorldAngleShort(std::get<2>(tShort)),
           geoId(id) {
-      center[detail::binningValueToIndex(std::get<0>(tPrimary))] =
+      toWorldTranslation[detail::binningValueToIndex(std::get<0>(tPrimary))] =
           std::get<1>(tPrimary);
-      center[detail::binningValueToIndex(std::get<0>(tLong))] =
+      toWorldTranslation[detail::binningValueToIndex(std::get<0>(tLong))] =
           std::get<1>(tLong);
-      center[detail::binningValueToIndex(std::get<0>(tShort))] =
+      toWorldTranslation[detail::binningValueToIndex(std::get<0>(tShort))] =
           std::get<1>(tShort);
     }
     ChipParameters() = delete;
 
-    Acts::Vector3 center;
+    Acts::Vector3 toWorldTranslation;
 
-    double rotationAnglePrimary;
-    double rotationAngleLong;
-    double rotationAngleShort;
+    double toWorldAnglePrimary;
+    double toWorldAngleLong;
+    double toWorldAngleShort;
 
     int geoId;
   };
@@ -135,6 +136,9 @@ struct GeometryOptions {
 
   const std::size_t gapVolumeIdPrefactor = 100;
   const std::size_t magVolumeIdPrefactor = 200;
+  const std::size_t ipVolumeIdPrefactor = 1000;
+
+  const double vcRad = 1158.6_mm + 6_mm;
 
   /// --------------------------------------------------------------
   /// Parameters of the tracking chambers
@@ -151,17 +155,20 @@ struct GeometryOptions {
 
   /// Rotation of the chips into the global frame
   const double toWorldAngleX = 0;
-  const double toWorldAngleY = M_PI_2;
+  const double toWorldAngleY = -M_PI_2;
   const double toWorldAngleZ = M_PI_2;
 
-  const double ipTc1Distance = 0_mm;
-  const double interChipDistance = 10_mm;
+  const double tcWindowToFirstChipDistance = 11.81_mm;
+  const double tcWindowToLastChipDistance = 13.59_mm;
+  const double interChipDistance = 20_mm;
 
   const double tcHalfLong = chipHalfX + chipVolumeHalfSpacing;
   const double tcHalfShort = chipHalfY + chipVolumeHalfSpacing;
 
   /// --------------------------------------------------------------
   /// Parameters of the dipole
+
+  const double dipoleAlCoverThickness = 2_mm;
 
   const double dipoleHalfPrimary = 60.5_mm;
   const double dipoleHalfLong = 30_mm;
@@ -174,8 +181,11 @@ struct GeometryOptions {
   /// --------------------------------------------------------------
   /// First tracking chamber placement
 
-  const double tc1CenterLong = 0;
-  const double tc1CenterShort = 0;
+  const double vcExitTc1Distance = 20_mm + tcWindowToFirstChipDistance;
+  const double ipTc1Distance = vcRad + vcExitTc1Distance;
+
+  const double tc1CenterLong = -50_mm;
+  const double tc1CenterShort = -50_mm;
 
   const std::vector<ChipParameters> tc1Parameters{
       ChipParameters({primaryBinValue, ipTc1Distance + 0 * interChipDistance,
@@ -186,22 +196,22 @@ struct GeometryOptions {
                       toWorldAngleX},
                      {longBinValue, tc1CenterLong, toWorldAngleY},
                      {shortBinValue, tc1CenterShort, toWorldAngleZ},
-                     11},
+                     12},
       ChipParameters{{primaryBinValue, ipTc1Distance + 2 * interChipDistance,
                       toWorldAngleX},
                      {longBinValue, tc1CenterLong, toWorldAngleY},
                      {shortBinValue, tc1CenterShort, toWorldAngleZ},
-                     12},
+                     14},
       ChipParameters{{primaryBinValue, ipTc1Distance + 3 * interChipDistance,
                       toWorldAngleX},
                      {longBinValue, tc1CenterLong, toWorldAngleY},
                      {shortBinValue, tc1CenterShort, toWorldAngleZ},
-                     13},
+                     16},
       ChipParameters{{primaryBinValue, ipTc1Distance + 4 * interChipDistance,
                       toWorldAngleX},
                      {longBinValue, tc1CenterLong, toWorldAngleY},
                      {shortBinValue, tc1CenterShort, toWorldAngleZ},
-                     14}};
+                     18}};
 
   /// --------------------------------------------------------------
   /// Dipole placement
@@ -209,11 +219,11 @@ struct GeometryOptions {
   const double tc1DipoleDistance = 20_mm;
   const double ipDipoleDistance =
       ipTc1Distance + interChipDistance * (tc1Parameters.size() - 1) +
-      tc1DipoleDistance;
+      tcWindowToLastChipDistance + tc1DipoleDistance + dipoleAlCoverThickness;
 
   const double dipoleCenterPrimary = ipDipoleDistance + dipoleHalfPrimary;
-  const double dipoleCenterLong = 0;
-  const double dipoleCenterShort = 0;
+  const double dipoleCenterLong = -50_mm;
+  const double dipoleCenterShort = -50_mm;
 
   const DipoleParameters dipoleParameters{
       {primaryBinValue, dipoleCenterPrimary, 0, dipoleFieldPrimary},
@@ -224,11 +234,12 @@ struct GeometryOptions {
   /// Second tracking chamber placement
 
   const double dipoleTc2Distance = 20_mm;
-  const double ipTc2Distance =
-      ipDipoleDistance + 2 * dipoleHalfPrimary + dipoleTc2Distance;
+  const double ipTc2Distance = ipDipoleDistance + 2 * dipoleHalfPrimary +
+                               dipoleAlCoverThickness + dipoleTc2Distance +
+                               tcWindowToFirstChipDistance;
 
-  const double tc2CenterLong = -15_mm;
-  const double tc2CenterShort = 0;
+  const double tc2CenterLong = -65_mm;
+  const double tc2CenterShort = -50_mm;
 
   const std::vector<ChipParameters> tc2Parameters{
       ChipParameters{{primaryBinValue, ipTc2Distance + 0 * interChipDistance,
@@ -240,22 +251,22 @@ struct GeometryOptions {
                       toWorldAngleX},
                      {longBinValue, tc2CenterLong, toWorldAngleY},
                      {shortBinValue, tc2CenterShort, toWorldAngleZ},
-                     21},
+                     22},
       ChipParameters{{primaryBinValue, ipTc2Distance + 2 * interChipDistance,
                       toWorldAngleX},
                      {longBinValue, tc2CenterLong, toWorldAngleY},
                      {shortBinValue, tc2CenterShort, toWorldAngleZ},
-                     22},
+                     24},
       ChipParameters{{primaryBinValue, ipTc2Distance + 3 * interChipDistance,
                       toWorldAngleX},
                      {longBinValue, tc2CenterLong, toWorldAngleY},
                      {shortBinValue, tc2CenterShort, toWorldAngleZ},
-                     23},
+                     26},
       ChipParameters{{primaryBinValue, ipTc2Distance + 4 * interChipDistance,
                       toWorldAngleX},
                      {longBinValue, tc2CenterLong, toWorldAngleY},
                      {shortBinValue, tc2CenterShort, toWorldAngleZ},
-                     24}};
+                     28}};
 
   static const std::unique_ptr<const GeometryOptions>& instance() {
     if (!m_instance) {
