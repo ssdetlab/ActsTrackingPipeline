@@ -180,7 +180,7 @@ ProcessCode RootSimTrackCandidateWriter::write(const AlgorithmContext& ctx) {
       Acts::Vector2 trueHit;
       TrackID currentTrackId;
       if (cluster.truthHits.size() == 0 || !cluster.isSignal) {
-        trueHit = ssl.parameters();
+        trueHit = ssl.parametersLoc();
 
         currentTrackId = std::make_tuple(-1, -1, -1);
       } else {

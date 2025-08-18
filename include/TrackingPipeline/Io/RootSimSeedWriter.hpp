@@ -26,8 +26,6 @@ class RootSimSeedWriter : public IWriter {
     std::string treeName;
     /// The names of the input files
     std::string filePath;
-    /// Surface accessor
-    Acts::SourceLinkSurfaceAccessor surfaceAccessor;
   };
 
   RootSimSeedWriter(const RootSimSeedWriter &) = delete;
@@ -70,16 +68,18 @@ class RootSimSeedWriter : public IWriter {
   TTree *m_tree = nullptr;
 
  protected:
-  /// Pivot position
-  TVector3 m_geoCenterPivot;
-
   /// Measurements in a given seed
-  std::vector<TVector3> m_seedMeasurements;
+  std::vector<TVector3> m_seedMeasurementsGlob;
+  std::vector<TVector2> m_seedMeasurementsLoc;
+  std::vector<int> m_geoIds;
 
   /// Fraction of a true track
   /// contained within the seed
   /// source link list
   double m_matchingDegree;
+
+  /// Event ID of the seed
+  std::size_t m_eventId;
 
   /// Number of source links
   /// in a seed
@@ -88,6 +88,9 @@ class RootSimSeedWriter : public IWriter {
   /// Size of the true track
   std::size_t m_trueTrackSize;
 
+  /// Size of the true track in seed
+  std::size_t m_trackInSeedSize;
+
   /// Flag idicating if pivot
   /// cluster is a signal
   bool m_isSignal;
@@ -95,12 +98,12 @@ class RootSimSeedWriter : public IWriter {
   /// True momentum, vertex at the IP
   /// associated with a pivot
   TLorentzVector m_ipMomentumTruth;
-  TLorentzVector m_vertexTruth;
+  TVector3 m_vertexTruth;
 
   /// Estimated momentum, vertex at the IP
   /// associated with a pivot
   TLorentzVector m_ipMomentumEst;
-  TLorentzVector m_vertexEst;
+  TVector3 m_vertexEst;
 
   /// Mutex to protect the tree filling
   std::mutex m_mutex;

@@ -1,6 +1,5 @@
 #pragma once
 
-#include "Acts/EventData/SourceLink.hpp"
 #include "Acts/Utilities/Logger.hpp"
 
 #include "TFile.h"
@@ -31,8 +30,6 @@ class RootSimClusterWriter : public IWriter {
  public:
   /// @brief The nested configuration struct
   struct Config {
-    /// Surface accessor
-    Acts::SourceLinkSurfaceAccessor surfaceAccessor;
     /// Truth cluster data
     std::string inputClusters;
     /// Name of the input tree

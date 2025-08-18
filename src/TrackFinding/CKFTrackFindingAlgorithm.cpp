@@ -33,6 +33,7 @@ ProcessCode CKFTrackFindingAlgorithm::execute(
   ipParametersGuesses.reserve(inputSeeds.size());
 
   Seeds trackCandidates;
+  trackCandidates.reserve(inputSeeds.size());
   std::size_t idx = 0;
   for (const auto& seed : inputSeeds) {
     SimpleSourceLinkContainer ckfSourceLinks;
@@ -73,6 +74,7 @@ ProcessCode CKFTrackFindingAlgorithm::execute(
     }
     idx = candidateContainer.size();
   }
+  trackCandidates.shrink_to_fit();
 
   ACTS_DEBUG("Sending " << trackCandidates.size() << " track candidates");
   m_outputTrackCandidates(ctx, std::move(trackCandidates));

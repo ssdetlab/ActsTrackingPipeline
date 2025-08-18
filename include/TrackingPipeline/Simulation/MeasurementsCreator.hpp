@@ -62,6 +62,8 @@ class MeasurementsCreator : public IMeasurementGenerator {
   /// Configuration
   Config m_cfg;
 
+  Acts::BoundSquareMatrix m_ipCov;
+
   /// Propagator instance
   Propagator m_propagator;
 };

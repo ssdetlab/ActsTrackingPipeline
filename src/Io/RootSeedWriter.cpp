@@ -24,12 +24,12 @@ RootSeedWriter::RootSeedWriter(const Config& config, Acts::Logging::Level level)
 
   //------------------------------------------------------------------
   // Tree branches
-  int buf_size = 32000;
-  int split_lvl = 0;
+  int bufSize = 32000;
+  int splitLvl = 0;
 
   // Measurements
-  m_tree->Branch("pivot", &m_geoCenterPivot, buf_size, split_lvl);
-  m_tree->Branch("measurements", &m_seedMeasurements, buf_size, split_lvl);
+  m_tree->Branch("pivot", &m_geoCenterPivot, bufSize, splitLvl);
+  m_tree->Branch("measurements", &m_seedMeasurements, bufSize, splitLvl);
 
   // Seed properties
   m_tree->Branch("nLayes", &m_nLayers);
@@ -67,7 +67,7 @@ ProcessCode RootSeedWriter::write(const AlgorithmContext& ctx) {
     const auto& pivotSl = sourceLinks.front();
     const auto* surfPivot = m_cfg.surfaceAccessor(Acts::SourceLink(pivotSl));
     Acts::Vector3 geoCenterGlobal = surfPivot->localToGlobal(
-        ctx.geoContext, pivotSl.parameters(), Acts::Vector3(0, 1, 0));
+        ctx.geoContext, pivotSl.parametersLoc(), Acts::Vector3(0, 1, 0));
     m_geoCenterPivot.SetX(geoCenterGlobal.x());
     m_geoCenterPivot.SetY(geoCenterGlobal.y());
     m_geoCenterPivot.SetZ(geoCenterGlobal.z());
@@ -78,7 +78,7 @@ ProcessCode RootSeedWriter::write(const AlgorithmContext& ctx) {
       const auto* surf = m_cfg.surfaceAccessor(Acts::SourceLink(sl));
       seedGeoIds.insert(surf->geometryId());
       Acts::Vector3 measGlobal = surf->localToGlobal(
-          ctx.geoContext, sl.parameters(), Acts::Vector3(0, 1, 0));
+          ctx.geoContext, sl.parametersLoc(), Acts::Vector3(0, 1, 0));
       m_seedMeasurements.emplace_back(measGlobal.x(), measGlobal.y(),
                                       measGlobal.z());
     }

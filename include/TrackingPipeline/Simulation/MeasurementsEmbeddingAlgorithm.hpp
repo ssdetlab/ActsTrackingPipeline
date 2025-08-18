@@ -2,7 +2,6 @@
 
 #include <cstddef>
 
-#include "TrackingPipeline/Clustering/IClusterFilter.hpp"
 #include "TrackingPipeline/EventData/DataContainers.hpp"
 #include "TrackingPipeline/Infrastructure/DataHandle.hpp"
 #include "TrackingPipeline/Infrastructure/IAlgorithm.hpp"
@@ -16,8 +15,6 @@ class MeasurementsEmbeddingAlgorithm : public IAlgorithm {
   struct Config {
     /// Measurement generator
     std::shared_ptr<IMeasurementGenerator> measurementGenerator;
-    /// Cluster Filter
-    std::shared_ptr<IClusterFilter> clusterFilter = nullptr;
     /// Random number generator
     std::shared_ptr<RandomNumbers> randomNumberSvc;
     /// Input source links

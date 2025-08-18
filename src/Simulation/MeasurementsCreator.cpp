@@ -4,9 +4,9 @@
 #include "Acts/Definitions/TrackParametrization.hpp"
 #include "Acts/EventData/SourceLink.hpp"
 #include "Acts/Geometry/GeometryIdentifier.hpp"
+#include <Acts/Utilities/Logger.hpp>
 #include <Acts/Utilities/VectorHelpers.hpp>
 
-#include <chrono>
 #include <cstddef>
 #include <cstdlib>
 #include <stdexcept>
@@ -18,7 +18,16 @@
 
 MeasurementsCreator::MeasurementsCreator(const Propagator propagator,
                                          const Config& config)
-    : m_cfg(config), m_propagator(propagator) {};
+    : m_cfg(config), m_propagator(propagator) {
+  Acts::BoundVector ipStdDev;
+  ipStdDev[Acts::eBoundLoc0] = 100_um;
+  ipStdDev[Acts::eBoundLoc1] = 100_um;
+  ipStdDev[Acts::eBoundTime] = 25_ns;
+  ipStdDev[Acts::eBoundPhi] = 2_degree;
+  ipStdDev[Acts::eBoundTheta] = 2_degree;
+  ipStdDev[Acts::eBoundQOverP] = 1 / 100_GeV;
+  m_ipCov = ipStdDev.cwiseProduct(ipStdDev).asDiagonal();
+};
 
 std::tuple<std::vector<Acts::SourceLink>, SimClusters> MeasurementsCreator::gen(
     const AlgorithmContext& ctx, RandomEngine& rng, std::size_t id) const {
@@ -27,17 +36,6 @@ std::tuple<std::vector<Acts::SourceLink>, SimClusters> MeasurementsCreator::gen(
   using PropagatorOptions =
       typename Propagator::template Options<Actions, Aborters>;
 
-  // Create IP covariance matrix from
-  // reasonable standard deviations
-  Acts::BoundVector ipStdDev;
-  ipStdDev[Acts::eBoundLoc0] = 100_um;
-  ipStdDev[Acts::eBoundLoc1] = 100_um;
-  ipStdDev[Acts::eBoundTime] = 25_ns;
-  ipStdDev[Acts::eBoundPhi] = 2_degree;
-  ipStdDev[Acts::eBoundTheta] = 2_degree;
-  ipStdDev[Acts::eBoundQOverP] = 1 / 100_GeV;
-  Acts::BoundSquareMatrix ipCov = ipStdDev.cwiseProduct(ipStdDev).asDiagonal();
-
   // Set options for propagator
   PropagatorOptions options(ctx.geoContext, ctx.magFieldContext);
 
@@ -45,8 +43,7 @@ std::tuple<std::vector<Acts::SourceLink>, SimClusters> MeasurementsCreator::gen(
   options.maxSteps = m_cfg.maxSteps;
   creator.sourceId = id;
 
-  // Generate initial track parameters
-  rng.seed(std::chrono::system_clock::now().time_since_epoch().count());
+  int index = static_cast<int>(id);
 
   Acts::Vector3 spatial = m_cfg.vertexGenerator->genVertex(rng);
   Acts::Vector4 mPos4 = {spatial.x(), spatial.y(), spatial.z(), 0};
@@ -56,16 +53,14 @@ std::tuple<std::vector<Acts::SourceLink>, SimClusters> MeasurementsCreator::gen(
   double phi = Acts::VectorHelpers::phi(mom);
   double theta = Acts::VectorHelpers::theta(mom);
 
-  TrackParameters trackParameters(mPos4, phi, theta, m_cfg.charge / p, ipCov,
+  TrackParameters trackParameters(mPos4, phi, theta, m_cfg.charge / p, m_ipCov,
                                   m_cfg.hypothesis);
-
-  // Launch propagation and collect the measurements
-  SimClusters simClusters;
-  std::vector<Acts::SourceLink> sourceLinks;
 
   MeasurementsCreatorAction::result_type resultParameters;
   try {
-    auto result = m_propagator.propagate(trackParameters, options).value();
+    auto result =
+        m_propagator.propagate(std::move(trackParameters), std::move(options))
+            .value();
 
     resultParameters =
         result.template get<MeasurementsCreatorAction::result_type>();
@@ -74,38 +69,50 @@ std::tuple<std::vector<Acts::SourceLink>, SimClusters> MeasurementsCreator::gen(
   }
 
   int trackId = (m_cfg.isSignal) ? 1 : -1;
-  for (const auto& boundPars : resultParameters) {
-    Acts::BoundVector boundVec = boundPars.parameters();
+  std::size_t resSize = resultParameters.size();
+
+  SimClusters simClusters;
+  simClusters.reserve(resSize);
+  std::vector<Acts::SourceLink> sourceLinks;
+  sourceLinks.reserve(resSize);
+
+  for (std::size_t i = 0; i < resSize; i++) {
+    const auto& boundPars = resultParameters.at(i);
+    const Acts::BoundVector& boundVec = boundPars.parameters();
 
     Acts::GeometryIdentifier geoId = boundPars.referenceSurface().geometryId();
 
     // Sometimes scattering makes particles
     // to be stuck in the same surface
-    if (std::ranges::find_if(simClusters, [&](const auto& cl) {
-          return (cl.sourceLink.geometryId() == geoId);
-        }) != simClusters.end()) {
-      continue;
+    for (int j = simClusters.size() - 1; j >= 0; j--) {
+      if (simClusters.at(j).sourceLink.geometryId() == geoId) {
+        continue;
+      }
     }
 
     // Digitize hits
     Acts::Vector2 trueLocalPos{boundVec[Acts::eBoundLoc0],
                                boundVec[Acts::eBoundLoc1]};
+    Acts::Vector3 trueGlobalPos = boundPars.referenceSurface().localToGlobal(
+        ctx.geoContext, trueLocalPos, Acts::Vector3::UnitX());
 
     auto [digCov, digLocalPos] =
         m_cfg.hitDigitizer->genCluster(rng, geoId, trueLocalPos);
+    Acts::Vector3 digGlobalPos = boundPars.referenceSurface().localToGlobal(
+        ctx.geoContext, digLocalPos, Acts::Vector3::UnitX());
 
     // Truth information
-    SimpleSourceLink hitSimpleSl(trueLocalPos, digCov, geoId, ctx.eventNumber,
-                                 -1);
-    Acts::SourceLink hitSl(hitSimpleSl);
+    Acts::SourceLink hitSl(SimpleSourceLink(trueLocalPos, trueGlobalPos, digCov,
+                                            geoId, ctx.eventNumber, index + i));
 
-    SimHit sm{boundVec, trackParameters, trackId, static_cast<int>(id),
-              static_cast<int>(ctx.eventNumber)};
+    SimHit sm{
+        boundVec, trueGlobalPos,        trackParameters,
+        trackId,  static_cast<int>(id), static_cast<int>(ctx.eventNumber)};
 
     // Observable information
-    SimpleSourceLink simpleSl(digLocalPos, digCov, geoId, ctx.eventNumber, -1);
-    Acts::SourceLink sl(simpleSl);
-    sourceLinks.push_back(sl);
+    SimpleSourceLink simpleSl(digLocalPos, digGlobalPos, digCov, geoId,
+                              ctx.eventNumber, index + i);
+    sourceLinks.push_back(Acts::SourceLink(simpleSl));
 
     SimCluster cl{
         simpleSl,

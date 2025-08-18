@@ -19,13 +19,13 @@ class RootSimClusterReader : public IReader {
   /// @brief The nested configuration struct
   struct Config {
     /// Output source links
-    std::string outputMeasurements;
+    std::string outputSourceLinks;
     /// Output sim clusters
     std::string outputSimClusters;
     /// The names of the input files
     std::vector<std::string> filePaths;
     /// Name of the input tree
-    std::string treeName = "MyTree";
+    std::string treeName;
   };
 
   RootSimClusterReader(const RootSimClusterReader&) = delete;
@@ -55,6 +55,8 @@ class RootSimClusterReader : public IReader {
   /// The config class
   Config m_cfg;
 
+  Acts::BoundSquareMatrix m_ipCov;
+
   /// WriteDataHandle for the sim data
   WriteDataHandle<SimClusters> m_outputSimClusters{this, "SimClusters"};
 
@@ -68,13 +70,14 @@ class RootSimClusterReader : public IReader {
   std::mutex m_read_mutex;
 
   /// Vector of {eventNr, entryMin, entryMax}
-  std::vector<std::tuple<uint32_t, std::size_t, std::size_t>> m_eventMap;
+  std::vector<std::tuple<std::size_t, std::size_t, std::size_t>> m_eventMap;
 
   /// The input tree name
   TChain* m_chain = nullptr;
 
  protected:
   TVector2* m_geoCenterLocal = nullptr;
+  TVector3* m_geoCenterGlobal = nullptr;
   TMatrixD* m_cov = nullptr;
 
   std::size_t m_geoId;
@@ -83,7 +86,8 @@ class RootSimClusterReader : public IReader {
   int m_isSignal;
 
   /// Measurement hits
-  std::vector<TVector2>* m_trackHits = nullptr;
+  std::vector<TVector2>* m_trackHitsLoc = nullptr;
+  std::vector<TVector3>* m_trackHitsGlob = nullptr;
 
   std::vector<int>* m_trackId = nullptr;
   std::vector<int>* m_parentTrackId = nullptr;

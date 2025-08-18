@@ -82,7 +82,7 @@ TrackLookupProvider::lookup(const Acts::GeometryContext& gctx,
                             const Acts::SourceLink& pivot) const {
   auto ssl = pivot.get<SimpleSourceLink>();
 
-  Acts::Vector2 localPos = ssl.parameters();
+  Acts::Vector2 localPos = ssl.parametersLoc();
   Acts::GeometryIdentifier geoId = ssl.geometryId();
 
   auto bin = m_lookup->at(geoId).localBinsFromPosition(localPos);

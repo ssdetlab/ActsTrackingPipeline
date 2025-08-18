@@ -215,6 +215,9 @@ ProcessCode RootTrackReader::read(const AlgorithmContext& ctx) {
     for (std::size_t i = 0; i < m_trackHitsGlobal->size(); i++) {
       Acts::Vector2 trackHitLocal(m_trackHitsLocal->at(i).X(),
                                   m_trackHitsLocal->at(i).Y());
+      Acts::Vector3 trackHitGlobal(m_trackHitsGlobal->at(i).X(),
+                                   m_trackHitsGlobal->at(i).Y(),
+                                   m_trackHitsGlobal->at(i).Z());
       Acts::ActsSquareMatrix<2> cov;
       cov << m_trackHitCovs->at(i)(0, 0), m_trackHitCovs->at(i)(0, 1),
           m_trackHitCovs->at(i)(1, 0), m_trackHitCovs->at(i)(1, 1);
@@ -222,8 +225,8 @@ ProcessCode RootTrackReader::read(const AlgorithmContext& ctx) {
 
       Acts::GeometryIdentifier geoId;
       geoId.setSensitive(m_geometryIds->at(i));
-      SimpleSourceLink obsSourceLink(trackHitLocal, cov, geoId, eventId,
-                                     sslIdx);
+      SimpleSourceLink obsSourceLink(trackHitLocal, trackHitGlobal, cov, geoId,
+                                     eventId, sslIdx);
       sourceLinks.push_back(Acts::SourceLink{obsSourceLink});
       trackSourceLinks.push_back(Acts::SourceLink{obsSourceLink});
 

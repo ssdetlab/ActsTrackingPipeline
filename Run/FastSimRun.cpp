@@ -6,6 +6,8 @@
 #include "Acts/TrackFitting/KalmanFitter.hpp"
 #include "Acts/Utilities/Logger.hpp"
 
+#include <Eigen/src/Core/ArithmeticSequence.h>
+
 #include "TrackingPipeline/EventData/SimpleSourceLink.hpp"
 #include "TrackingPipeline/Geometry/ApollonGeometry.hpp"
 #include "TrackingPipeline/Geometry/ApollonGeometryConstraints.hpp"
@@ -15,8 +17,10 @@
 #include "TrackingPipeline/Simulation/MeasurementsCreator.hpp"
 #include "TrackingPipeline/Simulation/MeasurementsEmbeddingAlgorithm.hpp"
 #include "TrackingPipeline/Simulation/SimpleDigitizer.hpp"
+#include "TrackingPipeline/Simulation/SphericalMomentumGenerator.hpp"
 #include "TrackingPipeline/Simulation/StationaryMomentumGenerator.hpp"
 #include "TrackingPipeline/Simulation/StationaryVertexGenerator.hpp"
+#include "TrackingPipeline/Simulation/UniformBackgroundCreator.hpp"
 
 using ActionList = Acts::ActionList<>;
 using AbortList = Acts::AbortList<Acts::EndOfWorldReached>;
@@ -46,7 +50,7 @@ std::unique_ptr<const ag::GeometryOptions> ag::GeometryOptions::m_instance =
 
 int main() {
   // Set the log level
-  Acts::Logging::Level logLevel = Acts::Logging::VERBOSE;
+  Acts::Logging::Level logLevel = Acts::Logging::INFO;
 
   // Context and options
   Acts::GeometryContext gctx;
@@ -67,6 +71,15 @@ int main() {
     }
   }
 
+  std::vector<const Acts::Surface*> detSurfaces;
+  for (const auto* vol : detector->volumes()) {
+    for (const auto* surf : vol->surfaces()) {
+      if (surf->geometryId().sensitive()) {
+        detSurfaces.push_back(surf);
+      }
+    }
+  }
+
   // --------------------------------------------------------------
   // The magnetic field setup
 
@@ -79,6 +92,7 @@ int main() {
   // Setup the sequencer
   Sequencer::Config seqCfg;
   seqCfg.numThreads = 1;
+  seqCfg.skip = 1;
   seqCfg.trackFpes = false;
   seqCfg.logLevel = logLevel;
   Sequencer sequencer(seqCfg);
@@ -88,7 +102,7 @@ int main() {
   DummyReader::Config dummyReaderCfg;
   dummyReaderCfg.outputSourceLinks = "SimMeasurements";
   dummyReaderCfg.outputSimClusters = "SimClusters";
-  dummyReaderCfg.nEvents = 1;
+  dummyReaderCfg.nEvents = 1e3 + 1;
 
   sequencer.addReader(std::make_shared<DummyReader>(dummyReaderCfg));
 
@@ -119,8 +133,13 @@ int main() {
   vertexGen->vertex = Acts::Vector3(-2_mm, 0, 0);
 
   // Momentum generator
+  // auto momGen = std::make_shared<SphericalMomentumGenerator>();
+  // momGen->pRange = {0.3_GeV, 0.7_GeV};
+  // momGen->phiRange = {0, 2 * M_PI};
+  // momGen->thetaRange = {M_PI_2 - 3e-3, M_PI_2 + 3e-3};
+
   auto momGen = std::make_shared<StationaryMomentumGenerator>();
-  momGen->momentum = 0.4_GeV * Acts::Vector3(1, 0, 0);
+  momGen->momentum = 0.7_GeV * Acts::Vector3::UnitX();
 
   // Measurement creator
   MeasurementsCreator::Config measCreatorCfg;
@@ -136,8 +155,8 @@ int main() {
   MeasurementsEmbeddingAlgorithm::Config measCreatorAlgoCfg;
   measCreatorAlgoCfg.inputSourceLinks = "SimMeasurements";
   measCreatorAlgoCfg.inputSimClusters = "SimClusters";
-  measCreatorAlgoCfg.outputSourceLinks = "Measurements";
-  measCreatorAlgoCfg.outputSimClusters = "Clusters";
+  measCreatorAlgoCfg.outputSourceLinks = "Measurements1";
+  measCreatorAlgoCfg.outputSimClusters = "Clusters1";
   measCreatorAlgoCfg.measurementGenerator = measCreator;
   measCreatorAlgoCfg.randomNumberSvc =
       std::make_shared<RandomNumbers>(RandomNumbers::Config());
@@ -147,18 +166,39 @@ int main() {
       measCreatorAlgoCfg, logLevel));
 
   // --------------------------------------------------------------
+  // Add background
+
+  // Background creator
+  UniformBackgroundCreator::Config bkgCreatorCfg;
+  bkgCreatorCfg.resolution = {5_um, 5_um};
+  bkgCreatorCfg.nMeasurements = 20;
+  bkgCreatorCfg.surfaces = detSurfaces;
+
+  auto bkgCreator = std::make_shared<UniformBackgroundCreator>(bkgCreatorCfg);
+
+  MeasurementsEmbeddingAlgorithm::Config bkgCreatorAlgoCfg;
+  bkgCreatorAlgoCfg.inputSourceLinks = "Measurements1";
+  bkgCreatorAlgoCfg.inputSimClusters = "Clusters1";
+  bkgCreatorAlgoCfg.outputSourceLinks = "Measurements";
+  bkgCreatorAlgoCfg.outputSimClusters = "Clusters";
+  bkgCreatorAlgoCfg.measurementGenerator = bkgCreator;
+  bkgCreatorAlgoCfg.randomNumberSvc =
+      std::make_shared<RandomNumbers>(RandomNumbers::Config());
+  bkgCreatorAlgoCfg.nMeasurements = 1;
+
+  sequencer.addAlgorithm(std::make_shared<MeasurementsEmbeddingAlgorithm>(
+      bkgCreatorAlgoCfg, logLevel));
+
+  // --------------------------------------------------------------
   // Event write out
 
   // Sim cluster writer
   auto clusterWriterCfg = RootSimClusterWriter::Config();
-
-  clusterWriterCfg.surfaceAccessor
-      .connect<&SimpleSourceLink::SurfaceAccessor::operator()>(
-          &surfaceAccessor);
-
   clusterWriterCfg.inputClusters = "Clusters";
   clusterWriterCfg.treeName = "clusters";
-  clusterWriterCfg.filePath = "clusters.root";
+  clusterWriterCfg.filePath =
+      "/home/romanurmanov/work/Apollon/tracking/out_data/fast_sim_data/"
+      "clusters-sim-sig.root";
 
   sequencer.addWriter(
       std::make_shared<RootSimClusterWriter>(clusterWriterCfg, logLevel));

@@ -27,7 +27,9 @@ class RandomNumbers {
     uint64_t seed = 1234567890u;  ///< random seed
   };
 
- explicit RandomNumbers(const Config& cfg);
+  explicit RandomNumbers(const Config& cfg);
+
+  RandomEngine spawnGenerator() const;
 
   /// Spawn an algorithm-local random number generator. To avoid inefficiencies
   /// and multiple uses of a given RNG seed, this should only be done once per

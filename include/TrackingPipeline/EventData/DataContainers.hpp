@@ -19,6 +19,8 @@
 struct SimHit {
   /// True parameters at the surface
   Acts::BoundVector truthParameters;
+  /// Global hit position
+  Acts::Vector3 globalPosition;
   /// True IP parameters
   Acts::CurvilinearTrackParameters ipParameters;
   /// True track Ids

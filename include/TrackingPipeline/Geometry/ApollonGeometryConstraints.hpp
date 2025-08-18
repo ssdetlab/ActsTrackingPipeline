@@ -62,12 +62,11 @@ struct GeometryOptions {
   GeometryOptions() = default;
   ~GeometryOptions() = default;
 
-  struct ChipParameters {
-    /// Axis -- to world translation -- to world angle --
-    /// -- in place angle
+  struct SurfaceParameters {
     using AxisPars = std::tuple<Acts::BinningValue, double, double>;
 
-    ChipParameters(AxisPars tPrimary, AxisPars tLong, AxisPars tShort, int id)
+    SurfaceParameters(AxisPars tPrimary, AxisPars tLong, AxisPars tShort,
+                      int id)
         : toWorldAnglePrimary(std::get<2>(tPrimary)),
           toWorldAngleLong(std::get<2>(tLong)),
           toWorldAngleShort(std::get<2>(tShort)),
@@ -79,7 +78,7 @@ struct GeometryOptions {
       toWorldTranslation[detail::binningValueToIndex(std::get<0>(tShort))] =
           std::get<1>(tShort);
     }
-    ChipParameters() = delete;
+    SurfaceParameters() = delete;
 
     Acts::Vector3 toWorldTranslation;
 
@@ -124,7 +123,7 @@ struct GeometryOptions {
     Acts::Vector3 field;
   };
 
-  using TrackingChamberParameters = std::vector<ChipParameters>;
+  using TrackingChamberParameters = std::vector<SurfaceParameters>;
 
   /// --------------------------------------------------------------
   /// General parameters
@@ -134,11 +133,50 @@ struct GeometryOptions {
   const Acts::BinningValue longBinValue = Acts::BinningValue::binY;
   const Acts::BinningValue shortBinValue = Acts::BinningValue::binZ;
 
-  const std::size_t gapVolumeIdPrefactor = 100;
-  const std::size_t magVolumeIdPrefactor = 200;
-  const std::size_t ipVolumeIdPrefactor = 1000;
+  const std::size_t primaryIdx = detail::binningValueToIndex(primaryBinValue);
+  const std::size_t longIdx = detail::binningValueToIndex(longBinValue);
+  const std::size_t shortIdx = detail::binningValueToIndex(shortBinValue);
 
-  const double vcRad = 1158.6_mm + 6_mm;
+  const Acts::Vector3 primaryDir =
+      detail::binningValueToDirection(primaryBinValue);
+  const Acts::Vector3 longDir = detail::binningValueToDirection(longBinValue);
+  const Acts::Vector3 shortDir = detail::binningValueToDirection(shortBinValue);
+
+  const std::size_t gapVolumeIdPrefactor = 50;
+  const std::size_t magVolumeIdPrefactor = 100;
+  const std::size_t ipVolumeIdPrefactor = 150;
+
+  const double worldHalfLong = 2_m;
+  const double worldHalfShort = 2_m;
+
+  const double setupRotationAngle = -2_degree;
+
+  /// Rotation of the plane surfaces into the global frame
+  const double toWorldAngleX = 0;
+  const double toWorldAngleY = -M_PI_2;
+  const double toWorldAngleZ = M_PI_2;
+
+  /// --------------------------------------------------------------
+  /// Parameters of the VC window
+
+  const double vcWindowCenterPrimary = 1158.6_mm;
+
+  const double vcWindowHalfX = 95_mm;
+  const double vcWindowHalfY = 15_mm;
+
+  const double vcWindowThickness = 0.5_mm;
+
+  const double vcWindowAnglePrimary = M_PI_4;
+  const double vcWindowAngleShort = 0;
+  const double vcWindowAngleLong = 0;
+
+  const SurfaceParameters vcWindowParameters{
+      {primaryBinValue, vcWindowCenterPrimary, toWorldAngleX},
+      {longBinValue, tc1CenterLong, toWorldAngleY},
+      {shortBinValue, tc1CenterShort, toWorldAngleZ + vcWindowAnglePrimary},
+      30};
+
+  const double vcRad = vcWindowCenterPrimary + 6_mm;
 
   /// --------------------------------------------------------------
   /// Parameters of the tracking chambers
@@ -150,18 +188,17 @@ struct GeometryOptions {
   const double pixelHalfX = 14.62_um;
   const double pixelHalfY = 13.44_um;
 
+  const double pixelThickness = 25_um;
+
   /// Volume spacing around the chips
   const double chipVolumeHalfSpacing = 1_mm;
 
-  /// Rotation of the chips into the global frame
-  const double toWorldAngleX = 0;
-  const double toWorldAngleY = -M_PI_2;
-  const double toWorldAngleZ = M_PI_2;
-
+  /// Distances within the detector box
   const double tcWindowToFirstChipDistance = 11.81_mm;
   const double tcWindowToLastChipDistance = 13.59_mm;
   const double interChipDistance = 20_mm;
 
+  /// Transverse volume parameters
   const double tcHalfLong = chipHalfX + chipVolumeHalfSpacing;
   const double tcHalfShort = chipHalfY + chipVolumeHalfSpacing;
 
@@ -184,34 +221,42 @@ struct GeometryOptions {
   const double vcExitTc1Distance = 20_mm + tcWindowToFirstChipDistance;
   const double ipTc1Distance = vcRad + vcExitTc1Distance;
 
-  const double tc1CenterLong = -50_mm;
-  const double tc1CenterShort = -50_mm;
+  const double tc1CenterLong = 0_mm;
+  const double tc1CenterShort = 0_mm;
+  // const double tc1CenterLong = -50_mm;
+  // const double tc1CenterShort = -50_mm;
 
-  const std::vector<ChipParameters> tc1Parameters{
-      ChipParameters({primaryBinValue, ipTc1Distance + 0 * interChipDistance,
-                      toWorldAngleX},
-                     {longBinValue, tc1CenterLong, toWorldAngleY},
-                     {shortBinValue, tc1CenterShort, toWorldAngleZ}, 10),
-      ChipParameters{{primaryBinValue, ipTc1Distance + 1 * interChipDistance,
-                      toWorldAngleX},
-                     {longBinValue, tc1CenterLong, toWorldAngleY},
-                     {shortBinValue, tc1CenterShort, toWorldAngleZ},
-                     12},
-      ChipParameters{{primaryBinValue, ipTc1Distance + 2 * interChipDistance,
-                      toWorldAngleX},
-                     {longBinValue, tc1CenterLong, toWorldAngleY},
-                     {shortBinValue, tc1CenterShort, toWorldAngleZ},
-                     14},
-      ChipParameters{{primaryBinValue, ipTc1Distance + 3 * interChipDistance,
-                      toWorldAngleX},
-                     {longBinValue, tc1CenterLong, toWorldAngleY},
-                     {shortBinValue, tc1CenterShort, toWorldAngleZ},
-                     16},
-      ChipParameters{{primaryBinValue, ipTc1Distance + 4 * interChipDistance,
-                      toWorldAngleX},
-                     {longBinValue, tc1CenterLong, toWorldAngleY},
-                     {shortBinValue, tc1CenterShort, toWorldAngleZ},
-                     18}};
+  const std::vector<SurfaceParameters> tc1Parameters{
+      SurfaceParameters({primaryBinValue, ipTc1Distance + 0 * interChipDistance,
+                         toWorldAngleX},
+                        {longBinValue, tc1CenterLong, toWorldAngleY},
+                        {shortBinValue, tc1CenterShort, toWorldAngleZ}, 10),
+      SurfaceParameters{{primaryBinValue, ipTc1Distance + 1 * interChipDistance,
+                         toWorldAngleX},
+                        {longBinValue, tc1CenterLong, toWorldAngleY},
+                        {shortBinValue, tc1CenterShort, toWorldAngleZ},
+                        12},
+      SurfaceParameters{{primaryBinValue, ipTc1Distance + 2 * interChipDistance,
+                         toWorldAngleX},
+                        {longBinValue, tc1CenterLong, toWorldAngleY},
+                        {shortBinValue, tc1CenterShort, toWorldAngleZ},
+                        14},
+      SurfaceParameters{{primaryBinValue, ipTc1Distance + 3 * interChipDistance,
+                         toWorldAngleX},
+                        {longBinValue, tc1CenterLong, toWorldAngleY},
+                        {shortBinValue, tc1CenterShort, toWorldAngleZ},
+                        16},
+      SurfaceParameters{{primaryBinValue, ipTc1Distance + 4 * interChipDistance,
+                         toWorldAngleX},
+                        {longBinValue, tc1CenterLong, toWorldAngleY},
+                        {shortBinValue, tc1CenterShort, toWorldAngleZ},
+                        18}};
+
+  const double tc1HalfPrimary =
+      interChipDistance * (tc1Parameters.size() - 1) / 2.0 +
+      chipVolumeHalfSpacing;
+
+  const double tc1CenterPrimary = ipTc1Distance + tc1HalfPrimary;
 
   /// --------------------------------------------------------------
   /// Dipole placement
@@ -222,8 +267,10 @@ struct GeometryOptions {
       tcWindowToLastChipDistance + tc1DipoleDistance + dipoleAlCoverThickness;
 
   const double dipoleCenterPrimary = ipDipoleDistance + dipoleHalfPrimary;
-  const double dipoleCenterLong = -50_mm;
-  const double dipoleCenterShort = -50_mm;
+  // const double dipoleCenterLong = -50_mm;
+  // const double dipoleCenterShort = -50_mm;
+  const double dipoleCenterLong = 0_mm;
+  const double dipoleCenterShort = 0_mm;
 
   const DipoleParameters dipoleParameters{
       {primaryBinValue, dipoleCenterPrimary, 0, dipoleFieldPrimary},
@@ -238,35 +285,43 @@ struct GeometryOptions {
                                dipoleAlCoverThickness + dipoleTc2Distance +
                                tcWindowToFirstChipDistance;
 
-  const double tc2CenterLong = -65_mm;
-  const double tc2CenterShort = -50_mm;
+  // const double tc2CenterLong = -65_mm;
+  // const double tc2CenterShort = -50_mm;
+  const double tc2CenterLong = 0_mm;
+  const double tc2CenterShort = 0_mm;
 
-  const std::vector<ChipParameters> tc2Parameters{
-      ChipParameters{{primaryBinValue, ipTc2Distance + 0 * interChipDistance,
-                      toWorldAngleX},
-                     {longBinValue, tc2CenterLong, toWorldAngleY},
-                     {shortBinValue, tc2CenterShort, toWorldAngleZ},
-                     20},
-      ChipParameters{{primaryBinValue, ipTc2Distance + 1 * interChipDistance,
-                      toWorldAngleX},
-                     {longBinValue, tc2CenterLong, toWorldAngleY},
-                     {shortBinValue, tc2CenterShort, toWorldAngleZ},
-                     22},
-      ChipParameters{{primaryBinValue, ipTc2Distance + 2 * interChipDistance,
-                      toWorldAngleX},
-                     {longBinValue, tc2CenterLong, toWorldAngleY},
-                     {shortBinValue, tc2CenterShort, toWorldAngleZ},
-                     24},
-      ChipParameters{{primaryBinValue, ipTc2Distance + 3 * interChipDistance,
-                      toWorldAngleX},
-                     {longBinValue, tc2CenterLong, toWorldAngleY},
-                     {shortBinValue, tc2CenterShort, toWorldAngleZ},
-                     26},
-      ChipParameters{{primaryBinValue, ipTc2Distance + 4 * interChipDistance,
-                      toWorldAngleX},
-                     {longBinValue, tc2CenterLong, toWorldAngleY},
-                     {shortBinValue, tc2CenterShort, toWorldAngleZ},
-                     28}};
+  const std::vector<SurfaceParameters> tc2Parameters{
+      SurfaceParameters{{primaryBinValue, ipTc2Distance + 0 * interChipDistance,
+                         toWorldAngleX},
+                        {longBinValue, tc2CenterLong, toWorldAngleY},
+                        {shortBinValue, tc2CenterShort, toWorldAngleZ},
+                        20},
+      SurfaceParameters{{primaryBinValue, ipTc2Distance + 1 * interChipDistance,
+                         toWorldAngleX},
+                        {longBinValue, tc2CenterLong, toWorldAngleY},
+                        {shortBinValue, tc2CenterShort, toWorldAngleZ},
+                        22},
+      SurfaceParameters{{primaryBinValue, ipTc2Distance + 2 * interChipDistance,
+                         toWorldAngleX},
+                        {longBinValue, tc2CenterLong, toWorldAngleY},
+                        {shortBinValue, tc2CenterShort, toWorldAngleZ},
+                        24},
+      SurfaceParameters{{primaryBinValue, ipTc2Distance + 3 * interChipDistance,
+                         toWorldAngleX},
+                        {longBinValue, tc2CenterLong, toWorldAngleY},
+                        {shortBinValue, tc2CenterShort, toWorldAngleZ},
+                        26},
+      SurfaceParameters{{primaryBinValue, ipTc2Distance + 4 * interChipDistance,
+                         toWorldAngleX},
+                        {longBinValue, tc2CenterLong, toWorldAngleY},
+                        {shortBinValue, tc2CenterShort, toWorldAngleZ},
+                        28}};
+
+  const double tc2HalfPrimary =
+      interChipDistance * (tc2Parameters.size() - 1) / 2.0 +
+      chipVolumeHalfSpacing;
+
+  const double tc2CenterPrimary = ipTc2Distance + tc2HalfPrimary;
 
   static const std::unique_ptr<const GeometryOptions>& instance() {
     if (!m_instance) {

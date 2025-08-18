@@ -9,6 +9,7 @@
 #include <vector>
 
 #include "TrackingPipeline/EventData/SimpleSourceLink.hpp"
+#include "TrackingPipeline/Infrastructure/ProcessCode.hpp"
 
 RootSimClusterWriter::RootSimClusterWriter(const Config& config,
                                            Acts::Logging::Level level)
@@ -70,23 +71,22 @@ ProcessCode RootSimClusterWriter::write(const AlgorithmContext& ctx) {
   auto inputClusters = m_inputClusters(ctx);
 
   ACTS_DEBUG("Received " << inputClusters.size() << " clusters");
+  if (inputClusters.empty()) {
+    return ProcessCode::SUCCESS;
+  }
 
   std::lock_guard<std::mutex> lock(m_mutex);
 
   for (const auto& cluster : inputClusters) {
     const auto& clusterSsl = cluster.sourceLink;
 
-    const auto* surf = m_cfg.surfaceAccessor(Acts::SourceLink(clusterSsl));
-
-    Acts::Vector2 geoCenterLocal = clusterSsl.parameters();
-    Acts::Vector3 geoCenterGlobal = surf->localToGlobal(
-        ctx.geoContext, clusterSsl.parameters(), Acts::Vector3(0, 1, 0));
-
-    m_geoCenterGlobal =
-        TVector3(geoCenterGlobal.x(), geoCenterGlobal.y(), geoCenterGlobal.z());
-    m_geoCenterLocal = TVector2(geoCenterLocal.x(), geoCenterLocal.y());
+    m_geoCenterGlobal = TVector3(clusterSsl.parametersGlob().x(),
+                                 clusterSsl.parametersGlob().y(),
+                                 clusterSsl.parametersGlob().z());
+    m_geoCenterLocal = TVector2(clusterSsl.parametersLoc().x(),
+                                clusterSsl.parametersLoc().y());
     m_geoId = clusterSsl.geometryId().sensitive();
-    m_eventId = clusterSsl.eventId();
+    m_eventId = ctx.eventNumber;
 
     TArrayD data(4);
     for (std::size_t i = 0; i < 4; i++) {
@@ -131,11 +131,7 @@ ProcessCode RootSimClusterWriter::write(const AlgorithmContext& ctx) {
       trackHitsLocal.push_back(TVector2(hit.truthParameters[Acts::eBoundLoc0],
                                         hit.truthParameters[Acts::eBoundLoc1]));
 
-      Acts::Vector3 trackHitGlobal = surf->localToGlobal(
-          ctx.geoContext,
-          Acts::Vector2(hit.truthParameters[Acts::eBoundLoc0],
-                        hit.truthParameters[Acts::eBoundLoc1]),
-          Acts::Vector3(0, 1, 0));
+      Acts::Vector3 trackHitGlobal = hit.globalPosition;
 
       trackHitsGlobal.push_back(
           TVector3(trackHitGlobal.x(), trackHitGlobal.y(), trackHitGlobal.z()));

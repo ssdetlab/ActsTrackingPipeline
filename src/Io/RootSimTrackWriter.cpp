@@ -353,7 +353,7 @@ ProcessCode RootSimTrackWriter::write(const AlgorithmContext& ctx) {
       TrackID currentTrackId;
       TLorentzVector onSurfaceMom;
       if (cluster.truthHits.size() == 0 || !cluster.isSignal) {
-        trueHit = ssl.parameters();
+        trueHit = ssl.parametersLoc();
         onSurfaceMom.SetPxPyPzE(0, 0, 0, 0);
 
         currentTrackId = std::make_tuple(-1, -1, -1);

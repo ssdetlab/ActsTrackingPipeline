@@ -55,9 +55,9 @@ ProcessCode RootMeasurementWriter::write(const AlgorithmContext& ctx) {
     const auto& ssl = meas.get<SimpleSourceLink>();
     const auto* surf = m_cfg.surfaceAccessor(meas);
 
-    Acts::Vector2 geoCenterLocal = ssl.parameters();
+    Acts::Vector2 geoCenterLocal = ssl.parametersLoc();
     Acts::Vector3 geoCenterGlobal = surf->localToGlobal(
-        ctx.geoContext, ssl.parameters(), Acts::Vector3(0, 1, 0));
+        ctx.geoContext, ssl.parametersLoc(), Acts::Vector3(0, 1, 0));
 
     m_geoCenterGlobal.SetX(geoCenterGlobal.x());
     m_geoCenterGlobal.SetY(geoCenterGlobal.y());

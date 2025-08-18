@@ -78,10 +78,10 @@ ProcessCode TrackLookupValidationAlgorithm::execute(
           hit.truthParameters[Acts::eBoundQOverP], std::nullopt,
           ip.particleHypothesis());
 
-      SimpleSourceLink hitSsl(refLocalPos, cluster.sourceLink.covariance(),
-                              cluster.sourceLink.geometryId(),
-                              cluster.sourceLink.eventId(),
-                              cluster.sourceLink.index());
+      SimpleSourceLink hitSsl(
+          refLocalPos, refGlobalPos, cluster.sourceLink.covariance(),
+          cluster.sourceLink.geometryId(), cluster.sourceLink.eventId(),
+          cluster.sourceLink.index());
       auto [ipEst, refEst] =
           m_cfg.estimator(ctx.geoContext, Acts::SourceLink{hitSsl});
 

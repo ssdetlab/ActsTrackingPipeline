@@ -1,55 +1,109 @@
 #include "TrackingPipeline/Io/ApollonRootSimDataReader.hpp"
 
-#include <Acts/Definitions/Algebra.hpp>
+#include "Acts/Definitions/TrackParametrization.hpp"
+#include "Acts/Definitions/Units.hpp"
+#include <Acts/Utilities/Logger.hpp>
 
 #include <cstddef>
 
 #include "TrackingPipeline/EventData/SimpleSourceLink.hpp"
+#include "TrackingPipeline/Geometry/ApollonGeometryConstraints.hpp"
+#include "TrackingPipeline/Infrastructure/ProcessCode.hpp"
 
-inline void ApollonIo::ApollonRootSimDataReader::prepareMeasurements(
-    const AlgorithmContext& context, std::vector<Acts::SourceLink>* sourceLinks,
-    SimClusters* clusters) const {
-  auto eventId = m_intColumns.at("eventId");
-  if (eventId != context.eventNumber) {
-    return;
+namespace ApollonIo {
+
+using go = ApollonGeometry::GeometryOptions;
+
+using namespace Acts::UnitLiterals;
+
+ApollonRootSimDataReader::ApollonRootSimDataReader(const Config& config,
+                                                   Acts::Logging::Level level)
+    : IReader(),
+      m_cfg(config),
+      m_logger(Acts::getDefaultLogger(name(), level)) {
+  m_chain = new TChain(m_cfg.treeName.c_str());
+
+  if (m_cfg.filePaths.empty()) {
+    throw std::invalid_argument("Missing input filenames");
+  }
+  if (m_cfg.treeName.empty()) {
+    throw std::invalid_argument("Missing tree name");
   }
 
-  std::vector<int>* geoIdVal;
-  std::vector<int>* isSignal;
+  m_outputSourceLinks.initialize(m_cfg.outputSourceLinks);
+  m_outputSimClusters.initialize(m_cfg.outputSimClusters);
 
-  std::vector<int>* trackId;
-  std::vector<int>* parentTrackId;
-  std::vector<int>* runId;
+  // Set the branches
+  m_chain->SetBranchAddress("eventId", &m_eventId);
 
-  std::vector<TVector3>* hitPosGlobal;
-  std::vector<TVector2>* hitPosLocal;
+  m_chain->SetBranchAddress("geoId", &m_geoIdVal);
+  m_chain->SetBranchAddress("isSignal", &m_isSignalFlag);
 
-  std::vector<TVector3>* hitMomDir;
-  std::vector<double>* hitE;
+  m_chain->SetBranchAddress("trackId", &m_trackId);
+  m_chain->SetBranchAddress("parentTrackId", &m_parentTrackId);
+  m_chain->SetBranchAddress("runId", &m_runId);
 
-  std::vector<TVector3>* ipMomDir;
-  std::vector<double>* ipE;
-  std::vector<TVector3>* vertices;
-  try {
-    geoIdVal = m_vIntColumns.at("geoId");
-    isSignal = m_vIntColumns.at("isSignal");
+  m_chain->SetBranchAddress("hitPosGlobal", &m_hitPosGlobal);
+  m_chain->SetBranchAddress("hitPosLocal", &m_hitPosLocal);
 
-    hitPosGlobal = m_vVector3Columns.at("hitPosGlobal");
-    hitPosLocal = m_vVector2Columns.at("hitPosLocal");
+  m_chain->SetBranchAddress("hitMomDir", &m_hitMomDir);
+  m_chain->SetBranchAddress("hitE", &m_hitE);
 
-    trackId = m_vIntColumns.at("trackId");
-    parentTrackId = m_vIntColumns.at("parentTrackId");
-    runId = m_vIntColumns.at("runId");
+  m_chain->SetBranchAddress("ipMomDir", &m_ipMomDir);
+  m_chain->SetBranchAddress("ipE", &m_ipE);
+  m_chain->SetBranchAddress("vertex", &m_vertices);
 
-    ipMomDir = m_vVector3Columns.at("ipMomDir");
-    ipE = m_vDoubleColumns.at("ipE");
-    vertices = m_vVector3Columns.at("vertex");
-
-    hitMomDir = m_vVector3Columns.at("hitMomDir");
-    hitE = m_vDoubleColumns.at("hitE");
-  } catch (const std::out_of_range& /*err*/) {
-    throw std::runtime_error("Missing columns in the ROOT file");
+  // Add the files to the chain
+  for (const auto& path : m_cfg.filePaths) {
+    m_chain->Add(path.c_str());
   }
+
+  // Disable all branches and only enable event-id for a first scan of the
+  // file
+  m_chain->SetBranchStatus("*", false);
+  if (!m_chain->GetBranch("eventId")) {
+    throw std::invalid_argument("Missing eventId branch");
+  }
+  m_chain->SetBranchStatus("eventId", true);
+
+  auto nEntries = static_cast<std::size_t>(m_chain->GetEntries());
+
+  // Add the first entry
+  m_chain->GetEntry(0);
+  m_eventMap.emplace_back(m_eventId, 0, 0);
+
+  // Go through all entries and store the position of the events
+  for (std::size_t i = 1; i < nEntries; ++i) {
+    m_chain->GetEntry(i);
+    if (m_eventId != std::get<0>(m_eventMap.back())) {
+      std::get<2>(m_eventMap.back()) = i;
+      m_eventMap.emplace_back(m_eventId, i, i);
+    }
+  }
+  // Sort by event id
+  std::ranges::sort(m_eventMap, [](const auto& a, const auto& b) {
+    return std::get<0>(a) < std::get<0>(b);
+  });
+
+  std::get<2>(m_eventMap.back()) = nEntries;
+
+  // Re-Enable all branches
+  m_chain->SetBranchStatus("*", true);
+  ACTS_DEBUG("Event range: " << availableEvents().first << " - "
+                             << availableEvents().second);
+
+  const auto& goInst = *go::instance();
+  m_setupRotation =
+      Acts::AngleAxis3(goInst.setupRotationAngle,
+                       detail::binningValueToDirection(goInst.longBinValue))
+          .toRotationMatrix();
+
+  m_ipCorrection[detail::binningValueToIndex(goInst.primaryBinValue)] =
+      -2 * goInst.vcRad * std::sin(goInst.setupRotationAngle / 2) *
+      std::sin(goInst.setupRotationAngle / 2);
+  m_ipCorrection[detail::binningValueToIndex(goInst.longBinValue)] = 0;
+  m_ipCorrection[detail::binningValueToIndex(goInst.shortBinValue)] =
+      -goInst.vcRad * std::sin(goInst.setupRotationAngle);
 
   Acts::BoundVector ipStdDev;
   ipStdDev[Acts::eBoundLoc0] = 100_um;
@@ -58,82 +112,136 @@ inline void ApollonIo::ApollonRootSimDataReader::prepareMeasurements(
   ipStdDev[Acts::eBoundPhi] = 2_degree;
   ipStdDev[Acts::eBoundTheta] = 2_degree;
   ipStdDev[Acts::eBoundQOverP] = 1 / 100_GeV;
-  Acts::BoundSquareMatrix ipCov = ipStdDev.cwiseProduct(ipStdDev).asDiagonal();
+  m_ipCov = ipStdDev.cwiseProduct(ipStdDev).asDiagonal();
 
   double errX = 5_um;
   double errY = 5_um;
   Acts::Vector2 stdDev(errX, errY);
-  Acts::SquareMatrix2 cov = stdDev.cwiseProduct(stdDev).asDiagonal();
+  m_hitCov = stdDev.cwiseProduct(stdDev).asDiagonal();
+}
 
-  for (std::size_t i = 0; i < geoIdVal->size(); i++) {
-    bool isVcExit = (geoIdVal->at(i) == 100);
+std::pair<std::size_t, std::size_t> ApollonRootSimDataReader::availableEvents()
+    const {
+  return {std::get<0>(m_eventMap.front()), std::get<0>(m_eventMap.back()) + 1};
+}
 
-    if (isVcExit) {
+ProcessCode ApollonRootSimDataReader::read(const AlgorithmContext& context) {
+  auto it = std::ranges::find_if(m_eventMap, [&](const auto& a) {
+    return std::get<0>(a) == context.eventNumber;
+  });
+
+  if (it == m_eventMap.end()) {
+    // explicitly warn if it happens for the first or last event as that might
+    // indicate a human error
+    if ((context.eventNumber == availableEvents().first) &&
+        (context.eventNumber == availableEvents().second - 1)) {
+      ACTS_WARNING("Reading empty event: " << context.eventNumber);
+    } else {
+      ACTS_DEBUG("Reading empty event: " << context.eventNumber);
+    }
+
+    m_outputSourceLinks(context, {});
+    m_outputSimClusters(context, {});
+
+    // Return success flag
+    return ProcessCode::SUCCESS;
+  }
+
+  // lock the mutex
+  std::lock_guard<std::mutex> lock(m_read_mutex);
+
+  ACTS_DEBUG("Reading event: " << std::get<0>(*it)
+                               << " stored in entries: " << std::get<1>(*it)
+                               << " - " << std::get<2>(*it));
+
+  // Create the measurements
+  std::vector<Acts::SourceLink> sourceLinks{};
+  SimClusters clusters{};
+  for (auto entry = std::get<1>(*it); entry < std::get<2>(*it); entry++) {
+    m_chain->GetEntry(entry);
+
+    if (m_eventId != context.eventNumber) {
       continue;
     }
+    // std::cout << "GEO ID SIZE " << m_geoIdVal->size() << "\n";
+    for (std::size_t i = 0; i < m_geoIdVal->size(); i++) {
+      bool isSignal = m_isSignalFlag->at(i);
+      bool isHighEnergy = (m_ipE->at(i) * Acts::UnitConstants::MeV > 0.3);
+      bool isFirstLayer = (m_geoIdVal->at(i) < 20);
+      if (!isSignal || !isHighEnergy) {
+        continue;
+      }
 
-    Acts::GeometryIdentifier geoId;
-    geoId.setSensitive(geoIdVal->at(i));
+      // std::cout << "--------------------------------------------------------\n";
 
-    Acts::Vector2 hitLoc(hitPosLocal->at(i).X(), hitPosLocal->at(i).Y());
+      Acts::GeometryIdentifier geoId;
+      geoId.setSensitive(m_geoIdVal->at(i));
 
-    SimpleSourceLink ssl(hitLoc, cov, geoId, eventId, sourceLinks->size());
+      // std::cout << "GEO ID " << geoId << "\n";
 
-    std::cout << "-----------------------------------------\n";
-    std::cout << "GEO ID " << geoIdVal->at(i) << "\n";
-    std::cout << "HIT LOC " << hitLoc.transpose() << "\n";
-    std::cout << "HIT GLOB G4 [" << hitPosGlobal->at(i).X() << ", "
-              << hitPosGlobal->at(i).Y() << ", " << hitPosGlobal->at(i).Z()
-              << "]\n";
-    std::cout << "HIT GLOB ACTS "
-              << m_cfg.surfaceAccessor(Acts::SourceLink(ssl))
-                     ->localToGlobal(context.geoContext, hitLoc,
-                                     Acts::Vector3::UnitX())
-                     .transpose()
-              << "\n";
+      Acts::Vector2 hitLoc(m_hitPosLocal->at(i).X(), m_hitPosLocal->at(i).Y());
+      // std::cout << "HIT LOC " << hitLoc.transpose() << "\n";
+      Acts::Vector3 hitGlob(m_hitPosGlobal->at(i).Z(),
+                            m_hitPosGlobal->at(i).Y(),
+                            m_hitPosGlobal->at(i).X());
+      hitGlob = hitGlob - m_ipCorrection;
+      hitGlob = m_setupRotation * hitGlob;
+      // std::cout << "HIT GLOB " << hitGlob.transpose() << "\n";
 
-    SimCluster cluster{.sourceLink = ssl};
+      SimpleSourceLink ssl(hitLoc, hitGlob, m_hitCov, geoId, m_eventId,
+                           sourceLinks.size());
 
-    if (m_cfg.clusterFilter != nullptr &&
-        !m_cfg.clusterFilter->operator()(context.geoContext, cluster)) {
-      return;
+      sourceLinks.emplace_back(ssl);
+
+      SimCluster cluster{.sourceLink = ssl};
+
+      Acts::Vector3 vertex3(m_vertices->at(i).Z() * Acts::UnitConstants::mm,
+                            m_vertices->at(i).Y() * Acts::UnitConstants::mm,
+                            m_vertices->at(i).X() * Acts::UnitConstants::mm);
+      vertex3 = vertex3 - m_ipCorrection;
+      vertex3 = m_setupRotation * vertex3;
+      Acts::Vector4 vertex(vertex3.x(), vertex3.y(), vertex3.z(), 0);
+
+      Acts::Vector3 momDir(m_hitMomDir->at(i).Z(), m_hitMomDir->at(i).Y(),
+                           m_hitMomDir->at(i).X());
+      momDir = m_setupRotation * momDir;
+
+      Acts::BoundVector truthPars = Acts::BoundVector::Zero();
+      truthPars[Acts::eBoundLoc0] = hitLoc[Acts::eBoundLoc0];
+      truthPars[Acts::eBoundLoc1] = hitLoc[Acts::eBoundLoc1];
+      truthPars[Acts::eBoundPhi] = Acts::VectorHelpers::phi(momDir);
+      truthPars[Acts::eBoundTheta] = Acts::VectorHelpers::theta(momDir);
+      truthPars[Acts::eBoundQOverP] =
+          -1_e / (m_hitE->at(i) * Acts::UnitConstants::MeV);
+      truthPars[Acts::eBoundTime] = 0;
+
+      Acts::Vector3 momDirIP(m_ipMomDir->at(i).Z(), m_ipMomDir->at(i).Y(),
+                             m_ipMomDir->at(i).X());
+      momDirIP = m_setupRotation * momDirIP;
+
+      Acts::CurvilinearTrackParameters ipParameters(
+          vertex, Acts::VectorHelpers::phi(momDirIP),
+          Acts::VectorHelpers::theta(momDirIP),
+          -1_e / (m_ipE->at(i) * Acts::UnitConstants::MeV), m_ipCov,
+          Acts::ParticleHypothesis::electron());
+
+      cluster.truthHits.emplace_back(std::move(truthPars), std::move(hitGlob),
+                                     std::move(ipParameters), m_trackId->at(i),
+                                     m_parentTrackId->at(i), m_runId->at(i));
+      cluster.isSignal = m_isSignalFlag->at(i);
+
+      clusters.push_back(cluster);
     }
-
-    sourceLinks->push_back(Acts::SourceLink(ssl));
-
-    Acts::Vector4 vertex(vertices->at(i).X() * Acts::UnitConstants::mm,
-                         vertices->at(i).Y() * Acts::UnitConstants::mm,
-                         vertices->at(i).Z() * Acts::UnitConstants::mm, 0);
-
-    Acts::Vector2 trueHitLoc = hitLoc;
-
-    Acts::Vector3 momDir(hitMomDir->at(i).X(), hitMomDir->at(i).Y(),
-                         hitMomDir->at(i).Z());
-
-    Acts::BoundVector truthPars = Acts::BoundVector::Zero();
-    truthPars[Acts::eBoundLoc0] = trueHitLoc[Acts::eBoundLoc0];
-    truthPars[Acts::eBoundLoc1] = trueHitLoc[Acts::eBoundLoc1];
-    truthPars[Acts::eBoundPhi] = Acts::VectorHelpers::phi(momDir);
-    truthPars[Acts::eBoundTheta] = Acts::VectorHelpers::theta(momDir);
-    truthPars[Acts::eBoundQOverP] =
-        1_e / (hitE->at(i) * Acts::UnitConstants::MeV);
-    truthPars[Acts::eBoundTime] = 0;
-
-    Acts::Vector3 momDirIP(ipMomDir->at(i).X(), ipMomDir->at(i).Y(),
-                           ipMomDir->at(i).Z());
-
-    Acts::CurvilinearTrackParameters ipParameters(
-        vertex, Acts::VectorHelpers::phi(momDirIP),
-        Acts::VectorHelpers::theta(momDirIP),
-        1_e / (ipE->at(i) * Acts::UnitConstants::MeV), ipCov,
-        Acts::ParticleHypothesis::electron());
-
-    SimpleSourceLink truthSsl(trueHitLoc, cov, geoId, eventId,
-                              clusters->size());
-
-    cluster.truthHits.push_back(SimHit(truthPars, ipParameters, trackId->at(i),
-                                       parentTrackId->at(i), runId->at(i)));
-    cluster.isSignal = isSignal->at(i);
-    clusters->push_back(cluster);
   }
+
+  ACTS_DEBUG("Sending " << sourceLinks.size() << " measurements");
+  ACTS_DEBUG("Sending " << clusters.size() << " sim clusters");
+
+  m_outputSourceLinks(context, std::move(sourceLinks));
+  m_outputSimClusters(context, std::move(clusters));
+
+  // Return success flag
+  return ProcessCode::SUCCESS;
 }
+
+}  // namespace ApollonIo

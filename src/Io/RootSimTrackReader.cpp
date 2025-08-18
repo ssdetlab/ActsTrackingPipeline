@@ -130,11 +130,11 @@ RootSimTrackReader::RootSimTrackReader(const Config& config,
 
   // Disable all branches and only enable event-id for a first scan of the
   // file
-  /*m_chain->SetBranchStatus("*", false);*/
-  /*if (!m_chain->GetBranch("eventId")) {*/
-  /*  throw std::invalid_argument("Missing eventId SetbranchAddress");*/
-  /*}*/
-  /*m_chain->SetBranchStatus("eventId", true);*/
+  m_chain->SetBranchStatus("*", false);
+  if (!m_chain->GetBranch("eventId")) {
+    throw std::invalid_argument("Missing eventId SetbranchAddress");
+  }
+  m_chain->SetBranchStatus("eventId", true);
   auto nEntries = static_cast<std::size_t>(m_chain->GetEntries());
 
   // Go through all entries and store the position of the events
@@ -230,17 +230,6 @@ ProcessCode RootSimTrackReader::read(const AlgorithmContext& ctx) {
   for (auto entry = std::get<1>(*it); entry < std::get<2>(*it); entry++) {
     m_chain->GetEntry(entry);
 
-    /*if (m_matchingDegree != 1) {*/
-    /*  m_outputSourceLinks(ctx, {});*/
-    /*  m_outputSimClusters(ctx, {});*/
-    /**/
-    /*  // Return success flag*/
-    /*  return ProcessCode::SUCCESS;*/
-    /*}*/
-    if (m_matchingDegree != 1) {
-      continue;
-    }
-
     Acts::Vector4 vertex(m_vertexGuess->X(), m_vertexGuess->Y(),
                          m_vertexGuess->Z(), 0);
     Acts::Vector3 ipDirection(m_ipMomentumGuess->X(), m_ipMomentumGuess->Y(),
@@ -256,6 +245,9 @@ ProcessCode RootSimTrackReader::read(const AlgorithmContext& ctx) {
     for (std::size_t i = 0; i < m_trueTrackHitsGlobal->size(); i++) {
       Acts::Vector2 trackHitLocal(m_trackHitsLocal->at(i).X(),
                                   m_trackHitsLocal->at(i).Y());
+      Acts::Vector3 trackHitGlobal(m_trackHitsGlobal->at(i).X(),
+                                   m_trackHitsGlobal->at(i).Y(),
+                                   m_trackHitsGlobal->at(i).Z());
       Acts::ActsSquareMatrix<2> cov;
       cov << m_trackHitCovs->at(i)(0, 0), m_trackHitCovs->at(i)(0, 1),
           m_trackHitCovs->at(i)(1, 0), m_trackHitCovs->at(i)(1, 1);
@@ -263,8 +255,8 @@ ProcessCode RootSimTrackReader::read(const AlgorithmContext& ctx) {
 
       Acts::GeometryIdentifier geoId;
       geoId.setSensitive(m_geometryIds->at(i));
-      SimpleSourceLink obsSourceLink(trackHitLocal, cov, geoId, eventId,
-                                     sslIdx);
+      SimpleSourceLink obsSourceLink(trackHitLocal, trackHitGlobal, cov, geoId,
+                                     eventId, sslIdx);
       sourceLinks.push_back(Acts::SourceLink{obsSourceLink});
       trackSourceLinks.push_back(Acts::SourceLink{obsSourceLink});
 
@@ -277,8 +269,12 @@ ProcessCode RootSimTrackReader::read(const AlgorithmContext& ctx) {
       truthParameters[Acts::eBoundTheta] = m_onSurfaceMomentum->at(i).Theta();
       truthParameters[Acts::eBoundQOverP] =
           m_charge / m_onSurfaceMomentum->at(i).P();
-      SimHit hit{truthParameters, ipParameters, m_trackId->at(i),
-                 m_parentTrackId->at(i), m_runId->at(i)};
+
+      Acts::Vector3 trueTrackHitGlobal(m_trueTrackHitsGlobal->at(i).X(),
+                                       m_trueTrackHitsGlobal->at(i).Y(),
+                                       m_trueTrackHitsGlobal->at(i).Z());
+      SimHit hit{truthParameters,  trueTrackHitGlobal,     ipParameters,
+                 m_trackId->at(i), m_parentTrackId->at(i), m_runId->at(i)};
       SimCluster cluster{
           obsSourceLink, {hit}, static_cast<bool>(m_isSignal->at(i))};
       simClusters.push_back(cluster);
