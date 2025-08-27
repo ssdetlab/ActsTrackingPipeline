@@ -1,5 +1,6 @@
 #include "TrackingPipeline/Io/RootSimSeedWriter.hpp"
-#include <Acts/Utilities/Logger.hpp>
+
+#include "Acts/Utilities/Logger.hpp"
 
 #include <ranges>
 #include <vector>
@@ -36,17 +37,19 @@ RootSimSeedWriter::RootSimSeedWriter(const Config& config,
 
   // Seed properties
   m_tree->Branch("eventId", &m_eventId, buf_size, split_lvl);
-  m_tree->Branch("size", &m_size);
-  m_tree->Branch("ipMomentumEst", &m_ipMomentumEst);
-  m_tree->Branch("vertexEst", &m_vertexEst);
+  m_tree->Branch("size", &m_size, buf_size, split_lvl);
+  m_tree->Branch("ipMomentumEst", &m_ipMomentumEst, buf_size, split_lvl);
+  m_tree->Branch("vertexEst", &m_vertexEst, buf_size, split_lvl);
 
   // Truth info
-  m_tree->Branch("trueTrackSize", &m_trueTrackSize);
-  m_tree->Branch("trackInSeedSize", &m_trackInSeedSize);
-  m_tree->Branch("matchingDegree", &m_matchingDegree);
-  m_tree->Branch("isSignal", &m_isSignal);
-  m_tree->Branch("ipMomentumTruth", &m_ipMomentumTruth);
-  m_tree->Branch("vertexTruth", &m_vertexTruth);
+  m_tree->Branch("trackId", &m_trackId, buf_size, split_lvl);
+  m_tree->Branch("parentTrackId", &m_parentTrackId, buf_size, split_lvl);
+  m_tree->Branch("runId", &m_runId, buf_size, split_lvl);
+  m_tree->Branch("trueTrackSize", &m_trueTrackSize, buf_size, split_lvl);
+  m_tree->Branch("trackInSeedSize", &m_trackInSeedSize, buf_size, split_lvl);
+  m_tree->Branch("isSignal", &m_isSignal, buf_size, split_lvl);
+  m_tree->Branch("ipMomentumTruth", &m_ipMomentumTruth, buf_size, split_lvl);
+  m_tree->Branch("vertexTruth", &m_vertexTruth, buf_size, split_lvl);
 
   //------------------------------------------------------------------
   // Initialize the data handles
@@ -114,65 +117,58 @@ ProcessCode RootSimSeedWriter::write(const AlgorithmContext& ctx) {
 
     m_size = sourceLinks.size();
 
-    if (!inputTruthClusters.at(sourceLinks.front().index()).isSignal) {
+    std::map<TrackID, std::pair<int, int>> seedSignalTrackIds;
+    for (const auto& sl : sourceLinks) {
+      const auto& cl = inputTruthClusters.at(sl.index());
+      if (!cl.isSignal) {
+        continue;
+      }
+      for (const auto& hit : cl.truthHits) {
+        TrackID tid = {hit.trackId, hit.parentTrackId, hit.runId};
+        seedSignalTrackIds[tid].first = sl.index();
+        seedSignalTrackIds[tid].second++;
+      }
+    }
+    if (seedSignalTrackIds.empty()) {
       m_trueTrackSize = 0;
-      m_matchingDegree = 0;
       m_isSignal = false;
       m_ipMomentumTruth = TLorentzVector(0, 0, 0, 0);
       m_tree->Fill();
       continue;
     }
 
-    SimClusters seedClusters;
-    seedClusters.reserve(sourceLinks.size());
-    for (const auto& sl : sourceLinks) {
-      seedClusters.push_back(inputTruthClusters.at(sl.index()));
-    }
+    auto maxTrack =
+        std::max_element(seedSignalTrackIds.begin(), seedSignalTrackIds.end(),
+                         [](const auto& idA, const auto& idB) {
+                           return (idA.second.second < idB.second.second);
+                         });
+    const auto& [sigId, ic] = *maxTrack;
+    auto [idx, count] = ic;
+    std::size_t trackSize = std::ranges::count(trackIds, sigId);
 
-    const auto& pivotCluster = seedClusters.front();
+    std::tie(m_trackId, m_parentTrackId, m_runId) = sigId;
 
-    auto signalTrackIds =
-        pivotCluster.truthHits |
-        std::views::filter([](const auto& hit) { return (hit.trackId == 1); }) |
-        std::views::transform([](const auto& hit) -> TrackID {
-          return {hit.trackId, hit.parentTrackId, hit.runId};
-        });
+    m_trueTrackSize = trackSize;
+    m_trackInSeedSize = count;
 
-    auto seedTrackIds =
-        seedClusters |
-        std::views::filter([](const auto& cl) { return cl.isSignal; }) |
-        std::views::transform([](const auto& cl) { return cl.truthHits; }) |
-        std::views::join |
-        std::views::transform([](const auto& hit) -> TrackID {
-          return {hit.trackId, hit.parentTrackId, hit.runId};
-        });
+    m_isSignal = true;
 
-    for (const auto& sigId : signalTrackIds) {
-      std::size_t trackSize = std::ranges::count(trackIds, sigId);
-      std::size_t trackInSeedSize = std::ranges::count(seedTrackIds, sigId);
+    const auto& cluster = inputTruthClusters.at(idx);
+    for (const auto& hit : cluster.truthHits) {
+      if (std::tie(hit.trackId, hit.parentTrackId, hit.runId) == sigId) {
+        m_ipMomentumTruth.SetPxPyPzE(hit.ipParameters.momentum().x(),
+                                     hit.ipParameters.momentum().y(),
+                                     hit.ipParameters.momentum().z(),
+                                     hit.ipParameters.absoluteMomentum());
+        m_vertexTruth.SetXYZ(hit.ipParameters.position().x(),
+                             hit.ipParameters.position().y(),
+                             hit.ipParameters.position().z());
 
-      m_trueTrackSize = trackSize;
-      m_trackInSeedSize = trackInSeedSize;
-      m_matchingDegree = trackInSeedSize / static_cast<double>(trackSize);
-
-      m_isSignal = true;
-      // Note: This assumes that there's only 1 track in a cluster
-      for (const auto& hit : pivotCluster.truthHits) {
-        if (hit.trackId == 1) {
-          m_ipMomentumTruth.SetPxPyPzE(hit.ipParameters.momentum().x(),
-                                       hit.ipParameters.momentum().y(),
-                                       hit.ipParameters.momentum().z(),
-                                       hit.ipParameters.absoluteMomentum());
-          m_vertexTruth.SetXYZ(hit.ipParameters.position().x(),
-                               hit.ipParameters.position().y(),
-                               hit.ipParameters.position().z());
-
-          break;
-        }
+        break;
       }
-
-      m_tree->Fill();
     }
+
+    m_tree->Fill();
   }
 
   // Return success flag

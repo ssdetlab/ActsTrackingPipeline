@@ -73,17 +73,21 @@ class RootSimSeedWriter : public IWriter {
   std::vector<TVector2> m_seedMeasurementsLoc;
   std::vector<int> m_geoIds;
 
-  /// Fraction of a true track
-  /// contained within the seed
-  /// source link list
-  double m_matchingDegree;
-
   /// Event ID of the seed
   std::size_t m_eventId;
 
   /// Number of source links
   /// in a seed
   std::size_t m_size;
+
+  /// Track ID of the seed
+  std::size_t m_trackId;
+
+  /// Parent track ID of the seed
+  std::size_t m_parentTrackId;
+
+  /// Run ID of the seed
+  std::size_t m_runId;
 
   /// Size of the true track
   std::size_t m_trueTrackSize;

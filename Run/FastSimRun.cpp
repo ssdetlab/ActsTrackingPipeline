@@ -193,15 +193,28 @@ int main() {
   // Event write out
 
   // Sim cluster writer
-  auto clusterWriterCfg = RootSimClusterWriter::Config();
-  clusterWriterCfg.inputClusters = "Clusters";
-  clusterWriterCfg.treeName = "clusters";
-  clusterWriterCfg.filePath =
+  auto clusterWriterCfgSig = RootSimClusterWriter::Config();
+  clusterWriterCfgSig.inputClusters = "Clusters1";
+  clusterWriterCfgSig.treeName = "clusters";
+  clusterWriterCfgSig.filePath =
       "/home/romanurmanov/work/Apollon/tracking/out_data/fast_sim_data/"
       "clusters-sim-sig.root";
 
   sequencer.addWriter(
-      std::make_shared<RootSimClusterWriter>(clusterWriterCfg, logLevel));
+      std::make_shared<RootSimClusterWriter>(clusterWriterCfgSig, logLevel));
+
+  auto clusterWriterCfgSigBkg = RootSimClusterWriter::Config();
+  clusterWriterCfgSigBkg.inputClusters = "Clusters";
+  clusterWriterCfgSigBkg.treeName = "clusters";
+  clusterWriterCfgSigBkg.filePath =
+      "/home/romanurmanov/work/Apollon/tracking/out_data/fast_sim_data/"
+      "clusters-sim-sig-bkg.root";
+
+  sequencer.addWriter(
+      std::make_shared<RootSimClusterWriter>(clusterWriterCfgSig, logLevel));
+
+  sequencer.addWriter(
+      std::make_shared<RootSimClusterWriter>(clusterWriterCfgSigBkg, logLevel));
 
   return sequencer.run();
 }

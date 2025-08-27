@@ -20,42 +20,39 @@ RootSimTrackCandidateWriter::RootSimTrackCandidateWriter(
 
   //------------------------------------------------------------------
   // Track tree branches
-  int buf_size = 32000;
-  int split_lvl = 0;
+  int bufSize = 32000;
+  int splitLvl = 0;
 
   // True hits
-  m_tree->Branch("trueTrackHits", &m_trueTrackHits, buf_size, split_lvl);
+  m_tree->Branch("trueTrackHits", &m_trueTrackHits, bufSize, splitLvl);
 
   // Measurement hits
-  m_tree->Branch("trackHits", &m_trackHits, buf_size, split_lvl);
+  m_tree->Branch("trackHits", &m_trackHits, bufSize, splitLvl);
 
   // CKF predicted track hits
-  m_tree->Branch("predictedTrackHits", &m_predictedTrackHits, buf_size,
-                 split_lvl);
-  m_tree->Branch("filteredTrackHits", &m_filteredTrackHits, buf_size,
-                 split_lvl);
+  m_tree->Branch("predictedTrackHits", &m_predictedTrackHits, bufSize,
+                 splitLvl);
+  m_tree->Branch("filteredTrackHits", &m_filteredTrackHits, bufSize, splitLvl);
 
   // CKF residuals with respect to the true hits
-  m_tree->Branch("truePredictedResiduals", &m_truePredictedResiduals, buf_size,
-                 split_lvl);
-  m_tree->Branch("trueFilteredResiduals", &m_trueFilteredResiduals, buf_size,
-                 split_lvl);
+  m_tree->Branch("truePredictedResiduals", &m_truePredictedResiduals, bufSize,
+                 splitLvl);
+  m_tree->Branch("trueFilteredResiduals", &m_trueFilteredResiduals, bufSize,
+                 splitLvl);
 
   // CKF residuals with respect to the measurements
-  m_tree->Branch("predictedResiduals", &m_predictedResiduals, buf_size,
-                 split_lvl);
-  m_tree->Branch("filteredResiduals", &m_filteredResiduals, buf_size,
-                 split_lvl);
+  m_tree->Branch("predictedResiduals", &m_predictedResiduals, bufSize,
+                 splitLvl);
+  m_tree->Branch("filteredResiduals", &m_filteredResiduals, bufSize, splitLvl);
 
   // CKF pulls with respect to the true hits
-  m_tree->Branch("truePredictedPulls", &m_truePredictedPulls, buf_size,
-                 split_lvl);
-  m_tree->Branch("trueFilteredPulls", &m_trueFilteredPulls, buf_size,
-                 split_lvl);
+  m_tree->Branch("truePredictedPulls", &m_truePredictedPulls, bufSize,
+                 splitLvl);
+  m_tree->Branch("trueFilteredPulls", &m_trueFilteredPulls, bufSize, splitLvl);
 
   // CKF pulls with respect to the measurements
-  m_tree->Branch("predictedPulls", &m_predictedPulls, buf_size, split_lvl);
-  m_tree->Branch("filteredPulls", &m_filteredPulls, buf_size, split_lvl);
+  m_tree->Branch("predictedPulls", &m_predictedPulls, bufSize, splitLvl);
+  m_tree->Branch("filteredPulls", &m_filteredPulls, bufSize, splitLvl);
 
   // True IP parameters
   m_tree->Branch("ipMomentumTruth", &m_ipMomentumTruth);
@@ -66,8 +63,8 @@ RootSimTrackCandidateWriter::RootSimTrackCandidateWriter(
   m_tree->Branch("vertexEst", &m_vertexEst);
 
   // Chi2 and ndf of the fitted track
-  m_tree->Branch("chi2Predicted", &m_chi2Predicted, buf_size, split_lvl);
-  m_tree->Branch("chi2Filtered", &m_chi2Filtered, buf_size, split_lvl);
+  m_tree->Branch("chi2Predicted", &m_chi2Predicted, bufSize, splitLvl);
+  m_tree->Branch("chi2Filtered", &m_chi2Filtered, bufSize, splitLvl);
   m_tree->Branch("ndf", &m_ndf, "ndf/I");
 
   // Matching degree between the true and the fitted track

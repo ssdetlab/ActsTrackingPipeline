@@ -221,10 +221,10 @@ struct GeometryOptions {
   const double vcExitTc1Distance = 20_mm + tcWindowToFirstChipDistance;
   const double ipTc1Distance = vcRad + vcExitTc1Distance;
 
-  const double tc1CenterLong = 0_mm;
-  const double tc1CenterShort = 0_mm;
-  // const double tc1CenterLong = -50_mm;
-  // const double tc1CenterShort = -50_mm;
+  // const double tc1CenterLong = 0_mm;
+  // const double tc1CenterShort = 0_mm;
+  const double tc1CenterLong = -50_mm;
+  const double tc1CenterShort = -50_mm;
 
   const std::vector<SurfaceParameters> tc1Parameters{
       SurfaceParameters({primaryBinValue, ipTc1Distance + 0 * interChipDistance,
@@ -267,10 +267,10 @@ struct GeometryOptions {
       tcWindowToLastChipDistance + tc1DipoleDistance + dipoleAlCoverThickness;
 
   const double dipoleCenterPrimary = ipDipoleDistance + dipoleHalfPrimary;
-  // const double dipoleCenterLong = -50_mm;
-  // const double dipoleCenterShort = -50_mm;
-  const double dipoleCenterLong = 0_mm;
-  const double dipoleCenterShort = 0_mm;
+  const double dipoleCenterLong = -50_mm;
+  const double dipoleCenterShort = -50_mm;
+  // const double dipoleCenterLong = 0_mm;
+  // const double dipoleCenterShort = 0_mm;
 
   const DipoleParameters dipoleParameters{
       {primaryBinValue, dipoleCenterPrimary, 0, dipoleFieldPrimary},
@@ -285,10 +285,10 @@ struct GeometryOptions {
                                dipoleAlCoverThickness + dipoleTc2Distance +
                                tcWindowToFirstChipDistance;
 
-  // const double tc2CenterLong = -65_mm;
-  // const double tc2CenterShort = -50_mm;
-  const double tc2CenterLong = 0_mm;
-  const double tc2CenterShort = 0_mm;
+  const double tc2CenterLong = -65_mm;
+  const double tc2CenterShort = -50_mm;
+  // const double tc2CenterLong = 0_mm;
+  // const double tc2CenterShort = 0_mm;
 
   const std::vector<SurfaceParameters> tc2Parameters{
       SurfaceParameters{{primaryBinValue, ipTc2Distance + 0 * interChipDistance,

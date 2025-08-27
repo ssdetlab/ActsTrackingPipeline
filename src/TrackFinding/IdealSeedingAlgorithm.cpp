@@ -65,11 +65,11 @@ ProcessCode IdealSeedingAlgorithm::execute(const AlgorithmContext& ctx) const {
       continue;
     }
 
-    outSeeds.push_back(Seed{std::move(sourceLinks),
-                            inputSimClusters.at(std::get<1>(idxs.front()))
-                                .truthHits.at(std::get<2>(idxs.front()))
-                                .ipParameters,
-                            static_cast<int>(outSeeds.size())});
+    outSeeds.emplace_back(std::move(sourceLinks),
+                          inputSimClusters.at(std::get<1>(idxs.front()))
+                              .truthHits.at(std::get<2>(idxs.front()))
+                              .ipParameters,
+                          static_cast<int>(outSeeds.size()));
   }
   ACTS_DEBUG("Sending " << outSeeds.size() << " seeds");
   m_outputSeeds(ctx, std::move(outSeeds));

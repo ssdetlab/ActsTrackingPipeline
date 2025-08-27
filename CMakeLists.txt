@@ -40,6 +40,13 @@ find_package(
     REQUIRED
 )
 
+find_package(
+  OpenMP 
+  COMPONENTS
+  CXX
+  REQUIRED
+)
+
 # Dictionary for the sim data
 add_library(SimEventDict SHARED)
 include_directories(
@@ -88,6 +95,7 @@ target_link_libraries(
     TrackingPipelineCore
     PUBLIC
     TBB::tbb
+    OpenMP::OpenMP_CXX
     ROOT::Core
     ROOT::RIO
     ROOT::Tree

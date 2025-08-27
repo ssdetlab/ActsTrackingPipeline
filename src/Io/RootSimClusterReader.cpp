@@ -11,6 +11,7 @@
 
 #include "TrackingPipeline/EventData/DataContainers.hpp"
 #include "TrackingPipeline/EventData/SimpleSourceLink.hpp"
+#include "TrackingPipeline/Infrastructure/ProcessCode.hpp"
 
 using namespace Acts::UnitLiterals;
 

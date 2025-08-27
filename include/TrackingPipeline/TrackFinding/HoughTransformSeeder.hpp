@@ -4,26 +4,30 @@
 #include "Acts/EventData/SourceLink.hpp"
 
 #include <cstddef>
-#include <map>
 #include <span>
+#include <unordered_map>
 #include <vector>
+
+struct PairHash {
+  std::size_t operator()(const std::pair<int, int>& p) const noexcept {
+    return std::hash<long long>()(((long long)p.first << 32) ^
+                                  (long long)p.second);
+  }
+};
 
 class HoughTransformSeeder {
  public:
   using Cell = std::pair<int, int>;
-  using VotingMap = std::map<int, std::map<Cell, int>>;
+  using GridMap = std::unordered_map<Cell, int, PairHash>;
+  using VotingMap = std::unordered_map<int, GridMap>;
+  using Index = std::tuple<int, int, int, int>;
+
   using SourceLinkRef = std::reference_wrapper<const Acts::SourceLink>;
 
   struct Config {
     double boundBoxHalfX;
     double boundBoxHalfY;
     double boundBoxHalfZ;
-
-    int nDirections;
-    double phiMin;
-    double phiMax;
-    double thetaMin;
-    double thetaMax;
 
     int nCellsX;
     int nCellsY;
@@ -38,6 +42,10 @@ class HoughTransformSeeder {
     double boundBoxCenterX;
     double boundBoxCenterY;
     double boundBoxCenterZ;
+
+    int firstLayerId;
+    int lastLayerId;
+    int nLayers;
   };
 
   struct HTSeed {
@@ -54,11 +62,18 @@ class HoughTransformSeeder {
  private:
   Config m_cfg;
 
-  void fillVotingMap(VotingMap& votingMap, std::span<SourceLinkRef> points,
-                     bool add);
+  void fillVotingMap(VotingMap& votingMap,
+                     const std::vector<Acts::Vector3>& dirs,
+                     std::span<SourceLinkRef> points, int sign, int nThreads);
+
+  void fillVotingMap(VotingMap& votingMap,
+                     const std::vector<Acts::Vector3>& dirs,
+                     std::span<SourceLinkRef> points, int sign);
 
   std::pair<Acts::Vector3, Acts::Vector3> findMaxVotedLine(
-      const HoughTransformSeeder::VotingMap& votingMap);
+      const HoughTransformSeeder::VotingMap& votingMap,
+                     const std::vector<Acts::Vector3>& dirs
+  );
 
   double computeDistance(const Acts::Vector3& point, const Acts::Vector3& dir,
                          const Acts::Vector3& meas);
@@ -68,13 +83,10 @@ class HoughTransformSeeder {
                                        const Acts::Vector3& point,
                                        const Acts::Vector3& dir, double dist);
 
-  double orthogonalLeastSquares(
-      const std::vector<SourceLinkRef>& sourceLinks, Acts::Vector3& a,
-      Acts::Vector3& b);
+  double orthogonalLeastSquares(const std::vector<SourceLinkRef>& sourceLinks,
+                                Acts::Vector3& a, Acts::Vector3& b);
 
   Acts::Vector3 m_shift;
-
-  std::vector<Acts::Vector3> m_dirs;
 
   double m_deltaX;
   double m_deltaY;

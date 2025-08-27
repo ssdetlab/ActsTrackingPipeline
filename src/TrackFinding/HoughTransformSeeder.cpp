@@ -1,14 +1,28 @@
 #include "TrackingPipeline/TrackFinding/HoughTransformSeeder.hpp"
 
-#include <Acts/Definitions/Algebra.hpp>
+#include "Acts/Definitions/Algebra.hpp"
+#include <Acts/Utilities/VectorHelpers.hpp>
 
 #include <algorithm>
 #include <cstddef>
+#include <execution>
 #include <functional>
+#include <stdexcept>
 #include <tuple>
 #include <vector>
 
+#include <omp.h>
+
 #include "TrackingPipeline/EventData/SimpleSourceLink.hpp"
+
+void mapMerge(HoughTransformSeeder::VotingMap& out,
+              HoughTransformSeeder::VotingMap& in) {
+  out.merge(in);
+}
+
+#pragma omp declare reduction(                                                \
+        mapAdd : HoughTransformSeeder::VotingMap : mapMerge(omp_out, omp_in)) \
+    initializer(omp_priv = omp_orig)
 
 double HoughTransformSeeder::orthogonalLeastSquares(
     const std::vector<SourceLinkRef>& sourceLinks, Acts::Vector3& a,
@@ -50,23 +64,43 @@ double HoughTransformSeeder::computeDistance(const Acts::Vector3& point,
 }
 
 std::pair<Acts::Vector3, Acts::Vector3> HoughTransformSeeder::findMaxVotedLine(
-    const HoughTransformSeeder::VotingMap& votingMap) {
-  int maxDirIdx = 0;
-  int maxCellXIdx = 0;
-  int maxCellYIdx = 0;
-  int maxCount = 0;
-  for (auto [dirIdx, cells] : votingMap) {
-    for (auto [cell, count] : cells) {
-      if (count > maxCount) {
-        maxCount = count;
-        maxDirIdx = dirIdx;
-        std::tie(maxCellXIdx, maxCellYIdx) = cell;
-      }
-    }
-  }
+    const HoughTransformSeeder::VotingMap& votingMap,
+    const std::vector<Acts::Vector3>& dirs) {
+  auto [maxCount, maxDirIdx, maxCellXIdx, maxCellYIdx] = std::transform_reduce(
+      std::execution::par, votingMap.begin(), votingMap.end(),
+      HoughTransformSeeder::Index{0, 0, 0, 0},
+      [](const HoughTransformSeeder::Index& a,
+         const HoughTransformSeeder::Index& b) {
+        if (std::get<0>(a) != std::get<0>(b)) {
+          return (std::get<0>(a) < std::get<0>(b)) ? b : a;
+        }
+        if (std::get<1>(a) != std::get<1>(b)) {
+          return (std::get<1>(a) < std::get<1>(b)) ? b : a;
+        }
+        if (std::get<2>(a) != std::get<2>(b)) {
+          return (std::get<2>(a) < std::get<2>(b)) ? b : a;
+        }
+        if (std::get<3>(a) != std::get<3>(b)) {
+          return (std::get<3>(a) < std::get<3>(b)) ? b : a;
+        }
+        return a;
+      },
+      [](const auto& kv) {
+        int localVMax = 0;
+        int localFMax = 0;
+        int localSMax = 0;
+        for (const auto& [subKey, val] : kv.second) {
+          if (val > localVMax) {
+            localVMax = val;
+            localFMax = subKey.first;
+            localSMax = subKey.second;
+          }
+        }
+        return std::make_tuple(localVMax, kv.first, localFMax, localSMax);
+      });
 
-  Acts::Vector3 dir = m_dirs.at(maxDirIdx);
-  double denom = (1 + dir.z());
+  Acts::Vector3 dir = dirs.at(maxDirIdx);
+  double denom = 1 + dir.z();
   Acts::Vector3 point =
       m_deltaX * maxCellXIdx *
           Acts::Vector3(1 - dir.x() * dir.x() / denom,
@@ -99,21 +133,6 @@ std::vector<int> HoughTransformSeeder::findLineSourceLinks(
 }
 
 HoughTransformSeeder::HoughTransformSeeder(const Config& cfg) : m_cfg(cfg) {
-  double r = (1 + std::sqrt(5)) / 2;
-  m_dirs.reserve(m_cfg.nDirections);
-  for (int i = 0; i < m_cfg.nDirections; i++) {
-    double phi = std::fmod(2 * M_PI * i / r, 2 * M_PI) - M_PI;
-    double theta = std::acos(1 - 2 * (i + 0.5) / m_cfg.nDirections);
-
-    if (phi < m_cfg.phiMin || phi > m_cfg.phiMax || theta < m_cfg.thetaMin ||
-        theta > m_cfg.thetaMax) {
-      continue;
-    }
-    m_dirs.emplace_back(std::cos(phi) * std::sin(theta),
-                        std::sin(phi) * std::sin(theta), std::cos(theta));
-  }
-  m_dirs.shrink_to_fit();
-
   double diag = std::sqrt(m_cfg.boundBoxHalfX * m_cfg.boundBoxHalfX +
                           m_cfg.boundBoxHalfY * m_cfg.boundBoxHalfY +
                           m_cfg.boundBoxHalfZ * m_cfg.boundBoxHalfZ);
@@ -126,10 +145,49 @@ std::vector<HoughTransformSeeder::HTSeed> HoughTransformSeeder::findSeeds(
     std::span<SourceLinkRef> sourceLinks, const Options& opt) {
   std::vector<HoughTransformSeeder::HTSeed> seeds;
 
+  std::vector<SourceLinkRef> flPoints;
+  std::vector<SourceLinkRef> llPoints;
+  flPoints.reserve(sourceLinks.size() / opt.nLayers);
+  llPoints.reserve(sourceLinks.size() / opt.nLayers);
+  for (auto sl : sourceLinks) {
+    int geoId = sl.get().get<SimpleSourceLink>().geometryId().sensitive();
+    if (geoId == opt.firstLayerId) {
+      flPoints.push_back(sl);
+    } else if (geoId == opt.lastLayerId) {
+      llPoints.push_back(sl);
+    }
+  }
+  if (flPoints.empty() || llPoints.empty()) {
+    return {};
+  }
+  flPoints.shrink_to_fit();
+  llPoints.shrink_to_fit();
+  std::cout << "POINTS 1 " << flPoints.size() << "\n";
+  std::cout << "POINTS 2 " << llPoints.size() << "\n";
+
+  std::vector<Acts::Vector3> dirs;
+  dirs.reserve(flPoints.size() * llPoints.size());
+  for (auto fsl : flPoints) {
+    for (auto lsl : llPoints) {
+      Acts::Vector3 dir = (lsl.get().get<SimpleSourceLink>().parametersGlob() -
+                           fsl.get().get<SimpleSourceLink>().parametersGlob())
+                              .normalized();
+      // std::cout << Acts::VectorHelpers::phi(dir) << "\n";
+      if (std::abs(Acts::VectorHelpers::theta(dir) - M_PI_2) > 0.01) {
+        continue;
+      }
+      if (std::abs(Acts::VectorHelpers::phi(dir) + 0.07) > 0.03) {
+        continue;
+      }
+      dirs.push_back(dir);
+    }
+  }
+  dirs.shrink_to_fit();
+  std::cout << "DIRS " << dirs.size() << "\n";
+  throw std::runtime_error("err");
+
   m_shift = Acts::Vector3(opt.boundBoxCenterX, opt.boundBoxCenterY,
                           opt.boundBoxCenterZ);
-
-  // std::cout << "SHIFT " << m_shift.transpose() << "\n";
 
   std::vector<bool> activeIdxs;
   activeIdxs.reserve(sourceLinks.size());
@@ -138,52 +196,47 @@ std::vector<HoughTransformSeeder::HTSeed> HoughTransformSeeder::findSeeds(
     activeIdxs.push_back(true);
   }
   nActive = activeIdxs.size();
-  // std::cout << "N ACTIVE " << nActive << "\n";
 
   VotingMap votingMap;
-  fillVotingMap(votingMap, sourceLinks, true);
-  // std::cout << "FILLED VOTING MAP SIZE " << votingMap.size() << "\n";
+  fillVotingMap(votingMap, dirs, sourceLinks, 1, 16);
 
   while (nActive >= m_cfg.minSeedSize) {
-    auto [point, dir] = findMaxVotedLine(votingMap);
-    // std::cout << "MAX VOTED POINT " << point.transpose() << "\n";
-    // std::cout << "MAX VOTED DIR " << dir.transpose() << "\n";
+    auto [point, dir] = findMaxVotedLine(votingMap, dirs);
 
     std::vector<int> seedSlIdxs;
     std::vector<SourceLinkRef> seedSourceLinksRefs;
+    double rc = 0;
     for (std::size_t it = 0; it < m_cfg.nLSIterations; it++) {
-      seedSlIdxs = findLineSourceLinks(sourceLinks, activeIdxs, point, dir,
-                                       3 * (m_cfg.nLSIterations - it) * m_minDelta);
-      // std::cout << "LINE SOURCE LINKS " << seedSlIdxs.size() << "\n";
+      seedSourceLinksRefs.clear();
+      seedSlIdxs =
+          findLineSourceLinks(sourceLinks, activeIdxs, point, dir, 0.09);
 
       seedSourceLinksRefs.reserve(seedSlIdxs.size());
       for (auto idx : seedSlIdxs) {
         seedSourceLinksRefs.push_back(std::cref(sourceLinks[idx]));
       }
-      double rc = orthogonalLeastSquares(seedSourceLinksRefs, point, dir);
+      rc = orthogonalLeastSquares(seedSourceLinksRefs, point, dir);
       if (rc == 0) {
         break;
       }
     }
+    std::size_t slIdxsSize = seedSlIdxs.size();
     for (auto idx : seedSlIdxs) {
       activeIdxs.at(idx) = false;
       nActive--;
     }
-    if (seedSlIdxs.size() < m_cfg.minSeedSize ||
-        seedSlIdxs.size() > m_cfg.maxSeedSize) {
+    if (slIdxsSize < m_cfg.minSeedSize || slIdxsSize > m_cfg.maxSeedSize) {
       break;
     }
-    // std::cout << "ACTIVE LEFT " << nActive << "\n";
 
     std::vector<Acts::SourceLink> seedSourceLinks;
-    seedSourceLinks.reserve(seedSlIdxs.size());
+    seedSourceLinks.reserve(slIdxsSize);
     for (auto idx : seedSlIdxs) {
       seedSourceLinks.push_back(sourceLinks[idx]);
     }
 
-    fillVotingMap(votingMap, seedSourceLinksRefs, false);
+    fillVotingMap(votingMap, dirs, seedSourceLinksRefs, -1);
 
-    // std::cout << "SEED SIZE " << seedSourceLinks.size() << "\n";
     seeds.emplace_back(std::move(point + m_shift), std::move(dir),
                        std::move(seedSourceLinks));
   }
@@ -192,29 +245,64 @@ std::vector<HoughTransformSeeder::HTSeed> HoughTransformSeeder::findSeeds(
 }
 
 void HoughTransformSeeder::fillVotingMap(VotingMap& votingMap,
+                                         const std::vector<Acts::Vector3>& dirs,
                                          std::span<SourceLinkRef> sourceLinks,
-                                         bool add) {
-  for (auto sl : sourceLinks) {
-    for (int i = 0; i < m_dirs.size(); i++) {
-      const Acts::Vector3& dir = m_dirs.at(i);
+                                         int sign) {
+  for (int i = 0; i < dirs.size(); i++) {
+    const Acts::Vector3& dir = dirs.at(i);
+    double dirX = dir.x();
+    double dirY = dir.y();
+    double dirZ = dir.z();
+
+    double denom = 1 + dirZ;
+    for (auto sl : sourceLinks) {
       Acts::Vector3 point =
           sl.get().get<SimpleSourceLink>().parametersGlob() - m_shift;
-      double denom = (1 + dir.z());
-      double xPrime = (1 - dir.x() * dir.x() / denom) * point.x() -
-                      (dir.x() * dir.y() / denom) * point.y() -
-                      dir.x() * point.z();
-      double yPrime = -(dir.x() * dir.y() / denom) * point.x() +
-                      (1 - dir.y() * dir.y() / denom) * point.y() -
-                      dir.y() * point.z();
+      double pointX = point.x();
+      double pointY = point.y();
+      double pointZ = point.z();
+
+      double xPrime = (1 - dirX * dirX / denom) * pointX -
+                      (dirX * dirY / denom) * pointY - dirX * pointZ;
+      double yPrime = -(dirX * dirY / denom) * pointX +
+                      (1 - dirY * dirY / denom) * pointY - dirY * pointZ;
 
       int cellX = std::ceil(xPrime / m_deltaX);
       int cellY = std::ceil(yPrime / m_deltaY);
 
-      if (add) {
-        votingMap[i][{cellX, cellY}]++;
-      } else {
-        votingMap[i][{cellX, cellY}]--;
-      }
+      votingMap[i][{cellX, cellY}] += sign;
+    }
+  }
+}
+
+void HoughTransformSeeder::fillVotingMap(VotingMap& votingMap,
+                                         const std::vector<Acts::Vector3>& dirs,
+                                         std::span<SourceLinkRef> sourceLinks,
+                                         int sign, int nThreads) {
+#pragma omp parallel for num_threads(nThreads) reduction(mapAdd : votingMap)
+  for (int i = 0; i < dirs.size(); i++) {
+    const Acts::Vector3& dir = dirs.at(i);
+    double dirX = dir.x();
+    double dirY = dir.y();
+    double dirZ = dir.z();
+
+    double denom = 1 + dirZ;
+    for (const auto sl : sourceLinks) {
+      Acts::Vector3 point =
+          sl.get().get<SimpleSourceLink>().parametersGlob() - m_shift;
+      double pointX = point.x();
+      double pointY = point.y();
+      double pointZ = point.z();
+
+      double xPrime = (1 - dirX * dirX / denom) * pointX -
+                      (dirX * dirY / denom) * pointY - dirX * pointZ;
+      double yPrime = -(dirX * dirY / denom) * pointX +
+                      (1 - dirY * dirY / denom) * pointY - dirY * pointZ;
+
+      int cellX = std::ceil(xPrime / m_deltaX);
+      int cellY = std::ceil(yPrime / m_deltaY);
+
+      votingMap[i][{cellX, cellY}] += sign;
     }
   }
 }

@@ -34,23 +34,33 @@ ApollonRootSimDataReader::ApollonRootSimDataReader(const Config& config,
   m_outputSimClusters.initialize(m_cfg.outputSimClusters);
 
   // Set the branches
-  m_chain->SetBranchAddress("eventId", &m_eventId);
-
   m_chain->SetBranchAddress("geoId", &m_geoIdVal);
   m_chain->SetBranchAddress("isSignal", &m_isSignalFlag);
 
   m_chain->SetBranchAddress("trackId", &m_trackId);
   m_chain->SetBranchAddress("parentTrackId", &m_parentTrackId);
-  m_chain->SetBranchAddress("runId", &m_runId);
+  std::string idxBranch;
+  if (m_cfg.eventSplit) {
+    m_chain->SetBranchAddress("eventId", &m_eventId);
+    m_chain->SetBranchAddress("runId", &m_runId);
+    idxBranch = "eventId";
+  } else {
+    m_chain->SetBranchAddress("eventId", &m_runId);
+    m_chain->SetBranchAddress("runId", &m_eventId);
+    idxBranch = "runId";
+  }
 
   m_chain->SetBranchAddress("hitPosGlobal", &m_hitPosGlobal);
   m_chain->SetBranchAddress("hitPosLocal", &m_hitPosLocal);
 
   m_chain->SetBranchAddress("hitMomDir", &m_hitMomDir);
   m_chain->SetBranchAddress("hitE", &m_hitE);
+  m_chain->SetBranchAddress("hitP", &m_hitP);
+  m_chain->SetBranchAddress("eDep", &m_eDep);
 
   m_chain->SetBranchAddress("ipMomDir", &m_ipMomDir);
   m_chain->SetBranchAddress("ipE", &m_ipE);
+  m_chain->SetBranchAddress("ipP", &m_ipP);
   m_chain->SetBranchAddress("vertex", &m_vertices);
 
   // Add the files to the chain
@@ -61,10 +71,10 @@ ApollonRootSimDataReader::ApollonRootSimDataReader(const Config& config,
   // Disable all branches and only enable event-id for a first scan of the
   // file
   m_chain->SetBranchStatus("*", false);
-  if (!m_chain->GetBranch("eventId")) {
+  if (!m_chain->GetBranch(idxBranch.c_str())) {
     throw std::invalid_argument("Missing eventId branch");
   }
-  m_chain->SetBranchStatus("eventId", true);
+  m_chain->SetBranchStatus(idxBranch.c_str(), true);
 
   auto nEntries = static_cast<std::size_t>(m_chain->GetEntries());
 
@@ -163,30 +173,38 @@ ProcessCode ApollonRootSimDataReader::read(const AlgorithmContext& context) {
     if (m_eventId != context.eventNumber) {
       continue;
     }
-    // std::cout << "GEO ID SIZE " << m_geoIdVal->size() << "\n";
+    int prevGeoId = -1;
+    int prevRunId = -1;
     for (std::size_t i = 0; i < m_geoIdVal->size(); i++) {
       bool isSignal = m_isSignalFlag->at(i);
       bool isHighEnergy = (m_ipE->at(i) * Acts::UnitConstants::MeV > 0.3);
-      bool isFirstLayer = (m_geoIdVal->at(i) < 20);
-      if (!isSignal || !isHighEnergy) {
+      bool isRepeat =
+          (m_geoIdVal->at(i) == prevGeoId) && (m_runId == prevRunId);
+      // if (isRepeat) {
+      //   continue;
+      // }
+      // if (!isSignal) {
+      //   continue;
+      // }
+      // if (!isSignal || !isHighEnergy) {
+      //   continue;
+      // }
+
+      if (m_eDep->at(i) * Acts::UnitConstants::MeV /
+              (3.62 * Acts::UnitConstants::eV) <
+          117) {
         continue;
       }
-
-      // std::cout << "--------------------------------------------------------\n";
 
       Acts::GeometryIdentifier geoId;
       geoId.setSensitive(m_geoIdVal->at(i));
 
-      // std::cout << "GEO ID " << geoId << "\n";
-
       Acts::Vector2 hitLoc(m_hitPosLocal->at(i).X(), m_hitPosLocal->at(i).Y());
-      // std::cout << "HIT LOC " << hitLoc.transpose() << "\n";
       Acts::Vector3 hitGlob(m_hitPosGlobal->at(i).Z(),
                             m_hitPosGlobal->at(i).Y(),
                             m_hitPosGlobal->at(i).X());
       hitGlob = hitGlob - m_ipCorrection;
       hitGlob = m_setupRotation * hitGlob;
-      // std::cout << "HIT GLOB " << hitGlob.transpose() << "\n";
 
       SimpleSourceLink ssl(hitLoc, hitGlob, m_hitCov, geoId, m_eventId,
                            sourceLinks.size());
@@ -212,7 +230,7 @@ ProcessCode ApollonRootSimDataReader::read(const AlgorithmContext& context) {
       truthPars[Acts::eBoundPhi] = Acts::VectorHelpers::phi(momDir);
       truthPars[Acts::eBoundTheta] = Acts::VectorHelpers::theta(momDir);
       truthPars[Acts::eBoundQOverP] =
-          -1_e / (m_hitE->at(i) * Acts::UnitConstants::MeV);
+          -1_e / (m_hitP->at(i) * Acts::UnitConstants::MeV);
       truthPars[Acts::eBoundTime] = 0;
 
       Acts::Vector3 momDirIP(m_ipMomDir->at(i).Z(), m_ipMomDir->at(i).Y(),
@@ -222,15 +240,18 @@ ProcessCode ApollonRootSimDataReader::read(const AlgorithmContext& context) {
       Acts::CurvilinearTrackParameters ipParameters(
           vertex, Acts::VectorHelpers::phi(momDirIP),
           Acts::VectorHelpers::theta(momDirIP),
-          -1_e / (m_ipE->at(i) * Acts::UnitConstants::MeV), m_ipCov,
+          -1_e / (m_ipP->at(i) * Acts::UnitConstants::MeV), m_ipCov,
           Acts::ParticleHypothesis::electron());
 
       cluster.truthHits.emplace_back(std::move(truthPars), std::move(hitGlob),
                                      std::move(ipParameters), m_trackId->at(i),
-                                     m_parentTrackId->at(i), m_runId->at(i));
+                                     m_parentTrackId->at(i), m_runId);
       cluster.isSignal = m_isSignalFlag->at(i);
 
       clusters.push_back(cluster);
+
+      prevGeoId = geoId.sensitive();
+      prevRunId = m_runId;
     }
   }
 

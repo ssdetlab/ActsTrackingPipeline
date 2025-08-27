@@ -28,6 +28,8 @@ class ApollonRootSimDataReader : public IReader {
     std::string treeName;
     /// The names of the input files
     std::vector<std::string> filePaths;
+    /// Whether to split data on G4 event on run basis
+    bool eventSplit;
   };
 
   ApollonRootSimDataReader(const ApollonRootSimDataReader&) = delete;
@@ -83,24 +85,26 @@ class ApollonRootSimDataReader : public IReader {
   TChain* m_chain = nullptr;
 
  protected:
+  std::vector<int>* m_geoIdVal = nullptr;
+  std::vector<int>* m_isSignalFlag = nullptr;
+
+  std::vector<int>* m_trackId = nullptr;
+  std::vector<int>* m_parentTrackId = nullptr;
   int m_eventId;
+  int m_runId;
 
-  std::vector<int>* m_geoIdVal;
-  std::vector<int>* m_isSignalFlag;
+  std::vector<TVector3>* m_hitPosGlobal = nullptr;
+  std::vector<TVector2>* m_hitPosLocal = nullptr;
 
-  std::vector<int>* m_trackId;
-  std::vector<int>* m_parentTrackId;
-  std::vector<int>* m_runId;
+  std::vector<TVector3>* m_hitMomDir = nullptr;
+  std::vector<double>* m_hitE = nullptr;
+  std::vector<double>* m_hitP = nullptr;
+  std::vector<double>* m_eDep = nullptr;
 
-  std::vector<TVector3>* m_hitPosGlobal;
-  std::vector<TVector2>* m_hitPosLocal;
-
-  std::vector<TVector3>* m_hitMomDir;
-  std::vector<double>* m_hitE;
-
-  std::vector<TVector3>* m_ipMomDir;
-  std::vector<double>* m_ipE;
-  std::vector<TVector3>* m_vertices;
+  std::vector<TVector3>* m_ipMomDir = nullptr;
+  std::vector<double>* m_ipE = nullptr;
+  std::vector<double>* m_ipP = nullptr;
+  std::vector<TVector3>* m_vertices = nullptr;
 };
 
 }  // namespace ApollonIo
