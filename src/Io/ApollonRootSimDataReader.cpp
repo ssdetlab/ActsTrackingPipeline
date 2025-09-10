@@ -202,14 +202,14 @@ ProcessCode ApollonRootSimDataReader::read(const AlgorithmContext& context) {
       continue;
     }
 
-    bool isHighEnergy = false;
-    for (double E : *m_ipE) {
-      isHighEnergy =
-          isHighEnergy || (m_ipE->at(0) * Acts::UnitConstants::MeV > 0.3);
-    }
-    if (!m_isSignal || !isHighEnergy) {
-      continue;
-    }
+    // bool isHighEnergy = false;
+    // for (double E : *m_ipE) {
+    //   isHighEnergy =
+    //       isHighEnergy || (m_ipE->at(0) * Acts::UnitConstants::MeV > 0.3);
+    // }
+    // if (!m_isSignal || !isHighEnergy) {
+    //   continue;
+    // }
 
     Acts::GeometryIdentifier geoId;
     geoId.setSensitive(m_geoId);
