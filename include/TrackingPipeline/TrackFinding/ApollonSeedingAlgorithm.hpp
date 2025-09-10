@@ -54,6 +54,9 @@ class ApollonSeedingAlgorithm : public IAlgorithm {
   Acts::Vector3 m_det2FirstLayerPoint;
   Acts::Vector3 m_det2FirstLayerNormal;
 
+  Acts::Vector3 m_det2LastLayerPoint;
+  Acts::Vector3 m_det2LastLayerNormal;
+
   Acts::Vector3 m_dipoleEntrancePoint;
   Acts::Vector3 m_dipoleEntranceNormal;
 

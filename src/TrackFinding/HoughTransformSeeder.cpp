@@ -26,7 +26,7 @@ void mapMerge(HoughTransformSeeder::VotingMap& out,
 
 double HoughTransformSeeder::orthogonalLeastSquares(
     const std::vector<SourceLinkRef>& sourceLinks, Acts::Vector3& a,
-    Acts::Vector3& b) {
+    Acts::Vector3& b) const {
   double rc = 0.0;
   Acts::Vector3 meanVector(0, 0, 0);
 
@@ -59,13 +59,13 @@ double HoughTransformSeeder::orthogonalLeastSquares(
 
 double HoughTransformSeeder::computeDistance(const Acts::Vector3& point,
                                              const Acts::Vector3& dir,
-                                             const Acts::Vector3& meas) {
+                                             const Acts::Vector3& meas) const {
   return (point + dir.dot(meas - point) * dir - meas).norm();
 }
 
 std::pair<Acts::Vector3, Acts::Vector3> HoughTransformSeeder::findMaxVotedLine(
     const HoughTransformSeeder::VotingMap& votingMap,
-    const std::vector<Acts::Vector3>& dirs) {
+    const std::vector<Acts::Vector3>& dirs) const {
   auto [maxCount, maxDirIdx, maxCellXIdx, maxCellYIdx] = std::transform_reduce(
       std::execution::par, votingMap.begin(), votingMap.end(),
       HoughTransformSeeder::Index{0, 0, 0, 0},
@@ -114,7 +114,7 @@ std::pair<Acts::Vector3, Acts::Vector3> HoughTransformSeeder::findMaxVotedLine(
 
 std::vector<int> HoughTransformSeeder::findLineSourceLinks(
     std::span<SourceLinkRef> sourceLinks, const std::vector<bool>& activeIdxs,
-    const Acts::Vector3& point, const Acts::Vector3& dir, double dist) {
+    const Acts::Vector3& point, const Acts::Vector3& dir, double dist) const {
   std::vector<int> seedSlIdxs;
   for (int idx = 0; idx < activeIdxs.size(); idx++) {
     if (!activeIdxs.at(idx)) {
@@ -144,11 +144,15 @@ HoughTransformSeeder::HoughTransformSeeder(const Config& cfg) : m_cfg(cfg) {
 std::vector<HoughTransformSeeder::HTSeed> HoughTransformSeeder::findSeeds(
     std::span<SourceLinkRef> sourceLinks, const Options& opt) {
   std::vector<HoughTransformSeeder::HTSeed> seeds;
+  std::cout << "FIND SEEDS CALL\n";
+  std::cout << "SOURCE LINKS " << sourceLinks.size() << "\n";
+  std::cout << "LAYERS " << opt.nLayers << "\n";
 
   std::vector<SourceLinkRef> flPoints;
   std::vector<SourceLinkRef> llPoints;
   flPoints.reserve(sourceLinks.size() / opt.nLayers);
   llPoints.reserve(sourceLinks.size() / opt.nLayers);
+  std::cout << "ITERATING SOURCE LINKS\n";
   for (auto sl : sourceLinks) {
     int geoId = sl.get().get<SimpleSourceLink>().geometryId().sensitive();
     if (geoId == opt.firstLayerId) {
@@ -172,19 +176,23 @@ std::vector<HoughTransformSeeder::HTSeed> HoughTransformSeeder::findSeeds(
       Acts::Vector3 dir = (lsl.get().get<SimpleSourceLink>().parametersGlob() -
                            fsl.get().get<SimpleSourceLink>().parametersGlob())
                               .normalized();
-      // std::cout << Acts::VectorHelpers::phi(dir) << "\n";
-      if (std::abs(Acts::VectorHelpers::theta(dir) - M_PI_2) > 0.01) {
+      double theta = Acts::VectorHelpers::theta(dir);
+      double phi = Acts::VectorHelpers::phi(dir);
+      if (theta < opt.minTheta || theta > opt.maxTheta) {
         continue;
       }
-      if (std::abs(Acts::VectorHelpers::phi(dir) + 0.07) > 0.03) {
+      if (phi < opt.minPhi || phi > opt.maxPhi) {
         continue;
       }
       dirs.push_back(dir);
     }
   }
   dirs.shrink_to_fit();
+  if (dirs.empty()) {
+    return {};
+  }
   std::cout << "DIRS " << dirs.size() << "\n";
-  throw std::runtime_error("err");
+  // throw std::runtime_error("err");
 
   m_shift = Acts::Vector3(opt.boundBoxCenterX, opt.boundBoxCenterY,
                           opt.boundBoxCenterZ);
@@ -209,7 +217,7 @@ std::vector<HoughTransformSeeder::HTSeed> HoughTransformSeeder::findSeeds(
     for (std::size_t it = 0; it < m_cfg.nLSIterations; it++) {
       seedSourceLinksRefs.clear();
       seedSlIdxs =
-          findLineSourceLinks(sourceLinks, activeIdxs, point, dir, 0.09);
+          findLineSourceLinks(sourceLinks, activeIdxs, point, dir, 5e-2);
 
       seedSourceLinksRefs.reserve(seedSlIdxs.size());
       for (auto idx : seedSlIdxs) {
@@ -247,7 +255,7 @@ std::vector<HoughTransformSeeder::HTSeed> HoughTransformSeeder::findSeeds(
 void HoughTransformSeeder::fillVotingMap(VotingMap& votingMap,
                                          const std::vector<Acts::Vector3>& dirs,
                                          std::span<SourceLinkRef> sourceLinks,
-                                         int sign) {
+                                         int sign) const {
   for (int i = 0; i < dirs.size(); i++) {
     const Acts::Vector3& dir = dirs.at(i);
     double dirX = dir.x();
@@ -278,7 +286,7 @@ void HoughTransformSeeder::fillVotingMap(VotingMap& votingMap,
 void HoughTransformSeeder::fillVotingMap(VotingMap& votingMap,
                                          const std::vector<Acts::Vector3>& dirs,
                                          std::span<SourceLinkRef> sourceLinks,
-                                         int sign, int nThreads) {
+                                         int sign, int nThreads) const {
 #pragma omp parallel for num_threads(nThreads) reduction(mapAdd : votingMap)
   for (int i = 0; i < dirs.size(); i++) {
     const Acts::Vector3& dir = dirs.at(i);

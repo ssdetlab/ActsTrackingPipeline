@@ -72,4 +72,6 @@ struct Tracks {
   ActsTracks tracks;
   std::vector<int> trackIds;
   std::vector<Acts::CurvilinearTrackParameters> ipParametersGuesses;
+
+  std::size_t size() const { return tracks.size(); }
 };

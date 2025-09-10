@@ -46,6 +46,12 @@ class HoughTransformSeeder {
     int firstLayerId;
     int lastLayerId;
     int nLayers;
+
+    double minTheta;
+    double maxTheta;
+
+    double minPhi;
+    double maxPhi;
   };
 
   struct HTSeed {
@@ -64,27 +70,27 @@ class HoughTransformSeeder {
 
   void fillVotingMap(VotingMap& votingMap,
                      const std::vector<Acts::Vector3>& dirs,
-                     std::span<SourceLinkRef> points, int sign, int nThreads);
+                     std::span<SourceLinkRef> points, int sign,
+                     int nThreads) const;
 
   void fillVotingMap(VotingMap& votingMap,
                      const std::vector<Acts::Vector3>& dirs,
-                     std::span<SourceLinkRef> points, int sign);
+                     std::span<SourceLinkRef> points, int sign) const;
 
   std::pair<Acts::Vector3, Acts::Vector3> findMaxVotedLine(
       const HoughTransformSeeder::VotingMap& votingMap,
-                     const std::vector<Acts::Vector3>& dirs
-  );
+      const std::vector<Acts::Vector3>& dirs) const;
 
   double computeDistance(const Acts::Vector3& point, const Acts::Vector3& dir,
-                         const Acts::Vector3& meas);
+                         const Acts::Vector3& meas) const;
 
   std::vector<int> findLineSourceLinks(std::span<SourceLinkRef> sourceLinks,
                                        const std::vector<bool>& activeIdxs,
                                        const Acts::Vector3& point,
-                                       const Acts::Vector3& dir, double dist);
+                                       const Acts::Vector3& dir, double dist) const;
 
   double orthogonalLeastSquares(const std::vector<SourceLinkRef>& sourceLinks,
-                                Acts::Vector3& a, Acts::Vector3& b);
+                                Acts::Vector3& a, Acts::Vector3& b) const;
 
   Acts::Vector3 m_shift;
 

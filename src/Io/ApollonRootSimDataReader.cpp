@@ -2,7 +2,8 @@
 
 #include "Acts/Definitions/TrackParametrization.hpp"
 #include "Acts/Definitions/Units.hpp"
-#include <Acts/Utilities/Logger.hpp>
+#include "Acts/Utilities/Logger.hpp"
+#include <Acts/Definitions/Algebra.hpp>
 
 #include <cstddef>
 
@@ -33,9 +34,15 @@ ApollonRootSimDataReader::ApollonRootSimDataReader(const Config& config,
   m_outputSourceLinks.initialize(m_cfg.outputSourceLinks);
   m_outputSimClusters.initialize(m_cfg.outputSimClusters);
 
-  // Set the branches
-  m_chain->SetBranchAddress("geoId", &m_geoIdVal);
-  m_chain->SetBranchAddress("isSignal", &m_isSignalFlag);
+  m_chain->SetBranchAddress("geoId", &m_geoId);
+  m_chain->SetBranchAddress("pixels", &m_pixels);
+
+  m_chain->SetBranchAddress("isSignal", &m_isSignal);
+
+  m_chain->SetBranchAddress("geoCenterLocal", &m_geoCenterLocal);
+  m_chain->SetBranchAddress("geoCenterGlobal", &m_geoCenterGlobal);
+
+  m_chain->SetBranchAddress("totEDep", &m_totEDep);
 
   m_chain->SetBranchAddress("trackId", &m_trackId);
   m_chain->SetBranchAddress("parentTrackId", &m_parentTrackId);
@@ -56,12 +63,35 @@ ApollonRootSimDataReader::ApollonRootSimDataReader(const Config& config,
   m_chain->SetBranchAddress("hitMomDir", &m_hitMomDir);
   m_chain->SetBranchAddress("hitE", &m_hitE);
   m_chain->SetBranchAddress("hitP", &m_hitP);
-  m_chain->SetBranchAddress("eDep", &m_eDep);
 
   m_chain->SetBranchAddress("ipMomDir", &m_ipMomDir);
   m_chain->SetBranchAddress("ipE", &m_ipE);
   m_chain->SetBranchAddress("ipP", &m_ipP);
-  m_chain->SetBranchAddress("vertex", &m_vertices);
+  m_chain->SetBranchAddress("vertex", &m_vertex);
+
+  m_chain->SetBranchAddress("eDep", &m_eDep);
+  m_chain->SetBranchAddress("pdgId", &m_pdgId);
+
+  // // Set the branches
+  // m_chain->SetBranchAddress("geoId", &m_geoIdVal);
+  // m_chain->SetBranchAddress("isSignal", &m_isSignalFlag);
+
+  // m_chain->SetBranchAddress("trackId", &m_trackId);
+  // m_chain->SetBranchAddress("parentTrackId", &m_parentTrackId);
+  // m_chain->SetBranchAddress("pdgId", &m_pdgId);
+
+  // m_chain->SetBranchAddress("hitPosGlobal", &m_hitPosGlobal);
+  // m_chain->SetBranchAddress("hitPosLocal", &m_hitPosLocal);
+
+  // m_chain->SetBranchAddress("hitMomDir", &m_hitMomDir);
+  // m_chain->SetBranchAddress("hitE", &m_hitE);
+  // m_chain->SetBranchAddress("hitP", &m_hitP);
+  // m_chain->SetBranchAddress("eDep", &m_eDep);
+
+  // m_chain->SetBranchAddress("ipMomDir", &m_ipMomDir);
+  // m_chain->SetBranchAddress("ipE", &m_ipE);
+  // m_chain->SetBranchAddress("ipP", &m_ipP);
+  // m_chain->SetBranchAddress("vertex", &m_vertices);
 
   // Add the files to the chain
   for (const auto& path : m_cfg.filePaths) {
@@ -108,16 +138,13 @@ ApollonRootSimDataReader::ApollonRootSimDataReader(const Config& config,
                        detail::binningValueToDirection(goInst.longBinValue))
           .toRotationMatrix();
 
-  m_ipCorrection[detail::binningValueToIndex(goInst.primaryBinValue)] =
-      -2 * goInst.vcRad * std::sin(goInst.setupRotationAngle / 2) *
-      std::sin(goInst.setupRotationAngle / 2);
-  m_ipCorrection[detail::binningValueToIndex(goInst.longBinValue)] = 0;
-  m_ipCorrection[detail::binningValueToIndex(goInst.shortBinValue)] =
-      -goInst.vcRad * std::sin(goInst.setupRotationAngle);
+  m_vertexCorrection[goInst.primaryIdx] = 0;
+  m_vertexCorrection[goInst.longIdx] = goInst.setupLongTranslation;
+  m_vertexCorrection[goInst.shortIdx] = 0;
 
   Acts::BoundVector ipStdDev;
-  ipStdDev[Acts::eBoundLoc0] = 100_um;
-  ipStdDev[Acts::eBoundLoc1] = 100_um;
+  ipStdDev[Acts::eBoundLoc0] = 1_mm;
+  ipStdDev[Acts::eBoundLoc1] = 1_mm;
   ipStdDev[Acts::eBoundTime] = 25_ns;
   ipStdDev[Acts::eBoundPhi] = 2_degree;
   ipStdDev[Acts::eBoundTheta] = 2_degree;
@@ -167,56 +194,44 @@ ProcessCode ApollonRootSimDataReader::read(const AlgorithmContext& context) {
   // Create the measurements
   std::vector<Acts::SourceLink> sourceLinks{};
   SimClusters clusters{};
+
   for (auto entry = std::get<1>(*it); entry < std::get<2>(*it); entry++) {
     m_chain->GetEntry(entry);
 
     if (m_eventId != context.eventNumber) {
       continue;
     }
-    int prevGeoId = -1;
-    int prevRunId = -1;
-    for (std::size_t i = 0; i < m_geoIdVal->size(); i++) {
-      bool isSignal = m_isSignalFlag->at(i);
-      bool isHighEnergy = (m_ipE->at(i) * Acts::UnitConstants::MeV > 0.3);
-      bool isRepeat =
-          (m_geoIdVal->at(i) == prevGeoId) && (m_runId == prevRunId);
-      // if (isRepeat) {
-      //   continue;
-      // }
-      // if (!isSignal) {
-      //   continue;
-      // }
-      // if (!isSignal || !isHighEnergy) {
-      //   continue;
-      // }
 
-      if (m_eDep->at(i) * Acts::UnitConstants::MeV /
-              (3.62 * Acts::UnitConstants::eV) <
-          117) {
-        continue;
-      }
+    bool isHighEnergy = false;
+    for (double E : *m_ipE) {
+      isHighEnergy =
+          isHighEnergy || (m_ipE->at(0) * Acts::UnitConstants::MeV > 0.3);
+    }
+    // if (!m_isSignal || !isHighEnergy) {
+    //   continue;
+    // }
 
-      Acts::GeometryIdentifier geoId;
-      geoId.setSensitive(m_geoIdVal->at(i));
+    Acts::GeometryIdentifier geoId;
+    geoId.setSensitive(m_geoId);
 
-      Acts::Vector2 hitLoc(m_hitPosLocal->at(i).X(), m_hitPosLocal->at(i).Y());
-      Acts::Vector3 hitGlob(m_hitPosGlobal->at(i).Z(),
-                            m_hitPosGlobal->at(i).Y(),
-                            m_hitPosGlobal->at(i).X());
-      hitGlob = hitGlob - m_ipCorrection;
-      hitGlob = m_setupRotation * hitGlob;
+    Acts::Vector2 hitLoc(m_geoCenterLocal->X() * Acts::UnitConstants::mm,
+                         m_geoCenterLocal->Y() * Acts::UnitConstants::mm);
+    // Need high precision so use surfaces for conversion
+    Acts::Vector3 hitGlob = m_cfg.surfaceMap.at(geoId)->localToGlobal(
+        context.geoContext, hitLoc, Acts::Vector3::UnitX());
 
-      SimpleSourceLink ssl(hitLoc, hitGlob, m_hitCov, geoId, m_eventId,
-                           sourceLinks.size());
+    SimpleSourceLink ssl(hitLoc, hitGlob, m_hitCov, geoId, m_eventId,
+                         sourceLinks.size());
 
-      sourceLinks.emplace_back(ssl);
+    sourceLinks.emplace_back(ssl);
 
-      SimCluster cluster{.sourceLink = ssl};
-
-      Acts::Vector3 vertex3(m_vertices->at(i).Z() * Acts::UnitConstants::mm,
-                            m_vertices->at(i).Y() * Acts::UnitConstants::mm,
-                            m_vertices->at(i).X() * Acts::UnitConstants::mm);
-      vertex3 = vertex3 - m_ipCorrection;
+    SimCluster cluster{.sourceLink = ssl};
+    cluster.isSignal = m_isSignal;
+    for (std::size_t i = 0; i < m_hitPosLocal->size(); i++) {
+      Acts::Vector3 vertex3(m_vertex->at(i).Z() * Acts::UnitConstants::mm,
+                            m_vertex->at(i).Y() * Acts::UnitConstants::mm,
+                            m_vertex->at(i).X() * Acts::UnitConstants::mm);
+      vertex3 = vertex3 - m_vertexCorrection;
       vertex3 = m_setupRotation * vertex3;
       Acts::Vector4 vertex(vertex3.x(), vertex3.y(), vertex3.z(), 0);
 
@@ -246,13 +261,88 @@ ProcessCode ApollonRootSimDataReader::read(const AlgorithmContext& context) {
       cluster.truthHits.emplace_back(std::move(truthPars), std::move(hitGlob),
                                      std::move(ipParameters), m_trackId->at(i),
                                      m_parentTrackId->at(i), m_runId);
-      cluster.isSignal = m_isSignalFlag->at(i);
-
-      clusters.push_back(cluster);
-
-      prevGeoId = geoId.sensitive();
-      prevRunId = m_runId;
     }
+    clusters.push_back(cluster);
+
+    // for (std::size_t i = 0; i < m_geoIdVal->size(); i++) {
+    //   bool isSignal = m_isSignalFlag->at(i);
+    //   bool isHighEnergy = (m_ipE->at(i) * Acts::UnitConstants::MeV > 0.3);
+    //   bool isRepeat =
+    //       (m_geoIdVal->at(i) == prevGeoId) && (m_runId == prevRunId);
+    //   bool isElectron = (m_pdgId->at(i) == 11);
+    //   if (isRepeat) {
+    //     continue;
+    //   }
+    //   // if (!isElectron) {
+    //   //   continue;
+    //   // }
+    //   // if (!isSignal) {
+    //   //   continue;
+    //   // }
+    //   if (!isSignal || !isHighEnergy) {
+    //     continue;
+    //   }
+
+    //   Acts::GeometryIdentifier geoId;
+    //   geoId.setSensitive(m_geoIdVal->at(i));
+
+    //   Acts::Vector2 hitLoc(m_hitPosLocal->at(i).X() *
+    //   Acts::UnitConstants::mm,
+    //                        m_hitPosLocal->at(i).Y() *
+    //                        Acts::UnitConstants::mm);
+    //   // Need high precision so use surfaces for conversion
+    //   Acts::Vector3 hitGlob = m_cfg.surfaceMap.at(geoId)->localToGlobal(
+    //       context.geoContext, hitLoc, Acts::Vector3::UnitX());
+
+    //   SimpleSourceLink ssl(hitLoc, hitGlob, m_hitCov, geoId, m_eventId,
+    //                        sourceLinks.size());
+
+    //   sourceLinks.emplace_back(ssl);
+
+    //   SimCluster cluster{.sourceLink = ssl};
+
+    //   Acts::Vector3 vertex3(m_vertices->at(i).Z() * Acts::UnitConstants::mm,
+    //                         m_vertices->at(i).Y() * Acts::UnitConstants::mm,
+    //                         m_vertices->at(i).X() * Acts::UnitConstants::mm);
+    //   vertex3 = vertex3 - m_vertexCorrection;
+    //   vertex3 = m_setupRotation * vertex3;
+    //   Acts::Vector4 vertex(vertex3.x(), vertex3.y(), vertex3.z(), 0);
+
+    //   Acts::Vector3 momDir(m_hitMomDir->at(i).Z(), m_hitMomDir->at(i).Y(),
+    //                        m_hitMomDir->at(i).X());
+    //   momDir = m_setupRotation * momDir;
+
+    //   Acts::BoundVector truthPars = Acts::BoundVector::Zero();
+    //   truthPars[Acts::eBoundLoc0] = hitLoc[Acts::eBoundLoc0];
+    //   truthPars[Acts::eBoundLoc1] = hitLoc[Acts::eBoundLoc1];
+    //   truthPars[Acts::eBoundPhi] = Acts::VectorHelpers::phi(momDir);
+    //   truthPars[Acts::eBoundTheta] = Acts::VectorHelpers::theta(momDir);
+    //   truthPars[Acts::eBoundQOverP] =
+    //       -1_e / (m_hitP->at(i) * Acts::UnitConstants::MeV);
+    //   truthPars[Acts::eBoundTime] = 0;
+
+    //   Acts::Vector3 momDirIP(m_ipMomDir->at(i).Z(), m_ipMomDir->at(i).Y(),
+    //                          m_ipMomDir->at(i).X());
+    //   momDirIP = m_setupRotation * momDirIP;
+
+    //   Acts::CurvilinearTrackParameters ipParameters(
+    //       vertex, Acts::VectorHelpers::phi(momDirIP),
+    //       Acts::VectorHelpers::theta(momDirIP),
+    //       -1_e / (m_ipP->at(i) * Acts::UnitConstants::MeV), m_ipCov,
+    //       Acts::ParticleHypothesis::electron());
+
+    //   cluster.truthHits.emplace_back(std::move(truthPars),
+    //   std::move(hitGlob),
+    //                                  std::move(ipParameters),
+    //                                  m_trackId->at(i),
+    //                                  m_parentTrackId->at(i), m_runId);
+    //   cluster.isSignal = m_isSignalFlag->at(i);
+
+    //   clusters.push_back(cluster);
+
+    //   prevGeoId = geoId.sensitive();
+    //   prevRunId = m_runId;
+    // }
   }
 
   ACTS_DEBUG("Sending " << sourceLinks.size() << " measurements");

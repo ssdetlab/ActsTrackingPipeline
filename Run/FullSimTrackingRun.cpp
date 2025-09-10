@@ -75,6 +75,7 @@ int main() {
 
   auto detector = ApollonGeometry::buildDetector(gctx);
 
+  std::map<Acts::GeometryIdentifier, const Acts::Surface*> surfaceMap;
   for (const auto& vol : detector->volumes()) {
     std::cout << "------------------------------------------\n";
     std::cout << vol->name() << "\n";
@@ -83,6 +84,9 @@ int main() {
     for (const auto& surf : vol->surfaces()) {
       std::cout << surf->geometryId() << "\n";
       std::cout << surf->polyhedronRepresentation(gctx, 1000).extent() << "\n";
+      if (surf->geometryId().sensitive()) {
+        surfaceMap[surf->geometryId()] = surf;
+      }
     }
   }
 
@@ -108,11 +112,12 @@ int main() {
   ApollonIo::ApollonRootSimDataReader::Config readerCfg;
   readerCfg.outputSourceLinks = "Measurements";
   readerCfg.outputSimClusters = "SimClusters";
-  readerCfg.treeName = "particles";
+  readerCfg.treeName = "clusters";
+  readerCfg.surfaceMap = surfaceMap;
   readerCfg.eventSplit = false;
   std::string pathToDir =
-      "/home/romanurmanov/work/Apollon/geant4_sims/al_window_flange/out_data/"
-      "test";
+      "/home/romanurmanov/work/Apollon/geant4_sims/g4_clustering/out_data/"
+      "test_clusters";
 
   // Get the paths to the files in the directory
   for (const auto& entry : std::filesystem::directory_iterator(pathToDir)) {
@@ -178,7 +183,7 @@ int main() {
   htSeederCfg.minSeedSize = 5;
   htSeederCfg.maxSeedSize = 1000;
 
-  htSeederCfg.nLSIterations = 20;
+  htSeederCfg.nLSIterations = 5;
 
   ApollonSeedingAlgorithm::Config seedingAlgoCfg;
   seedingAlgoCfg.htSeeder = std::make_shared<HoughTransformSeeder>(htSeederCfg);
@@ -188,9 +193,9 @@ int main() {
   seedingAlgoCfg.maxLayers = 10;
   seedingAlgoCfg.minSeedSize = 10;
   seedingAlgoCfg.maxSeedSize = 100;
-  seedingAlgoCfg.minScanEnergy = 0.2_GeV;
+  seedingAlgoCfg.minScanEnergy = 0.3_GeV;
   seedingAlgoCfg.maxScanEnergy = 0.4_GeV;
-  seedingAlgoCfg.energyScanStep = 0.01_GeV;
+  seedingAlgoCfg.energyScanStep = 0.001_GeV;
   seedingAlgoCfg.maxConnectionDistance = 1e16;
 
   sequencer.addAlgorithm(
@@ -259,9 +264,9 @@ int main() {
   trackFindingCfg.maxCandidateSize = 10;
   trackFindingCfg.maxSteps = 1e4;
 
-  // auto trackFindingAlgorithm =
-  //     std::make_shared<CKFTrackFindingAlgorithm>(trackFindingCfg, logLevel);
-  // sequencer.addAlgorithm(trackFindingAlgorithm);
+  auto trackFindingAlgorithm =
+      std::make_shared<CKFTrackFindingAlgorithm>(trackFindingCfg, logLevel);
+  sequencer.addAlgorithm(trackFindingAlgorithm);
 
   // --------------------------------------------------------------
   // Track fitting
@@ -347,8 +352,8 @@ int main() {
       .fitter = fitter,
       .kfOptions = options};
 
-  // sequencer.addAlgorithm(
-  //     std::make_shared<KFTrackFittingAlgorithm>(fitterCfg, logLevel));
+  sequencer.addAlgorithm(
+      std::make_shared<KFTrackFittingAlgorithm>(fitterCfg, logLevel));
 
   // --------------------------------------------------------------
   // Event write out
@@ -393,19 +398,21 @@ int main() {
           &surfaceAccessor);
 
   trackCandidateWriterCfg.inputTrackCandidates = "CandidatesTrackView";
+  trackCandidateWriterCfg.inputTruthClusters = "SimClusters";
   trackCandidateWriterCfg.treeName = "track-candidates";
   trackCandidateWriterCfg.filePath =
       "/home/romanurmanov/work/Apollon/tracking/out_data/test/"
       "track-candidates.root";
 
-  // sequencer.addWriter(std::make_shared<RootSimTrackCandidateWriter>(
-  //     trackCandidateWriterCfg, logLevel));
+  sequencer.addWriter(std::make_shared<RootSimTrackCandidateWriter>(
+      trackCandidateWriterCfg, logLevel));
 
   // Fitted track writer
   auto trackWriterCfg = RootSimTrackWriter::Config();
   trackWriterCfg.surfaceAccessor
       .connect<&SimpleSourceLink::SurfaceAccessor::operator()>(
           &surfaceAccessor);
+  trackWriterCfg.referenceSurface = refSurface.get();
   trackWriterCfg.inputTracks = "Tracks";
   trackWriterCfg.inputTruthClusters = "SimClusters";
   trackWriterCfg.treeName = "fitted-tracks";
@@ -413,8 +420,8 @@ int main() {
       "/home/romanurmanov/work/Apollon/tracking/out_data/test/"
       "fitted-tracks.root";
 
-  // sequencer.addWriter(
-  //     std::make_shared<RootSimTrackWriter>(trackWriterCfg, logLevel));
+  sequencer.addWriter(
+      std::make_shared<RootSimTrackWriter>(trackWriterCfg, logLevel));
 
   return sequencer.run();
 }

@@ -6,7 +6,7 @@
 ProcessCode KFTrackFittingAlgorithm::execute(const AlgorithmContext& ctx) const {
   // Get the input seeds
   // from the context
-  auto inputCandidates = m_inputTrackCandidates(ctx);
+  const auto& inputCandidates = m_inputTrackCandidates(ctx);
 
   ACTS_DEBUG("Received " << inputCandidates.size() << " track candidates");
 
@@ -20,8 +20,8 @@ ProcessCode KFTrackFittingAlgorithm::execute(const AlgorithmContext& ctx) const 
   std::vector<Acts::CurvilinearTrackParameters> ipParametersGuesses;
   ipParametersGuesses.reserve(inputCandidates.size());
   for (const auto& candidate : inputCandidates) {
-    auto start = candidate.ipParameters;
-    auto sourceLinks = candidate.sourceLinks;
+    const auto& start = candidate.ipParameters;
+    const auto& sourceLinks = candidate.sourceLinks;
 
     trackIds.push_back(candidate.trackId);
     ipParametersGuesses.push_back(candidate.ipParameters);

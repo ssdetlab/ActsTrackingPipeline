@@ -8,6 +8,7 @@
 #include <functional>
 #include <limits>
 #include <span>
+#include <vector>
 
 #include "TrackingPipeline/EventData/DataContainers.hpp"
 #include "TrackingPipeline/EventData/SimpleSourceLink.hpp"
@@ -35,7 +36,7 @@ ApollonSeedingAlgorithm::ApollonSeedingAlgorithm(const Config& config,
 
   const auto& goInst = *go::instance();
 
-  m_det1FirstLayerPoint[goInst.primaryIdx] = goInst.ipTc1Distance;
+  m_det1FirstLayerPoint[goInst.primaryIdx] = goInst.ipTc1Distance - 0.3_mm;
   m_det1FirstLayerPoint[goInst.longIdx] = goInst.tc1CenterLong;
   m_det1FirstLayerPoint[goInst.shortIdx] = goInst.tc1CenterShort;
   m_det1FirstLayerNormal = goInst.primaryDir;
@@ -44,6 +45,12 @@ ApollonSeedingAlgorithm::ApollonSeedingAlgorithm(const Config& config,
   m_det2FirstLayerPoint[goInst.longIdx] = goInst.tc2CenterLong;
   m_det2FirstLayerPoint[goInst.shortIdx] = goInst.tc2CenterShort;
   m_det2FirstLayerNormal = goInst.primaryDir;
+
+  m_det2LastLayerPoint[goInst.primaryIdx] =
+      goInst.ipTc2Distance + 4 * goInst.interChipDistance;
+  m_det2LastLayerPoint[goInst.longIdx] = goInst.tc2CenterLong;
+  m_det2LastLayerPoint[goInst.shortIdx] = goInst.tc2CenterShort;
+  m_det2LastLayerNormal = goInst.primaryDir;
 
   m_dipoleEntrancePoint[goInst.primaryIdx] =
       goInst.dipoleCenterPrimary - goInst.dipoleHalfPrimary;
@@ -83,6 +90,13 @@ ProcessCode ApollonSeedingAlgorithm::execute(
 
   htSeederOpt1.firstLayerId = goInst.tc1Parameters.front().geoId;
   htSeederOpt1.lastLayerId = goInst.tc1Parameters.back().geoId;
+  htSeederOpt1.nLayers = goInst.tc1Parameters.size();
+
+  htSeederOpt1.minTheta = M_PI_2 - 7e-2;
+  htSeederOpt1.maxTheta = M_PI_2 + 7e-2;
+
+  htSeederOpt1.minPhi = -7e-2;
+  htSeederOpt1.maxPhi = 7e-2;
 
   std::vector<std::reference_wrapper<const Acts::SourceLink>>
       sourceLinkRefsDet1;
@@ -109,6 +123,13 @@ ProcessCode ApollonSeedingAlgorithm::execute(
 
   htSeederOpt2.firstLayerId = goInst.tc2Parameters.front().geoId;
   htSeederOpt2.lastLayerId = goInst.tc2Parameters.back().geoId;
+  htSeederOpt2.nLayers = goInst.tc2Parameters.size();
+
+  htSeederOpt2.minTheta = M_PI_2 - 10e-2;
+  htSeederOpt2.maxTheta = M_PI_2 + 10e-2;
+
+  htSeederOpt2.minPhi = -10e-2;
+  htSeederOpt2.maxPhi = 10e-2;
 
   std::vector<std::reference_wrapper<const Acts::SourceLink>>
       sourceLinkRefsDet2;
@@ -187,12 +208,11 @@ Seeds ApollonSeedingAlgorithm::scanEnergy(
     double dirTrans = std::hypot(dirX, dirY);
     double asinDir = std::asin(dirY / dirTrans);
 
+    std::size_t idxMin = 0;
+    double dTotMin = std::numeric_limits<double>().max();
+    double minP = 0;
     for (double P = m_cfg.minScanEnergy; P <= m_cfg.maxScanEnergy;
          P += m_cfg.energyScanStep) {
-      std::size_t idxMin = 0;
-      double dTotMin = std::numeric_limits<double>().max();
-      double minP = 0;
-
       double x0 = x - P * dirY / B;
       double y0 = y + P * dirX / B;
       double rho2 = (x - x0) * (x - x0) + (y - y0) * (y - y0);
@@ -215,64 +235,75 @@ Seeds ApollonSeedingAlgorithm::scanEnergy(
       dipoleExitPoint[longIdx] = yPrime;
       dipoleExitPoint[shortIdx] = zPrime;
 
-      double dDet2 = (m_det2FirstLayerPoint - dipoleExitPoint)
-                         .dot(m_det2FirstLayerNormal) /
-                     dipoleExitDir.dot(m_det2FirstLayerNormal);
+      double dDet2First = (m_det2FirstLayerPoint - dipoleExitPoint)
+                              .dot(m_det2FirstLayerNormal) /
+                          dipoleExitDir.dot(m_det2FirstLayerNormal);
       Acts::Vector3 det2FirstLayerPoint =
-          dipoleExitPoint + dipoleExitDir * dDet2;
+          dipoleExitPoint + dipoleExitDir * dDet2First;
+
+      double dDet2Last =
+          (m_det2LastLayerPoint - dipoleExitPoint).dot(m_det2LastLayerNormal) /
+          dipoleExitDir.dot(m_det2LastLayerNormal);
+      Acts::Vector3 det2LastLayerPoint =
+          dipoleExitPoint + dipoleExitDir * dDet2Last;
 
       for (std::size_t idx = 0; idx < activeIdxs.size(); idx++) {
         if (!activeIdxs.at(idx)) {
           continue;
         }
         const auto& [point2, dir2, sl2] = det2Seeds.at(idx);
-        Acts::Vector3 dirCrossProd = dipoleExitDir.cross(dir2);
-        double dirCrossProdNorm = dirCrossProd.norm();
-        double dAngle = std::asin(dirCrossProdNorm);
-        double dOrtho =
-            std::abs((point2 - det2FirstLayerPoint).dot(dirCrossProd)) /
-            dirCrossProdNorm;
+        double dDet2First2 =
+            (m_det2FirstLayerPoint - point2).dot(m_det2FirstLayerNormal) /
+            dir2.dot(m_det2FirstLayerNormal);
+        Acts::Vector3 det2FirstLayerPoint2 = point2 + dir2 * dDet2First2;
 
-        double dTot = 0.5 * (dAngle / m_dAngleMax + dOrtho / m_dOrthoMax);
+        double dDet2Last2 =
+            (m_det2LastLayerPoint - point2).dot(m_det2LastLayerNormal) /
+            dir2.dot(m_det2LastLayerNormal);
+        Acts::Vector3 det2LastLayerPoint2 = point2 + dir2 * dDet2Last2;
+
+        double dTot = (det2FirstLayerPoint - det2FirstLayerPoint2).norm() +
+                      (det2LastLayerPoint - det2LastLayerPoint2).norm();
         if (dTot < dTotMin) {
           dTotMin = dTot;
           idxMin = idx;
           minP = P;
         }
       }
-      if (dTotMin < m_cfg.maxConnectionDistance) {
-        std::size_t totSize =
-            sl1.size() + det2Seeds.at(idxMin).sourceLinks.size();
-        if (totSize < m_cfg.minSeedSize || totSize > m_cfg.maxSeedSize) {
-          continue;
-        }
-        std::set<int> geoIdSet;
-        for (const auto& sl : sl1) {
-          geoIdSet.insert(sl.get<SimpleSourceLink>().geometryId().sensitive());
-        }
-        for (const auto& sl : det2Seeds.at(idxMin).sourceLinks) {
-          geoIdSet.insert(sl.get<SimpleSourceLink>().geometryId().sensitive());
-        }
-        if (geoIdSet.size() < m_cfg.minLayers ||
-            geoIdSet.size() > m_cfg.maxLayers) {
-          continue;
-        }
-
-        std::vector<Acts::SourceLink> seedSourceLinks;
-        seedSourceLinks.reserve(totSize);
-        seedSourceLinks.insert(seedSourceLinks.end(), sl1.begin(), sl1.end());
-        seedSourceLinks.insert(seedSourceLinks.end(),
-                               det2Seeds.at(idxMin).sourceLinks.begin(),
-                               det2Seeds.at(idxMin).sourceLinks.end());
-
-        Acts::CurvilinearTrackParameters startPars(
-            Acts::Vector4(det1FirstLayerPoint.x(), det1FirstLayerPoint.y(),
-                          det1FirstLayerPoint.z(), 0),
-            dir1, -1_e / minP, m_ipCov, Acts::ParticleHypothesis::electron());
-
-        outSeeds.emplace_back(std::move(seedSourceLinks), std::move(startPars),
-                              outSeeds.size());
+    }
+    if (dTotMin < m_cfg.maxConnectionDistance) {
+      std::size_t totSize =
+          sl1.size() + det2Seeds.at(idxMin).sourceLinks.size();
+      if (totSize < m_cfg.minSeedSize || totSize > m_cfg.maxSeedSize) {
+        continue;
       }
+      std::set<int> geoIdSet;
+      for (const auto& sl : sl1) {
+        geoIdSet.insert(sl.get<SimpleSourceLink>().geometryId().sensitive());
+      }
+      for (const auto& sl : det2Seeds.at(idxMin).sourceLinks) {
+        geoIdSet.insert(sl.get<SimpleSourceLink>().geometryId().sensitive());
+      }
+      if (geoIdSet.size() < m_cfg.minLayers ||
+          geoIdSet.size() > m_cfg.maxLayers) {
+        continue;
+      }
+      activeIdxs.at(idxMin) = false;
+
+      std::vector<Acts::SourceLink> seedSourceLinks;
+      seedSourceLinks.reserve(totSize);
+      seedSourceLinks.insert(seedSourceLinks.end(), sl1.begin(), sl1.end());
+      seedSourceLinks.insert(seedSourceLinks.end(),
+                             det2Seeds.at(idxMin).sourceLinks.begin(),
+                             det2Seeds.at(idxMin).sourceLinks.end());
+
+      Acts::CurvilinearTrackParameters startPars(
+          Acts::Vector4(det1FirstLayerPoint.x(), det1FirstLayerPoint.y(),
+                        det1FirstLayerPoint.z(), 0),
+          dir1, -1_e / minP, m_ipCov, Acts::ParticleHypothesis::electron());
+
+      outSeeds.emplace_back(std::move(seedSourceLinks), std::move(startPars),
+                            outSeeds.size());
     }
   }
   return outSeeds;

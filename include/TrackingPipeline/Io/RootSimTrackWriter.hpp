@@ -2,6 +2,7 @@
 
 #include "Acts/EventData/SourceLink.hpp"
 #include "Acts/Utilities/Logger.hpp"
+#include <cstddef>
 
 #include "TFile.h"
 #include "TLorentzVector.h"
@@ -33,6 +34,8 @@ class RootSimTrackWriter : public IWriter {
   struct Config {
     /// Surface accessor
     Acts::SourceLinkSurfaceAccessor surfaceAccessor;
+    /// Reference surface
+    const Acts::Surface* referenceSurface;
     /// Fitted track collection
     std::string inputTracks;
     /// Truth cluster data
@@ -97,7 +100,7 @@ class RootSimTrackWriter : public IWriter {
   std::vector<TMatrixD> m_trackHitCovs;
 
   /// Geometry ids of the track hits
-  std::vector<int> m_geometryIds;
+  std::vector<std::size_t> m_geometryIds;
 
   /// KF predicted track hits
   std::vector<TVector3> m_predictedTrackHitsGlobal;
@@ -137,21 +140,23 @@ class RootSimTrackWriter : public IWriter {
 
   /// Number of degrees of freedom
   /// of the track
-  int m_ndf;
-
-  /// Matching degree
-  double m_matchingDegree;
+  std::size_t m_ndf;
 
   /// TrackId
-  std::vector<int> m_trackId;
-  std::vector<int> m_parentTrackId;
-  std::vector<int> m_runId;
+  std::vector<std::size_t> m_stateTrackId;
+  std::vector<std::size_t> m_stateParentTrackId;
+  std::vector<std::size_t> m_stateRunId;
+
+  std::size_t m_trackId;
+  std::size_t m_parentTrackId;
+  std::size_t m_runId;
 
   /// EventId
-  int m_eventId;
+  std::size_t m_eventId;
 
   /// True track size
-  int m_trueTrackSize;
+  std::size_t m_trueTrackSize;
+  std::size_t m_capturedTrackSize;
 
   /// PDG ID
   int m_pdgId;

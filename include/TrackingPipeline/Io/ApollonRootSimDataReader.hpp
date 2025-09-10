@@ -28,6 +28,8 @@ class ApollonRootSimDataReader : public IReader {
     std::string treeName;
     /// The names of the input files
     std::vector<std::string> filePaths;
+    /// Surface map for high-precision local to global conversion
+    std::map<Acts::GeometryIdentifier, const Acts::Surface*> surfaceMap;
     /// Whether to split data on G4 event on run basis
     bool eventSplit;
   };
@@ -64,7 +66,7 @@ class ApollonRootSimDataReader : public IReader {
   Acts::BoundSquareMatrix m_ipCov;
   Acts::SquareMatrix2 m_hitCov;
   Acts::RotationMatrix3 m_setupRotation;
-  Acts::Vector3 m_ipCorrection;
+  Acts::Vector3 m_vertexCorrection;
 
   /// WriteDataHandle for the observable data
   WriteDataHandle<std::vector<Acts::SourceLink>> m_outputSourceLinks{
@@ -85,8 +87,15 @@ class ApollonRootSimDataReader : public IReader {
   TChain* m_chain = nullptr;
 
  protected:
-  std::vector<int>* m_geoIdVal = nullptr;
-  std::vector<int>* m_isSignalFlag = nullptr;
+  int m_geoId;
+  std::vector<std::pair<int, int>>* m_pixels = nullptr;
+
+  int m_isSignal;
+
+  TVector2* m_geoCenterLocal = nullptr;
+  TVector3* m_geoCenterGlobal = nullptr;
+
+  double m_totEDep;
 
   std::vector<int>* m_trackId = nullptr;
   std::vector<int>* m_parentTrackId = nullptr;
@@ -99,12 +108,14 @@ class ApollonRootSimDataReader : public IReader {
   std::vector<TVector3>* m_hitMomDir = nullptr;
   std::vector<double>* m_hitE = nullptr;
   std::vector<double>* m_hitP = nullptr;
-  std::vector<double>* m_eDep = nullptr;
 
   std::vector<TVector3>* m_ipMomDir = nullptr;
   std::vector<double>* m_ipE = nullptr;
   std::vector<double>* m_ipP = nullptr;
-  std::vector<TVector3>* m_vertices = nullptr;
+  std::vector<TVector3>* m_vertex = nullptr;
+
+  std::vector<double>* m_eDep = nullptr;
+  std::vector<int>* m_pdgId = nullptr;
 };
 
 }  // namespace ApollonIo

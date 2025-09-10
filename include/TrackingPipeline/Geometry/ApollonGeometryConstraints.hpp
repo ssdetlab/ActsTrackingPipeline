@@ -149,7 +149,7 @@ struct GeometryOptions {
   const double worldHalfLong = 2_m;
   const double worldHalfShort = 2_m;
 
-  const double setupRotationAngle = -2_degree;
+  const double setupSlitTranslation = -50_mm;
 
   /// Rotation of the plane surfaces into the global frame
   const double toWorldAngleX = 0;
@@ -202,6 +202,9 @@ struct GeometryOptions {
   const double tcHalfLong = chipHalfX + chipVolumeHalfSpacing;
   const double tcHalfShort = chipHalfY + chipVolumeHalfSpacing;
 
+  /// Correction of the box width
+  const double tcBoxWidthCorrection = 0.11_mm;
+
   /// --------------------------------------------------------------
   /// Parameters of the dipole
 
@@ -221,10 +224,8 @@ struct GeometryOptions {
   const double vcExitTc1Distance = 20_mm + tcWindowToFirstChipDistance;
   const double ipTc1Distance = vcRad + vcExitTc1Distance;
 
-  // const double tc1CenterLong = 0_mm;
-  // const double tc1CenterShort = 0_mm;
-  const double tc1CenterLong = -50_mm;
-  const double tc1CenterShort = -50_mm;
+  const double tc1CenterLong = 0_mm;
+  const double tc1CenterShort = 0_mm;
 
   const std::vector<SurfaceParameters> tc1Parameters{
       SurfaceParameters({primaryBinValue, ipTc1Distance + 0 * interChipDistance,
@@ -267,10 +268,8 @@ struct GeometryOptions {
       tcWindowToLastChipDistance + tc1DipoleDistance + dipoleAlCoverThickness;
 
   const double dipoleCenterPrimary = ipDipoleDistance + dipoleHalfPrimary;
-  const double dipoleCenterLong = -50_mm;
-  const double dipoleCenterShort = -50_mm;
-  // const double dipoleCenterLong = 0_mm;
-  // const double dipoleCenterShort = 0_mm;
+  const double dipoleCenterLong = 0_mm;
+  const double dipoleCenterShort = 0_mm;
 
   const DipoleParameters dipoleParameters{
       {primaryBinValue, dipoleCenterPrimary, 0, dipoleFieldPrimary},
@@ -285,10 +284,8 @@ struct GeometryOptions {
                                dipoleAlCoverThickness + dipoleTc2Distance +
                                tcWindowToFirstChipDistance;
 
-  const double tc2CenterLong = -65_mm;
-  const double tc2CenterShort = -50_mm;
-  // const double tc2CenterLong = 0_mm;
-  // const double tc2CenterShort = 0_mm;
+  const double tc2CenterLong = -15_mm;
+  const double tc2CenterShort = 0_mm;
 
   const std::vector<SurfaceParameters> tc2Parameters{
       SurfaceParameters{{primaryBinValue, ipTc2Distance + 0 * interChipDistance,
@@ -322,6 +319,17 @@ struct GeometryOptions {
       chipVolumeHalfSpacing;
 
   const double tc2CenterPrimary = ipTc2Distance + tc2HalfPrimary;
+
+  const double setupCenterPrimary =
+      ((tc1CenterPrimary - tcBoxWidthCorrection) + dipoleCenterPrimary +
+       (tc2CenterPrimary - tcBoxWidthCorrection)) /
+      3.0;
+  
+  const double setupRotationAngle =
+      std::asin(setupSlitTranslation / setupCenterPrimary);
+
+  const double setupLongTranslation = setupSlitTranslation;
+  const double setupShortTranslation = setupSlitTranslation;
 
   static const std::unique_ptr<const GeometryOptions>& instance() {
     if (!m_instance) {
