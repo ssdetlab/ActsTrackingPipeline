@@ -207,9 +207,9 @@ ProcessCode ApollonRootSimDataReader::read(const AlgorithmContext& context) {
       isHighEnergy =
           isHighEnergy || (m_ipE->at(0) * Acts::UnitConstants::MeV > 0.3);
     }
-    // if (!m_isSignal || !isHighEnergy) {
-    //   continue;
-    // }
+    if (!m_isSignal || !isHighEnergy) {
+      continue;
+    }
 
     Acts::GeometryIdentifier geoId;
     geoId.setSensitive(m_geoId);
@@ -263,86 +263,6 @@ ProcessCode ApollonRootSimDataReader::read(const AlgorithmContext& context) {
                                      m_parentTrackId->at(i), m_runId);
     }
     clusters.push_back(cluster);
-
-    // for (std::size_t i = 0; i < m_geoIdVal->size(); i++) {
-    //   bool isSignal = m_isSignalFlag->at(i);
-    //   bool isHighEnergy = (m_ipE->at(i) * Acts::UnitConstants::MeV > 0.3);
-    //   bool isRepeat =
-    //       (m_geoIdVal->at(i) == prevGeoId) && (m_runId == prevRunId);
-    //   bool isElectron = (m_pdgId->at(i) == 11);
-    //   if (isRepeat) {
-    //     continue;
-    //   }
-    //   // if (!isElectron) {
-    //   //   continue;
-    //   // }
-    //   // if (!isSignal) {
-    //   //   continue;
-    //   // }
-    //   if (!isSignal || !isHighEnergy) {
-    //     continue;
-    //   }
-
-    //   Acts::GeometryIdentifier geoId;
-    //   geoId.setSensitive(m_geoIdVal->at(i));
-
-    //   Acts::Vector2 hitLoc(m_hitPosLocal->at(i).X() *
-    //   Acts::UnitConstants::mm,
-    //                        m_hitPosLocal->at(i).Y() *
-    //                        Acts::UnitConstants::mm);
-    //   // Need high precision so use surfaces for conversion
-    //   Acts::Vector3 hitGlob = m_cfg.surfaceMap.at(geoId)->localToGlobal(
-    //       context.geoContext, hitLoc, Acts::Vector3::UnitX());
-
-    //   SimpleSourceLink ssl(hitLoc, hitGlob, m_hitCov, geoId, m_eventId,
-    //                        sourceLinks.size());
-
-    //   sourceLinks.emplace_back(ssl);
-
-    //   SimCluster cluster{.sourceLink = ssl};
-
-    //   Acts::Vector3 vertex3(m_vertices->at(i).Z() * Acts::UnitConstants::mm,
-    //                         m_vertices->at(i).Y() * Acts::UnitConstants::mm,
-    //                         m_vertices->at(i).X() * Acts::UnitConstants::mm);
-    //   vertex3 = vertex3 - m_vertexCorrection;
-    //   vertex3 = m_setupRotation * vertex3;
-    //   Acts::Vector4 vertex(vertex3.x(), vertex3.y(), vertex3.z(), 0);
-
-    //   Acts::Vector3 momDir(m_hitMomDir->at(i).Z(), m_hitMomDir->at(i).Y(),
-    //                        m_hitMomDir->at(i).X());
-    //   momDir = m_setupRotation * momDir;
-
-    //   Acts::BoundVector truthPars = Acts::BoundVector::Zero();
-    //   truthPars[Acts::eBoundLoc0] = hitLoc[Acts::eBoundLoc0];
-    //   truthPars[Acts::eBoundLoc1] = hitLoc[Acts::eBoundLoc1];
-    //   truthPars[Acts::eBoundPhi] = Acts::VectorHelpers::phi(momDir);
-    //   truthPars[Acts::eBoundTheta] = Acts::VectorHelpers::theta(momDir);
-    //   truthPars[Acts::eBoundQOverP] =
-    //       -1_e / (m_hitP->at(i) * Acts::UnitConstants::MeV);
-    //   truthPars[Acts::eBoundTime] = 0;
-
-    //   Acts::Vector3 momDirIP(m_ipMomDir->at(i).Z(), m_ipMomDir->at(i).Y(),
-    //                          m_ipMomDir->at(i).X());
-    //   momDirIP = m_setupRotation * momDirIP;
-
-    //   Acts::CurvilinearTrackParameters ipParameters(
-    //       vertex, Acts::VectorHelpers::phi(momDirIP),
-    //       Acts::VectorHelpers::theta(momDirIP),
-    //       -1_e / (m_ipP->at(i) * Acts::UnitConstants::MeV), m_ipCov,
-    //       Acts::ParticleHypothesis::electron());
-
-    //   cluster.truthHits.emplace_back(std::move(truthPars),
-    //   std::move(hitGlob),
-    //                                  std::move(ipParameters),
-    //                                  m_trackId->at(i),
-    //                                  m_parentTrackId->at(i), m_runId);
-    //   cluster.isSignal = m_isSignalFlag->at(i);
-
-    //   clusters.push_back(cluster);
-
-    //   prevGeoId = geoId.sensitive();
-    //   prevRunId = m_runId;
-    // }
   }
 
   ACTS_DEBUG("Sending " << sourceLinks.size() << " measurements");

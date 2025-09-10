@@ -7,7 +7,6 @@
 #include <cstddef>
 #include <execution>
 #include <functional>
-#include <stdexcept>
 #include <tuple>
 #include <vector>
 
@@ -144,15 +143,11 @@ HoughTransformSeeder::HoughTransformSeeder(const Config& cfg) : m_cfg(cfg) {
 std::vector<HoughTransformSeeder::HTSeed> HoughTransformSeeder::findSeeds(
     std::span<SourceLinkRef> sourceLinks, const Options& opt) {
   std::vector<HoughTransformSeeder::HTSeed> seeds;
-  std::cout << "FIND SEEDS CALL\n";
-  std::cout << "SOURCE LINKS " << sourceLinks.size() << "\n";
-  std::cout << "LAYERS " << opt.nLayers << "\n";
 
   std::vector<SourceLinkRef> flPoints;
   std::vector<SourceLinkRef> llPoints;
   flPoints.reserve(sourceLinks.size() / opt.nLayers);
   llPoints.reserve(sourceLinks.size() / opt.nLayers);
-  std::cout << "ITERATING SOURCE LINKS\n";
   for (auto sl : sourceLinks) {
     int geoId = sl.get().get<SimpleSourceLink>().geometryId().sensitive();
     if (geoId == opt.firstLayerId) {
@@ -166,8 +161,6 @@ std::vector<HoughTransformSeeder::HTSeed> HoughTransformSeeder::findSeeds(
   }
   flPoints.shrink_to_fit();
   llPoints.shrink_to_fit();
-  std::cout << "POINTS 1 " << flPoints.size() << "\n";
-  std::cout << "POINTS 2 " << llPoints.size() << "\n";
 
   std::vector<Acts::Vector3> dirs;
   dirs.reserve(flPoints.size() * llPoints.size());
@@ -191,8 +184,6 @@ std::vector<HoughTransformSeeder::HTSeed> HoughTransformSeeder::findSeeds(
   if (dirs.empty()) {
     return {};
   }
-  std::cout << "DIRS " << dirs.size() << "\n";
-  // throw std::runtime_error("err");
 
   m_shift = Acts::Vector3(opt.boundBoxCenterX, opt.boundBoxCenterY,
                           opt.boundBoxCenterZ);
