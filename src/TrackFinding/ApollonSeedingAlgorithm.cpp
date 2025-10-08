@@ -10,6 +10,8 @@
 #include <span>
 #include <vector>
 
+#include <omp.h>
+
 #include "TrackingPipeline/EventData/DataContainers.hpp"
 #include "TrackingPipeline/EventData/SimpleSourceLink.hpp"
 #include "TrackingPipeline/Geometry/ApollonGeometryConstraints.hpp"
@@ -92,11 +94,7 @@ ProcessCode ApollonSeedingAlgorithm::execute(
   htSeederOpt1.lastLayerId = goInst.tc1Parameters.back().geoId;
   htSeederOpt1.nLayers = goInst.tc1Parameters.size();
 
-  htSeederOpt1.minTheta = M_PI_2 - 7e-2;
-  htSeederOpt1.maxTheta = M_PI_2 + 7e-2;
-
-  htSeederOpt1.minPhi = -7e-2;
-  htSeederOpt1.maxPhi = 7e-2;
+  htSeederOpt1.minCount = 4;
 
   std::vector<std::reference_wrapper<const Acts::SourceLink>>
       sourceLinkRefsDet1;
@@ -125,11 +123,7 @@ ProcessCode ApollonSeedingAlgorithm::execute(
   htSeederOpt2.lastLayerId = goInst.tc2Parameters.back().geoId;
   htSeederOpt2.nLayers = goInst.tc2Parameters.size();
 
-  htSeederOpt2.minTheta = M_PI_2 - 10e-2;
-  htSeederOpt2.maxTheta = M_PI_2 + 10e-2;
-
-  htSeederOpt2.minPhi = -10e-2;
-  htSeederOpt2.maxPhi = 10e-2;
+  htSeederOpt2.minCount = 4;
 
   std::vector<std::reference_wrapper<const Acts::SourceLink>>
       sourceLinkRefsDet2;
@@ -151,7 +145,6 @@ ProcessCode ApollonSeedingAlgorithm::execute(
 
   Seeds outSeeds = scanEnergy(htSeedsDet1, htSeedsDet2);
   ACTS_DEBUG("Found " << outSeeds.size() << " seeds");
-
   ACTS_DEBUG("Sending " << outSeeds.size() << " seeds");
   m_outputSeeds(ctx, std::move(outSeeds));
 
@@ -186,7 +179,9 @@ Seeds ApollonSeedingAlgorithm::scanEnergy(
   double xPrime = goInst.dipoleCenterPrimary + goInst.dipoleHalfPrimary;
 
   Acts::Vector3 dipoleExitDir(0, 0, 0);
-  for (const auto& [point1, dir1, sl1] : det1Seeds) {
+  #pragma omp parallel for num_threads(32)
+  for (std::size_t i = 0; i < det1Seeds.size(); i++) {
+    const auto& [point1, dir1, sl1] = det1Seeds.at(i);
     double dDet1FirstLayer =
         (m_det1FirstLayerPoint - point1).dot(m_det1FirstLayerNormal) /
         dir1.dot(m_det1FirstLayerNormal);
@@ -288,7 +283,6 @@ Seeds ApollonSeedingAlgorithm::scanEnergy(
           geoIdSet.size() > m_cfg.maxLayers) {
         continue;
       }
-      activeIdxs.at(idxMin) = false;
 
       std::vector<Acts::SourceLink> seedSourceLinks;
       seedSourceLinks.reserve(totSize);

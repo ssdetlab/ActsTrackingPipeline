@@ -1,6 +1,7 @@
 #include "TrackingPipeline/Io/RootSimSeedWriter.hpp"
 
 #include "Acts/Utilities/Logger.hpp"
+#include <Acts/Geometry/GeometryIdentifier.hpp>
 
 #include <ranges>
 #include <vector>
@@ -78,14 +79,27 @@ ProcessCode RootSimSeedWriter::write(const AlgorithmContext& ctx) {
 
   m_eventId = ctx.eventNumber;
 
-  // Collect true track statistics
-  auto trackIds =
-      inputTruthClusters |
-      std::views::filter([](const auto& cl) { return cl.isSignal; }) |
-      std::views::transform([](const auto& cl) { return cl.truthHits; }) |
-      std::views::join | std::views::transform([](const auto& hit) -> TrackID {
-        return {hit.trackId, hit.parentTrackId, hit.runId};
-      });
+  // // Collect true track statistics
+  // auto trackIds =
+  //     inputTruthClusters |
+  //     std::views::filter([](const auto& cl) { return cl.isSignal; }) |
+  //     std::views::transform([](const auto& cl) { return cl.truthHits; }) |
+  //     std::views::join | std::views::transform([](const auto& hit) -> TrackID
+  //     {
+  //       return {hit.trackId, hit.parentTrackId, hit.runId};
+  //     });
+
+  std::map<TrackID, std::set<Acts::GeometryIdentifier>> trackIds;
+  for (const auto& cluster : inputTruthClusters) {
+    if (!cluster.isSignal) {
+      continue;
+    }
+
+    for (const auto& hit : cluster.truthHits) {
+      trackIds[{hit.trackId, hit.parentTrackId, hit.runId}].insert(
+          cluster.sourceLink.geometryId());
+    }
+  }
 
   for (const auto& seed : inputSeeds) {
     const auto& sourceLinks =
@@ -117,7 +131,8 @@ ProcessCode RootSimSeedWriter::write(const AlgorithmContext& ctx) {
 
     m_size = sourceLinks.size();
 
-    std::map<TrackID, std::pair<int, int>> seedSignalTrackIds;
+    std::map<TrackID, std::pair<int, std::set<Acts::GeometryIdentifier>>>
+        seedSignalTrackIds;
     for (const auto& sl : sourceLinks) {
       const auto& cl = inputTruthClusters.at(sl.index());
       if (!cl.isSignal) {
@@ -126,7 +141,7 @@ ProcessCode RootSimSeedWriter::write(const AlgorithmContext& ctx) {
       for (const auto& hit : cl.truthHits) {
         TrackID tid = {hit.trackId, hit.parentTrackId, hit.runId};
         seedSignalTrackIds[tid].first = sl.index();
-        seedSignalTrackIds[tid].second++;
+        seedSignalTrackIds[tid].second.insert(sl.geometryId());
       }
     }
     if (seedSignalTrackIds.empty()) {
@@ -137,19 +152,19 @@ ProcessCode RootSimSeedWriter::write(const AlgorithmContext& ctx) {
       continue;
     }
 
-    auto maxTrack =
-        std::max_element(seedSignalTrackIds.begin(), seedSignalTrackIds.end(),
-                         [](const auto& idA, const auto& idB) {
-                           return (idA.second.second < idB.second.second);
-                         });
+    auto maxTrack = std::max_element(
+        seedSignalTrackIds.begin(), seedSignalTrackIds.end(),
+        [](const auto& idA, const auto& idB) {
+          return (idA.second.second.size() < idB.second.second.size());
+        });
     const auto& [sigId, ic] = *maxTrack;
-    auto [idx, count] = ic;
-    std::size_t trackSize = std::ranges::count(trackIds, sigId);
+    auto [idx, geoIds] = ic;
+    std::size_t trackSize = trackIds.at(sigId).size();
 
     std::tie(m_trackId, m_parentTrackId, m_runId) = sigId;
 
     m_trueTrackSize = trackSize;
-    m_trackInSeedSize = count;
+    m_trackInSeedSize = geoIds.size();
 
     m_isSignal = true;
 

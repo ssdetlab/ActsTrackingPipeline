@@ -173,17 +173,22 @@ int main() {
   // HT seeding setup
 
   HoughTransformSeeder::Config htSeederCfg;
-  htSeederCfg.boundBoxHalfX = ag::GeometryOptions::instance()->tc1HalfPrimary;
+  htSeederCfg.boundBoxHalfX =
+      ag::GeometryOptions::instance()->tc1HalfPrimary -
+      ag::GeometryOptions::instance()->chipVolumeHalfSpacing * 2;
   htSeederCfg.boundBoxHalfY = ag::GeometryOptions::instance()->tcHalfLong;
   htSeederCfg.boundBoxHalfZ = ag::GeometryOptions::instance()->tcHalfShort;
 
-  htSeederCfg.nCellsX = 1000;
-  htSeederCfg.nCellsY = 1000;
+  htSeederCfg.nCellsThetaX = 500;
+  htSeederCfg.nCellsRhoX = 4000;
+
+  htSeederCfg.nCellsThetaY = 500;
+  htSeederCfg.nCellsRhoY = 4000;
 
   htSeederCfg.minSeedSize = 5;
   htSeederCfg.maxSeedSize = 1000;
 
-  htSeederCfg.nLSIterations = 5;
+  htSeederCfg.nLSIterations = 2;
 
   ApollonSeedingAlgorithm::Config seedingAlgoCfg;
   seedingAlgoCfg.htSeeder = std::make_shared<HoughTransformSeeder>(htSeederCfg);
@@ -196,7 +201,7 @@ int main() {
   seedingAlgoCfg.minScanEnergy = 0.3_GeV;
   seedingAlgoCfg.maxScanEnergy = 0.4_GeV;
   seedingAlgoCfg.energyScanStep = 0.001_GeV;
-  seedingAlgoCfg.maxConnectionDistance = 1e16;
+  seedingAlgoCfg.maxConnectionDistance = 1;
 
   sequencer.addAlgorithm(
       std::make_shared<ApollonSeedingAlgorithm>(seedingAlgoCfg, logLevel));
@@ -266,7 +271,7 @@ int main() {
 
   auto trackFindingAlgorithm =
       std::make_shared<CKFTrackFindingAlgorithm>(trackFindingCfg, logLevel);
-  sequencer.addAlgorithm(trackFindingAlgorithm);
+  // sequencer.addAlgorithm(trackFindingAlgorithm);
 
   // --------------------------------------------------------------
   // Track fitting
@@ -346,11 +351,10 @@ int main() {
       kfPropagator, Acts::getDefaultLogger("DetectorKalmanFilter", logLevel));
 
   // Add the track fitting algorithm to the sequencer
-  KFTrackFittingAlgorithm::Config fitterCfg{
-      .inputTrackCandidates = "TrackCandidates",
-      .outputTracks = "Tracks",
-      .fitter = fitter,
-      .kfOptions = options};
+  KFTrackFittingAlgorithm::Config fitterCfg{.inputTrackCandidates = "Seeds",
+                                            .outputTracks = "Tracks",
+                                            .fitter = fitter,
+                                            .kfOptions = options};
 
   sequencer.addAlgorithm(
       std::make_shared<KFTrackFittingAlgorithm>(fitterCfg, logLevel));
@@ -365,8 +369,8 @@ int main() {
   clusterWriterCfg.filePath =
       "/home/romanurmanov/work/Apollon/tracking/out_data/test/clusters.root";
 
-  sequencer.addWriter(
-      std::make_shared<RootSimClusterWriter>(clusterWriterCfg, logLevel));
+  // sequencer.addWriter(
+  //     std::make_shared<RootSimClusterWriter>(clusterWriterCfg, logLevel));
 
   // Seed writer
   auto seedWriterCfg = RootSimSeedWriter::Config();
@@ -404,8 +408,8 @@ int main() {
       "/home/romanurmanov/work/Apollon/tracking/out_data/test/"
       "track-candidates.root";
 
-  sequencer.addWriter(std::make_shared<RootSimTrackCandidateWriter>(
-      trackCandidateWriterCfg, logLevel));
+  // sequencer.addWriter(std::make_shared<RootSimTrackCandidateWriter>(
+  //     trackCandidateWriterCfg, logLevel));
 
   // Fitted track writer
   auto trackWriterCfg = RootSimTrackWriter::Config();

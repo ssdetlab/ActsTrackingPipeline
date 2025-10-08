@@ -1,9 +1,9 @@
 #include "TrackingPipeline/Io/ApollonRootSimDataReader.hpp"
 
+#include "Acts/Definitions/Algebra.hpp"
 #include "Acts/Definitions/TrackParametrization.hpp"
 #include "Acts/Definitions/Units.hpp"
 #include "Acts/Utilities/Logger.hpp"
-#include <Acts/Definitions/Algebra.hpp>
 
 #include <cstddef>
 
@@ -71,27 +71,6 @@ ApollonRootSimDataReader::ApollonRootSimDataReader(const Config& config,
 
   m_chain->SetBranchAddress("eDep", &m_eDep);
   m_chain->SetBranchAddress("pdgId", &m_pdgId);
-
-  // // Set the branches
-  // m_chain->SetBranchAddress("geoId", &m_geoIdVal);
-  // m_chain->SetBranchAddress("isSignal", &m_isSignalFlag);
-
-  // m_chain->SetBranchAddress("trackId", &m_trackId);
-  // m_chain->SetBranchAddress("parentTrackId", &m_parentTrackId);
-  // m_chain->SetBranchAddress("pdgId", &m_pdgId);
-
-  // m_chain->SetBranchAddress("hitPosGlobal", &m_hitPosGlobal);
-  // m_chain->SetBranchAddress("hitPosLocal", &m_hitPosLocal);
-
-  // m_chain->SetBranchAddress("hitMomDir", &m_hitMomDir);
-  // m_chain->SetBranchAddress("hitE", &m_hitE);
-  // m_chain->SetBranchAddress("hitP", &m_hitP);
-  // m_chain->SetBranchAddress("eDep", &m_eDep);
-
-  // m_chain->SetBranchAddress("ipMomDir", &m_ipMomDir);
-  // m_chain->SetBranchAddress("ipE", &m_ipE);
-  // m_chain->SetBranchAddress("ipP", &m_ipP);
-  // m_chain->SetBranchAddress("vertex", &m_vertices);
 
   // Add the files to the chain
   for (const auto& path : m_cfg.filePaths) {
@@ -201,15 +180,6 @@ ProcessCode ApollonRootSimDataReader::read(const AlgorithmContext& context) {
     if (m_eventId != context.eventNumber) {
       continue;
     }
-
-    // bool isHighEnergy = false;
-    // for (double E : *m_ipE) {
-    //   isHighEnergy =
-    //       isHighEnergy || (m_ipE->at(0) * Acts::UnitConstants::MeV > 0.3);
-    // }
-    // if (!m_isSignal || !isHighEnergy) {
-    //   continue;
-    // }
 
     Acts::GeometryIdentifier geoId;
     geoId.setSensitive(m_geoId);

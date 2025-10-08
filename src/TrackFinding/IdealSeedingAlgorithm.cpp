@@ -18,9 +18,8 @@ IdealSeedingAlgorithm::IdealSeedingAlgorithm(const Config& config,
 ProcessCode IdealSeedingAlgorithm::execute(const AlgorithmContext& ctx) const {
   using namespace Acts::UnitLiterals;
 
-  const std::vector<Acts::SourceLink>& inputSourceLinks =
-      m_inputSourceLinks(ctx);
-  const SimClusters& inputSimClusters = m_inputSimClusters(ctx);
+  const auto& inputSourceLinks = m_inputSourceLinks(ctx);
+  const auto& inputSimClusters = m_inputSimClusters(ctx);
 
   ACTS_DEBUG("Received " << inputSourceLinks.size() << " source links");
 
