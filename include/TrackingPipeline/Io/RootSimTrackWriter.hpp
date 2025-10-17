@@ -39,7 +39,7 @@ class RootSimTrackWriter : public IWriter {
     /// Fitted track collection
     std::string inputTracks;
     /// Truth cluster data
-    std::string inputTruthClusters;
+    std::string inputSimClusters;
     /// Name of the input tree
     std::string treeName;
     /// The names of the input files
@@ -75,7 +75,7 @@ class RootSimTrackWriter : public IWriter {
 
   ReadDataHandle<Tracks> m_inputTracks{this, "Tracks"};
 
-  ReadDataHandle<SimClusters> m_inputTruthClusters{this, "TruthClusters"};
+  ReadDataHandle<SimClusters> m_inputSimClusters{this, "TruthClusters"};
 
   std::unique_ptr<const Acts::Logger> m_logger;
 

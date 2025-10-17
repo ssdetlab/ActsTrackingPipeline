@@ -4,3 +4,4 @@
 #
 add_run(FastSim FastSimRun.cpp)
 add_run(FullSimTracking FullSimTrackingRun.cpp)
+add_run(SimAlignment SimAlignmentRun.cpp)

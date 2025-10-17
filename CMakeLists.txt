@@ -84,6 +84,7 @@ find_package(
     PluginGeant4
     PluginJson
     PluginFpeMonitoring
+    Alignment
     REQUIRED
 )
 
@@ -109,6 +110,7 @@ target_link_libraries(
     ActsPluginGeant4
     ActsPluginJson
     ActsPluginFpeMonitoring
+    ActsAlignment
 )
 
 target_include_directories(
@@ -126,6 +128,7 @@ add_subdirectory(src/Material)
 add_subdirectory(src/Simulation)
 add_subdirectory(src/TrackFinding)
 add_subdirectory(src/TrackFitting)
+add_subdirectory(src/Alignment)
 
 # macro to add a run executables
 macro(add_run _name _source)

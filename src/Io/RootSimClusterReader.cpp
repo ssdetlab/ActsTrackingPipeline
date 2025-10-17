@@ -9,6 +9,8 @@
 #include <stdexcept>
 #include <vector>
 
+#include <TFile.h>
+
 #include "TrackingPipeline/EventData/DataContainers.hpp"
 #include "TrackingPipeline/EventData/SimpleSourceLink.hpp"
 #include "TrackingPipeline/Infrastructure/ProcessCode.hpp"
@@ -27,7 +29,9 @@ RootSimClusterReader::RootSimClusterReader(const Config& config,
     throw std::invalid_argument("Missing tree name");
   }
 
-  m_chain = new TChain(m_cfg.treeName.c_str());
+  // m_chain = new TChain(m_cfg.treeName.c_str());
+  m_file = new TFile(m_cfg.filePaths.at(0).c_str());
+  m_chain = m_file->Get<TTree>(m_cfg.treeName.c_str());
 
   //------------------------------------------------------------------
   // Tree branches
@@ -59,9 +63,9 @@ RootSimClusterReader::RootSimClusterReader(const Config& config,
   m_chain->SetBranchAddress("isSignal", &m_isSignal);
 
   // Add the files to the chain
-  for (const auto& path : m_cfg.filePaths) {
-    m_chain->Add(path.c_str());
-  }
+  // for (const auto& path : m_cfg.filePaths) {
+  //   m_chain->Add(path.c_str());
+  // }
 
   // Disable all branches and only enable event-id for a first scan of the
   // file
@@ -151,9 +155,9 @@ ProcessCode RootSimClusterReader::read(const AlgorithmContext& ctx) {
   for (auto entry = std::get<1>(*it); entry < std::get<2>(*it); entry++) {
     m_chain->GetEntry(entry);
 
-    // if (m_geoId < 20) {
-    //   continue;
-    // }
+    if (m_geoId < m_cfg.minGeoId || m_geoId > m_cfg.maxGeoId) {
+      continue;
+    }
 
     Acts::Vector2 geoCenterLocal(m_geoCenterLocal->X(), m_geoCenterLocal->Y());
     Acts::Vector3 geoCenterGlobal(

@@ -118,7 +118,7 @@ std::vector<HoughTransformSeeder::HTSeed> HoughTransformSeeder::findSeeds(
   votingMap.reserve(sourceLinks.size());
   fillVotingMap(votingMap, sourceLinks, 32, opt, shift);
 
-  #pragma omp parallel for num_threads(32)
+#pragma omp parallel for num_threads(32)
   for (std::size_t bIdx = 0; bIdx < votingMap.bucket_count(); ++bIdx) {
     for (auto bIt = votingMap.begin(bIdx); bIt != votingMap.end(bIdx); ++bIt) {
       const auto &[cell, count] = *bIt;
@@ -126,7 +126,7 @@ std::vector<HoughTransformSeeder::HTSeed> HoughTransformSeeder::findSeeds(
       std::uint16_t rBound = 0;
       if (count < opt.minCount) {
         continue;
-      } else if (count < 2 * opt.nLayers) {
+      } else {
         lBound = 2;
         rBound = 2;
       }
@@ -235,7 +235,7 @@ std::vector<HoughTransformSeeder::HTSeed> HoughTransformSeeder::findSeeds(
           if (chi2 > 1e-2) {
             continue;
           }
-          #pragma omp critical
+#pragma omp critical
           {
             seeds.emplace_back(std::move(newPoint + shift), std::move(newDir),
                                std::move(seedSourceLinks));
@@ -266,7 +266,7 @@ void HoughTransformSeeder::fillVotingMap(VotingMap &votingMap,
     geoIds.push_back(geoId);
   }
 
-  #pragma omp parallel for num_threads(nThreads)
+#pragma omp parallel for num_threads(nThreads)
   for (std::size_t i = 0; i < geoIds.size() - 1; i++) {
     int fId = geoIds.at(i);
     const auto &fClusters = clusters.at(fId);
@@ -301,7 +301,7 @@ void HoughTransformSeeder::fillVotingMap(VotingMap &votingMap,
           std::uint16_t cellRhoZ =
               std::ceil((rhoZ + m_maxRhoZ / 2.0) / m_deltaRhoZ) - 1;
 
-          #pragma omp critical
+#pragma omp critical
           {
             votingMap[{cellThetaY, cellRhoY, cellThetaZ, cellRhoZ}]++;
           }

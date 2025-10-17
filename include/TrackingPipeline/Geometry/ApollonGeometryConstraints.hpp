@@ -7,52 +7,10 @@
 #include <cmath>
 #include <cstddef>
 #include <memory>
-#include <stdexcept>
 #include <tuple>
 #include <vector>
 
-namespace detail {
-
-inline Acts::BinningValue directionToBinningValue(const Acts::Vector3& dir) {
-  if (dir == Acts::Vector3::UnitX()) {
-    return Acts::BinningValue::binX;
-  } else if (dir == Acts::Vector3::UnitY()) {
-    return Acts::BinningValue::binY;
-  } else if (dir == Acts::Vector3::UnitZ()) {
-    return Acts::BinningValue::binZ;
-  } else {
-    throw std::runtime_error("Invalid vector to binning value conversion");
-  }
-}
-
-inline Acts::Vector3 binningValueToDirection(
-    const Acts::BinningValue& binningValue) {
-  switch (binningValue) {
-    case Acts::BinningValue::binX:
-      return Acts::Vector3::UnitX();
-    case Acts::BinningValue::binY:
-      return Acts::Vector3::UnitY();
-    case Acts::BinningValue::binZ:
-      return Acts::Vector3::UnitZ();
-    default:
-      throw std::runtime_error("Invalid binning value to vector conversion");
-  }
-}
-
-inline std::size_t binningValueToIndex(const Acts::BinningValue& binningValue) {
-  switch (binningValue) {
-    case Acts::BinningValue::binX:
-      return 0;
-    case Acts::BinningValue::binY:
-      return 1;
-    case Acts::BinningValue::binZ:
-      return 2;
-    default:
-      throw std::runtime_error("Invalid binning value to index conversion");
-  }
-}
-
-};  // namespace detail
+#include "TrackingPipeline/Geometry/detail/BinningValueUtils.hpp"
 
 namespace ApollonGeometry {
 
@@ -157,6 +115,13 @@ struct GeometryOptions {
   const double toWorldAngleZ = M_PI_2;
 
   /// --------------------------------------------------------------
+  /// Parameters of the reference surface
+
+  /// Reference surface size in its local coordinates
+  const double referenceSurfaceHalfX = worldHalfLong;
+  const double referenceSurfaceHalfY = worldHalfShort;
+
+  /// --------------------------------------------------------------
   /// Parameters of the VC window
 
   const double vcWindowCenterPrimary = 1158.6_mm;
@@ -219,6 +184,13 @@ struct GeometryOptions {
   const double dipoleFieldShort = -0.35_T;
 
   /// --------------------------------------------------------------
+  /// Reference surface placement
+
+  const SurfaceParameters referenceSurfaceParameters = SurfaceParameters(
+      {primaryBinValue, 0.1_mm, toWorldAngleX},
+      {longBinValue, 0, toWorldAngleY}, {shortBinValue, 0, toWorldAngleZ}, 1);
+
+  /// --------------------------------------------------------------
   /// First tracking chamber placement
 
   const double vcExitTc1Distance = 20_mm + tcWindowToFirstChipDistance;
@@ -273,8 +245,8 @@ struct GeometryOptions {
 
   const DipoleParameters dipoleParameters{
       {primaryBinValue, dipoleCenterPrimary, 0, dipoleFieldPrimary},
-      {longBinValue, 0, 0, 0},
-      {shortBinValue, 0, 0, -0.35_T}};
+      {longBinValue, 0, 0, dipoleFieldLong},
+      {shortBinValue, 0, 0, dipoleFieldShort}};
 
   /// --------------------------------------------------------------
   /// Second tracking chamber placement
@@ -284,14 +256,21 @@ struct GeometryOptions {
                                dipoleAlCoverThickness + dipoleTc2Distance +
                                tcWindowToFirstChipDistance;
 
-  const double tc2CenterLong = -15_mm;
+  // const double tc2CenterLong = -15_mm;
+  const double tc2CenterLong = 0_mm;
   const double tc2CenterShort = 0_mm;
 
   const std::vector<SurfaceParameters> tc2Parameters{
+      // SurfaceParameters{{primaryBinValue, ipTc2Distance + 0 *
+      // interChipDistance,
+      //                    toWorldAngleX},
+      //                   {longBinValue, tc2CenterLong, toWorldAngleY},
+      //                   {shortBinValue, tc2CenterShort, toWorldAngleZ},
+      //                   20},
       SurfaceParameters{{primaryBinValue, ipTc2Distance + 0 * interChipDistance,
                          toWorldAngleX},
-                        {longBinValue, tc2CenterLong, toWorldAngleY},
-                        {shortBinValue, tc2CenterShort, toWorldAngleZ},
+                        {longBinValue, -24_um, toWorldAngleY},
+                        {shortBinValue, -24_um, toWorldAngleZ},
                         20},
       SurfaceParameters{{primaryBinValue, ipTc2Distance + 1 * interChipDistance,
                          toWorldAngleX},
@@ -324,7 +303,7 @@ struct GeometryOptions {
       ((tc1CenterPrimary - tcBoxWidthCorrection) + dipoleCenterPrimary +
        (tc2CenterPrimary - tcBoxWidthCorrection)) /
       3.0;
-  
+
   const double setupRotationAngle =
       std::asin(setupSlitTranslation / setupCenterPrimary);
 

@@ -12,13 +12,16 @@
 
 class ApollonSeedingAlgorithm : public IAlgorithm {
  public:
+  enum class SeedingScope : int {
+    detector1,
+    detector2,
+    fullDetector
+  };
+
   /// @brief The nested configuration struct
   struct Config {
+    /// HT seeder
     std::shared_ptr<HoughTransformSeeder> htSeeder;
-    double minScanEnergy;
-    double maxScanEnergy;
-    double energyScanStep;
-
     /// Input source links
     std::string inputSourceLinks;
     /// Output seeds
@@ -31,8 +34,16 @@ class ApollonSeedingAlgorithm : public IAlgorithm {
     std::size_t minLayers;
     /// Higher cutoff on the number of layers in a seed
     std::size_t maxLayers;
+    /// Beginning of the energy scan range
+    double minScanEnergy;
+    /// End of the energy scan range
+    double maxScanEnergy;
+    /// Energy scan step
+    double energyScanStep;
     /// Max distance at which the seed connection is accepted
     double maxConnectionDistance;
+    /// Scope of the seeding
+    SeedingScope scope;
   };
 
   /// @brief Constructor

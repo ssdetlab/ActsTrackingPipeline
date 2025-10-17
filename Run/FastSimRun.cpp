@@ -5,21 +5,23 @@
 #include "Acts/Propagator/EigenStepper.hpp"
 #include "Acts/TrackFitting/KalmanFitter.hpp"
 #include "Acts/Utilities/Logger.hpp"
+#include <Acts/Definitions/Algebra.hpp>
 
 #include <Eigen/src/Core/ArithmeticSequence.h>
 
+#include "TrackingPipeline/Alignment/detail/AlignmentUtils.hpp"
 #include "TrackingPipeline/EventData/SimpleSourceLink.hpp"
 #include "TrackingPipeline/Geometry/ApollonGeometry.hpp"
 #include "TrackingPipeline/Geometry/ApollonGeometryConstraints.hpp"
+#include "TrackingPipeline/Geometry/GeometryContextDecorator.hpp"
 #include "TrackingPipeline/Infrastructure/Sequencer.hpp"
 #include "TrackingPipeline/Io/DummyReader.hpp"
 #include "TrackingPipeline/Io/RootSimClusterWriter.hpp"
+#include "TrackingPipeline/Simulation/GaussianVertexGenerator.hpp"
 #include "TrackingPipeline/Simulation/MeasurementsCreator.hpp"
 #include "TrackingPipeline/Simulation/MeasurementsEmbeddingAlgorithm.hpp"
 #include "TrackingPipeline/Simulation/SimpleDigitizer.hpp"
 #include "TrackingPipeline/Simulation/SphericalMomentumGenerator.hpp"
-#include "TrackingPipeline/Simulation/StationaryMomentumGenerator.hpp"
-#include "TrackingPipeline/Simulation/StationaryVertexGenerator.hpp"
 #include "TrackingPipeline/Simulation/UniformBackgroundCreator.hpp"
 
 using ActionList = Acts::ActionList<>;
@@ -49,6 +51,8 @@ std::unique_ptr<const ag::GeometryOptions> ag::GeometryOptions::m_instance =
     nullptr;
 
 int main() {
+  const auto& goInst = *ag::GeometryOptions::instance();
+
   // Set the log level
   Acts::Logging::Level logLevel = Acts::Logging::INFO;
 
@@ -80,6 +84,41 @@ int main() {
     }
   }
 
+  auto aStore = detail::makeAlignmentStore(detector.get());
+  AlignmentContext alignCtx(aStore);
+  Acts::GeometryContext testCtx{alignCtx};
+  for (auto& v : detector->volumes()) {
+    for (auto& s : v->surfaces()) {
+      if (s->geometryId().sensitive()) {
+        std::cout << "-----------------------------------\n";
+        std::cout << "SURFACE " << s->geometryId() << "\n";
+        std::cout << "CENTER " << s->center(testCtx).transpose() << " -- "
+                  << s->center(Acts::GeometryContext()).transpose() << "\n";
+        std::cout << "NORMAL "
+                  << s->normal(testCtx, s->center(testCtx),
+                               Acts::Vector3::UnitY())
+                         .transpose()
+                  << " -- "
+                  << s->normal(testCtx, s->center(Acts::GeometryContext()),
+                               Acts::Vector3::UnitY())
+                         .transpose()
+                  << "\n";
+        std::cout << "ROTATION \n"
+                  << s->transform(testCtx).rotation() << " -- \n"
+                  << "\n"
+                  << s->transform(Acts::GeometryContext()).rotation() << "\n";
+
+        std::cout << "EXTENT "
+                  << s->polyhedronRepresentation(testCtx, 1000).extent()
+                  << "\n -- \n"
+                  << s->polyhedronRepresentation(Acts::GeometryContext(), 1000)
+                         .extent()
+                  << "\n";
+      }
+    }
+  }
+  gctx = Acts::GeometryContext{alignCtx};
+
   // --------------------------------------------------------------
   // The magnetic field setup
 
@@ -97,12 +136,15 @@ int main() {
   seqCfg.logLevel = logLevel;
   Sequencer sequencer(seqCfg);
 
+  sequencer.addContextDecorator(
+      std::make_shared<GeometryContextDecorator>(aStore));
+
   // --------------------------------------------------------------
   // Add dummy reader
   DummyReader::Config dummyReaderCfg;
   dummyReaderCfg.outputSourceLinks = "SimMeasurements";
   dummyReaderCfg.outputSimClusters = "SimClusters";
-  dummyReaderCfg.nEvents = 1e3 + 1;
+  dummyReaderCfg.nEvents = 2;
 
   sequencer.addReader(std::make_shared<DummyReader>(dummyReaderCfg));
 
@@ -129,17 +171,15 @@ int main() {
   auto digitizer = std::make_shared<SimpleDigitizer>(digitizerCfg);
 
   // Vertex generator
-  auto vertexGen = std::make_shared<StationaryVertexGenerator>();
-  vertexGen->vertex = Acts::Vector3(-2_mm, 0, 0);
+  Acts::Vector3 vertexMean = Acts::Vector3::Zero();
+  Acts::SquareMatrix3 vertexCov = Acts::SquareMatrix3::Identity() * 0_um;
+  auto vertexGen =
+      std::make_shared<GaussianVertexGenerator>(vertexMean, vertexCov);
 
-  // Momentum generator
-  // auto momGen = std::make_shared<SphericalMomentumGenerator>();
-  // momGen->pRange = {0.3_GeV, 0.7_GeV};
-  // momGen->phiRange = {0, 2 * M_PI};
-  // momGen->thetaRange = {M_PI_2 - 3e-3, M_PI_2 + 3e-3};
-
-  auto momGen = std::make_shared<StationaryMomentumGenerator>();
-  momGen->momentum = 0.7_GeV * Acts::Vector3::UnitX();
+  auto momGen = std::make_shared<SphericalMomentumGenerator>();
+  momGen->pRange = {0.7_GeV, 0.7_GeV};
+  momGen->thetaRange = {M_PI_2 - 5e-3, M_PI_2 + 5e-3};
+  momGen->phiRange = {-5e-3, 5e-3};
 
   // Measurement creator
   MeasurementsCreator::Config measCreatorCfg;
@@ -160,7 +200,7 @@ int main() {
   measCreatorAlgoCfg.measurementGenerator = measCreator;
   measCreatorAlgoCfg.randomNumberSvc =
       std::make_shared<RandomNumbers>(RandomNumbers::Config());
-  measCreatorAlgoCfg.nMeasurements = 1;
+  measCreatorAlgoCfg.nMeasurements = 1000;
 
   sequencer.addAlgorithm(std::make_shared<MeasurementsEmbeddingAlgorithm>(
       measCreatorAlgoCfg, logLevel));
@@ -186,8 +226,8 @@ int main() {
       std::make_shared<RandomNumbers>(RandomNumbers::Config());
   bkgCreatorAlgoCfg.nMeasurements = 1;
 
-  sequencer.addAlgorithm(std::make_shared<MeasurementsEmbeddingAlgorithm>(
-      bkgCreatorAlgoCfg, logLevel));
+  // sequencer.addAlgorithm(std::make_shared<MeasurementsEmbeddingAlgorithm>(
+  //     bkgCreatorAlgoCfg, logLevel));
 
   // --------------------------------------------------------------
   // Event write out
@@ -198,7 +238,7 @@ int main() {
   clusterWriterCfgSig.treeName = "clusters";
   clusterWriterCfgSig.filePath =
       "/home/romanurmanov/work/Apollon/tracking/out_data/fast_sim_data/"
-      "clusters-sim-sig.root";
+      "clusters-sim-sig-misaligned-0.root";
 
   sequencer.addWriter(
       std::make_shared<RootSimClusterWriter>(clusterWriterCfgSig, logLevel));
@@ -213,8 +253,9 @@ int main() {
   sequencer.addWriter(
       std::make_shared<RootSimClusterWriter>(clusterWriterCfgSig, logLevel));
 
-  sequencer.addWriter(
-      std::make_shared<RootSimClusterWriter>(clusterWriterCfgSigBkg, logLevel));
+  // sequencer.addWriter(
+  //     std::make_shared<RootSimClusterWriter>(clusterWriterCfgSigBkg,
+  //     logLevel));
 
   return sequencer.run();
 }

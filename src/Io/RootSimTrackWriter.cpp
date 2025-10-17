@@ -1,6 +1,6 @@
 #include "TrackingPipeline/Io/RootSimTrackWriter.hpp"
 
-#include <Acts/Definitions/Algebra.hpp>
+#include "Acts/Definitions/Algebra.hpp"
 
 #include <algorithm>
 #include <ranges>
@@ -129,7 +129,7 @@ RootSimTrackWriter::RootSimTrackWriter(const Config& config,
   //------------------------------------------------------------------
   // Initialize the data handles
   m_inputTracks.initialize(m_cfg.inputTracks);
-  m_inputTruthClusters.initialize(m_cfg.inputTruthClusters);
+  m_inputSimClusters.initialize(m_cfg.inputSimClusters);
 }
 
 ProcessCode RootSimTrackWriter::finalize() {
@@ -142,7 +142,7 @@ ProcessCode RootSimTrackWriter::finalize() {
 
 ProcessCode RootSimTrackWriter::write(const AlgorithmContext& ctx) {
   const auto& inputTracks = m_inputTracks(ctx);
-  const auto& inputTruthClusters = m_inputTruthClusters(ctx);
+  const auto& inputTruthClusters = m_inputSimClusters(ctx);
 
   std::lock_guard<std::mutex> lock(m_mutex);
 
@@ -311,6 +311,9 @@ ProcessCode RootSimTrackWriter::write(const AlgorithmContext& ctx) {
 
     // Iterate over the track states
     std::map<TrackID, std::vector<int>> trackStateIds;
+    m_chi2Predicted = 0;
+    m_chi2Filtered = 0;
+    m_chi2Smoothed = 0;
     for (const auto& state : track.trackStatesReversed()) {
       // Skip the states without meaningful information
       if (!state.hasProjector()) {

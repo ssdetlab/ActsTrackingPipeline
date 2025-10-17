@@ -1,7 +1,7 @@
 #include "TrackingPipeline/TrackFitting/KFTrackFittingAlgorithm.hpp"
 
 #include "Acts/EventData/TrackParameters.hpp"
-#include <Acts/Utilities/Logger.hpp>
+#include "Acts/Utilities/Logger.hpp"
 
 ProcessCode KFTrackFittingAlgorithm::execute(const AlgorithmContext& ctx) const {
   // Get the input seeds

@@ -79,16 +79,6 @@ ProcessCode RootSimSeedWriter::write(const AlgorithmContext& ctx) {
 
   m_eventId = ctx.eventNumber;
 
-  // // Collect true track statistics
-  // auto trackIds =
-  //     inputTruthClusters |
-  //     std::views::filter([](const auto& cl) { return cl.isSignal; }) |
-  //     std::views::transform([](const auto& cl) { return cl.truthHits; }) |
-  //     std::views::join | std::views::transform([](const auto& hit) -> TrackID
-  //     {
-  //       return {hit.trackId, hit.parentTrackId, hit.runId};
-  //     });
-
   std::map<TrackID, std::set<Acts::GeometryIdentifier>> trackIds;
   for (const auto& cluster : inputTruthClusters) {
     if (!cluster.isSignal) {

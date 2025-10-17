@@ -9,7 +9,7 @@
 namespace ApollonGeometry {
 
 std::shared_ptr<const Acts::Experimental::Detector> buildDetector(
-    const Acts::GeometryContext& gctx);
+    const Acts::GeometryContext& gctx, bool insertReferenceSurface = false);
 
 std::shared_ptr<Acts::MagneticFieldProvider> buildMagField(
     const Acts::GeometryContext& gctx);

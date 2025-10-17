@@ -6,11 +6,9 @@
 #include "Acts/Propagator/EigenStepper.hpp"
 #include "Acts/Surfaces/PlaneSurface.hpp"
 #include "Acts/Surfaces/RectangleBounds.hpp"
-#include "Acts/TrackFinding/MeasurementSelector.hpp"
 #include "Acts/TrackFitting/GainMatrixUpdater.hpp"
 #include "Acts/TrackFitting/KalmanFitter.hpp"
 #include "Acts/Utilities/Logger.hpp"
-#include <Acts/Definitions/Algebra.hpp>
 
 #include <cmath>
 #include <filesystem>
@@ -21,17 +19,15 @@
 
 #include "TrackingPipeline/Geometry/ApollonGeometry.hpp"
 #include "TrackingPipeline/Geometry/ApollonGeometryConstraints.hpp"
+#include "TrackingPipeline/Geometry/GeometryContextDecorator.hpp"
 #include "TrackingPipeline/Infrastructure/Sequencer.hpp"
+#include "TrackingPipeline/Io/AlignmentParametersProvider.hpp"
 #include "TrackingPipeline/Io/ApollonRootSimDataReader.hpp"
 #include "TrackingPipeline/Io/RootSimClusterReader.hpp"
-#include "TrackingPipeline/Io/RootSimClusterWriter.hpp"
 #include "TrackingPipeline/Io/RootSimSeedWriter.hpp"
-#include "TrackingPipeline/Io/RootSimTrackCandidateWriter.hpp"
 #include "TrackingPipeline/Io/RootSimTrackWriter.hpp"
 #include "TrackingPipeline/TrackFinding/ApollonSeedingAlgorithm.hpp"
-#include "TrackingPipeline/TrackFinding/CKFTrackFindingAlgorithm.hpp"
 #include "TrackingPipeline/TrackFinding/HoughTransformSeeder.hpp"
-#include "TrackingPipeline/TrackFinding/IdealSeedingAlgorithm.hpp"
 #include "TrackingPipeline/TrackFitting/KFTrackFittingAlgorithm.hpp"
 
 // Propagator short-hands
@@ -42,12 +38,6 @@ using Propagator = Acts::Propagator<Acts::EigenStepper<>,
                                     Acts::Experimental::DetectorNavigator>;
 using PropagatorOptions =
     typename Propagator::template Options<ActionList, AbortList>;
-
-// CKF short-hands
-using CKFTrackContainer = CKFTrackFindingAlgorithm::TrackContainer;
-
-using TrackStateContainerBackend =
-    CKFTrackFindingAlgorithm::TrackStateContainerBackend;
 
 // KF short-hands
 using RecoTrajectory = KFTrackFittingAlgorithm::Trajectory;
@@ -62,6 +52,8 @@ std::unique_ptr<const ag::GeometryOptions> ag::GeometryOptions::m_instance =
     nullptr;
 
 int main() {
+  const auto& goInst = *ag::GeometryOptions::instance();
+
   // Set the log level
   Acts::Logging::Level logLevel = Acts::Logging::DEBUG;
 
@@ -83,12 +75,76 @@ int main() {
     std::cout << "Surfaces:\n";
     for (const auto& surf : vol->surfaces()) {
       std::cout << surf->geometryId() << "\n";
+      std::cout << surf->center(gctx) << "\n";
       std::cout << surf->polyhedronRepresentation(gctx, 1000).extent() << "\n";
       if (surf->geometryId().sensitive()) {
         surfaceMap[surf->geometryId()] = surf;
       }
     }
   }
+
+  // AlignmentParametersProvider::Config alignmentProviderCfg1;
+  // alignmentProviderCfg1.filePath =
+  //     "/home/romanurmanov/work/Apollon/tracking/out_data/fast_sim_data/"
+  //     "alignment/det1/aligned/"
+  //     "alignment-parameters.root";
+  // alignmentProviderCfg1.treeName = "alignment-parameters";
+
+  // AlignmentParametersProvider::Config alignmentProviderCfg2;
+  // alignmentProviderCfg2.filePath =
+  //     "/home/romanurmanov/work/Apollon/tracking/out_data/fast_sim_data/"
+  //     "alignment/det2/aligned/"
+  //     "alignment-parameters.root";
+  // alignmentProviderCfg2.treeName = "alignment-parameters";
+
+  // AlignmentParametersProvider alignmentProvider1(alignmentProviderCfg1);
+  // AlignmentParametersProvider alignmentProvider2(alignmentProviderCfg2);
+
+  // auto aStore1 = alignmentProvider1.getAlignmentStore();
+  // auto aStore2 = alignmentProvider2.getAlignmentStore();
+  // auto aStore = std::make_shared<AlignmentContext::AlignmentStore>();
+
+  // for (const auto& entry : *aStore1) {
+  //   aStore->insert(entry);
+  // }
+  // for (const auto& entry : *aStore2) {
+  //   aStore->insert(entry);
+  // }
+
+  // AlignmentContext alignCtx(aStore);
+  // Acts::GeometryContext testCtx{alignCtx};
+  // for (auto& v : detector->volumes()) {
+  //   for (auto& s : v->surfaces()) {
+  //     if (s->geometryId().sensitive() && s->geometryId().sensitive() >= 20) {
+  //       std::cout << "-----------------------------------\n";
+  //       std::cout << "SURFACE " << s->geometryId() << "\n";
+  //       std::cout << "CENTER " << s->center(testCtx).transpose() << " -- "
+  //                 << s->center(Acts::GeometryContext()).transpose() << "\n";
+  //       std::cout << "NORMAL "
+  //                 << s->normal(testCtx, s->center(testCtx),
+  //                              Acts::Vector3::UnitY())
+  //                        .transpose()
+  //                 << " -- "
+  //                 << s->normal(testCtx, s->center(Acts::GeometryContext()),
+  //                              Acts::Vector3::UnitY())
+  //                        .transpose()
+  //                 << "\n";
+  //       std::cout << "ROTATION \n"
+  //                 << s->transform(testCtx).rotation() << " -- \n"
+  //                 << "\n"
+  //                 << s->transform(Acts::GeometryContext()).rotation() << "\n";
+
+  //       std::cout << "EXTENT "
+  //                 << s->polyhedronRepresentation(testCtx, 1000).extent()
+  //                 << "\n -- \n"
+  //                 << s->polyhedronRepresentation(Acts::GeometryContext(),
+  //                 1000)
+  //                        .extent()
+  //                 << "\n";
+  //     }
+  //   }
+  // }
+  // gctx = Acts::GeometryContext{alignCtx};
 
   // --------------------------------------------------------------
   // The magnetic field setup
@@ -108,16 +164,22 @@ int main() {
   seqCfg.logLevel = logLevel;
   Sequencer sequencer(seqCfg);
 
+  // sequencer.addContextDecorator(
+  //     std::make_shared<GeometryContextDecorator>(aStore));
+
   // Add the sim data reader
-  ApollonIo::ApollonRootSimDataReader::Config readerCfg;
+  RootSimClusterReader::Config readerCfg;
   readerCfg.outputSourceLinks = "Measurements";
   readerCfg.outputSimClusters = "SimClusters";
   readerCfg.treeName = "clusters";
-  readerCfg.surfaceMap = surfaceMap;
-  readerCfg.eventSplit = false;
+  readerCfg.minGeoId = 20;
+  readerCfg.maxGeoId = 28;
   std::string pathToDir =
-      "/home/romanurmanov/work/Apollon/geant4_sims/g4_clustering/out_data/"
-      "test_clusters";
+      "/home/romanurmanov/work/Apollon/tracking/out_data/fast_sim_data/"
+      "alignment/data";
+  // std::string pathToDir =
+  //     "/home/romanurmanov/work/Apollon/tracking/out_data/fast_sim_data/"
+  //     "alignment/data_test";
 
   // Get the paths to the files in the directory
   for (const auto& entry : std::filesystem::directory_iterator(pathToDir)) {
@@ -129,17 +191,19 @@ int main() {
   }
 
   // Add the reader to the sequencer
-  sequencer.addReader(std::make_shared<ApollonIo::ApollonRootSimDataReader>(
-      readerCfg, logLevel));
+  sequencer.addReader(
+      std::make_shared<RootSimClusterReader>(readerCfg, logLevel));
 
   // // Add the sim data reader
-  // RootSimClusterReader::Config readerCfg;
+  // ApollonIo::ApollonRootSimDataReader::Config readerCfg;
   // readerCfg.outputSourceLinks = "Measurements";
   // readerCfg.outputSimClusters = "SimClusters";
   // readerCfg.treeName = "clusters";
+  // readerCfg.surfaceMap = surfaceMap;
+  // readerCfg.eventSplit = false;
   // std::string pathToDir =
-  //     "/home/romanurmanov/work/Apollon/tracking/out_data/fast_sim_data/"
-  //     "sig_plus_bkg";
+  //     "/home/romanurmanov/work/Apollon/geant4_sims/g4_clustering/out_data/"
+  //     "test_clusters";
 
   // // Get the paths to the files in the directory
   // for (const auto& entry : std::filesystem::directory_iterator(pathToDir)) {
@@ -151,33 +215,17 @@ int main() {
   // }
 
   // // Add the reader to the sequencer
-  // sequencer.addReader(
-  //     std::make_shared<RootSimClusterReader>(readerCfg, logLevel));
-
-  // --------------------------------------------------------------
-  // Ideal seeding setup
-
-  IdealSeedingAlgorithm::Config idealSeedingCfg;
-  idealSeedingCfg.inputSourceLinks = "Measurements";
-  idealSeedingCfg.inputSimClusters = "SimClusters";
-  idealSeedingCfg.outputSeeds = "IdealSeeds";
-  idealSeedingCfg.minLayers = 10;
-  idealSeedingCfg.maxLayers = 10;
-  idealSeedingCfg.minSeedSize = 10;
-  idealSeedingCfg.maxSeedSize = 10;
-
-  sequencer.addAlgorithm(
-      std::make_shared<IdealSeedingAlgorithm>(idealSeedingCfg, logLevel));
+  // sequencer.addReader(std::make_shared<ApollonIo::ApollonRootSimDataReader>(
+  //     readerCfg, logLevel));
 
   // --------------------------------------------------------------
   // HT seeding setup
 
   HoughTransformSeeder::Config htSeederCfg;
   htSeederCfg.boundBoxHalfX =
-      ag::GeometryOptions::instance()->tc1HalfPrimary -
-      ag::GeometryOptions::instance()->chipVolumeHalfSpacing * 2;
-  htSeederCfg.boundBoxHalfY = ag::GeometryOptions::instance()->tcHalfLong;
-  htSeederCfg.boundBoxHalfZ = ag::GeometryOptions::instance()->tcHalfShort;
+      goInst.tc1HalfPrimary - goInst.chipVolumeHalfSpacing * 2;
+  htSeederCfg.boundBoxHalfY = goInst.tcHalfLong;
+  htSeederCfg.boundBoxHalfZ = goInst.tcHalfShort;
 
   htSeederCfg.nCellsThetaX = 500;
   htSeederCfg.nCellsRhoX = 4000;
@@ -194,84 +242,18 @@ int main() {
   seedingAlgoCfg.htSeeder = std::make_shared<HoughTransformSeeder>(htSeederCfg);
   seedingAlgoCfg.inputSourceLinks = "Measurements";
   seedingAlgoCfg.outputSeeds = "Seeds";
-  seedingAlgoCfg.minLayers = 10;
-  seedingAlgoCfg.maxLayers = 10;
-  seedingAlgoCfg.minSeedSize = 10;
+  seedingAlgoCfg.minLayers = 5;
+  seedingAlgoCfg.maxLayers = 5;
+  seedingAlgoCfg.minSeedSize = 5;
   seedingAlgoCfg.maxSeedSize = 100;
-  seedingAlgoCfg.minScanEnergy = 0.3_GeV;
-  seedingAlgoCfg.maxScanEnergy = 0.4_GeV;
+  seedingAlgoCfg.minScanEnergy = 0.7_GeV;
+  seedingAlgoCfg.maxScanEnergy = 0.7_GeV;
   seedingAlgoCfg.energyScanStep = 0.001_GeV;
-  seedingAlgoCfg.maxConnectionDistance = 1;
+  seedingAlgoCfg.maxConnectionDistance = 1.0;
+  seedingAlgoCfg.scope = ApollonSeedingAlgorithm::SeedingScope::detector2;
 
   sequencer.addAlgorithm(
       std::make_shared<ApollonSeedingAlgorithm>(seedingAlgoCfg, logLevel));
-
-  // --------------------------------------------------------------
-  // Track finding
-
-  Acts::Experimental::DetectorNavigator::Config ckfNavigatorCfg;
-  ckfNavigatorCfg.detector = detector.get();
-  ckfNavigatorCfg.resolvePassive = false;
-  ckfNavigatorCfg.resolveMaterial = true;
-  ckfNavigatorCfg.resolveSensitive = true;
-  Acts::Experimental::DetectorNavigator ckfNavigator(
-      ckfNavigatorCfg, Acts::getDefaultLogger("DetectorNavigator", logLevel));
-
-  Acts::EigenStepper<> ckfStepper(field);
-  auto ckfPropagator =
-      Propagator(std::move(ckfStepper), std::move(ckfNavigator),
-                 Acts::getDefaultLogger("Propagator", logLevel));
-
-  Acts::CombinatorialKalmanFilter<Propagator, CKFTrackContainer> ckf(
-      ckfPropagator,
-      Acts::getDefaultLogger("CombinatorialKalmanFilter", logLevel));
-
-  // Configuration for the measurement selector
-  std::vector<
-      std::pair<Acts::GeometryIdentifier, Acts::MeasurementSelectorCuts>>
-      cuts;
-  for (auto& vol : detector->volumes()) {
-    for (auto& surf : vol->surfaces()) {
-      if (!surf->geometryId().sensitive()) {
-        continue;
-      }
-      cuts.push_back({surf->geometryId(),
-                      {{},
-                       {std::numeric_limits<double>::max()},
-                       {1u},
-                       {std::numeric_limits<double>::max()}}});
-    }
-  }
-  Acts::MeasurementSelector::Config measurementSelectorCfg(cuts);
-
-  Acts::MeasurementSelector measSel{measurementSelectorCfg};
-
-  // CKF extensions
-  Acts::GainMatrixUpdater ckfUpdater;
-
-  Acts::CombinatorialKalmanFilterExtensions<CKFTrackContainer> ckfExtensions;
-  ckfExtensions.calibrator.template connect<
-      &simpleSourceLinkCalibrator<TrackStateContainerBackend>>();
-  ckfExtensions.updater.template connect<
-      &Acts::GainMatrixUpdater::operator()<TrackStateContainerBackend>>(
-      &ckfUpdater);
-  ckfExtensions.measurementSelector.template connect<
-      &Acts::MeasurementSelector::select<TrackStateContainerBackend>>(&measSel);
-
-  CKFTrackFindingAlgorithm::Config trackFindingCfg{
-      .ckf = ckf,
-  };
-  trackFindingCfg.extensions = ckfExtensions;
-  trackFindingCfg.inputSeeds = "Seeds";
-  trackFindingCfg.outputTrackCandidates = "TrackCandidates";
-  trackFindingCfg.outputTrackView = "CandidatesTrackView";
-  trackFindingCfg.minCandidateSize = 10;
-  trackFindingCfg.maxCandidateSize = 10;
-  trackFindingCfg.maxSteps = 1e4;
-
-  auto trackFindingAlgorithm =
-      std::make_shared<CKFTrackFindingAlgorithm>(trackFindingCfg, logLevel);
-  // sequencer.addAlgorithm(trackFindingAlgorithm);
 
   // --------------------------------------------------------------
   // Track fitting
@@ -308,16 +290,13 @@ int main() {
   double halfY = std::numeric_limits<double>::max();
 
   Acts::RotationMatrix3 refSurfToWorldRotationX =
-      Acts::AngleAxis3(ag::GeometryOptions::instance()->toWorldAngleX,
-                       Acts::Vector3::UnitX())
+      Acts::AngleAxis3(goInst.toWorldAngleX, Acts::Vector3::UnitX())
           .toRotationMatrix();
   Acts::RotationMatrix3 refSurfToWorldRotationY =
-      Acts::AngleAxis3(ag::GeometryOptions::instance()->toWorldAngleY,
-                       Acts::Vector3::UnitY())
+      Acts::AngleAxis3(goInst.toWorldAngleY, Acts::Vector3::UnitY())
           .toRotationMatrix();
   Acts::RotationMatrix3 refSurfToWorldRotationZ =
-      Acts::AngleAxis3(ag::GeometryOptions::instance()->toWorldAngleZ,
-                       Acts::Vector3::UnitZ())
+      Acts::AngleAxis3(goInst.toWorldAngleZ, Acts::Vector3::UnitZ())
           .toRotationMatrix();
 
   Acts::Transform3 transform = Acts::Transform3::Identity();
@@ -362,54 +341,18 @@ int main() {
   // --------------------------------------------------------------
   // Event write out
 
-  // Sim cluster writer
-  auto clusterWriterCfg = RootSimClusterWriter::Config();
-  clusterWriterCfg.inputClusters = "SimClusters";
-  clusterWriterCfg.treeName = "clusters";
-  clusterWriterCfg.filePath =
-      "/home/romanurmanov/work/Apollon/tracking/out_data/test/clusters.root";
-
-  // sequencer.addWriter(
-  //     std::make_shared<RootSimClusterWriter>(clusterWriterCfg, logLevel));
-
   // Seed writer
   auto seedWriterCfg = RootSimSeedWriter::Config();
   seedWriterCfg.inputSeeds = "Seeds";
   seedWriterCfg.inputTruthClusters = "SimClusters";
   seedWriterCfg.treeName = "seeds";
   seedWriterCfg.filePath =
-      "/home/romanurmanov/work/Apollon/tracking/out_data/test/"
+      "/home/romanurmanov/work/Apollon/tracking/out_data/fast_sim_data/"
+      "alignment/"
       "seeds.root";
 
   sequencer.addWriter(
       std::make_shared<RootSimSeedWriter>(seedWriterCfg, logLevel));
-
-  auto idealSeedWriterCfg = RootSimSeedWriter::Config();
-  idealSeedWriterCfg.inputSeeds = "IdealSeeds";
-  idealSeedWriterCfg.inputTruthClusters = "SimClusters";
-  idealSeedWriterCfg.treeName = "seeds";
-  idealSeedWriterCfg.filePath =
-      "/home/romanurmanov/work/Apollon/tracking/out_data/test/"
-      "ideal-seeds.root";
-
-  sequencer.addWriter(
-      std::make_shared<RootSimSeedWriter>(idealSeedWriterCfg, logLevel));
-
-  // Track candidate writer
-  auto trackCandidateWriterCfg = RootSimTrackCandidateWriter::Config();
-  trackCandidateWriterCfg.surfaceAccessor
-      .connect<&SimpleSourceLink::SurfaceAccessor::operator()>(
-          &surfaceAccessor);
-
-  trackCandidateWriterCfg.inputTrackCandidates = "CandidatesTrackView";
-  trackCandidateWriterCfg.inputTruthClusters = "SimClusters";
-  trackCandidateWriterCfg.treeName = "track-candidates";
-  trackCandidateWriterCfg.filePath =
-      "/home/romanurmanov/work/Apollon/tracking/out_data/test/"
-      "track-candidates.root";
-
-  // sequencer.addWriter(std::make_shared<RootSimTrackCandidateWriter>(
-  //     trackCandidateWriterCfg, logLevel));
 
   // Fitted track writer
   auto trackWriterCfg = RootSimTrackWriter::Config();
@@ -418,10 +361,11 @@ int main() {
           &surfaceAccessor);
   trackWriterCfg.referenceSurface = refSurface.get();
   trackWriterCfg.inputTracks = "Tracks";
-  trackWriterCfg.inputTruthClusters = "SimClusters";
+  trackWriterCfg.inputSimClusters = "SimClusters";
   trackWriterCfg.treeName = "fitted-tracks";
   trackWriterCfg.filePath =
-      "/home/romanurmanov/work/Apollon/tracking/out_data/test/"
+      "/home/romanurmanov/work/Apollon/tracking/out_data/fast_sim_data/"
+      "alignment/"
       "fitted-tracks.root";
 
   sequencer.addWriter(

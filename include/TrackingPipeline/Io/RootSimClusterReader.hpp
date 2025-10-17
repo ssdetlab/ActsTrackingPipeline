@@ -3,7 +3,6 @@
 #include "Acts/EventData/SourceLink.hpp"
 #include "Acts/Utilities/Logger.hpp"
 
-#include "RtypesCore.h"
 #include "TChain.h"
 #include "TLorentzVector.h"
 #include "TMatrixD.h"
@@ -26,6 +25,9 @@ class RootSimClusterReader : public IReader {
     std::vector<std::string> filePaths;
     /// Name of the input tree
     std::string treeName;
+    /// Geometry ID scope
+    int minGeoId;
+    int maxGeoId;
   };
 
   RootSimClusterReader(const RootSimClusterReader&) = delete;
@@ -73,7 +75,9 @@ class RootSimClusterReader : public IReader {
   std::vector<std::tuple<std::size_t, std::size_t, std::size_t>> m_eventMap;
 
   /// The input tree name
-  TChain* m_chain = nullptr;
+  // TChain* m_chain = nullptr;
+  TTree* m_chain = nullptr;
+  TFile* m_file = nullptr;
 
  protected:
   TVector2* m_geoCenterLocal = nullptr;

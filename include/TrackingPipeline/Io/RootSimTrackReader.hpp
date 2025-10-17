@@ -4,8 +4,8 @@
 #include "Acts/Utilities/Logger.hpp"
 
 #include <cstddef>
+#include <TTree.h>
 
-#include "RtypesCore.h"
 #include "TChain.h"
 #include "TLorentzVector.h"
 #include "TMatrixD.h"
@@ -23,19 +23,16 @@ class RootSimTrackReader : public IReader {
     /// Output source links
     std::string outputMeasurements;
     /// Output sim clusters
-    std::string outputClusters;
+    std::string outputSimClusters;
     /// Output seeds
     std::string outputSeeds;
     /// The names of the input files
     std::vector<std::string> filePaths;
     /// Name of the input tree
     std::string treeName;
-    /// Batch flag
-    bool batch;
-    /// Batch size for the tracks
-    std::size_t batchSize;
-    /// Covariance annealing factor
-    double covAnnealingFactor;
+    /// Chi2 cut
+    double minChi2;
+    double maxChi2;
   };
 
   RootSimTrackReader(const RootSimTrackReader&) = delete;
@@ -84,7 +81,9 @@ class RootSimTrackReader : public IReader {
   std::vector<std::tuple<std::size_t, std::size_t, std::size_t>> m_eventMap;
 
   /// The input tree name
-  TChain* m_chain = nullptr;
+  // TChain* m_chain = nullptr;
+  TTree* m_chain = nullptr;
+  TFile* m_file = nullptr;
 
  protected:
   /// True hits
@@ -101,7 +100,7 @@ class RootSimTrackReader : public IReader {
   std::vector<TMatrixD>* m_trackHitCovs = nullptr;
 
   /// Geometry ids of the track hits
-  std::vector<int>* m_geometryIds = nullptr;
+  std::vector<std::size_t>* m_geometryIds = nullptr;
 
   /// KF predicted track hits
   std::vector<TVector3>* m_predictedTrackHitsGlobal = nullptr;
@@ -141,21 +140,23 @@ class RootSimTrackReader : public IReader {
 
   /// Number of degrees of freedom
   /// of the track
-  int m_ndf;
-
-  /// Matching degree
-  double m_matchingDegree;
+  std::size_t m_ndf;
 
   /// TrackId
-  std::vector<int>* m_trackId = nullptr;
-  std::vector<int>* m_parentTrackId = nullptr;
-  std::vector<int>* m_runId = nullptr;
+  std::vector<std::size_t>* m_stateTrackId = nullptr;
+  std::vector<std::size_t>* m_stateParentTrackId = nullptr;
+  std::vector<std::size_t>* m_stateRunId = nullptr;
+
+  std::size_t m_trackId;
+  std::size_t m_parentTrackId;
+  std::size_t m_runId;
 
   /// EventId
-  int m_eventId;
+  std::size_t m_eventId;
 
   /// True track size
-  int m_trueTrackSize;
+  std::size_t m_trueTrackSize;
+  std::size_t m_capturedTrackSize;
 
   /// PDG ID
   int m_pdgId;
