@@ -7,6 +7,7 @@
 #include "Acts/Surfaces/Surface.hpp"
 #include "Acts/TrackFitting/KalmanFitter.hpp"
 #include "ActsAlignment/Kernel/Alignment.hpp"
+#include <ActsAlignment/Kernel/AlignmentMask.hpp>
 
 #include <memory>
 #include <vector>
@@ -65,14 +66,22 @@ class AlignmentAlgorithm final : public IAlgorithm {
     std::vector<Acts::DetectorElementBase*> alignedDetElements;
     /// KF options
     Acts::KalmanFitterOptions<Acts::VectorMultiTrajectory> kfOptions;
+
     /// Anchor surface
     const Acts::Surface* anchorSurface = nullptr;
+
     /// Cutoff value for average chi2/ndf
     double chi2ONdfCutOff = 0.10;
     /// Cutoff value for delta of average chi2/ndf within a couple of iterations
     std::pair<std::size_t, double> deltaChi2ONdfCutOff = {10, 0.00001};
     /// Maximum number of iterations
     std::size_t maxNumIterations = 100;
+    /// Alignment mask
+    ActsAlignment::AlignmentMask alignmentMask =
+        ActsAlignment::AlignmentMask::All;
+    /// Alignment mode
+    ActsAlignment::AlignmentMode alignmentMode =
+        ActsAlignment::AlignmentMode::local;
   };
 
   /// Constructor of the alignment algorithm

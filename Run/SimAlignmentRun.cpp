@@ -27,6 +27,7 @@
 #include "TrackingPipeline/Geometry/ApollonGeometryConstraints.hpp"
 #include "TrackingPipeline/Geometry/GeometryContextDecorator.hpp"
 #include "TrackingPipeline/Infrastructure/Sequencer.hpp"
+#include "TrackingPipeline/Io/AlignmentParametersProvider.hpp"
 #include "TrackingPipeline/Io/AlignmentParametersWriter.hpp"
 #include "TrackingPipeline/Io/RootSimSeedWriter.hpp"
 #include "TrackingPipeline/Io/RootSimTrackReader.hpp"
@@ -68,7 +69,7 @@ int main() {
   // --------------------------------------------------------------
   // Detector setup
 
-  auto detector = ApollonGeometry::buildDetector(gctx);
+  auto detector = ApollonGeometry::buildDetector(gctx, true);
 
   std::map<Acts::GeometryIdentifier, const Acts::Surface*> surfaceMap;
   for (const auto& vol : detector->volumes()) {
@@ -85,12 +86,34 @@ int main() {
     }
   }
 
-  double longTransStd = 0_um;
-  double shortTransStd = 0_um;
-  std::size_t longIdx = detail::binningValueToIndex(goInst.longBinValue);
-  std::size_t shortIdx = detail::binningValueToIndex(goInst.shortBinValue);
-  auto aStore = detail::makeAlignmentStore(
-      detector.get(), longIdx, longTransStd, shortIdx, shortTransStd);
+  AlignmentParametersProvider::Config alignmentProviderCfg1;
+  alignmentProviderCfg1.filePath =
+      "/home/romanurmanov/work/Apollon/tracking/out_data/fast_sim_data/"
+      "alignment/det1/aligned/"
+      "alignment-parameters.root";
+  alignmentProviderCfg1.treeName = "alignment-parameters";
+
+  AlignmentParametersProvider::Config alignmentProviderCfg2;
+  alignmentProviderCfg2.filePath =
+      "/home/romanurmanov/work/Apollon/tracking/out_data/fast_sim_data/"
+      "alignment/det2/aligned/"
+      "alignment-parameters.root";
+  alignmentProviderCfg2.treeName = "alignment-parameters";
+
+  AlignmentParametersProvider alignmentProvider1(alignmentProviderCfg1);
+  AlignmentParametersProvider alignmentProvider2(alignmentProviderCfg2);
+
+  auto aStore1 = alignmentProvider1.getAlignmentStore();
+  auto aStore2 = alignmentProvider2.getAlignmentStore();
+  auto aStore = std::make_shared<AlignmentContext::AlignmentStore>();
+
+  for (const auto& entry : *aStore1) {
+    aStore->insert(entry);
+  }
+  for (const auto& entry : *aStore2) {
+    aStore->insert(entry);
+  }
+
   AlignmentContext alignCtx(aStore);
   Acts::GeometryContext testCtx{alignCtx};
   for (auto& v : detector->volumes()) {
@@ -113,6 +136,7 @@ int main() {
                   << s->transform(testCtx).rotation() << " -- \n"
                   << "\n"
                   << s->transform(Acts::GeometryContext()).rotation() << "\n";
+
         std::cout << "EXTENT "
                   << s->polyhedronRepresentation(testCtx, 1000).extent()
                   << "\n -- \n"
@@ -123,6 +147,46 @@ int main() {
     }
   }
   gctx = Acts::GeometryContext{alignCtx};
+
+  // double longTransStd = 0_um;
+  // double shortTransStd = 0_um;
+  // std::size_t longIdx = detail::binningValueToIndex(goInst.longBinValue);
+  // std::size_t shortIdx = detail::binningValueToIndex(goInst.shortBinValue);
+  // auto aStore = detail::makeAlignmentStore(
+  //     detector.get(), longIdx, longTransStd, shortIdx, shortTransStd);
+  // AlignmentContext alignCtx(aStore);
+  // Acts::GeometryContext testCtx{alignCtx};
+  // for (auto& v : detector->volumes()) {
+  //   for (auto& s : v->surfaces()) {
+  //     if (s->geometryId().sensitive()) {
+  //       std::cout << "-----------------------------------\n";
+  //       std::cout << "SURFACE " << s->geometryId() << "\n";
+  //       std::cout << "CENTER " << s->center(testCtx).transpose() << " -- "
+  //                 << s->center(Acts::GeometryContext()).transpose() << "\n";
+  //       std::cout << "NORMAL "
+  //                 << s->normal(testCtx, s->center(testCtx),
+  //                              Acts::Vector3::UnitY())
+  //                        .transpose()
+  //                 << " -- "
+  //                 << s->normal(testCtx, s->center(Acts::GeometryContext()),
+  //                              Acts::Vector3::UnitY())
+  //                        .transpose()
+  //                 << "\n";
+  //       std::cout << "ROTATION \n"
+  //                 << s->transform(testCtx).rotation() << " -- \n"
+  //                 << "\n"
+  //                 << s->transform(Acts::GeometryContext()).rotation() << "\n";
+  //       std::cout << "EXTENT "
+  //                 << s->polyhedronRepresentation(testCtx, 1000).extent()
+  //                 << "\n -- \n"
+  //                 << s->polyhedronRepresentation(Acts::GeometryContext(),
+  //                 1000)
+  //                        .extent()
+  //                 << "\n";
+  //     }
+  //   }
+  // }
+  // gctx = Acts::GeometryContext{alignCtx};
 
   // --------------------------------------------------------------
   // The magnetic field setup
@@ -150,14 +214,12 @@ int main() {
   readerCfg.outputMeasurements = "SimMeasurements";
   readerCfg.outputSimClusters = "SimClusters";
   readerCfg.outputSeeds = "Seeds";
-  // readerCfg.minChi2 = 1500;
-  // readerCfg.maxChi2 = 3000;
   readerCfg.minChi2 = 0;
-  readerCfg.maxChi2 = 80;
+  readerCfg.maxChi2 = 50;
 
   std::string pathToDir =
       "/home/romanurmanov/work/Apollon/tracking/out_data/fast_sim_data/"
-      "alignment/det2/filtered_step2";
+      "alignment/global/filtered_step1";
 
   // Get the paths to the files in the directory
   for (const auto& entry : std::filesystem::directory_iterator(pathToDir)) {
@@ -237,8 +299,7 @@ int main() {
       [&alignCtx](Acts::DetectorElementBase* element,
                   const Acts::GeometryContext& gctx,
                   const Acts::Transform3& transform) {
-        alignCtx.alignmentStore().at(element->surface().geometryId()) =
-            transform;
+        alignCtx.alignmentStore()[element->surface().geometryId()] = transform;
         return true;
       };
   AlignmentTransformUpdater transformUpdater;
@@ -251,21 +312,25 @@ int main() {
       .kfOptions = alignmentKFOptions,
       .chi2ONdfCutOff = 1e-3,
       .deltaChi2ONdfCutOff = {10, 1e-5},
-      .maxNumIterations = 200};
+      .maxNumIterations = 200,
+      .alignmentMask = (ActsAlignment::AlignmentMask::Center1 |
+                        ActsAlignment::AlignmentMask::Center2 |
+                        ActsAlignment::AlignmentMask::Rotation2),
+      .alignmentMode = ActsAlignment::AlignmentMode::global};
 
   for (auto& det : detector->detectorElements()) {
     const auto& surface = det->surface();
     const auto& geoId = surface.geometryId().sensitive();
     if (geoId && geoId != goInst.referenceSurfaceParameters.geoId &&
-        // surface.geometryId().sensitive() >= 20) {
-        surface.geometryId().sensitive() >= 20 &&
-        surface.geometryId().sensitive() != 20) {
+        surface.geometryId().sensitive() >= 20) {
+      // surface.geometryId().sensitive() >= 20 &&
+      // surface.geometryId().sensitive() != 20) {
       alignmentCfg.alignedDetElements.push_back(det.get());
     }
   }
   Acts::GeometryIdentifier anchorGeoId;
   anchorGeoId.setSensitive(goInst.referenceSurfaceParameters.geoId);
-  // alignmentCfg.anchorSurface = detector->findSurface(anchorGeoId);
+  alignmentCfg.anchorSurface = detector->findSurface(anchorGeoId);
 
   auto alignmentAlgorithm =
       std::make_shared<AlignmentAlgorithm>(alignmentCfg, logLevel);

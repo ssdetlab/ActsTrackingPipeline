@@ -155,14 +155,20 @@ ProcessCode ApollonSeedingAlgorithm::execute(
     std::vector<HoughTransformSeeder::HTSeed> htSeeds =
         (m_cfg.scope == SeedingScope::detector1) ? std::move(htSeedsDet1)
                                                  : std::move(htSeedsDet2);
+    Acts::Vector3 detFirstLayerPoint = (m_cfg.scope == SeedingScope::detector1)
+                                           ? m_det1FirstLayerPoint
+                                           : m_det2FirstLayerPoint;
+    Acts::Vector3 detFirstLayerNormal = (m_cfg.scope == SeedingScope::detector1)
+                                            ? m_det1FirstLayerNormal
+                                            : m_det2FirstLayerNormal;
 
     outSeeds.reserve(htSeeds.size());
     for (std::size_t i = 0; i < htSeeds.size(); i++) {
       const auto& [point, dir, sl] = htSeeds.at(i);
       double dVertex =
-          (m_det1FirstLayerPoint - Acts::Vector3(0.3_mm, 0, 0) - point)
-              .dot(m_det1FirstLayerNormal) /
-          dir.dot(m_det1FirstLayerNormal);
+          (detFirstLayerPoint - Acts::Vector3(0.3_mm, 0, 0) - point)
+              .dot(detFirstLayerNormal) /
+          dir.dot(detFirstLayerNormal);
       Acts::Vector3 vertex3 = point + dir * dVertex;
       Acts::Vector4 vertex(vertex3.x(), vertex3.y(), vertex3.z(), 0);
 

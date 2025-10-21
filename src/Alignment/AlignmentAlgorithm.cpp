@@ -104,8 +104,10 @@ ProcessCode AlignmentAlgorithm::execute(const AlgorithmContext& ctx) const {
     sourceLinkTrackContainer.push_back(candidate.sourceLinks);
     if (m_cfg.anchorSurface != nullptr) {
       sourceLinkTrackContainer.back().push_back(*m_anchorSourceLink);
+      trackParametersContainer.push_back(candidate.ipParameters);
+    } else {
+      trackParametersContainer.push_back(candidate.ipParameters);
     }
-    trackParametersContainer.push_back(candidate.ipParameters);
   }
 
   // Prepare the output for alignment parameters
@@ -114,7 +116,8 @@ ProcessCode AlignmentAlgorithm::execute(const AlgorithmContext& ctx) const {
   // Set the alignment options
   ActsAlignment::AlignmentOptions<TrackFitterOptions> alignOptions(
       m_cfg.kfOptions, m_cfg.alignedTransformUpdater, m_cfg.alignedDetElements,
-      m_cfg.chi2ONdfCutOff, m_cfg.deltaChi2ONdfCutOff, m_cfg.maxNumIterations);
+      m_cfg.chi2ONdfCutOff, m_cfg.deltaChi2ONdfCutOff, m_cfg.maxNumIterations,
+      m_cfg.alignmentMask, m_cfg.alignmentMode);
 
   ACTS_DEBUG("Invoke track-based alignment with " << numTracksUsed
                                                   << " input tracks");

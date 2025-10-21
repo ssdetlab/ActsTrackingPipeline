@@ -199,27 +199,57 @@ struct GeometryOptions {
   const double tc1CenterLong = 0_mm;
   const double tc1CenterShort = 0_mm;
 
+  // const std::vector<SurfaceParameters> tc1Parameters{
+  //     SurfaceParameters({primaryBinValue, ipTc1Distance + 0 * interChipDistance,
+  //                        toWorldAngleX},
+  //                       {longBinValue, 7_um, toWorldAngleY},
+  //                       {shortBinValue, 17_um, toWorldAngleZ}, 10),
+  //     SurfaceParameters{{primaryBinValue, ipTc1Distance + 1 * interChipDistance,
+  //                        toWorldAngleX},
+  //                       {longBinValue, 50_um, toWorldAngleY},
+  //                       {shortBinValue, -10_um, toWorldAngleZ},
+  //                       12},
+  //     SurfaceParameters{{primaryBinValue, ipTc1Distance + 2 * interChipDistance,
+  //                        toWorldAngleX},
+  //                       {longBinValue, -50_um, toWorldAngleY},
+  //                       {shortBinValue, 10_um, toWorldAngleZ},
+  //                       14},
+  //     SurfaceParameters{{primaryBinValue, ipTc1Distance + 3 * interChipDistance,
+  //                        toWorldAngleX},
+  //                       {longBinValue, -35_um, toWorldAngleY},
+  //                       {shortBinValue, 35_um, toWorldAngleZ},
+  //                       16},
+  //     SurfaceParameters{{primaryBinValue, ipTc1Distance + 4 * interChipDistance,
+  //                        toWorldAngleX},
+  //                       {longBinValue, 35_um, toWorldAngleY},
+  //                       {shortBinValue, -35_um, toWorldAngleZ},
+  //                       18}};
   const std::vector<SurfaceParameters> tc1Parameters{
-      SurfaceParameters({primaryBinValue, ipTc1Distance + 0 * interChipDistance,
+      SurfaceParameters({primaryBinValue, ipTc1Distance + 0 *
+      interChipDistance,
                          toWorldAngleX},
                         {longBinValue, tc1CenterLong, toWorldAngleY},
                         {shortBinValue, tc1CenterShort, toWorldAngleZ}, 10),
-      SurfaceParameters{{primaryBinValue, ipTc1Distance + 1 * interChipDistance,
+      SurfaceParameters{{primaryBinValue, ipTc1Distance + 1 *
+      interChipDistance,
                          toWorldAngleX},
                         {longBinValue, tc1CenterLong, toWorldAngleY},
                         {shortBinValue, tc1CenterShort, toWorldAngleZ},
                         12},
-      SurfaceParameters{{primaryBinValue, ipTc1Distance + 2 * interChipDistance,
+      SurfaceParameters{{primaryBinValue, ipTc1Distance + 2 *
+      interChipDistance,
                          toWorldAngleX},
                         {longBinValue, tc1CenterLong, toWorldAngleY},
                         {shortBinValue, tc1CenterShort, toWorldAngleZ},
                         14},
-      SurfaceParameters{{primaryBinValue, ipTc1Distance + 3 * interChipDistance,
+      SurfaceParameters{{primaryBinValue, ipTc1Distance + 3 *
+      interChipDistance,
                          toWorldAngleX},
                         {longBinValue, tc1CenterLong, toWorldAngleY},
                         {shortBinValue, tc1CenterShort, toWorldAngleZ},
                         16},
-      SurfaceParameters{{primaryBinValue, ipTc1Distance + 4 * interChipDistance,
+      SurfaceParameters{{primaryBinValue, ipTc1Distance + 4 *
+      interChipDistance,
                          toWorldAngleX},
                         {longBinValue, tc1CenterLong, toWorldAngleY},
                         {shortBinValue, tc1CenterShort, toWorldAngleZ},
@@ -260,17 +290,42 @@ struct GeometryOptions {
   const double tc2CenterLong = 0_mm;
   const double tc2CenterShort = 0_mm;
 
+  // const std::vector<SurfaceParameters> tc2Parameters{
+  //     SurfaceParameters{{primaryBinValue, ipTc2Distance + 0 *
+  //     interChipDistance,
+  //                        toWorldAngleX},
+  //                       {longBinValue, -24_um, toWorldAngleY},
+  //                       {shortBinValue, -24_um, toWorldAngleZ},
+  //                       20},
+  //     SurfaceParameters{{primaryBinValue, ipTc2Distance + 1 *
+  //     interChipDistance,
+  //                        toWorldAngleX},
+  //                       {longBinValue, 48_um, toWorldAngleY},
+  //                       {shortBinValue, 124_um, toWorldAngleZ},
+  //                       22},
+  //     SurfaceParameters{{primaryBinValue, ipTc2Distance + 2 *
+  //     interChipDistance,
+  //                        toWorldAngleX},
+  //                       {longBinValue, 67_um, toWorldAngleY},
+  //                       {shortBinValue, -40_um, toWorldAngleZ},
+  //                       24},
+  //     SurfaceParameters{{primaryBinValue, ipTc2Distance + 3 *
+  //     interChipDistance,
+  //                        toWorldAngleX},
+  //                       {longBinValue, -67_um, toWorldAngleY},
+  //                       {shortBinValue, 40_um, toWorldAngleZ},
+  //                       26},
+  //     SurfaceParameters{{primaryBinValue, ipTc2Distance + 4 *
+  //     interChipDistance,
+  //                        toWorldAngleX},
+  //                       {longBinValue, -24_um, toWorldAngleY},
+  //                       {shortBinValue, -100_um, toWorldAngleZ},
+  //                       28}};
   const std::vector<SurfaceParameters> tc2Parameters{
-      // SurfaceParameters{{primaryBinValue, ipTc2Distance + 0 *
-      // interChipDistance,
-      //                    toWorldAngleX},
-      //                   {longBinValue, tc2CenterLong, toWorldAngleY},
-      //                   {shortBinValue, tc2CenterShort, toWorldAngleZ},
-      //                   20},
       SurfaceParameters{{primaryBinValue, ipTc2Distance + 0 * interChipDistance,
                          toWorldAngleX},
-                        {longBinValue, -24_um, toWorldAngleY},
-                        {shortBinValue, -24_um, toWorldAngleZ},
+                        {longBinValue, tc2CenterLong, toWorldAngleY},
+                        {shortBinValue, tc2CenterShort, toWorldAngleZ},
                         20},
       SurfaceParameters{{primaryBinValue, ipTc2Distance + 1 * interChipDistance,
                          toWorldAngleX},
