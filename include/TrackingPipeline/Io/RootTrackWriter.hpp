@@ -3,6 +3,8 @@
 #include "Acts/EventData/SourceLink.hpp"
 #include "Acts/Utilities/Logger.hpp"
 
+#include <cstddef>
+
 #include "TFile.h"
 #include "TLorentzVector.h"
 #include "TMatrixD.h"
@@ -28,6 +30,8 @@ class RootTrackWriter : public IWriter {
   struct Config {
     /// Surface accessor
     Acts::SourceLinkSurfaceAccessor surfaceAccessor;
+    /// Reference surface
+    const Acts::Surface *referenceSurface;
     /// Fitted track collection
     std::string inputTracks;
     /// Name of the input tree
@@ -48,7 +52,7 @@ class RootTrackWriter : public IWriter {
   ProcessCode finalize() override;
 
   /// Writer name() method
-  std::string name() const override { return "RootTrackWriter"; }
+  std::string name() const override { return "RootFittedTrackWriter"; }
 
   /// Write out data to the input stream
   ProcessCode write(const AlgorithmContext &ctx) override;
@@ -82,7 +86,7 @@ class RootTrackWriter : public IWriter {
   std::vector<TMatrixD> m_trackHitCovs;
 
   /// Geometry ids of the track hits
-  std::vector<int> m_geometryIds;
+  std::vector<std::size_t> m_geometryIds;
 
   /// KF predicted track hits
   std::vector<TVector3> m_predictedTrackHitsGlobal;
@@ -112,13 +116,19 @@ class RootTrackWriter : public IWriter {
 
   /// Number of degrees of freedom
   /// of the track
-  int m_ndf;
+  std::size_t m_ndf;
 
   /// TrackId
-  std::vector<int> m_trackId;
+  std::size_t m_trackId;
 
   /// EventId
-  int m_eventId;
+  std::size_t m_eventId;
+
+  /// PDG ID
+  int m_pdgId;
+
+  /// Charge
+  int m_charge;
 
   /// Initial guess of the momentum at the IP
   TLorentzVector m_ipMomentumGuess;
@@ -130,12 +140,7 @@ class RootTrackWriter : public IWriter {
   TVector3 m_vertexEst;
   TVector3 m_vertexError;
 
-  /// PDG ID
-  int m_pdgId;
-
-  /// Charge
-  int m_charge;
-
   /// Mutex to protect the tree filling
   std::mutex m_mutex;
 };
+;

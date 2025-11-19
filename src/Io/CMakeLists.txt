@@ -20,6 +20,7 @@ target_sources(
     JsonTrackLookupReader.cpp
     JsonTrackLookupWriter.cpp
     ApollonRootSimDataReader.cpp
+    ApollonRootDataReader.cpp
     AlignmentParametersWriter.cpp
     AlignmentParametersProvider.cpp
 )

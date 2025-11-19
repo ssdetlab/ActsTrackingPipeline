@@ -159,14 +159,24 @@ ProcessCode RootSimClusterReader::read(const AlgorithmContext& ctx) {
       continue;
     }
 
+    Acts::GeometryIdentifier geoId;
+    geoId.setSensitive(m_geoId);
+
     Acts::Vector2 geoCenterLocal(m_geoCenterLocal->X(), m_geoCenterLocal->Y());
-    Acts::Vector3 geoCenterGlobal(
-        m_geoCenterGlobal->X(), m_geoCenterGlobal->Y(), m_geoCenterGlobal->Z());
+
+    Acts::Vector3 geoCenterGlobal;
+    if (m_cfg.surfaceLocalToGlobal) {
+      geoCenterGlobal = m_cfg.surfaceMap.at(geoId)->localToGlobal(
+          ctx.geoContext, geoCenterLocal, Acts::Vector3::UnitX());
+    } else {
+      geoCenterGlobal =
+          Acts::Vector3(m_geoCenterGlobal->X(), m_geoCenterGlobal->Y(),
+                        m_geoCenterGlobal->Z());
+    }
+
     Acts::ActsSquareMatrix<2> cov;
     cov << (*m_cov)(0, 0), (*m_cov)(0, 1), (*m_cov)(1, 0), (*m_cov)(1, 1);
 
-    Acts::GeometryIdentifier geoId;
-    geoId.setSensitive(m_geoId);
     SimpleSourceLink obsSourceLink(geoCenterLocal, geoCenterGlobal, cov, geoId,
                                    eventId, sslIdx);
     sourceLinks.push_back(Acts::SourceLink{obsSourceLink});

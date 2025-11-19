@@ -232,7 +232,7 @@ std::vector<HoughTransformSeeder::HTSeed> HoughTransformSeeder::findSeeds(
                 sl.get().get<SimpleSourceLink>().parametersGlob() - shift);
             chi2 += dist * dist;
           }
-          if (chi2 > 1e-2) {
+          if (chi2 > opt.maxChi2) {
             continue;
           }
 #pragma omp critical

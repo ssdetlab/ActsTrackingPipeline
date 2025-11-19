@@ -17,28 +17,17 @@
 #include "TrackingPipeline/Infrastructure/IWriter.hpp"
 #include "TrackingPipeline/Infrastructure/ProcessCode.hpp"
 
-/// @brief Writer to store fitted track data in
-/// ROOT file
-///
-/// Writer that accepts fitted track data from KF
-/// derives the basic performance metrics, such as
-/// chi2 and residuals, and stores them in a ROOT file.
-///
-/// @note Assumes that the tracks are simulated and
-/// the truth information is available
 class RootMeasurementWriter : public IWriter {
  public:
   using HitData = std::tuple<TVector3, TVector3, TLorentzVector>;
 
   /// @brief The nested configuration struct
   struct Config {
-    /// Surface accessor
-    Acts::SourceLinkSurfaceAccessor surfaceAccessor;
-    /// Truth cluster data
+    /// Measurement data
     std::string inputMeasurements;
-    /// Name of the input tree
+    /// Name of the output tree
     std::string treeName;
-    /// The names of the input files
+    /// The names of the output file
     std::string filePath;
   };
 

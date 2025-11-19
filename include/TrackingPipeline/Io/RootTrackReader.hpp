@@ -4,8 +4,8 @@
 #include "Acts/Utilities/Logger.hpp"
 
 #include <cstddef>
+#include <TTree.h>
 
-#include "RtypesCore.h"
 #include "TChain.h"
 #include "TLorentzVector.h"
 #include "TMatrixD.h"
@@ -28,14 +28,11 @@ class RootTrackReader : public IReader {
     std::vector<std::string> filePaths;
     /// Name of the input tree
     std::string treeName;
-    /// Batch flag
-    bool batch;
-    /// Stack flag
-    bool stack;
-    /// Batch size for the tracks
-    std::size_t batchSize;
-    /// Covariance annealing factor
-    double covAnnealingFactor;
+    /// Chi2 cut
+    double minChi2;
+    double maxChi2;
+    /// Merge into a single event flag
+    bool mergeIntoOneEvent;
   };
 
   RootTrackReader(const RootTrackReader&) = delete;
@@ -69,7 +66,7 @@ class RootTrackReader : public IReader {
   WriteDataHandle<std::vector<Acts::SourceLink>> m_outputSourceLinks{
       this, "OutputData"};
 
-  /// WriteDataHandle for the sim cluster data
+  /// WriteDataHandle for the seed data
   WriteDataHandle<Seeds> m_outputSeeds{this, "Seeds"};
 
   std::unique_ptr<const Acts::Logger> m_logger;
@@ -81,7 +78,9 @@ class RootTrackReader : public IReader {
   std::vector<std::tuple<std::size_t, std::size_t, std::size_t>> m_eventMap;
 
   /// The input tree name
-  TChain* m_chain = nullptr;
+  // TChain* m_chain = nullptr;
+  TTree* m_chain = nullptr;
+  TFile* m_file = nullptr;
 
  protected:
   /// Measurement hits
@@ -92,7 +91,7 @@ class RootTrackReader : public IReader {
   std::vector<TMatrixD>* m_trackHitCovs = nullptr;
 
   /// Geometry ids of the track hits
-  std::vector<int>* m_geometryIds = nullptr;
+  std::vector<std::size_t>* m_geometryIds = nullptr;
 
   /// KF predicted track hits
   std::vector<TVector3>* m_predictedTrackHitsGlobal = nullptr;
@@ -122,13 +121,19 @@ class RootTrackReader : public IReader {
 
   /// Number of degrees of freedom
   /// of the track
-  int m_ndf;
+  std::size_t m_ndf;
 
   /// TrackId
-  std::vector<int>* m_trackId = nullptr;
+  std::size_t m_trackId;
 
   /// EventId
-  int m_eventId;
+  std::size_t m_eventId;
+
+  /// PDG ID
+  int m_pdgId;
+
+  /// Charge
+  int m_charge;
 
   /// Initial guess of the momentum at the IP
   TLorentzVector* m_ipMomentumGuess = nullptr;
@@ -139,12 +144,6 @@ class RootTrackReader : public IReader {
   TVector3* m_ipMomentumError = nullptr;
   TVector3* m_vertexEst = nullptr;
   TVector3* m_vertexError = nullptr;
-
-  /// PDG ID
-  int m_pdgId;
-
-  /// Charge
-  int m_charge;
 
   /// Mutex to protect the tree filling
   std::mutex m_mutex;

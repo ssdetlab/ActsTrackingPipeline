@@ -11,11 +11,18 @@
 #include <Acts/Definitions/Algebra.hpp>
 #include <Acts/EventData/SourceLink.hpp>
 
+#include <algorithm>
+#include <cstddef>
 #include <memory>
+#include <stdexcept>
 #include <utility>
 #include <vector>
 
 #include "TrackingPipeline/EventData/SimpleSourceLink.hpp"
+#include "TrackingPipeline/Geometry/ApollonGeometryConstraints.hpp"
+#include "TrackingPipeline/Infrastructure/ProcessCode.hpp"
+
+using go = ApollonGeometry::GeometryOptions;
 
 namespace {
 
@@ -42,6 +49,53 @@ struct AlignmentFunctionImpl : public AlignmentAlgorithm::AlignmentFunction {
 };
 
 }  // namespace
+
+double orthogonalLeastSquares(const std::vector<Acts::SourceLink>& sourceLinks,
+                              Acts::Vector3& a, Acts::Vector3& b, int minGeoId,
+                              int maxGeoId) {
+  Acts::Vector3 meanVector(0, 0, 0);
+
+  int nPoints = 0;
+  for (std::size_t i = 0; i < sourceLinks.size(); i++) {
+    const auto& sl = sourceLinks.at(i).get<SimpleSourceLink>();
+    if (sl.geometryId().sensitive() < minGeoId ||
+        sl.geometryId().sensitive() > maxGeoId) {
+      continue;
+    }
+    nPoints++;
+  }
+
+  Eigen::MatrixXf points = Eigen::MatrixXf::Constant(nPoints, 3, 0);
+  int k = 0;
+  for (std::size_t i = 0; i < sourceLinks.size(); i++) {
+    const auto& sl = sourceLinks.at(i).get<SimpleSourceLink>();
+    if (sl.geometryId().sensitive() < minGeoId ||
+        sl.geometryId().sensitive() > maxGeoId) {
+      continue;
+    }
+    Acts::Vector3 parameters = sl.parametersGlob();
+    points(k, 0) = parameters.x();
+    points(k, 1) = parameters.y();
+    points(k, 2) = parameters.z();
+
+    meanVector += parameters;
+    std::cout << "PARS " << parameters.transpose() << "\n";
+    k++;
+  }
+  meanVector /= nPoints;
+  a = meanVector;
+
+  Eigen::MatrixXf centered = points.rowwise() - points.colwise().mean();
+  Eigen::MatrixXf scatter = (centered.adjoint() * centered);
+
+  Eigen::SelfAdjointEigenSolver<Eigen::MatrixXf> eig(scatter);
+  Eigen::MatrixXf eigvecs = eig.eigenvectors();
+
+  b[0] = eigvecs(0, 2);
+  b[1] = eigvecs(1, 2);
+  b[2] = eigvecs(2, 2);
+  return eig.eigenvalues()(2);
+}
 
 std::shared_ptr<AlignmentAlgorithm::AlignmentFunction>
 AlignmentAlgorithm::makeAlignmentFunction(
@@ -74,15 +128,6 @@ AlignmentAlgorithm::AlignmentAlgorithm(Config cfg, Acts::Logging::Level lvl)
         "Missing output alignment parameters collection");
   }
 
-  if (m_cfg.anchorSurface != nullptr) {
-    SimpleSourceLink anchorSourceLink(
-        Acts::Vector2::Zero(),
-        m_cfg.anchorSurface->center(Acts::GeometryContext()),
-        Acts::SquareMatrix2::Identity(), m_cfg.anchorSurface->geometryId(), -1,
-        -1);
-    m_anchorSourceLink = std::make_shared<Acts::SourceLink>(anchorSourceLink);
-  }
-
   m_inputTrackCandidates.initialize(m_cfg.inputTrackCandidates);
   m_outputAlignmentParameters.initialize(m_cfg.outputAlignmentParameters);
 }
@@ -90,6 +135,9 @@ AlignmentAlgorithm::AlignmentAlgorithm(Config cfg, Acts::Logging::Level lvl)
 ProcessCode AlignmentAlgorithm::execute(const AlgorithmContext& ctx) const {
   // Read input data
   const auto& trackCandidates = m_inputTrackCandidates(ctx);
+  if (trackCandidates.empty()) {
+    return ProcessCode::SUCCESS;
+  }
 
   std::size_t numTracksUsed = trackCandidates.size();
 
@@ -102,12 +150,7 @@ ProcessCode AlignmentAlgorithm::execute(const AlgorithmContext& ctx) const {
     // The list of hits and the initial start parameters
     const auto& candidate = trackCandidates.at(i);
     sourceLinkTrackContainer.push_back(candidate.sourceLinks);
-    if (m_cfg.anchorSurface != nullptr) {
-      sourceLinkTrackContainer.back().push_back(*m_anchorSourceLink);
-      trackParametersContainer.push_back(candidate.ipParameters);
-    } else {
-      trackParametersContainer.push_back(candidate.ipParameters);
-    }
+    trackParametersContainer.push_back(candidate.ipParameters);
   }
 
   // Prepare the output for alignment parameters

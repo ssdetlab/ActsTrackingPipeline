@@ -28,6 +28,10 @@ class RootSimClusterReader : public IReader {
     /// Geometry ID scope
     int minGeoId;
     int maxGeoId;
+    /// Wheter to employ surfaces for local to global conversion
+    bool surfaceLocalToGlobal;
+    /// Surface map for high-precision local to global conversion
+    std::map<Acts::GeometryIdentifier, const Acts::Surface*> surfaceMap;
   };
 
   RootSimClusterReader(const RootSimClusterReader&) = delete;

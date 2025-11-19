@@ -33,6 +33,8 @@ class RootSimTrackReader : public IReader {
     /// Chi2 cut
     double minChi2;
     double maxChi2;
+    /// Merge into a single event flag
+    bool mergeIntoOneEvent;
   };
 
   RootSimTrackReader(const RootSimTrackReader&) = delete;

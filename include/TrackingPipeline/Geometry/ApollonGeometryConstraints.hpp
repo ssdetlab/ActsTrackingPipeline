@@ -115,13 +115,6 @@ struct GeometryOptions {
   const double toWorldAngleZ = M_PI_2;
 
   /// --------------------------------------------------------------
-  /// Parameters of the reference surface
-
-  /// Reference surface size in its local coordinates
-  const double referenceSurfaceHalfX = worldHalfLong;
-  const double referenceSurfaceHalfY = worldHalfShort;
-
-  /// --------------------------------------------------------------
   /// Parameters of the VC window
 
   const double vcWindowCenterPrimary = 1158.6_mm;
@@ -159,8 +152,8 @@ struct GeometryOptions {
   const double chipVolumeHalfSpacing = 1_mm;
 
   /// Distances within the detector box
-  const double tcWindowToFirstChipDistance = 11.81_mm;
-  const double tcWindowToLastChipDistance = 13.59_mm;
+  const double tcWindowToFirstChipDistance = 8.9_mm;
+  const double tcWindowToLastChipDistance = 8.7_mm;
   const double interChipDistance = 20_mm;
 
   /// Transverse volume parameters
@@ -173,22 +166,21 @@ struct GeometryOptions {
   /// --------------------------------------------------------------
   /// Parameters of the dipole
 
-  const double dipoleAlCoverThickness = 2_mm;
+  // const double dipoleAlCoverThickness = 2_mm;
+  const double dipoleAlCoverThickness = 0_mm;
 
-  const double dipoleHalfPrimary = 60.5_mm;
+  // const double dipoleHalfPrimary = 60.5_mm;
+  // const double dipoleHalfLong = 30_mm;
+  // const double dipoleHalfShort = 10_mm;
+  
+  const double dipoleHalfPrimary = 15.15_mm;
   const double dipoleHalfLong = 30_mm;
   const double dipoleHalfShort = 10_mm;
 
   const double dipoleFieldPrimary = 0;
   const double dipoleFieldLong = 0;
-  const double dipoleFieldShort = -0.35_T;
-
-  /// --------------------------------------------------------------
-  /// Reference surface placement
-
-  const SurfaceParameters referenceSurfaceParameters = SurfaceParameters(
-      {primaryBinValue, 0.1_mm, toWorldAngleX},
-      {longBinValue, 0, toWorldAngleY}, {shortBinValue, 0, toWorldAngleZ}, 1);
+  // const double dipoleFieldShort = -0.35_T;
+  const double dipoleFieldShort = 0_T;
 
   /// --------------------------------------------------------------
   /// First tracking chamber placement
@@ -199,57 +191,27 @@ struct GeometryOptions {
   const double tc1CenterLong = 0_mm;
   const double tc1CenterShort = 0_mm;
 
-  // const std::vector<SurfaceParameters> tc1Parameters{
-  //     SurfaceParameters({primaryBinValue, ipTc1Distance + 0 * interChipDistance,
-  //                        toWorldAngleX},
-  //                       {longBinValue, 7_um, toWorldAngleY},
-  //                       {shortBinValue, 17_um, toWorldAngleZ}, 10),
-  //     SurfaceParameters{{primaryBinValue, ipTc1Distance + 1 * interChipDistance,
-  //                        toWorldAngleX},
-  //                       {longBinValue, 50_um, toWorldAngleY},
-  //                       {shortBinValue, -10_um, toWorldAngleZ},
-  //                       12},
-  //     SurfaceParameters{{primaryBinValue, ipTc1Distance + 2 * interChipDistance,
-  //                        toWorldAngleX},
-  //                       {longBinValue, -50_um, toWorldAngleY},
-  //                       {shortBinValue, 10_um, toWorldAngleZ},
-  //                       14},
-  //     SurfaceParameters{{primaryBinValue, ipTc1Distance + 3 * interChipDistance,
-  //                        toWorldAngleX},
-  //                       {longBinValue, -35_um, toWorldAngleY},
-  //                       {shortBinValue, 35_um, toWorldAngleZ},
-  //                       16},
-  //     SurfaceParameters{{primaryBinValue, ipTc1Distance + 4 * interChipDistance,
-  //                        toWorldAngleX},
-  //                       {longBinValue, 35_um, toWorldAngleY},
-  //                       {shortBinValue, -35_um, toWorldAngleZ},
-  //                       18}};
   const std::vector<SurfaceParameters> tc1Parameters{
-      SurfaceParameters({primaryBinValue, ipTc1Distance + 0 *
-      interChipDistance,
+      SurfaceParameters({primaryBinValue, ipTc1Distance + 0 * interChipDistance,
                          toWorldAngleX},
                         {longBinValue, tc1CenterLong, toWorldAngleY},
                         {shortBinValue, tc1CenterShort, toWorldAngleZ}, 10),
-      SurfaceParameters{{primaryBinValue, ipTc1Distance + 1 *
-      interChipDistance,
+      SurfaceParameters{{primaryBinValue, ipTc1Distance + 1 * interChipDistance,
                          toWorldAngleX},
                         {longBinValue, tc1CenterLong, toWorldAngleY},
                         {shortBinValue, tc1CenterShort, toWorldAngleZ},
                         12},
-      SurfaceParameters{{primaryBinValue, ipTc1Distance + 2 *
-      interChipDistance,
+      SurfaceParameters{{primaryBinValue, ipTc1Distance + 2 * interChipDistance,
                          toWorldAngleX},
                         {longBinValue, tc1CenterLong, toWorldAngleY},
                         {shortBinValue, tc1CenterShort, toWorldAngleZ},
                         14},
-      SurfaceParameters{{primaryBinValue, ipTc1Distance + 3 *
-      interChipDistance,
+      SurfaceParameters{{primaryBinValue, ipTc1Distance + 3 * interChipDistance,
                          toWorldAngleX},
                         {longBinValue, tc1CenterLong, toWorldAngleY},
                         {shortBinValue, tc1CenterShort, toWorldAngleZ},
                         16},
-      SurfaceParameters{{primaryBinValue, ipTc1Distance + 4 *
-      interChipDistance,
+      SurfaceParameters{{primaryBinValue, ipTc1Distance + 4 * interChipDistance,
                          toWorldAngleX},
                         {longBinValue, tc1CenterLong, toWorldAngleY},
                         {shortBinValue, tc1CenterShort, toWorldAngleZ},
@@ -264,7 +226,8 @@ struct GeometryOptions {
   /// --------------------------------------------------------------
   /// Dipole placement
 
-  const double tc1DipoleDistance = 20_mm;
+  // const double tc1DipoleDistance = 20_mm;
+  const double tc1DipoleDistance = 4_mm;
   const double ipDipoleDistance =
       ipTc1Distance + interChipDistance * (tc1Parameters.size() - 1) +
       tcWindowToLastChipDistance + tc1DipoleDistance + dipoleAlCoverThickness;
@@ -281,7 +244,8 @@ struct GeometryOptions {
   /// --------------------------------------------------------------
   /// Second tracking chamber placement
 
-  const double dipoleTc2Distance = 20_mm;
+  // const double dipoleTc2Distance = 20_mm;
+  const double dipoleTc2Distance = 4_mm;
   const double ipTc2Distance = ipDipoleDistance + 2 * dipoleHalfPrimary +
                                dipoleAlCoverThickness + dipoleTc2Distance +
                                tcWindowToFirstChipDistance;
@@ -290,37 +254,6 @@ struct GeometryOptions {
   const double tc2CenterLong = 0_mm;
   const double tc2CenterShort = 0_mm;
 
-  // const std::vector<SurfaceParameters> tc2Parameters{
-  //     SurfaceParameters{{primaryBinValue, ipTc2Distance + 0 *
-  //     interChipDistance,
-  //                        toWorldAngleX},
-  //                       {longBinValue, -24_um, toWorldAngleY},
-  //                       {shortBinValue, -24_um, toWorldAngleZ},
-  //                       20},
-  //     SurfaceParameters{{primaryBinValue, ipTc2Distance + 1 *
-  //     interChipDistance,
-  //                        toWorldAngleX},
-  //                       {longBinValue, 48_um, toWorldAngleY},
-  //                       {shortBinValue, 124_um, toWorldAngleZ},
-  //                       22},
-  //     SurfaceParameters{{primaryBinValue, ipTc2Distance + 2 *
-  //     interChipDistance,
-  //                        toWorldAngleX},
-  //                       {longBinValue, 67_um, toWorldAngleY},
-  //                       {shortBinValue, -40_um, toWorldAngleZ},
-  //                       24},
-  //     SurfaceParameters{{primaryBinValue, ipTc2Distance + 3 *
-  //     interChipDistance,
-  //                        toWorldAngleX},
-  //                       {longBinValue, -67_um, toWorldAngleY},
-  //                       {shortBinValue, 40_um, toWorldAngleZ},
-  //                       26},
-  //     SurfaceParameters{{primaryBinValue, ipTc2Distance + 4 *
-  //     interChipDistance,
-  //                        toWorldAngleX},
-  //                       {longBinValue, -24_um, toWorldAngleY},
-  //                       {shortBinValue, -100_um, toWorldAngleZ},
-  //                       28}};
   const std::vector<SurfaceParameters> tc2Parameters{
       SurfaceParameters{{primaryBinValue, ipTc2Distance + 0 * interChipDistance,
                          toWorldAngleX},

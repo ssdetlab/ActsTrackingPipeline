@@ -29,22 +29,18 @@ namespace ApollonGeometry {
 using go = GeometryOptions;
 
 std::shared_ptr<const Acts::Experimental::Detector> buildDetector(
-    const Acts::GeometryContext& gctx, bool insertReferenceSurface) {
+    const Acts::GeometryContext& gctx) {
   const auto& goInst = *go::instance();
 
   std::vector<std::shared_ptr<Acts::Experimental::DetectorVolume>>
       detectorVolumes;
   std::size_t nVolumes =
-      (insertReferenceSurface)
-          ? goInst.tc1Parameters.size() + goInst.tc2Parameters.size() + 1
-          : goInst.tc1Parameters.size() + goInst.tc2Parameters.size() + 3;
+      goInst.tc1Parameters.size() + goInst.tc2Parameters.size() + 1;
   detectorVolumes.reserve(nVolumes);
 
   std::vector<std::shared_ptr<Acts::DetectorElementBase>> detectorElements;
   std::size_t nDetElements =
-      (insertReferenceSurface)
-          ? goInst.tc1Parameters.size() + goInst.tc2Parameters.size()
-          : goInst.tc1Parameters.size() + goInst.tc2Parameters.size() + 1;
+      goInst.tc1Parameters.size() + goInst.tc2Parameters.size();
   detectorElements.reserve(nDetElements);
 
   auto chipBounds = std::make_shared<Acts::RectangleBounds>(goInst.chipHalfX,
@@ -234,21 +230,8 @@ std::shared_ptr<const Acts::Experimental::Detector> buildDetector(
                     pars.geoId, {surf});
   };
 
-  if (insertReferenceSurface) {
-    auto referenceSurfaceBounds = std::make_shared<Acts::RectangleBounds>(
-        goInst.referenceSurfaceHalfX, goInst.referenceSurfaceHalfY);
-    auto referenceSurface = constructSurface(goInst.referenceSurfaceParameters,
-                                             referenceSurfaceBounds);
-    Acts::GeometryIdentifier referenceSurfaceGeoId;
-    referenceSurfaceGeoId.setSensitive(goInst.referenceSurfaceParameters.geoId);
-    referenceSurface->assignGeometryId(referenceSurfaceGeoId);
-
-    constructVolume(goInst.vcWindowCenterPrimary - goInst.chipVolumeHalfSpacing,
-                    0, "ipVol", goInst.ipVolumeIdPrefactor, {referenceSurface});
-  } else {
-    constructVolume(goInst.vcWindowCenterPrimary - goInst.chipVolumeHalfSpacing,
-                    0, "ipVol", goInst.ipVolumeIdPrefactor, {});
-  }
+  constructVolume(goInst.vcWindowCenterPrimary - goInst.chipVolumeHalfSpacing,
+                  0, "ipVol", goInst.ipVolumeIdPrefactor, {});
 
   constructVCWindow(goInst.vcWindowParameters);
   std::size_t lastVCVolumeIdx = detectorVolumes.size() - 1;

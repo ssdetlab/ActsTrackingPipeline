@@ -147,11 +147,13 @@ RootSimTrackReader::RootSimTrackReader(const Config& config,
   // Go through all entries and store the position of the events
   m_chain->GetEntry(0);
   m_eventMap.emplace_back(m_eventId, 0, 0);
-  for (std::size_t i = 0; i < nEntries; ++i) {
-    m_chain->GetEntry(i);
-    if (m_eventId != std::get<0>(m_eventMap.back())) {
-      std::get<2>(m_eventMap.back()) = i;
-      m_eventMap.emplace_back(m_eventId, i, i);
+  if (!m_cfg.mergeIntoOneEvent) {
+    for (std::size_t i = 0; i < nEntries; ++i) {
+      m_chain->GetEntry(i);
+      if (m_eventId != std::get<0>(m_eventMap.back())) {
+        std::get<2>(m_eventMap.back()) = i;
+        m_eventMap.emplace_back(m_eventId, i, i);
+      }
     }
   }
 

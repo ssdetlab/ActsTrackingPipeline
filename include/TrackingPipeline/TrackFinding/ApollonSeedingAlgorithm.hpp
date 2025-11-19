@@ -44,6 +44,12 @@ class ApollonSeedingAlgorithm : public IAlgorithm {
     double maxConnectionDistance;
     /// Scope of the seeding
     SeedingScope scope;
+    /// Min intersection counts in the detector
+    std::size_t minXCountDet1;
+    std::size_t minXCountDet2;
+    /// Max chi2 of the line fit in the detector
+    double maxLineChi2Det1;
+    double maxLineChi2Det2;
   };
 
   /// @brief Constructor

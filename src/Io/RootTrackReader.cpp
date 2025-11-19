@@ -2,11 +2,14 @@
 
 #include "Acts/Definitions/Algebra.hpp"
 #include "Acts/Definitions/TrackParametrization.hpp"
-#include "Acts/EventData/TrackParameters.hpp"
-#include "Acts/Utilities/Logger.hpp"
+#include <Acts/Definitions/PdgParticle.hpp>
+#include <Acts/EventData/TrackParameters.hpp>
+#include <Acts/Utilities/Logger.hpp>
 
 #include <stdexcept>
 #include <vector>
+
+#include <TFile.h>
 
 #include "TrackingPipeline/EventData/DataContainers.hpp"
 #include "TrackingPipeline/EventData/SimpleSourceLink.hpp"
@@ -25,7 +28,9 @@ RootTrackReader::RootTrackReader(const Config& config,
     throw std::invalid_argument("Missing tree name");
   }
 
-  m_chain = new TChain(m_cfg.treeName.c_str());
+  // m_chain = new TChain(m_cfg.treeName.c_str());
+  m_file = new TFile(m_cfg.filePaths.at(0).c_str());
+  m_chain = m_file->Get<TTree>(m_cfg.treeName.c_str());
 
   //------------------------------------------------------------------
   // Tree branches
@@ -87,40 +92,30 @@ RootTrackReader::RootTrackReader(const Config& config,
   // Event ID
   m_chain->SetBranchAddress("eventId", &m_eventId);
 
-  // PDG id
+  // PDG ID
   m_chain->SetBranchAddress("pdgId", &m_pdgId);
 
   // Charge
   m_chain->SetBranchAddress("charge", &m_charge);
 
   // Add the files to the chain
-  for (const auto& path : m_cfg.filePaths) {
-    m_chain->Add(path.c_str());
-  }
+  // for (const auto& path : m_cfg.filePaths) {
+  //   m_chain->Add(path.c_str());
+  // }
 
   // Disable all branches and only enable event-id for a first scan of the
   // file
-  // m_chain->SetBranchStatus("*", false);
-  // if (!m_chain->GetBranch("eventId")) {
-  //   throw std::invalid_argument("Missing eventId SetbranchAddress");
-  // }
-  // m_chain->SetBranchStatus("eventId", true);
+  m_chain->SetBranchStatus("*", false);
+  if (!m_chain->GetBranch("eventId")) {
+    throw std::invalid_argument("Missing eventId SetbranchAddress");
+  }
+  m_chain->SetBranchStatus("eventId", true);
   auto nEntries = static_cast<std::size_t>(m_chain->GetEntries());
 
   // Go through all entries and store the position of the events
-  if (m_cfg.batch) {
-    std::size_t evId = 0;
-    m_eventMap.emplace_back(evId, 0, 0);
-    for (std::size_t i = 0; i < nEntries / m_cfg.batchSize; ++i) {
-      m_eventMap.emplace_back(evId, i * m_cfg.batchSize,
-                              (i + 1) * m_cfg.batchSize);
-      evId++;
-    }
-  } else if (m_cfg.stack) {
-    m_eventMap.emplace_back(0, 0, nEntries - 1);
-  } else {
-    m_chain->GetEntry(0);
-    m_eventMap.emplace_back(m_eventId, 0, 0);
+  m_chain->GetEntry(0);
+  m_eventMap.emplace_back(m_eventId, 0, 0);
+  if (!m_cfg.mergeIntoOneEvent) {
     for (std::size_t i = 0; i < nEntries; ++i) {
       m_chain->GetEntry(i);
       if (m_eventId != std::get<0>(m_eventMap.back())) {
@@ -167,7 +162,6 @@ ProcessCode RootTrackReader::read(const AlgorithmContext& ctx) {
     }
 
     m_outputSourceLinks(ctx, {});
-    m_outputSeeds(ctx, {});
 
     // Return success flag
     return ProcessCode::SUCCESS;
@@ -183,12 +177,12 @@ ProcessCode RootTrackReader::read(const AlgorithmContext& ctx) {
   // Create IP covariance matrix from
   // reasonable standard deviations
   Acts::BoundVector ipStdDev;
-  ipStdDev[Acts::eBoundLoc0] = 1_mm;
-  ipStdDev[Acts::eBoundLoc1] = 1_mm;
+  ipStdDev[Acts::eBoundLoc0] = 100_um;
+  ipStdDev[Acts::eBoundLoc1] = 100_um;
   ipStdDev[Acts::eBoundTime] = 25_ns;
-  ipStdDev[Acts::eBoundPhi] = 1_degree;
-  ipStdDev[Acts::eBoundTheta] = 1_degree;
-  ipStdDev[Acts::eBoundQOverP] = 1 / 10_GeV;
+  ipStdDev[Acts::eBoundPhi] = 2_degree;
+  ipStdDev[Acts::eBoundTheta] = 2_degree;
+  ipStdDev[Acts::eBoundQOverP] = 1 / 100_GeV;
   Acts::BoundSquareMatrix ipCov = ipStdDev.cwiseProduct(ipStdDev).asDiagonal();
 
   // Create the measurements
@@ -200,15 +194,19 @@ ProcessCode RootTrackReader::read(const AlgorithmContext& ctx) {
   for (auto entry = std::get<1>(*it); entry < std::get<2>(*it); entry++) {
     m_chain->GetEntry(entry);
 
-    Acts::Vector4 vertex(m_vertexGuess->X(), m_vertexGuess->Y(),
-                         m_vertexGuess->Z(), 0);
-    Acts::Vector3 ipDirection(m_ipMomentumGuess->X(), m_ipMomentumGuess->Y(),
-                              m_ipMomentumGuess->Z());
-    ipDirection.normalize();
+    if (m_chi2Smoothed < m_cfg.minChi2 || m_chi2Smoothed > m_cfg.maxChi2) {
+      continue;
+    }
+
+    Acts::Vector4 vertexGuess(m_vertexGuess->X(), m_vertexGuess->Y(),
+                              m_vertexGuess->Z(), 0);
+    Acts::Vector3 ipDirectionGuess(
+        m_ipMomentumGuess->X(), m_ipMomentumGuess->Y(), m_ipMomentumGuess->Z());
+    ipDirectionGuess.normalize();
     Acts::ParticleHypothesis hypothesis =
         Acts::ParticleHypothesis(Acts::PdgParticle(m_pdgId));
     Acts::CurvilinearTrackParameters ipParameters(
-        vertex, ipDirection, m_charge / m_ipMomentumGuess->P(), ipCov,
+        vertexGuess, ipDirectionGuess, m_charge / m_ipMomentumGuess->P(), ipCov,
         hypothesis);
 
     std::vector<Acts::SourceLink> trackSourceLinks{};
@@ -221,7 +219,6 @@ ProcessCode RootTrackReader::read(const AlgorithmContext& ctx) {
       Acts::ActsSquareMatrix<2> cov;
       cov << m_trackHitCovs->at(i)(0, 0), m_trackHitCovs->at(i)(0, 1),
           m_trackHitCovs->at(i)(1, 0), m_trackHitCovs->at(i)(1, 1);
-      cov *= m_cfg.covAnnealingFactor;
 
       Acts::GeometryIdentifier geoId;
       geoId.setSensitive(m_geometryIds->at(i));
@@ -237,6 +234,7 @@ ProcessCode RootTrackReader::read(const AlgorithmContext& ctx) {
   }
 
   ACTS_DEBUG("Read " << sourceLinks.size() << " source links");
+  ACTS_DEBUG("Read " << simClusters.size() << " clusters");
   ACTS_DEBUG("Read " << seeds.size() << " seeds");
   m_outputSourceLinks(ctx, std::move(sourceLinks));
   m_outputSeeds(ctx, std::move(seeds));

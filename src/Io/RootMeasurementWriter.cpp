@@ -2,6 +2,7 @@
 
 #include "Acts/Definitions/Algebra.hpp"
 #include "Acts/EventData/SourceLink.hpp"
+#include <Acts/Utilities/Logger.hpp>
 
 #include <stdexcept>
 #include <vector>
@@ -49,15 +50,15 @@ ProcessCode RootMeasurementWriter::finalize() {
 ProcessCode RootMeasurementWriter::write(const AlgorithmContext& ctx) {
   auto inputMeasurements = m_inputMeasurements(ctx);
 
+  ACTS_DEBUG("Received " << inputMeasurements.size() << " measurements");
+
   std::lock_guard<std::mutex> lock(m_mutex);
 
   for (const auto& meas : inputMeasurements) {
     const auto& ssl = meas.get<SimpleSourceLink>();
-    const auto* surf = m_cfg.surfaceAccessor(meas);
 
     Acts::Vector2 geoCenterLocal = ssl.parametersLoc();
-    Acts::Vector3 geoCenterGlobal = surf->localToGlobal(
-        ctx.geoContext, ssl.parametersLoc(), Acts::Vector3(0, 1, 0));
+    Acts::Vector3 geoCenterGlobal = ssl.parametersGlob();
 
     m_geoCenterGlobal.SetX(geoCenterGlobal.x());
     m_geoCenterGlobal.SetY(geoCenterGlobal.y());

@@ -100,7 +100,8 @@ ProcessCode ApollonSeedingAlgorithm::execute(
     htSeederOpt1.lastLayerId = goInst.tc1Parameters.back().geoId;
     htSeederOpt1.nLayers = goInst.tc1Parameters.size();
 
-    htSeederOpt1.minCount = 4;
+    htSeederOpt1.minCount = m_cfg.minXCountDet1;
+    htSeederOpt1.maxChi2 = m_cfg.maxLineChi2Det1;
 
     std::vector<std::reference_wrapper<const Acts::SourceLink>>
         sourceLinkRefsDet1;
@@ -109,8 +110,6 @@ ProcessCode ApollonSeedingAlgorithm::execute(
       if (sl.get<SimpleSourceLink>().geometryId().sensitive() <=
           htSeederOpt1.lastLayerId) {
         sourceLinkRefsDet1.push_back(std::cref(sl));
-
-        const auto& ssl = sl.get<SimpleSourceLink>();
       }
     }
     sourceLinkRefsDet1.shrink_to_fit();
@@ -130,7 +129,8 @@ ProcessCode ApollonSeedingAlgorithm::execute(
     htSeederOpt2.lastLayerId = goInst.tc2Parameters.back().geoId;
     htSeederOpt2.nLayers = goInst.tc2Parameters.size();
 
-    htSeederOpt2.minCount = 4;
+    htSeederOpt2.minCount = m_cfg.minXCountDet2;
+    htSeederOpt2.maxChi2 = m_cfg.maxLineChi2Det2;
 
     std::vector<std::reference_wrapper<const Acts::SourceLink>>
         sourceLinkRefsDet2;
@@ -139,8 +139,6 @@ ProcessCode ApollonSeedingAlgorithm::execute(
       if (sl.get<SimpleSourceLink>().geometryId().sensitive() >=
           htSeederOpt2.firstLayerId) {
         sourceLinkRefsDet2.push_back(std::cref(sl));
-
-        const auto& ssl = sl.get<SimpleSourceLink>();
       }
     }
     sourceLinkRefsDet2.shrink_to_fit();
@@ -163,6 +161,7 @@ ProcessCode ApollonSeedingAlgorithm::execute(
                                             : m_det2FirstLayerNormal;
 
     outSeeds.reserve(htSeeds.size());
+    #pragma omp parallel for num_threads(32)
     for (std::size_t i = 0; i < htSeeds.size(); i++) {
       const auto& [point, dir, sl] = htSeeds.at(i);
       double dVertex =
@@ -249,12 +248,12 @@ Seeds ApollonSeedingAlgorithm::scanEnergy(
       double dDet2First =
           (m_det2FirstLayerPoint - point1).dot(m_det2FirstLayerNormal) /
           dir1.dot(m_det2FirstLayerNormal);
-      Acts::Vector3 det2FirstLayerPoint = point1 + dir1 * dDet2First;
+      Acts::Vector3 det2FirstLayerPoint1 = point1 + dir1 * dDet2First;
 
       double dDet2Last =
           (m_det2LastLayerPoint - point1).dot(m_det2LastLayerNormal) /
           dir1.dot(m_det2LastLayerNormal);
-      Acts::Vector3 det2LastLayerPoint = point1 + dir1 * dDet2Last;
+      Acts::Vector3 det2LastLayerPoint1 = point1 + dir1 * dDet2Last;
 
       for (std::size_t idx = 0; idx < activeIdxs.size(); idx++) {
         if (!activeIdxs.at(idx)) {
@@ -271,8 +270,8 @@ Seeds ApollonSeedingAlgorithm::scanEnergy(
             dir2.dot(m_det2LastLayerNormal);
         Acts::Vector3 det2LastLayerPoint2 = point2 + dir2 * dDet2Last2;
 
-        double dTot = (det2FirstLayerPoint - det2FirstLayerPoint2).norm() +
-                      (det2LastLayerPoint - det2LastLayerPoint2).norm();
+        double dTot = (det2FirstLayerPoint1 - det2FirstLayerPoint2).norm() +
+                      (det2LastLayerPoint1 - det2LastLayerPoint2).norm();
         if (dTot < dTotMin) {
           dTotMin = dTot;
           idxMin = idx;
@@ -295,6 +294,7 @@ Seeds ApollonSeedingAlgorithm::scanEnergy(
         dipoleExitDir[primaryIdx] = 1.0 / denom;
         dipoleExitDir[longIdx] = arg / denom;
         dipoleExitDir[shortIdx] = dirZ;
+        dipoleExitDir /= dipoleExitDir.norm();
 
         double zPrime =
             z + P * dirZ / B *

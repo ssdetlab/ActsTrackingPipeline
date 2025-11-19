@@ -47,6 +47,13 @@ find_package(
   REQUIRED
 )
 
+find_package(
+  eudaq_preprocessor
+  COMPONENTS
+  detector_event
+  REQUIRED
+)
+
 # Dictionary for the sim data
 add_library(SimEventDict SHARED)
 include_directories(
@@ -66,6 +73,7 @@ target_link_libraries(
     ROOT::RIO
     ROOT::Physics
     ROOT::GeomPainter
+    eudaq_preprocessor::detector_event
 )
 
 # Geant4 is required for the geometry
@@ -111,6 +119,7 @@ target_link_libraries(
     ActsPluginJson
     ActsPluginFpeMonitoring
     ActsAlignment
+    eudaq_preprocessor::detector_event
 )
 
 target_include_directories(

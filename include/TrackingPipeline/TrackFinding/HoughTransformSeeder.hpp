@@ -118,6 +118,8 @@ class HoughTransformSeeder {
     int nLayers;
 
     int minCount;
+
+    double maxChi2;
   };
 
   struct HTSeed {

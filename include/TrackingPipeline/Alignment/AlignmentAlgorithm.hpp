@@ -66,10 +66,6 @@ class AlignmentAlgorithm final : public IAlgorithm {
     std::vector<Acts::DetectorElementBase*> alignedDetElements;
     /// KF options
     Acts::KalmanFitterOptions<Acts::VectorMultiTrajectory> kfOptions;
-
-    /// Anchor surface
-    const Acts::Surface* anchorSurface = nullptr;
-
     /// Cutoff value for average chi2/ndf
     double chi2ONdfCutOff = 0.10;
     /// Cutoff value for delta of average chi2/ndf within a couple of iterations
@@ -98,8 +94,6 @@ class AlignmentAlgorithm final : public IAlgorithm {
 
  private:
   Config m_cfg;
-
-  std::shared_ptr<Acts::SourceLink> m_anchorSourceLink;
 
   ReadDataHandle<Seeds> m_inputTrackCandidates{this, "InputTrackCandidates"};
 
