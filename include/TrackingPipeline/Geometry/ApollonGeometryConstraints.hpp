@@ -255,11 +255,11 @@ struct GeometryOptions {
   const double tc2CenterShort = 0_mm;
 
   const std::vector<SurfaceParameters> tc2Parameters{
-      SurfaceParameters{{primaryBinValue, ipTc2Distance + 0 * interChipDistance,
-                         toWorldAngleX},
-                        {longBinValue, tc2CenterLong, toWorldAngleY},
-                        {shortBinValue, tc2CenterShort, toWorldAngleZ},
-                        20},
+      // SurfaceParameters{{primaryBinValue, ipTc2Distance + 0 * interChipDistance,
+      //                    toWorldAngleX},
+      //                   {longBinValue, tc2CenterLong, toWorldAngleY},
+      //                   {shortBinValue, tc2CenterShort, toWorldAngleZ},
+      //                   20},
       SurfaceParameters{{primaryBinValue, ipTc2Distance + 1 * interChipDistance,
                          toWorldAngleX},
                         {longBinValue, tc2CenterLong, toWorldAngleY},

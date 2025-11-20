@@ -22,6 +22,9 @@ ProcessCode KFTrackFittingAlgorithm::execute(const AlgorithmContext& ctx) const 
   for (const auto& candidate : inputCandidates) {
     const auto& start = candidate.ipParameters;
     const auto& sourceLinks = candidate.sourceLinks;
+    if (sourceLinks.empty()) {
+      continue;
+    }
 
     trackIds.push_back(candidate.trackId);
     ipParametersGuesses.push_back(candidate.ipParameters);
@@ -29,6 +32,9 @@ ProcessCode KFTrackFittingAlgorithm::execute(const AlgorithmContext& ctx) const 
     auto res = m_cfg.fitter.fit(sourceLinks.begin(), sourceLinks.end(), start,
                                 m_cfg.kfOptions, tracks);
   }
+  trackIds.shrink_to_fit();
+  ipParametersGuesses.shrink_to_fit();
+
   ACTS_DEBUG("Sending " << tracks.size() << " tracks");
   m_outputTracks(ctx, Tracks{tracks, trackIds, ipParametersGuesses});
 
