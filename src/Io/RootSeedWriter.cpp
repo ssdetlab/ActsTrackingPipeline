@@ -71,6 +71,9 @@ ProcessCode RootSeedWriter::write(const AlgorithmContext& ctx) {
         seed.sourceLinks | std::views::transform([](const auto& sl) {
           return sl.template get<SimpleSourceLink>();
         });
+    if (sourceLinks.empty()) {
+      continue;
+    }
 
     m_seedMeasurementsGlob.clear();
     m_seedMeasurementsLoc.clear();

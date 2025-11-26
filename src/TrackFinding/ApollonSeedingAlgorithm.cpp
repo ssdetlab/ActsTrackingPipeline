@@ -171,11 +171,14 @@ ProcessCode ApollonSeedingAlgorithm::execute(
       Acts::Vector3 vertex3 = point + dir * dVertex;
       Acts::Vector4 vertex(vertex3.x(), vertex3.y(), vertex3.z(), 0);
 
-      outSeeds.emplace_back(std::move(sl),
-                            Acts::CurvilinearTrackParameters(
-                                vertex, dir, -1_e / 1_GeV, m_ipCov,
-                                Acts::ParticleHypothesis::electron()),
-                            i);
+#pragma omp critical
+      {
+        outSeeds.emplace_back(sl,
+                              Acts::CurvilinearTrackParameters(
+                                  vertex, dir, -1_e / 1_GeV, m_ipCov,
+                                  Acts::ParticleHypothesis::electron()),
+                              i);
+      }
     }
   } else {
     outSeeds = scanEnergy(htSeedsDet1, htSeedsDet2);
@@ -183,7 +186,6 @@ ProcessCode ApollonSeedingAlgorithm::execute(
   ACTS_DEBUG("Found " << outSeeds.size() << " seeds");
   ACTS_DEBUG("Sending " << outSeeds.size() << " seeds");
   m_outputSeeds(ctx, std::move(outSeeds));
-
   return ProcessCode::SUCCESS;
 }
 
