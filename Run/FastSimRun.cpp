@@ -131,7 +131,7 @@ int main() {
   // Setup the sequencer
   Sequencer::Config seqCfg;
   seqCfg.numThreads = 1;
-  seqCfg.skip = 1;
+  seqCfg.skip = 0;
   seqCfg.trackFpes = false;
   seqCfg.logLevel = logLevel;
   Sequencer sequencer(seqCfg);
@@ -144,7 +144,7 @@ int main() {
   DummyReader::Config dummyReaderCfg;
   dummyReaderCfg.outputSourceLinks = "SimMeasurements";
   dummyReaderCfg.outputSimClusters = "SimClusters";
-  dummyReaderCfg.nEvents = 2;
+  dummyReaderCfg.nEvents = 100;
 
   sequencer.addReader(std::make_shared<DummyReader>(dummyReaderCfg));
 
@@ -177,7 +177,7 @@ int main() {
       std::make_shared<GaussianVertexGenerator>(vertexMean, vertexCov);
 
   auto momGen = std::make_shared<SphericalMomentumGenerator>();
-  momGen->pRange = {0.7_GeV, 0.7_GeV};
+  momGen->pRange = {0.1_GeV, 0.7_GeV};
   momGen->thetaRange = {M_PI_2 - 5e-3, M_PI_2 + 5e-3};
   momGen->phiRange = {-5e-3, 5e-3};
 
@@ -200,7 +200,7 @@ int main() {
   measCreatorAlgoCfg.measurementGenerator = measCreator;
   measCreatorAlgoCfg.randomNumberSvc =
       std::make_shared<RandomNumbers>(RandomNumbers::Config());
-  measCreatorAlgoCfg.nMeasurements = 1000;
+  measCreatorAlgoCfg.nMeasurements = 500;
 
   sequencer.addAlgorithm(std::make_shared<MeasurementsEmbeddingAlgorithm>(
       measCreatorAlgoCfg, logLevel));

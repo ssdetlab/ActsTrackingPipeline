@@ -88,8 +88,8 @@ int main() {
 
   AlignmentParametersProvider::Config alignmentProviderCfg1;
   alignmentProviderCfg1.filePath =
-      "/home/romanurmanov/work/Apollon/tracking/out_data/cosmic_data/"
-      "alignment/stave_1/aligned_2/"
+      "/home/romanurmanov/work/Apollon/tracking/out_data/Apollon_cosmic_data/"
+      "alignment/stave_1/aligned_1/"
       "alignment-parameters.root";
   alignmentProviderCfg1.treeName = "alignment-parameters";
   AlignmentParametersProvider alignmentProvider1(alignmentProviderCfg1);
@@ -97,8 +97,8 @@ int main() {
 
   AlignmentParametersProvider::Config alignmentProviderCfg2;
   alignmentProviderCfg2.filePath =
-      "/home/romanurmanov/work/Apollon/tracking/out_data/cosmic_data/"
-      "alignment/stave_0/aligned_2/"
+      "/home/romanurmanov/work/Apollon/tracking/out_data/Apollon_cosmic_data/"
+      "alignment/stave_0/aligned/"
       "alignment-parameters.root";
   alignmentProviderCfg2.treeName = "alignment-parameters";
   AlignmentParametersProvider alignmentProvider2(alignmentProviderCfg2);
@@ -212,12 +212,12 @@ int main() {
   readerCfg.outputMeasurements = "SimMeasurements";
   readerCfg.outputSeeds = "Seeds";
   readerCfg.minChi2 = 0;
-  readerCfg.maxChi2 = 40000;
+  readerCfg.maxChi2 = 3000;
   readerCfg.mergeIntoOneEvent = true;
 
   std::string pathToDir =
-      "/home/romanurmanov/work/Apollon/tracking/out_data/cosmic_data/"
-      "alignment/global/filtered_step1_2";
+      "/home/romanurmanov/work/Apollon/tracking/out_data/Apollon_cosmic_data/"
+      "alignment/global/filtered_step1";
 
   // Get the paths to the files in the directory
   for (const auto& entry : std::filesystem::directory_iterator(pathToDir)) {
@@ -319,9 +319,9 @@ int main() {
     const auto& surface = det->surface();
     const auto& geoId = surface.geometryId().sensitive();
     if (geoId &&
-        surface.geometryId().sensitive() >= 20) {
-        // surface.geometryId().sensitive() < 20 &&
-        // surface.geometryId().sensitive() != 10) {
+        surface.geometryId().sensitive() >= 22) {
+        // surface.geometryId().sensitive() >= 22 &&
+        // surface.geometryId().sensitive() != 22) {
       alignmentCfg.alignedDetElements.push_back(det.get());
     }
   }
@@ -392,7 +392,7 @@ int main() {
   seedWriterCfg.inputTruthClusters = "SimClusters";
   seedWriterCfg.treeName = "seeds";
   seedWriterCfg.filePath =
-      "/home/romanurmanov/work/Apollon/tracking/out_data/cosmic_data/"
+      "/home/romanurmanov/work/Apollon/tracking/out_data/Apollon_cosmic_data/"
       "alignment/"
       "seeds.root";
 
@@ -408,7 +408,7 @@ int main() {
   trackWriterCfg.inputTracks = "Tracks";
   trackWriterCfg.treeName = "fitted-tracks";
   trackWriterCfg.filePath =
-      "/home/romanurmanov/work/Apollon/tracking/out_data/cosmic_data/"
+      "/home/romanurmanov/work/Apollon/tracking/out_data/Apollon_cosmic_data/"
       "alignment/"
       "fitted-tracks.root";
 
@@ -420,7 +420,7 @@ int main() {
   alignmentWriterCfg.treeName = "alignment-parameters";
   alignmentWriterCfg.inputAlignmentResults = "AlignmentParameters";
   alignmentWriterCfg.filePath =
-      "/home/romanurmanov/work/Apollon/tracking/out_data/cosmic_data/"
+      "/home/romanurmanov/work/Apollon/tracking/out_data/Apollon_cosmic_data/"
       "alignment/"
       "alignment-parameters.root";
 

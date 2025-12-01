@@ -69,7 +69,7 @@ int main() {
   // --------------------------------------------------------------
   // Detector setup
 
-  auto detector = ApollonGeometry::buildDetector(gctx, true);
+  auto detector = ApollonGeometry::buildDetector(gctx);
 
   std::map<Acts::GeometryIdentifier, const Acts::Surface*> surfaceMap;
   for (const auto& vol : detector->volumes()) {
@@ -92,6 +92,8 @@ int main() {
       "alignment/det1/aligned/"
       "alignment-parameters.root";
   alignmentProviderCfg1.treeName = "alignment-parameters";
+  AlignmentParametersProvider alignmentProvider1(alignmentProviderCfg1);
+  auto aStore1 = alignmentProvider1.getAlignmentStore();
 
   AlignmentParametersProvider::Config alignmentProviderCfg2;
   alignmentProviderCfg2.filePath =
@@ -99,14 +101,10 @@ int main() {
       "alignment/det2/aligned/"
       "alignment-parameters.root";
   alignmentProviderCfg2.treeName = "alignment-parameters";
-
-  AlignmentParametersProvider alignmentProvider1(alignmentProviderCfg1);
   AlignmentParametersProvider alignmentProvider2(alignmentProviderCfg2);
-
-  auto aStore1 = alignmentProvider1.getAlignmentStore();
   auto aStore2 = alignmentProvider2.getAlignmentStore();
-  auto aStore = std::make_shared<AlignmentContext::AlignmentStore>();
 
+  auto aStore = std::make_shared<AlignmentContext::AlignmentStore>();
   for (const auto& entry : *aStore1) {
     aStore->insert(entry);
   }
@@ -215,7 +213,8 @@ int main() {
   readerCfg.outputSimClusters = "SimClusters";
   readerCfg.outputSeeds = "Seeds";
   readerCfg.minChi2 = 0;
-  readerCfg.maxChi2 = 50;
+  readerCfg.maxChi2 = 20;
+  readerCfg.mergeIntoOneEvent = true;
 
   std::string pathToDir =
       "/home/romanurmanov/work/Apollon/tracking/out_data/fast_sim_data/"
@@ -312,7 +311,7 @@ int main() {
       .kfOptions = alignmentKFOptions,
       .chi2ONdfCutOff = 1e-3,
       .deltaChi2ONdfCutOff = {10, 1e-5},
-      .maxNumIterations = 200,
+      .maxNumIterations = 10,
       .alignmentMask = (ActsAlignment::AlignmentMask::Center1 |
                         ActsAlignment::AlignmentMask::Center2 |
                         ActsAlignment::AlignmentMask::Rotation2),
@@ -321,16 +320,12 @@ int main() {
   for (auto& det : detector->detectorElements()) {
     const auto& surface = det->surface();
     const auto& geoId = surface.geometryId().sensitive();
-    if (geoId && geoId != goInst.referenceSurfaceParameters.geoId &&
-        surface.geometryId().sensitive() >= 20) {
-      // surface.geometryId().sensitive() >= 20 &&
-      // surface.geometryId().sensitive() != 20) {
+    if (geoId && surface.geometryId().sensitive() >= 20) {
+      // surface.geometryId().sensitive() < 20 &&
+      // surface.geometryId().sensitive() != 10) {
       alignmentCfg.alignedDetElements.push_back(det.get());
     }
   }
-  Acts::GeometryIdentifier anchorGeoId;
-  anchorGeoId.setSensitive(goInst.referenceSurfaceParameters.geoId);
-  alignmentCfg.anchorSurface = detector->findSurface(anchorGeoId);
 
   auto alignmentAlgorithm =
       std::make_shared<AlignmentAlgorithm>(alignmentCfg, logLevel);

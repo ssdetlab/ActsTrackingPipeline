@@ -85,8 +85,8 @@ int main() {
 
   AlignmentParametersProvider::Config alignmentProviderCfg1;
   alignmentProviderCfg1.filePath =
-      "/home/romanurmanov/work/Apollon/tracking/out_data/cosmic_data/"
-      "alignment/stave_1/aligned_2/"
+      "/home/romanurmanov/work/Apollon/tracking/out_data/Apollon_cosmic_data/"
+      "alignment/stave_1/aligned_1/"
       "alignment-parameters.root";
   alignmentProviderCfg1.treeName = "alignment-parameters";
   AlignmentParametersProvider alignmentProvider1(alignmentProviderCfg1);
@@ -94,9 +94,8 @@ int main() {
 
   AlignmentParametersProvider::Config alignmentProviderCfg2;
   alignmentProviderCfg2.filePath =
-      "/home/romanurmanov/work/Apollon/tracking/out_data/cosmic_data/"
-      // "alignment/stave_0/aligned_2/"
-      "alignment/global/aligned_2/"
+      "/home/romanurmanov/work/Apollon/tracking/out_data/Apollon_cosmic_data/"
+      "alignment/stave_0/aligned/"
       "alignment-parameters.root";
   alignmentProviderCfg2.treeName = "alignment-parameters";
   AlignmentParametersProvider alignmentProvider2(alignmentProviderCfg2);
@@ -183,7 +182,7 @@ int main() {
   readerCfg.maxGeoId = 28;
   readerCfg.surfaceMap = surfaceMap;
   std::string pathToDir =
-      "/home/romanurmanov/work/Apollon/eudaq_data/processed/alignment_test/"
+      "/home/romanurmanov/work/Apollon/eudaq_data/processed/Apollon_alignment/"
       "global";
 
   // Get the paths to the files in the directory
@@ -214,26 +213,27 @@ int main() {
   htSeederCfg.nCellsThetaY = 500;
   htSeederCfg.nCellsRhoY = 4000;
 
-  htSeederCfg.minSeedSize = 5;
-  htSeederCfg.maxSeedSize = 1000;
-
   htSeederCfg.nLSIterations = 2;
 
   ApollonSeedingAlgorithm::Config seedingAlgoCfg;
   seedingAlgoCfg.htSeeder = std::make_shared<HoughTransformSeeder>(htSeederCfg);
   seedingAlgoCfg.inputSourceLinks = "Measurements";
   seedingAlgoCfg.outputSeeds = "Seeds";
-  seedingAlgoCfg.minLayers = 10;
-  seedingAlgoCfg.maxLayers = 10;
-  seedingAlgoCfg.minSeedSize = 10;
+  seedingAlgoCfg.minLayers = 9;
+  seedingAlgoCfg.maxLayers = 9;
+  seedingAlgoCfg.minSeedSize = 9;
   seedingAlgoCfg.maxSeedSize = 100;
   seedingAlgoCfg.minScanEnergy = 1_GeV;
   seedingAlgoCfg.maxScanEnergy = 1_GeV;
   seedingAlgoCfg.energyScanStep = 0.001_GeV;
-  seedingAlgoCfg.maxConnectionDistance = 1.0;
+  seedingAlgoCfg.maxConnectionDistance = 2.0;
   seedingAlgoCfg.scope = ApollonSeedingAlgorithm::SeedingScope::fullDetector;
   seedingAlgoCfg.minXCountDet1 = 4;
-  seedingAlgoCfg.minXCountDet2 = 4;
+  seedingAlgoCfg.minXCountDet2 = 3;
+  seedingAlgoCfg.minSeedSizeDet1 = 5;
+  seedingAlgoCfg.maxSeedSizeDet1 = 100;
+  seedingAlgoCfg.minSeedSizeDet2 = 4;
+  seedingAlgoCfg.maxSeedSizeDet2 = 100;
   seedingAlgoCfg.maxLineChi2Det1 = 1e-2;
   seedingAlgoCfg.maxLineChi2Det2 = 1e-2;
 
@@ -331,7 +331,7 @@ int main() {
   measurementWriterCfg.inputMeasurements = "Measurements";
   measurementWriterCfg.treeName = "measurements";
   measurementWriterCfg.filePath =
-      "/home/romanurmanov/work/Apollon/tracking/out_data/cosmic_data/"
+      "/home/romanurmanov/work/Apollon/tracking/out_data/Apollon_cosmic_data/"
       "measurements.root";
 
   sequencer.addWriter(
@@ -342,7 +342,7 @@ int main() {
   seedWriterCfg.inputSeeds = "Seeds";
   seedWriterCfg.treeName = "seeds";
   seedWriterCfg.filePath =
-      "/home/romanurmanov/work/Apollon/tracking/out_data/cosmic_data/"
+      "/home/romanurmanov/work/Apollon/tracking/out_data/Apollon_cosmic_data/"
       "seeds.root";
 
   sequencer.addWriter(
@@ -357,7 +357,7 @@ int main() {
   trackWriterCfg.inputTracks = "Tracks";
   trackWriterCfg.treeName = "fitted-tracks";
   trackWriterCfg.filePath =
-      "/home/romanurmanov/work/Apollon/tracking/out_data/cosmic_data/"
+      "/home/romanurmanov/work/Apollon/tracking/out_data/Apollon_cosmic_data/"
       "fitted-tracks.root";
 
   sequencer.addWriter(
