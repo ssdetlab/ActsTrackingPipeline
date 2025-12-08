@@ -100,7 +100,10 @@ ProcessCode ApollonSeedingAlgorithm::execute(
     htSeederOpt1.lastLayerId = goInst.tc1Parameters.back().geoId;
     htSeederOpt1.nLayers = goInst.tc1Parameters.size();
 
-    htSeederOpt1.minCount = m_cfg.minXCountDet1;
+    htSeederOpt1.minXCount = m_cfg.minXCountDet1;
+    htSeederOpt1.minSeedSize = m_cfg.minSeedSizeDet1;
+    htSeederOpt1.maxSeedSize = m_cfg.maxSeedSizeDet1;
+
     htSeederOpt1.maxChi2 = m_cfg.maxLineChi2Det1;
 
     std::vector<std::reference_wrapper<const Acts::SourceLink>>
@@ -129,7 +132,10 @@ ProcessCode ApollonSeedingAlgorithm::execute(
     htSeederOpt2.lastLayerId = goInst.tc2Parameters.back().geoId;
     htSeederOpt2.nLayers = goInst.tc2Parameters.size();
 
-    htSeederOpt2.minCount = m_cfg.minXCountDet2;
+    htSeederOpt2.minXCount = m_cfg.minXCountDet2;
+    htSeederOpt2.minSeedSize = m_cfg.minSeedSizeDet2;
+    htSeederOpt2.maxSeedSize = m_cfg.maxSeedSizeDet2;
+
     htSeederOpt2.maxChi2 = m_cfg.maxLineChi2Det2;
 
     std::vector<std::reference_wrapper<const Acts::SourceLink>>
@@ -161,7 +167,7 @@ ProcessCode ApollonSeedingAlgorithm::execute(
                                             : m_det2FirstLayerNormal;
 
     outSeeds.reserve(htSeeds.size());
-    #pragma omp parallel for num_threads(32)
+#pragma omp parallel for num_threads(32)
     for (std::size_t i = 0; i < htSeeds.size(); i++) {
       const auto& [point, dir, sl] = htSeeds.at(i);
       double dVertex =
@@ -277,6 +283,44 @@ Seeds ApollonSeedingAlgorithm::scanEnergy(
         if (dTot < dTotMin) {
           dTotMin = dTot;
           idxMin = idx;
+
+          if (dTotMin < m_cfg.maxConnectionDistance) {
+            std::size_t totSize =
+                sl1.size() + det2Seeds.at(idxMin).sourceLinks.size();
+            if (totSize < m_cfg.minSeedSize || totSize > m_cfg.maxSeedSize) {
+              continue;
+            }
+            std::set<int> geoIdSet;
+            for (const auto& sl : sl1) {
+              geoIdSet.insert(
+                  sl.get<SimpleSourceLink>().geometryId().sensitive());
+            }
+            for (const auto& sl : det2Seeds.at(idxMin).sourceLinks) {
+              geoIdSet.insert(
+                  sl.get<SimpleSourceLink>().geometryId().sensitive());
+            }
+            if (geoIdSet.size() < m_cfg.minLayers ||
+                geoIdSet.size() > m_cfg.maxLayers) {
+              continue;
+            }
+
+            std::vector<Acts::SourceLink> seedSourceLinks;
+            seedSourceLinks.reserve(totSize);
+            seedSourceLinks.insert(seedSourceLinks.end(), sl1.begin(),
+                                   sl1.end());
+            seedSourceLinks.insert(seedSourceLinks.end(),
+                                   det2Seeds.at(idxMin).sourceLinks.begin(),
+                                   det2Seeds.at(idxMin).sourceLinks.end());
+
+            Acts::CurvilinearTrackParameters startPars(
+                Acts::Vector4(det1FirstLayerPoint.x(), det1FirstLayerPoint.y(),
+                              det1FirstLayerPoint.z(), 0),
+                dir1, -1_e / minP, m_ipCov,
+                Acts::ParticleHypothesis::electron());
+
+            outSeeds.emplace_back(std::move(seedSourceLinks),
+                                  std::move(startPars), outSeeds.size());
+          }
         }
       }
     } else {
@@ -341,39 +385,6 @@ Seeds ApollonSeedingAlgorithm::scanEnergy(
           }
         }
       }
-    }
-    if (dTotMin < m_cfg.maxConnectionDistance) {
-      std::size_t totSize =
-          sl1.size() + det2Seeds.at(idxMin).sourceLinks.size();
-      if (totSize < m_cfg.minSeedSize || totSize > m_cfg.maxSeedSize) {
-        continue;
-      }
-      std::set<int> geoIdSet;
-      for (const auto& sl : sl1) {
-        geoIdSet.insert(sl.get<SimpleSourceLink>().geometryId().sensitive());
-      }
-      for (const auto& sl : det2Seeds.at(idxMin).sourceLinks) {
-        geoIdSet.insert(sl.get<SimpleSourceLink>().geometryId().sensitive());
-      }
-      if (geoIdSet.size() < m_cfg.minLayers ||
-          geoIdSet.size() > m_cfg.maxLayers) {
-        continue;
-      }
-
-      std::vector<Acts::SourceLink> seedSourceLinks;
-      seedSourceLinks.reserve(totSize);
-      seedSourceLinks.insert(seedSourceLinks.end(), sl1.begin(), sl1.end());
-      seedSourceLinks.insert(seedSourceLinks.end(),
-                             det2Seeds.at(idxMin).sourceLinks.begin(),
-                             det2Seeds.at(idxMin).sourceLinks.end());
-
-      Acts::CurvilinearTrackParameters startPars(
-          Acts::Vector4(det1FirstLayerPoint.x(), det1FirstLayerPoint.y(),
-                        det1FirstLayerPoint.z(), 0),
-          dir1, -1_e / minP, m_ipCov, Acts::ParticleHypothesis::electron());
-
-      outSeeds.emplace_back(std::move(seedSourceLinks), std::move(startPars),
-                            outSeeds.size());
     }
   }
   return outSeeds;

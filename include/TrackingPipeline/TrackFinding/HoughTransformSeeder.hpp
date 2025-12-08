@@ -102,9 +102,6 @@ class HoughTransformSeeder {
     std::size_t nCellsThetaY;
     std::size_t nCellsRhoY;
 
-    std::size_t minSeedSize;
-    std::size_t maxSeedSize;
-
     std::size_t nLSIterations;
   };
 
@@ -117,7 +114,9 @@ class HoughTransformSeeder {
     int lastLayerId;
     int nLayers;
 
-    int minCount;
+    int minXCount;
+    std::size_t minSeedSize;
+    std::size_t maxSeedSize;
 
     double maxChi2;
   };

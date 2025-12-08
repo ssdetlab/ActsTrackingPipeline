@@ -124,7 +124,7 @@ std::vector<HoughTransformSeeder::HTSeed> HoughTransformSeeder::findSeeds(
       const auto &[cell, count] = *bIt;
       std::uint16_t lBound = 0;
       std::uint16_t rBound = 0;
-      if (count < opt.minCount) {
+      if (count < opt.minXCount) {
         continue;
       } else {
         lBound = 2;
@@ -196,14 +196,14 @@ std::vector<HoughTransformSeeder::HTSeed> HoughTransformSeeder::findSeeds(
       double rc = 0;
       for (auto it = seedSlIdxs.begin(); it != rootEndIt; it++) {
         std::vector<int> trackContainer;
-        trackContainer.reserve(m_cfg.minSeedSize);
+        trackContainer.reserve(opt.minSeedSize);
 
         std::vector<std::vector<int>> splitSeedSlIdxs;
         IdxTree idxTree(seedSlIdxs, it, rootEndIt);
         constructTracks(idxTree.m_root, trackContainer, splitSeedSlIdxs);
         for (const auto &seed : splitSeedSlIdxs) {
-          if (seed.size() < m_cfg.minSeedSize ||
-              seed.size() > m_cfg.maxSeedSize) {
+          if (seed.size() < opt.minSeedSize ||
+              seed.size() > opt.maxSeedSize) {
             continue;
           }
           std::vector<Acts::SourceLink> seedSourceLinks;
@@ -258,7 +258,7 @@ void HoughTransformSeeder::fillVotingMap(VotingMap &votingMap,
     int geoId = sl.get().get<SimpleSourceLink>().geometryId().sensitive();
     clusters[geoId].push_back(sl);
   }
-  if (clusters.size() < m_cfg.minSeedSize) {
+  if (clusters.size() < opt.minSeedSize) {
     return;
   }
   geoIds.reserve(clusters.size());

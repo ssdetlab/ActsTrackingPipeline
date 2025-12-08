@@ -47,6 +47,12 @@ class ApollonSeedingAlgorithm : public IAlgorithm {
     /// Min intersection counts in the detector
     std::size_t minXCountDet1;
     std::size_t minXCountDet2;
+    /// Min intersection counts in the detector
+    std::size_t minSeedSizeDet1;
+    std::size_t maxSeedSizeDet1;
+
+    std::size_t minSeedSizeDet2;
+    std::size_t maxSeedSizeDet2;
     /// Max chi2 of the line fit in the detector
     double maxLineChi2Det1;
     double maxLineChi2Det2;
