@@ -1,12 +1,13 @@
 #pragma once
 
+#include "Acts/EventData/SourceLink.hpp"
 #include "Acts/EventData/TrackParameters.hpp"
 #include "Acts/EventData/VectorMultiTrajectory.hpp"
-#include "Acts/EventData/VectorTrackContainer.hpp"
-#include "Acts/Geometry/GeometryHierarchyMap.hpp"
 #include "Acts/MagneticField/MagneticFieldProvider.hpp"
+#include "Acts/Surfaces/Surface.hpp"
 #include "Acts/TrackFitting/KalmanFitter.hpp"
 #include "ActsAlignment/Kernel/Alignment.hpp"
+#include <ActsAlignment/Kernel/AlignmentMask.hpp>
 
 #include <memory>
 #include <vector>
@@ -14,36 +15,6 @@
 #include "TrackingPipeline/EventData/DataContainers.hpp"
 #include "TrackingPipeline/Infrastructure/DataHandle.hpp"
 #include "TrackingPipeline/Infrastructure/IAlgorithm.hpp"
-
-class AlignmentGroup {
- public:
-  AlignmentGroup(const std::string& name,
-                 const std::vector<Acts::GeometryIdentifier>& geoIds)
-      : m_name(name), m_map(constructHierarchyMap(geoIds)) {}
-
-  // Access the name of the group
-  std::string getNameOfGroup() const { return m_name; }
-
-  // Useful for testing
-  bool has(Acts::GeometryIdentifier geoId) {
-    auto it = m_map.find(geoId);
-    return (it == m_map.end()) ? false : *it;
-  }
-
- private:
-  //  storing the name in the class
-  std::string m_name;
-  Acts::GeometryHierarchyMap<bool> m_map;
-
-  Acts::GeometryHierarchyMap<bool> constructHierarchyMap(
-      const std::vector<Acts::GeometryIdentifier>& geoIds) {
-    std::vector<Acts::GeometryHierarchyMap<bool>::InputElement> ies;
-    for (const auto& geoId : geoIds) {
-      ies.emplace_back(geoId, true);
-    }
-    return Acts::GeometryHierarchyMap<bool>(ies);
-  }
-};
 
 class AlignmentTransformUpdater {
  public:
@@ -79,16 +50,14 @@ class AlignmentAlgorithm final : public IAlgorithm {
   /// The magnetic field is intentionally given by-value since the variant
   /// contains shared_ptr anyway.
   static std::shared_ptr<AlignmentFunction> makeAlignmentFunction(
-      std::shared_ptr<const Acts::Experimental::Detector> detector,
-      std::shared_ptr<const Acts::MagneticFieldProvider> magneticField);
+      const std::shared_ptr<const Acts::Experimental::Detector>& detector,
+      const std::shared_ptr<const Acts::MagneticFieldProvider>& magneticField);
 
   struct Config {
     /// Input track candidates
     std::string inputTrackCandidates;
     /// Output aligned parameters collection.
     std::string outputAlignmentParameters;
-    /// Reference suface
-    const Acts::Surface* referenceSurface;
     /// Type erased fitter function.
     std::shared_ptr<AlignmentFunction> align;
     /// The aligned transform updater
@@ -97,17 +66,18 @@ class AlignmentAlgorithm final : public IAlgorithm {
     std::vector<Acts::DetectorElementBase*> alignedDetElements;
     /// KF options
     Acts::KalmanFitterOptions<Acts::VectorMultiTrajectory> kfOptions;
-    /// The alignment mask at each iteration
-    std::map<unsigned int, std::bitset<6>> iterationState;
     /// Cutoff value for average chi2/ndf
     double chi2ONdfCutOff = 0.10;
     /// Cutoff value for delta of average chi2/ndf within a couple of iterations
     std::pair<std::size_t, double> deltaChi2ONdfCutOff = {10, 0.00001};
     /// Maximum number of iterations
     std::size_t maxNumIterations = 100;
-    /// Number of tracks to be used for alignment
-    int maxNumTracks = -1;
-    std::vector<AlignmentGroup> m_groups;
+    /// Alignment mask
+    ActsAlignment::AlignmentMask alignmentMask =
+        ActsAlignment::AlignmentMask::All;
+    /// Alignment mode
+    ActsAlignment::AlignmentMode alignmentMode =
+        ActsAlignment::AlignmentMode::local;
   };
 
   /// Constructor of the alignment algorithm

@@ -65,9 +65,10 @@ std::optional<TrackLookupGrid::index_t> TrackLookupProvider::findClosestFilled(
     }
   }
   for (const auto& n : neighbours) {
-    Acts::Vector2 newDir{
-        static_cast<int>(n.at(0)) - static_cast<int>(bin.at(0)),
-        static_cast<int>(n.at(1)) - static_cast<int>(bin.at(1))};
+    Acts::Vector2 newDir{static_cast<std::int32_t>(n.at(0)) -
+                             static_cast<std::int32_t>(bin.at(0)),
+                         static_cast<std::int32_t>(n.at(1)) -
+                             static_cast<std::int32_t>(bin.at(1))};
     auto res = findClosestFilled(grid, n, newDir);
     if (res.has_value()) {
       return res;
@@ -81,7 +82,7 @@ TrackLookupProvider::lookup(const Acts::GeometryContext& gctx,
                             const Acts::SourceLink& pivot) const {
   auto ssl = pivot.get<SimpleSourceLink>();
 
-  Acts::Vector2 localPos = ssl.parameters();
+  Acts::Vector2 localPos = ssl.parametersLoc();
   Acts::GeometryIdentifier geoId = ssl.geometryId();
 
   auto bin = m_lookup->at(geoId).localBinsFromPosition(localPos);

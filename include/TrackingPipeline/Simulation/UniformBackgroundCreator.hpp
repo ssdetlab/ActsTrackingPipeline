@@ -34,6 +34,8 @@ class UniformBackgroundCreator : public IMeasurementGenerator {
   std::tuple<std::vector<Acts::SourceLink>, SimClusters> gen(
       const AlgorithmContext& ctx, RandomEngine& rng,
       std::size_t id) const override {
+    int index = static_cast<int>(id);
+
     std::uniform_real_distribution uniform(0.0, 1.0);
 
     std::vector<Acts::SourceLink> sourceLinks;
@@ -48,8 +50,11 @@ class UniformBackgroundCreator : public IMeasurementGenerator {
         double x = bounds.at(0) + uniform(rng) * (bounds.at(2) - bounds.at(0));
         double y = bounds.at(1) + uniform(rng) * (bounds.at(3) - bounds.at(1));
 
-        SimpleSourceLink ssl(Acts::Vector2(x, y), m_cov, surf->geometryId(),
-                             ctx.eventNumber, i);
+        Acts::Vector2 hitLoc = Acts::Vector2(x, y);
+        SimpleSourceLink ssl(
+            hitLoc,
+            surf->localToGlobal(ctx.geoContext, hitLoc, Acts::Vector3::UnitX()),
+            m_cov, surf->geometryId(), ctx.eventNumber, index + i);
         sourceLinks.push_back(Acts::SourceLink(ssl));
 
         SimCluster cluster{ssl, {}, false};

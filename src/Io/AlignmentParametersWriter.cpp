@@ -54,14 +54,14 @@ ProcessCode AlignmentParametersWriter::write(const AlgorithmContext& ctx) {
   ACTS_DEBUG("Received " << inputParameters.size() << " alignment results");
   std::lock_guard<std::mutex> lock(m_mutex);
 
+  Acts::GeometryContext defGctx;
   for (const auto& [detElement, transform] : inputParameters) {
     m_geoId = detElement->surface().geometryId().sensitive();
 
     ACTS_DEBUG("Surface " << m_geoId);
-    Acts::Vector3 nominalTrans =
-        detElement->transform(Acts::GeometryContext()).translation();
+    Acts::Vector3 nominalTrans = detElement->transform(defGctx).translation();
     Acts::RotationMatrix3 nominalRotMat =
-        detElement->transform(Acts::GeometryContext()).rotation();
+        detElement->transform(defGctx).rotation();
 
     ACTS_DEBUG("Nominal translation " << nominalTrans.transpose());
     ACTS_DEBUG("Nominal rotation\n" << nominalRotMat);

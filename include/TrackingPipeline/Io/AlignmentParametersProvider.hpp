@@ -1,21 +1,15 @@
 #pragma once
 
-#include "Acts/Geometry/GeometryIdentifier.hpp"
-#include <Acts/Definitions/Algebra.hpp>
-
 #include <memory>
 
 #include "TFile.h"
 #include "TMatrixD.h"
 #include "TTree.h"
 #include "TVector3.h"
+#include "TrackingPipeline/Alignment/AlignmentContext.hpp"
 
 class AlignmentParametersProvider {
  public:
-  using AlignmentParameters =
-      std::map<Acts::GeometryIdentifier,
-               std::pair<Acts::Vector3, Acts::RotationMatrix3>>;
-
   /// @brief The nested configuration struct
   struct Config {
     /// Name of the input tree
@@ -30,8 +24,7 @@ class AlignmentParametersProvider {
   AlignmentParametersProvider(const Config& config);
 
   /// Write out data to the input stream
-  std::pair<Acts::Vector3, Acts::RotationMatrix3>& getAlignedTransform(
-      const Acts::GeometryIdentifier& geoId);
+  std::shared_ptr<AlignmentContext::AlignmentStore> getAlignmentStore();
 
   /// Readonly access to the config
   const Config& config() const { return m_cfg; }
@@ -48,7 +41,7 @@ class AlignmentParametersProvider {
 
  protected:
   /// Alignment store
-  std::shared_ptr<AlignmentParameters> m_store = nullptr;
+  std::shared_ptr<AlignmentContext::AlignmentStore> m_store = nullptr;
 
   /// Detector element geometry ID
   int m_geoId;

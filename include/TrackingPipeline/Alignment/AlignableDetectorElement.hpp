@@ -7,13 +7,12 @@
 #include "Acts/Surfaces/Surface.hpp"
 
 #include <memory>
-#include <stdexcept>
 
 #include "TrackingPipeline/Alignment/AlignmentContext.hpp"
 
 class AlignableDetectorElement : public Acts::DetectorElementBase {
  public:
-  AlignableDetectorElement(std::shared_ptr<Acts::Surface> surface,
+  AlignableDetectorElement(const std::shared_ptr<Acts::Surface>& surface,
                            const Acts::Transform3& transform)
       : m_surface(surface), m_transform(transform) {}
 
@@ -27,12 +26,12 @@ class AlignableDetectorElement : public Acts::DetectorElementBase {
     if (!gctx.hasValue()) {
       return nominalTransform();
     }
-    const auto& alignContext = gctx.get<AlignmentContext&>();
-    if (alignContext.alignmentStore != nullptr &&
-        !alignContext.alignmentStore->empty()) {
-      return alignContext.alignmentStore->at(surface().geometryId());
+    const auto& store = gctx.get<AlignmentContext&>().alignmentStore();
+    const auto& geoId = m_surface->geometryId();
+    if (store.contains(geoId)) {
+      return store.at(geoId);
     } else {
-      throw std::runtime_error("Invalid alignment context");
+      return nominalTransform();
     }
   }
 

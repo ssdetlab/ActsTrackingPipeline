@@ -1,13 +1,12 @@
 #pragma once
 
+#include "Acts/Definitions/TrackParametrization.hpp"
 #include "Acts/EventData/SourceLink.hpp"
 #include "Acts/EventData/TrackContainer.hpp"
 #include "Acts/EventData/TrackParameters.hpp"
 #include "Acts/EventData/TrackProxy.hpp"
 #include "Acts/EventData/VectorMultiTrajectory.hpp"
 #include "Acts/EventData/VectorTrackContainer.hpp"
-#include <Acts/Definitions/TrackParametrization.hpp>
-#include <Acts/Utilities/Holders.hpp>
 
 #include <memory>
 #include <vector>
@@ -20,6 +19,8 @@
 struct SimHit {
   /// True parameters at the surface
   Acts::BoundVector truthParameters;
+  /// Global hit position
+  Acts::Vector3 globalPosition;
   /// True IP parameters
   Acts::CurvilinearTrackParameters ipParameters;
   /// True track Ids
@@ -63,7 +64,6 @@ struct Seed {
 /// @brief Collection of Seeds
 using Seeds = std::vector<Seed>;
 
-
 /// @brief Collection of Tracks
 using ActsTracks =
     Acts::TrackContainer<Acts::VectorTrackContainer,
@@ -72,4 +72,6 @@ struct Tracks {
   ActsTracks tracks;
   std::vector<int> trackIds;
   std::vector<Acts::CurvilinearTrackParameters> ipParametersGuesses;
+
+  std::size_t size() const { return tracks.size(); }
 };

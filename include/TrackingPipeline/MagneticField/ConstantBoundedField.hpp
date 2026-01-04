@@ -2,6 +2,7 @@
 
 #include "Acts/Geometry/Extent.hpp"
 #include "Acts/MagneticField/MagneticFieldProvider.hpp"
+#include <Acts/Utilities/BinningType.hpp>
 
 /// @brief Constant magnetic field with bounded region
 ///
@@ -23,9 +24,9 @@ class ConstantBoundedField : public Acts::MagneticFieldProvider {
   ///
   /// @param BField magnetic field vector
   /// @param BFieldExtent magnetic field extent
-  explicit ConstantBoundedField(const Acts::Vector3& BField,
-                                const Acts::Extent& BFieldExtent)
-      : m_BField(BField), m_Extent(BFieldExtent) {}
+  explicit ConstantBoundedField(const Acts::Vector3& field,
+                                const Acts::Extent& fieldExtent)
+      : m_field(field), m_extent(fieldExtent) {}
 
   /// @brief Get the magnetic field at a given position
   ///
@@ -37,8 +38,15 @@ class ConstantBoundedField : public Acts::MagneticFieldProvider {
       MagneticFieldProvider::Cache& cache) const override {
     (void)cache;
 
-    return (m_Extent.contains(position))
-               ? Acts::Result<Acts::Vector3>::success(m_BField)
+    bool containsX = (position.x() > m_extent.min(Acts::BinningValue::binX)) &&
+                     (position.x() < m_extent.max(Acts::BinningValue::binX));
+    bool containsY = (position.y() > m_extent.min(Acts::BinningValue::binY)) &&
+                     (position.y() < m_extent.max(Acts::BinningValue::binY));
+    bool containsZ = (position.z() > m_extent.min(Acts::BinningValue::binZ)) &&
+                     (position.z() < m_extent.max(Acts::BinningValue::binZ));
+
+    return (containsX && containsY && containsZ)
+               ? Acts::Result<Acts::Vector3>::success(m_field)
                : Acts::Result<Acts::Vector3>::success(Acts::Vector3::Zero());
   }
 
@@ -53,9 +61,7 @@ class ConstantBoundedField : public Acts::MagneticFieldProvider {
       MagneticFieldProvider::Cache& cache) const override {
     (void)derivative;
     (void)cache;
-    return (m_Extent.contains(position))
-               ? Acts::Result<Acts::Vector3>::success(m_BField)
-               : Acts::Result<Acts::Vector3>::success(Acts::Vector3::Zero());
+    return Acts::Result<Acts::Vector3>::success(Acts::Vector3::Zero());
   }
 
   /// @brief Get the magnetic field cache
@@ -68,8 +74,9 @@ class ConstantBoundedField : public Acts::MagneticFieldProvider {
   }
 
  private:
-  /// magnetic field vector
-  Acts::Vector3 m_BField;
-  /// magnetic field extent
-  Acts::Extent m_Extent;
+  /// Uagnetic field vector
+  Acts::Vector3 m_field;
+
+  /// Magnetic field extent
+  Acts::Extent m_extent;
 };

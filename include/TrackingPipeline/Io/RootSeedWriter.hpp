@@ -2,9 +2,8 @@
 
 #include <cstddef>
 
-#include <TLorentzVector.h>
-
 #include "TFile.h"
+#include "TLorentzVector.h"
 #include "TTree.h"
 #include "TrackingPipeline/EventData/DataContainers.hpp"
 #include "TrackingPipeline/Infrastructure/AlgorithmContext.hpp"
@@ -18,12 +17,12 @@ class RootSeedWriter : public IWriter {
   struct Config {
     /// Fitted track collection
     std::string inputSeeds;
+    /// Truth cluster data
+    std::string inputTruthClusters;
     /// Name of the input tree
     std::string treeName;
     /// The names of the input files
     std::string filePath;
-    /// Surface accessor
-    Acts::SourceLinkSurfaceAccessor surfaceAccessor;
   };
 
   RootSeedWriter(const RootSeedWriter &) = delete;
@@ -64,25 +63,27 @@ class RootSeedWriter : public IWriter {
   TTree *m_tree = nullptr;
 
  protected:
-  /// Pivot position
-  TVector3 m_geoCenterPivot;
-
   /// Measurements in a given seed
-  std::vector<TVector3> m_seedMeasurements;
+  std::vector<TVector3> m_seedMeasurementsGlob;
+  std::vector<TVector2> m_seedMeasurementsLoc;
+  std::vector<int> m_geoIds;
+
+  /// Event ID of the seed
+  std::size_t m_eventId;
 
   /// Number of source links
   /// in a seed
   std::size_t m_size;
 
-  /// Number of unique layers
-  /// in a seed
-  std::size_t m_nLayers;
+  /// Track ID of the seed
+  std::size_t m_trackId;
 
   /// Estimated momentum, vertex at the IP
   /// associated with a pivot
   TLorentzVector m_ipMomentumEst;
-  TLorentzVector m_vertexEst;
+  TVector3 m_vertexEst;
 
   /// Mutex to protect the tree filling
   std::mutex m_mutex;
 };
+;

@@ -4,12 +4,16 @@
 
 RandomNumbers::RandomNumbers(const Config& cfg) : m_cfg(cfg) {}
 
-RandomEngine RandomNumbers::spawnGenerator(
-    const AlgorithmContext& context) const {
-        return RandomEngine(generateSeed(context));
+RandomEngine RandomNumbers::spawnGenerator() const {
+  return RandomEngine(
+      std::chrono::system_clock::now().time_since_epoch().count());
 }
 
-uint64_t RandomNumbers::generateSeed(
+RandomEngine RandomNumbers::spawnGenerator(
     const AlgorithmContext& context) const {
-        return m_cfg.seed + context.eventNumber;
+  return RandomEngine(generateSeed(context));
+}
+
+uint64_t RandomNumbers::generateSeed(const AlgorithmContext& context) const {
+  return m_cfg.seed + context.eventNumber;
 }

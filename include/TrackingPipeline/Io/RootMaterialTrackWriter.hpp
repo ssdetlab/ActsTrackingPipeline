@@ -89,7 +89,7 @@ class RootMaterialTrackWriter : public IWriter {
   TTree* m_outputTree = nullptr;
 
   /// Event identifier.
-  std::size_t m_eventId = 0;
+  uint32_t m_eventId = 0;
 
   /// start global x
   float m_v_x = 0;
@@ -152,7 +152,7 @@ class RootMaterialTrackWriter : public IWriter {
   /// ID of the surface associated with the step
   std::vector<std::uint64_t> m_sur_id;
   /// Type of the surface associated with the step
-  std::vector<int> m_sur_type;
+  std::vector<int32_t> m_sur_type;
   /// x position of the center of the surface associated with the step
   std::vector<float> m_sur_x;
   /// y position of the center of the surface associated with the step

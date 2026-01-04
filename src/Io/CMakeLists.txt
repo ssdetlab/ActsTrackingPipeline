@@ -17,10 +17,8 @@ target_sources(
     RootTrackCandidateWriter.cpp
     RootTrackWriter.cpp
     RootTrackReader.cpp
-    RootNoamSplitDataReader.cpp
     JsonTrackLookupReader.cpp
     JsonTrackLookupWriter.cpp
     AlignmentParametersWriter.cpp
     AlignmentParametersProvider.cpp
-    E320RootDataReader.cpp
 )

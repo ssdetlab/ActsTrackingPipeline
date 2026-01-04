@@ -9,8 +9,11 @@
 #include <stdexcept>
 #include <vector>
 
+#include <TFile.h>
+
 #include "TrackingPipeline/EventData/DataContainers.hpp"
 #include "TrackingPipeline/EventData/SimpleSourceLink.hpp"
+#include "TrackingPipeline/Infrastructure/ProcessCode.hpp"
 
 using namespace Acts::UnitLiterals;
 
@@ -26,7 +29,9 @@ RootSimClusterReader::RootSimClusterReader(const Config& config,
     throw std::invalid_argument("Missing tree name");
   }
 
-  m_chain = new TChain(m_cfg.treeName.c_str());
+  // m_chain = new TChain(m_cfg.treeName.c_str());
+  m_file = new TFile(m_cfg.filePaths.at(0).c_str());
+  m_chain = m_file->Get<TTree>(m_cfg.treeName.c_str());
 
   //------------------------------------------------------------------
   // Tree branches
@@ -35,9 +40,11 @@ RootSimClusterReader::RootSimClusterReader(const Config& config,
 
   // Parameters at measurements
   m_chain->SetBranchAddress("geoCenterLocal", &m_geoCenterLocal);
+  m_chain->SetBranchAddress("geoCenterGlobal", &m_geoCenterGlobal);
   m_chain->SetBranchAddress("cov", &m_cov);
   m_chain->SetBranchAddress("geoId", &m_geoId);
-  m_chain->SetBranchAddress("trackHitsLocal", &m_trackHits);
+  m_chain->SetBranchAddress("trackHitsLocal", &m_trackHitsLoc);
+  m_chain->SetBranchAddress("trackHitsGlobal", &m_trackHitsGlob);
   m_chain->SetBranchAddress("eventId", &m_eventId);
   m_chain->SetBranchAddress("charge", &m_charge);
   m_chain->SetBranchAddress("pdgId", &m_pdgId);
@@ -56,17 +63,17 @@ RootSimClusterReader::RootSimClusterReader(const Config& config,
   m_chain->SetBranchAddress("isSignal", &m_isSignal);
 
   // Add the files to the chain
-  for (const auto& path : m_cfg.filePaths) {
-    m_chain->Add(path.c_str());
-  }
+  // for (const auto& path : m_cfg.filePaths) {
+  //   m_chain->Add(path.c_str());
+  // }
 
   // Disable all branches and only enable event-id for a first scan of the
   // file
-  /*m_chain->SetBranchStatus("*", false);*/
-  /*if (!m_chain->GetBranch("eventId")) {*/
-  /*  throw std::invalid_argument("Missing eventId branch");*/
-  /*}*/
-  /*m_chain->SetBranchStatus("eventId", true);*/
+  m_chain->SetBranchStatus("*", false);
+  if (!m_chain->GetBranch("eventId")) {
+    throw std::invalid_argument("Missing eventId branch");
+  }
+  m_chain->SetBranchStatus("eventId", true);
   auto nEntries = static_cast<std::size_t>(m_chain->GetEntries());
 
   // Go through all entries and store the position of the events
@@ -93,8 +100,17 @@ RootSimClusterReader::RootSimClusterReader(const Config& config,
                              << availableEvents().second);
 
   // Initialize the data handles
-  m_outputSourceLinks.initialize(m_cfg.outputMeasurements);
+  m_outputSourceLinks.initialize(m_cfg.outputSourceLinks);
   m_outputSimClusters.initialize(m_cfg.outputSimClusters);
+
+  Acts::BoundVector ipStdDev;
+  ipStdDev[Acts::eBoundLoc0] = 100_um;
+  ipStdDev[Acts::eBoundLoc1] = 100_um;
+  ipStdDev[Acts::eBoundTime] = 25_ns;
+  ipStdDev[Acts::eBoundPhi] = 2_degree;
+  ipStdDev[Acts::eBoundTheta] = 2_degree;
+  ipStdDev[Acts::eBoundQOverP] = 1 / 100_GeV;
+  m_ipCov = ipStdDev.cwiseProduct(ipStdDev).asDiagonal();
 }
 
 std::pair<std::size_t, std::size_t> RootSimClusterReader::availableEvents()
@@ -131,17 +147,6 @@ ProcessCode RootSimClusterReader::read(const AlgorithmContext& ctx) {
                                << " stored in entries: " << std::get<1>(*it)
                                << " - " << std::get<2>(*it));
 
-  // Create IP covariance matrix from
-  // reasonable standard deviations
-  Acts::BoundVector ipStdDev;
-  ipStdDev[Acts::eBoundLoc0] = 100_um;
-  ipStdDev[Acts::eBoundLoc1] = 100_um;
-  ipStdDev[Acts::eBoundTime] = 25_ns;
-  ipStdDev[Acts::eBoundPhi] = 2_degree;
-  ipStdDev[Acts::eBoundTheta] = 2_degree;
-  ipStdDev[Acts::eBoundQOverP] = 1 / 100_GeV;
-  Acts::BoundSquareMatrix ipCov = ipStdDev.cwiseProduct(ipStdDev).asDiagonal();
-
   // Create the measurements
   std::vector<Acts::SourceLink> sourceLinks{};
   SimClusters simClusters{};
@@ -150,18 +155,35 @@ ProcessCode RootSimClusterReader::read(const AlgorithmContext& ctx) {
   for (auto entry = std::get<1>(*it); entry < std::get<2>(*it); entry++) {
     m_chain->GetEntry(entry);
 
-    Acts::Vector2 geoCenterLocal(m_geoCenterLocal->X(), m_geoCenterLocal->Y());
-    Acts::ActsSquareMatrix<2> cov;
-    cov << (*m_cov)(0, 0), (*m_cov)(0, 1), (*m_cov)(1, 0), (*m_cov)(1, 1);
+    if (m_geoId < m_cfg.minGeoId || m_geoId > m_cfg.maxGeoId) {
+      continue;
+    }
 
     Acts::GeometryIdentifier geoId;
     geoId.setSensitive(m_geoId);
-    SimpleSourceLink obsSourceLink(geoCenterLocal, cov, geoId, eventId, sslIdx);
+
+    Acts::Vector2 geoCenterLocal(m_geoCenterLocal->X(), m_geoCenterLocal->Y());
+
+    Acts::Vector3 geoCenterGlobal;
+    if (m_cfg.surfaceLocalToGlobal) {
+      geoCenterGlobal = m_cfg.surfaceMap.at(geoId)->localToGlobal(
+          ctx.geoContext, geoCenterLocal, Acts::Vector3::UnitX());
+    } else {
+      geoCenterGlobal =
+          Acts::Vector3(m_geoCenterGlobal->X(), m_geoCenterGlobal->Y(),
+                        m_geoCenterGlobal->Z());
+    }
+
+    Acts::ActsSquareMatrix<2> cov;
+    cov << (*m_cov)(0, 0), (*m_cov)(0, 1), (*m_cov)(1, 0), (*m_cov)(1, 1);
+
+    SimpleSourceLink obsSourceLink(geoCenterLocal, geoCenterGlobal, cov, geoId,
+                                   eventId, sslIdx);
     sourceLinks.push_back(Acts::SourceLink{obsSourceLink});
 
     SimHits hits;
-    hits.reserve(m_trackHits->size());
-    for (std::size_t i = 0; i < m_trackHits->size(); i++) {
+    hits.reserve(m_trackHitsLoc->size());
+    for (std::size_t i = 0; i < m_trackHitsLoc->size(); i++) {
       Acts::Vector4 vertex(m_vertex->at(i).X(), m_vertex->at(i).Y(),
                            m_vertex->at(i).Z(), 0);
       Acts::Vector3 ipDirection(m_originMomentum->at(i).X(),
@@ -171,18 +193,23 @@ ProcessCode RootSimClusterReader::read(const AlgorithmContext& ctx) {
       Acts::ParticleHypothesis hypothesis(Acts::PdgParticle(m_pdgId->at(i)));
       Acts::CurvilinearTrackParameters ipParameters(
           vertex, ipDirection, m_charge->at(i) / m_originMomentum->at(i).P(),
-          ipCov, hypothesis);
+          m_ipCov, hypothesis);
 
       Acts::BoundVector truthParameters;
-      truthParameters[Acts::eBoundLoc0] = m_trackHits->at(i).X();
-      truthParameters[Acts::eBoundLoc1] = m_trackHits->at(i).Y();
+      truthParameters[Acts::eBoundLoc0] = m_trackHitsLoc->at(i).X();
+      truthParameters[Acts::eBoundLoc1] = m_trackHitsLoc->at(i).Y();
       truthParameters[Acts::eBoundPhi] = m_onSurfaceMomentum->at(i).Phi();
       truthParameters[Acts::eBoundTheta] = m_onSurfaceMomentum->at(i).Theta();
       truthParameters[Acts::eBoundQOverP] =
           m_charge->at(i) / m_onSurfaceMomentum->at(i).P();
 
-      SimHit trackHit{truthParameters, ipParameters, m_trackId->at(i),
-                      m_parentTrackId->at(i), m_runId->at(i)};
+      Acts::Vector3 trueTrackHitGlobal(m_trackHitsGlob->at(i).X(),
+                                       m_trackHitsGlob->at(i).Y(),
+                                       m_trackHitsGlob->at(i).Z());
+
+      SimHit trackHit{std::move(truthParameters), std::move(trueTrackHitGlobal),
+                      std::move(ipParameters),    m_trackId->at(i),
+                      m_parentTrackId->at(i),     m_runId->at(i)};
       hits.push_back(trackHit);
     }
     SimCluster cluster{obsSourceLink, hits, static_cast<bool>(m_isSignal)};

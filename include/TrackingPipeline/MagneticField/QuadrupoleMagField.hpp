@@ -25,8 +25,7 @@ class QuadrupoleMagField : public Acts::MagneticFieldProvider {
   /// @param origin quadrupole origin
   /// @param rotation quadrupole orientation
   QuadrupoleMagField(double gradient, const Acts::Vector3& origin,
-                     const Acts::RotationMatrix3& rotation, double length,
-                     double order);
+                     const Acts::RotationMatrix3& rotation);
 
   ~QuadrupoleMagField() override;
 
@@ -63,8 +62,6 @@ class QuadrupoleMagField : public Acts::MagneticFieldProvider {
       const Acts::MagneticFieldContext& mctx) const override;
 
  private:
-  double m_width = 0.0;
-  double m_order = 0.0;
   double m_gradient = 0.0;
   Acts::Vector3 m_origin = Acts::Vector3(0.0, 0.0, 0.0);
   Acts::RotationMatrix3 m_rotation = Acts::RotationMatrix3::Identity();

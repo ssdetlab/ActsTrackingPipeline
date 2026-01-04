@@ -9,6 +9,8 @@
 #include <stdexcept>
 #include <vector>
 
+#include <TFile.h>
+
 #include "TrackingPipeline/EventData/DataContainers.hpp"
 #include "TrackingPipeline/EventData/SimpleSourceLink.hpp"
 
@@ -26,7 +28,10 @@ RootSimTrackReader::RootSimTrackReader(const Config& config,
     throw std::invalid_argument("Missing tree name");
   }
 
-  m_chain = new TChain(m_cfg.treeName.c_str());
+  // m_chain = new TChain(m_cfg.treeName.c_str());
+
+  m_file = new TFile(m_cfg.filePaths.at(0).c_str());
+  m_chain = m_file->Get<TTree>(m_cfg.treeName.c_str());
 
   //------------------------------------------------------------------
   // Tree branches
@@ -103,10 +108,11 @@ RootSimTrackReader::RootSimTrackReader(const Config& config,
   m_chain->SetBranchAddress("chi2Smoothed", &m_chi2Smoothed);
   m_chain->SetBranchAddress("ndf", &m_ndf);
 
-  // Matching degree between the true and the fitted track
-  m_chain->SetBranchAddress("matchingDegree", &m_matchingDegree);
-
   // Track ID
+  m_chain->SetBranchAddress("stateTrackId", &m_stateTrackId);
+  m_chain->SetBranchAddress("stateParentTrackId", &m_stateParentTrackId);
+  m_chain->SetBranchAddress("stateRunId", &m_stateRunId);
+
   m_chain->SetBranchAddress("trackId", &m_trackId);
   m_chain->SetBranchAddress("parentTrackId", &m_parentTrackId);
   m_chain->SetBranchAddress("runId", &m_runId);
@@ -116,39 +122,32 @@ RootSimTrackReader::RootSimTrackReader(const Config& config,
 
   // True track size
   m_chain->SetBranchAddress("trueTrackSize", &m_trueTrackSize);
+  m_chain->SetBranchAddress("capturedTrackSize", &m_capturedTrackSize);
 
-  // PDG id
+  // PDG ID
   m_chain->SetBranchAddress("pdgId", &m_pdgId);
 
   // Charge
   m_chain->SetBranchAddress("charge", &m_charge);
 
   // Add the files to the chain
-  for (const auto& path : m_cfg.filePaths) {
-    m_chain->Add(path.c_str());
-  }
+  // for (const auto& path : m_cfg.filePaths) {
+  //   m_chain->Add(path.c_str());
+  // }
 
   // Disable all branches and only enable event-id for a first scan of the
   // file
-  /*m_chain->SetBranchStatus("*", false);*/
-  /*if (!m_chain->GetBranch("eventId")) {*/
-  /*  throw std::invalid_argument("Missing eventId SetbranchAddress");*/
-  /*}*/
-  /*m_chain->SetBranchStatus("eventId", true);*/
+  m_chain->SetBranchStatus("*", false);
+  if (!m_chain->GetBranch("eventId")) {
+    throw std::invalid_argument("Missing eventId SetbranchAddress");
+  }
+  m_chain->SetBranchStatus("eventId", true);
   auto nEntries = static_cast<std::size_t>(m_chain->GetEntries());
 
   // Go through all entries and store the position of the events
-  if (m_cfg.batch) {
-    std::size_t evId = 0;
-    m_eventMap.emplace_back(evId, 0, 0);
-    for (std::size_t i = 0; i < nEntries / m_cfg.batchSize; ++i) {
-      m_eventMap.emplace_back(evId, i * m_cfg.batchSize,
-                              (i + 1) * m_cfg.batchSize);
-      evId++;
-    }
-  } else {
-    m_chain->GetEntry(0);
-    m_eventMap.emplace_back(m_eventId, 0, 0);
+  m_chain->GetEntry(0);
+  m_eventMap.emplace_back(m_eventId, 0, 0);
+  if (!m_cfg.mergeIntoOneEvent) {
     for (std::size_t i = 0; i < nEntries; ++i) {
       m_chain->GetEntry(i);
       if (m_eventId != std::get<0>(m_eventMap.back())) {
@@ -172,7 +171,7 @@ RootSimTrackReader::RootSimTrackReader(const Config& config,
 
   // Initialize the data handles
   m_outputSourceLinks.initialize(m_cfg.outputMeasurements);
-  m_outputSimClusters.initialize(m_cfg.outputClusters);
+  m_outputSimClusters.initialize(m_cfg.outputSimClusters);
   m_outputSeeds.initialize(m_cfg.outputSeeds);
 }
 
@@ -230,41 +229,36 @@ ProcessCode RootSimTrackReader::read(const AlgorithmContext& ctx) {
   for (auto entry = std::get<1>(*it); entry < std::get<2>(*it); entry++) {
     m_chain->GetEntry(entry);
 
-    /*if (m_matchingDegree != 1) {*/
-    /*  m_outputSourceLinks(ctx, {});*/
-    /*  m_outputSimClusters(ctx, {});*/
-    /**/
-    /*  // Return success flag*/
-    /*  return ProcessCode::SUCCESS;*/
-    /*}*/
-    if (m_matchingDegree != 1) {
+    if (m_chi2Smoothed < m_cfg.minChi2 || m_chi2Smoothed > m_cfg.maxChi2) {
       continue;
     }
 
-    Acts::Vector4 vertex(m_vertexGuess->X(), m_vertexGuess->Y(),
-                         m_vertexGuess->Z(), 0);
-    Acts::Vector3 ipDirection(m_ipMomentumGuess->X(), m_ipMomentumGuess->Y(),
-                              m_ipMomentumGuess->Z());
-    ipDirection.normalize();
+    Acts::Vector4 vertexGuess(m_vertexGuess->X(), m_vertexGuess->Y(),
+                              m_vertexGuess->Z(), 0);
+    Acts::Vector3 ipDirectionGuess(
+        m_ipMomentumGuess->X(), m_ipMomentumGuess->Y(), m_ipMomentumGuess->Z());
+    ipDirectionGuess.normalize();
     Acts::ParticleHypothesis hypothesis =
         Acts::ParticleHypothesis(Acts::PdgParticle(m_pdgId));
     Acts::CurvilinearTrackParameters ipParameters(
-        vertex, ipDirection, m_charge / m_ipMomentumGuess->P(), ipCov,
+        vertexGuess, ipDirectionGuess, m_charge / m_ipMomentumGuess->P(), ipCov,
         hypothesis);
 
     std::vector<Acts::SourceLink> trackSourceLinks{};
     for (std::size_t i = 0; i < m_trueTrackHitsGlobal->size(); i++) {
       Acts::Vector2 trackHitLocal(m_trackHitsLocal->at(i).X(),
                                   m_trackHitsLocal->at(i).Y());
+      Acts::Vector3 trackHitGlobal(m_trackHitsGlobal->at(i).X(),
+                                   m_trackHitsGlobal->at(i).Y(),
+                                   m_trackHitsGlobal->at(i).Z());
       Acts::ActsSquareMatrix<2> cov;
       cov << m_trackHitCovs->at(i)(0, 0), m_trackHitCovs->at(i)(0, 1),
           m_trackHitCovs->at(i)(1, 0), m_trackHitCovs->at(i)(1, 1);
-      cov *= m_cfg.covAnnealingFactor;
 
       Acts::GeometryIdentifier geoId;
       geoId.setSensitive(m_geometryIds->at(i));
-      SimpleSourceLink obsSourceLink(trackHitLocal, cov, geoId, eventId,
-                                     sslIdx);
+      SimpleSourceLink obsSourceLink(trackHitLocal, trackHitGlobal, cov, geoId,
+                                     eventId, sslIdx);
       sourceLinks.push_back(Acts::SourceLink{obsSourceLink});
       trackSourceLinks.push_back(Acts::SourceLink{obsSourceLink});
 
@@ -277,8 +271,16 @@ ProcessCode RootSimTrackReader::read(const AlgorithmContext& ctx) {
       truthParameters[Acts::eBoundTheta] = m_onSurfaceMomentum->at(i).Theta();
       truthParameters[Acts::eBoundQOverP] =
           m_charge / m_onSurfaceMomentum->at(i).P();
-      SimHit hit{truthParameters, ipParameters, m_trackId->at(i),
-                 m_parentTrackId->at(i), m_runId->at(i)};
+
+      Acts::Vector3 trueTrackHitGlobal(m_trueTrackHitsGlobal->at(i).X(),
+                                       m_trueTrackHitsGlobal->at(i).Y(),
+                                       m_trueTrackHitsGlobal->at(i).Z());
+      SimHit hit{truthParameters,
+                 trueTrackHitGlobal,
+                 ipParameters,
+                 static_cast<int>(m_stateTrackId->at(i)),
+                 static_cast<int>(m_stateParentTrackId->at(i)),
+                 static_cast<int>(m_stateRunId->at(i))};
       SimCluster cluster{
           obsSourceLink, {hit}, static_cast<bool>(m_isSignal->at(i))};
       simClusters.push_back(cluster);

@@ -1,10 +1,9 @@
 #pragma once
 
 #include "Acts/EventData/VectorTrackContainer.hpp"
+#include "Acts/Navigation/DetectorNavigator.hpp"
+#include "Acts/Propagator/EigenStepper.hpp"
 #include "Acts/TrackFitting/KalmanFitter.hpp"
-#include <Acts/Navigation/DetectorNavigator.hpp>
-#include <Acts/Propagator/EigenStepper.hpp>
-#include <Acts/TrackFitting/GlobalChiSquareFitter.hpp>
 
 #include "TrackingPipeline/EventData/DataContainers.hpp"
 #include "TrackingPipeline/Infrastructure/DataHandle.hpp"
@@ -50,8 +49,7 @@ class KFTrackFittingAlgorithm : public IAlgorithm {
  private:
   Config m_cfg;
 
-  ReadDataHandle<Seeds> m_inputTrackCandidates{
-      this, "inputTrackCandidates"};
+  ReadDataHandle<Seeds> m_inputTrackCandidates{this, "inputTrackCandidates"};
 
   WriteDataHandle<Tracks> m_outputTracks{this, "OutputTracks"};
 };

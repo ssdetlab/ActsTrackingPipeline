@@ -3,11 +3,13 @@
 #include <cstddef>
 #include <memory>
 
+// Note: Can send appropriate size candidates right away
+// but will have to sacrifice the track view
 ProcessCode CKFTrackFindingAlgorithm::execute(
     const AlgorithmContext& ctx) const {
   // Get the input seeds
   // from the context
-  auto inputSeeds = m_inputSeeds(ctx);
+  const auto& inputSeeds = m_inputSeeds(ctx);
 
   ACTS_DEBUG("Received " << inputSeeds.size() << " seeds");
 
@@ -33,22 +35,22 @@ ProcessCode CKFTrackFindingAlgorithm::execute(
   ipParametersGuesses.reserve(inputSeeds.size());
 
   Seeds trackCandidates;
+  trackCandidates.reserve(inputSeeds.size());
   std::size_t idx = 0;
   for (const auto& seed : inputSeeds) {
     SimpleSourceLinkContainer ckfSourceLinks;
     for (auto& sl : seed.sourceLinks) {
       auto ssl = sl.get<SimpleSourceLink>();
-      ckfSourceLinks.insert({ssl.geometryId(), ssl});
+      ckfSourceLinks.insert({ssl.geometryId(), std::move(ssl)});
     }
     slAccessor.container = &ckfSourceLinks;
 
-    // run the CKF for all initial track states
-    Acts::CurvilinearTrackParameters ipParameters = seed.ipParameters;
+    // Run the CKF for all initial track states
+    const Acts::CurvilinearTrackParameters& ipParameters = seed.ipParameters;
 
+    trackIds.push_back(seed.trackId);
+    ipParametersGuesses.push_back(ipParameters);
     auto res = m_cfg.ckf.findTracks(ipParameters, options, candidateContainer);
-    if (!res.ok()) {
-      continue;
-    }
 
     for (std::size_t tid = idx; tid < candidateContainer.size(); tid++) {
       const auto& track = candidateContainer.getTrack(tid);
@@ -69,15 +71,19 @@ ProcessCode CKFTrackFindingAlgorithm::execute(
         continue;
       }
 
-      trackCandidates.push_back(Seed{sourceLinks, ipParameters, seed.trackId});
+      trackCandidates.emplace_back(sourceLinks, ipParameters, tid);
     }
     idx = candidateContainer.size();
   }
+  trackCandidates.shrink_to_fit();
 
   ACTS_DEBUG("Sending " << trackCandidates.size() << " track candidates");
+  ACTS_DEBUG("Sending " << candidateContainer.size()
+                        << " track candidates track views");
   m_outputTrackCandidates(ctx, std::move(trackCandidates));
   m_outputTrackView(ctx,
-                    Tracks{candidateContainer, trackIds, ipParametersGuesses});
+                    Tracks{std::move(candidateContainer), std::move(trackIds),
+                           std::move(ipParametersGuesses)});
 
   return ProcessCode::SUCCESS;
 }

@@ -1,12 +1,12 @@
 #include "TrackingPipeline/TrackFitting/KFTrackFittingAlgorithm.hpp"
 
 #include "Acts/EventData/TrackParameters.hpp"
-#include <Acts/Utilities/Logger.hpp>
+#include "Acts/Utilities/Logger.hpp"
 
 ProcessCode KFTrackFittingAlgorithm::execute(const AlgorithmContext& ctx) const {
   // Get the input seeds
   // from the context
-  auto inputCandidates = m_inputTrackCandidates(ctx);
+  const auto& inputCandidates = m_inputTrackCandidates(ctx);
 
   ACTS_DEBUG("Received " << inputCandidates.size() << " track candidates");
 
@@ -20,8 +20,11 @@ ProcessCode KFTrackFittingAlgorithm::execute(const AlgorithmContext& ctx) const 
   std::vector<Acts::CurvilinearTrackParameters> ipParametersGuesses;
   ipParametersGuesses.reserve(inputCandidates.size());
   for (const auto& candidate : inputCandidates) {
-    auto start = candidate.ipParameters;
-    auto sourceLinks = candidate.sourceLinks;
+    const auto& start = candidate.ipParameters;
+    const auto& sourceLinks = candidate.sourceLinks;
+    if (sourceLinks.empty()) {
+      continue;
+    }
 
     trackIds.push_back(candidate.trackId);
     ipParametersGuesses.push_back(candidate.ipParameters);
@@ -29,6 +32,9 @@ ProcessCode KFTrackFittingAlgorithm::execute(const AlgorithmContext& ctx) const 
     auto res = m_cfg.fitter.fit(sourceLinks.begin(), sourceLinks.end(), start,
                                 m_cfg.kfOptions, tracks);
   }
+  trackIds.shrink_to_fit();
+  ipParametersGuesses.shrink_to_fit();
+
   ACTS_DEBUG("Sending " << tracks.size() << " tracks");
   m_outputTracks(ctx, Tracks{tracks, trackIds, ipParametersGuesses});
 

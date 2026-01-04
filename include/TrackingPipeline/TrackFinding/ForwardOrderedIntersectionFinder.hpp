@@ -20,6 +20,8 @@ class ForwardOrderedIntersectionFinder {
   struct Config {
     /// Merged layers to base the grid on
     std::vector<const Acts::Surface*> layers;
+    /// Tolerance
+    double tol = 1e-4;
   };
 
   /// @brief Construct

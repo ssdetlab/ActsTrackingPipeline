@@ -37,10 +37,6 @@ class CoreMaterialMapping : public IAlgorithm {
     /// The ACTS material mapper from the core component
     std::shared_ptr<Acts::MaterialMapper> materialMapper = nullptr;
 
-    /// Material mapper options
-    Acts::MaterialMapper::Options materialMapperOptions =
-        Acts::MaterialMapper::Options();
-
     /// The writer of the material
     std::vector<std::shared_ptr<IMaterialWriter>> materiaMaplWriters{};
   };
