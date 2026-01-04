@@ -166,21 +166,15 @@ struct GeometryOptions {
   /// --------------------------------------------------------------
   /// Parameters of the dipole
 
-  // const double dipoleAlCoverThickness = 2_mm;
-  const double dipoleAlCoverThickness = 0_mm;
+  const double dipoleAlCoverThickness = 2_mm;
 
-  // const double dipoleHalfPrimary = 60.5_mm;
-  // const double dipoleHalfLong = 30_mm;
-  // const double dipoleHalfShort = 10_mm;
-  
-  const double dipoleHalfPrimary = 15.15_mm;
+  const double dipoleHalfPrimary = 60.5_mm;
   const double dipoleHalfLong = 30_mm;
   const double dipoleHalfShort = 10_mm;
-
+  
   const double dipoleFieldPrimary = 0;
   const double dipoleFieldLong = 0;
-  // const double dipoleFieldShort = -0.35_T;
-  const double dipoleFieldShort = 0_T;
+  const double dipoleFieldShort = -0.35_T;
 
   /// --------------------------------------------------------------
   /// First tracking chamber placement
@@ -226,8 +220,7 @@ struct GeometryOptions {
   /// --------------------------------------------------------------
   /// Dipole placement
 
-  // const double tc1DipoleDistance = 20_mm;
-  const double tc1DipoleDistance = 4_mm;
+  const double tc1DipoleDistance = 24.18_mm;
   const double ipDipoleDistance =
       ipTc1Distance + interChipDistance * (tc1Parameters.size() - 1) +
       tcWindowToLastChipDistance + tc1DipoleDistance + dipoleAlCoverThickness;
@@ -244,13 +237,11 @@ struct GeometryOptions {
   /// --------------------------------------------------------------
   /// Second tracking chamber placement
 
-  // const double dipoleTc2Distance = 20_mm;
-  const double dipoleTc2Distance = 4_mm;
+  const double dipoleTc2Distance = 24.8_mm;
   const double ipTc2Distance = ipDipoleDistance + 2 * dipoleHalfPrimary +
                                dipoleAlCoverThickness + dipoleTc2Distance +
                                tcWindowToFirstChipDistance;
 
-  // const double tc2CenterLong = -15_mm;
   const double tc2CenterLong = 0_mm;
   const double tc2CenterShort = 0_mm;
 
