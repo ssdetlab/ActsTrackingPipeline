@@ -1,11 +1,7 @@
 #include "TrackingPipeline/Simulation/MeasurementsEmbeddingAlgorithm.hpp"
 
-#include "Acts/EventData/SourceLink.hpp"
-
 #include <stdexcept>
 
-#include "TrackingPipeline/EventData/DataContainers.hpp"
-#include "TrackingPipeline/EventData/SimpleSourceLink.hpp"
 #include "TrackingPipeline/Infrastructure/DataHandle.hpp"
 #include "TrackingPipeline/Infrastructure/IAlgorithm.hpp"
 
@@ -29,28 +25,27 @@ ProcessCode MeasurementsEmbeddingAlgorithm::execute(
   auto sourceLinks = m_inputSourceLinks(ctx);
   auto clusters = m_inputSimClusters(ctx);
 
-  // Create a random number generator
-  RandomEngine rng = m_cfg.randomNumberSvc->spawnGenerator(ctx);
+  ACTS_DEBUG("Received " << clusters.size() << " clusters");
+  ACTS_DEBUG("Received " << sourceLinks.size() << " source links");
+
+  RandomEngine rng = m_cfg.randomNumberSvc->spawnGenerator();
 
   // Create the measurements
-  for (std::size_t i = 0; i < m_cfg.nMeasurements; i++) {
-    auto [sls, cls] = m_cfg.measurementGenerator->gen(ctx, rng, i);
+  ACTS_DEBUG("Starting propagation of " << m_cfg.nMeasurements << " tracks");
+  std::size_t inputSize = sourceLinks.size();
+  std::size_t outputSize = inputSize + m_cfg.nMeasurements;
+  sourceLinks.reserve(outputSize);
+  int index = inputSize;
+  for (std::size_t i = inputSize; i < outputSize; i++) {
+    const auto& [sls, cls] = m_cfg.measurementGenerator->gen(ctx, rng, index);
+    index += sls.size();
 
-    for (std::size_t j = 0; j < sls.size(); j++) {
-      auto ssl = sls.at(j).get<SimpleSourceLink>();
-      ssl.setIndex(sourceLinks.size());
-
-      auto cl = cls.at(j);
-      cl.sourceLink.setIndex(ssl.index());
-
-      if (m_cfg.clusterFilter == nullptr ||
-          m_cfg.clusterFilter->operator()(ctx.geoContext, cls.at(j))) {
-        sourceLinks.push_back(Acts::SourceLink(ssl));
-        clusters.push_back(cl);
-      }
-    }
+    ACTS_VERBOSE("Created " << sls.size() << " measurements");
+    sourceLinks.insert(sourceLinks.end(), sls.begin(), sls.end());
+    clusters.insert(clusters.end(), cls.begin(), cls.end());
   }
 
+  ACTS_DEBUG("Created " << sourceLinks.size() << " measurements in total");
   m_outputSourceLinks(ctx, std::move(sourceLinks));
   m_outputSimClusters(ctx, std::move(clusters));
 

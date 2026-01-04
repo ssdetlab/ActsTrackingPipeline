@@ -3,7 +3,8 @@ target_sources(
     PRIVATE
     SourceLinkGridConstructor.cpp
     ForwardOrderedIntersectionFinder.cpp
-    PathSeedingAlgorithm.cpp
+    IdealSeedingAlgorithm.cpp
+    HoughTransformSeeder.cpp
     TrackLookupProvider.cpp
     TrackLookupAccumulator.cpp
     TrackLookupEstimationAlgorithm.cpp

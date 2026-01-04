@@ -1,13 +1,12 @@
 #pragma once
 
-#include "Acts/EventData/SourceLink.hpp"
 #include "Acts/Utilities/Logger.hpp"
 
 #include "TFile.h"
 #include "TLorentzVector.h"
+#include "TMatrixD.h"
 #include "TTree.h"
 #include "TVector3.h"
-
 #include "TrackingPipeline/EventData/DataContainers.hpp"
 #include "TrackingPipeline/Infrastructure/AlgorithmContext.hpp"
 #include "TrackingPipeline/Infrastructure/DataHandle.hpp"
@@ -16,7 +15,7 @@
 
 using namespace Acts::UnitLiterals;
 
-using TrackID = std::tuple<std::int32_t, std::int32_t, std::int32_t>;
+using TrackID = std::tuple<int, int, int>;
 
 /// @brief Writer to store fitted track data in
 /// ROOT file
@@ -29,12 +28,8 @@ using TrackID = std::tuple<std::int32_t, std::int32_t, std::int32_t>;
 /// the truth information is available
 class RootSimClusterWriter : public IWriter {
  public:
-  using HitData = std::tuple<TVector3, TVector3, TLorentzVector>;
-
   /// @brief The nested configuration struct
   struct Config {
-    /// Surface accessor
-    Acts::SourceLinkSurfaceAccessor surfaceAccessor;
     /// Truth cluster data
     std::string inputClusters;
     /// Name of the input tree
@@ -55,7 +50,7 @@ class RootSimClusterWriter : public IWriter {
   ProcessCode finalize() override;
 
   /// Writer name() method
-  std::string name() const override { return "RootFittedTrackWriter"; }
+  std::string name() const override { return "RootSimClusterWriter"; }
 
   /// Write out data to the input stream
   ProcessCode write(const AlgorithmContext &ctx) override;
@@ -81,20 +76,29 @@ class RootSimClusterWriter : public IWriter {
   TTree *m_tree = nullptr;
 
  protected:
-  TVector3 m_geoCenter;
+  TVector3 m_geoCenterGlobal;
+  TVector2 m_geoCenterLocal;
+  TMatrixD m_cov = TMatrixD(2, 2);
+
+  std::size_t m_geoId;
+  std::size_t m_eventId;
 
   int m_isSignal;
 
   /// Measurement hits
-  std::vector<TVector3> m_trackHits;
+  std::vector<TVector3> m_trackHitsGlobal;
+  std::vector<TVector2> m_trackHitsLocal;
 
   std::vector<int> m_trackId;
   std::vector<int> m_parentTrackId;
   std::vector<int> m_runId;
 
-  std::vector<TLorentzVector> m_onSurfMomemtum;
   std::vector<TLorentzVector> m_originMomentum;
+  std::vector<TLorentzVector> m_onSurfaceMomentum;
   std::vector<TVector3> m_vertex;
+
+  std::vector<int> m_charge;
+  std::vector<int> m_pdgId;
 
   /// Mutex to protect the tree filling
   std::mutex m_mutex;

@@ -27,7 +27,7 @@ using namespace Acts::UnitLiterals;
 struct MeasurementsCreatorAction {
   using result_type = std::vector<Acts::BoundTrackParameters>;
 
-  std::int32_t sourceId = 0;
+  int sourceId = 0;
 
   /// @brief Operator that is callable by an ActionList. The function
   /// collects the surfaces
@@ -51,7 +51,7 @@ struct MeasurementsCreatorAction {
     const Acts::GeometryIdentifier &geoId = surface->geometryId();
 
     // Apply global to local
-    Acts::Vector3 globalPos = stepper.position(state.stepping);
+    const Acts::Vector3 &globalPos = stepper.position(state.stepping);
     Acts::Vector2 localPos =
         surface
             ->globalToLocal(state.geoContext, globalPos,
@@ -81,6 +81,7 @@ struct MeasurementsCreatorAction {
     simParticle.setAbsoluteMomentum(stepper.charge(state.stepping) /
                                     parameters[Acts::eBoundQOverP]);
     simParticle.setReferenceSurface(surface);
+    simParticle.setCharge(stepper.charge(state.stepping));
 
     // Create the scattering and energy loss processes
     std::random_device rd;
@@ -92,11 +93,11 @@ struct MeasurementsCreatorAction {
     if (surface->surfaceMaterial() != nullptr) {
       // Retrieve the material
       Acts::MaterialSlab material;
-      auto bsm = dynamic_cast<const Acts::BinnedSurfaceMaterial *>(
+      const auto *bsm = dynamic_cast<const Acts::BinnedSurfaceMaterial *>(
           surface->surfaceMaterial());
-      auto hsm = dynamic_cast<const Acts::HomogeneousSurfaceMaterial *>(
+      const auto *hsm = dynamic_cast<const Acts::HomogeneousSurfaceMaterial *>(
           surface->surfaceMaterial());
-      auto psm = dynamic_cast<const Acts::ProtoSurfaceMaterial *>(
+      const auto *psm = dynamic_cast<const Acts::ProtoSurfaceMaterial *>(
           surface->surfaceMaterial());
 
       if (bsm != nullptr) {
@@ -114,9 +115,9 @@ struct MeasurementsCreatorAction {
       ActsFatras::BetheHeitler BHProcess;
 
       // Apply the scattering and energy loss processes
-      auto scatter = scattering(gen, material, simParticle);
-      auto BBLoss = BBProcess(gen, material, simParticle);
-      auto BHLoss = BHProcess(gen, material, simParticle);
+      scattering(gen, material, simParticle);
+      BBProcess(gen, material, simParticle);
+      BHProcess(gen, material, simParticle);
       scatteredParameters[Acts::eBoundQOverP] =
           simParticle.charge() / simParticle.absoluteMomentum();
 

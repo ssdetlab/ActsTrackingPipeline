@@ -31,14 +31,15 @@ class SimpleSourceLink {
   };
 
   /// Construct a 2d source link
-  SimpleSourceLink(const Acts::ActsVector<2>& params,
+  SimpleSourceLink(const Acts::ActsVector<2>& paramsLoc,
+                   const Acts::ActsVector<3>& paramsGlob,
                    const Acts::ActsSquareMatrix<2>& cov,
-                   Acts::GeometryIdentifier gid, std::int32_t eid,
-                   std::int32_t idx)
+                   Acts::GeometryIdentifier gid, int eid, int idx)
       : m_geometryId(gid),
         m_eventId(eid),
         m_index(idx),
-        m_parameters(params),
+        m_parametersLoc(paramsLoc),
+        m_parametersGlob(paramsGlob),
         m_covariance(cov) {}
 
   /// Default-construct an invalid source link to satisfy SourceLinkConcept.
@@ -50,7 +51,8 @@ class SimpleSourceLink {
 
   bool operator==(const SimpleSourceLink& rhs) const {
     return (m_geometryId == rhs.geometryId()) && (m_eventId == rhs.eventId()) &&
-           (m_indices == rhs.indices()) && (m_parameters == rhs.parameters()) &&
+           (m_indices == rhs.indices()) &&
+           (m_parametersLoc == rhs.parametersLoc()) &&
            (m_covariance == rhs.covariance());
   }
 
@@ -58,36 +60,41 @@ class SimpleSourceLink {
 
   std::array<Acts::BoundIndices, 2> indices() const { return m_indices; }
 
-  std::int32_t index() const { return m_index; }
+  int index() const { return m_index; }
 
-  std::int32_t eventId() const { return m_eventId; }
+  int eventId() const { return m_eventId; }
 
   Acts::GeometryIdentifier geometryId() const { return m_geometryId; }
 
-  Acts::Vector2 parameters() const { return m_parameters; }
+  Acts::Vector2 parametersLoc() const { return m_parametersLoc; }
+
+  Acts::Vector3 parametersGlob() const { return m_parametersGlob; }
 
   Acts::SquareMatrix2 covariance() const { return m_covariance; }
 
-  void setIndex(std::int32_t idx) { m_index = idx; }
+  void setIndex(int idx) { m_index = idx; }
 
-  void setEventId(std::int32_t eid) { m_eventId = eid; }
+  void setEventId(int eid) { m_eventId = eid; }
 
  private:
   /// Geometry identifier
   Acts::GeometryIdentifier m_geometryId;
 
   /// Event identifier
-  std::int32_t m_eventId = 0u;
+  int m_eventId = 0u;
 
   /// Index for enumeration within event
-  std::int32_t m_index = 0u;
+  int m_index = 0u;
 
   /// Indices of the local coordinates
   std::array<Acts::BoundIndices, 2> m_indices = {Acts::eBoundLoc0,
                                                  Acts::eBoundLoc1};
 
   /// Local hit coordinates
-  Acts::ActsVector<2> m_parameters;
+  Acts::ActsVector<2> m_parametersLoc;
+
+  /// Global hit coordinates
+  Acts::ActsVector<3> m_parametersGlob;
 
   /// Covariance matrix
   Acts::ActsSquareMatrix<2> m_covariance;
@@ -108,7 +115,7 @@ void simpleSourceLinkCalibratorReturn(
   trackState.setUncalibratedSourceLink(sourceLink);
 
   trackState.allocateCalibrated(2);
-  trackState.template calibrated<2>() = sl.parameters();
+  trackState.template calibrated<2>() = sl.parametersLoc();
   trackState.template calibratedCovariance<2>() = sl.covariance();
   trackState.setProjector(
       Acts::detail::FixedSizeSubspace<Acts::BoundIndices::eBoundSize, 2>(
@@ -138,9 +145,9 @@ class SimpleSourceLinkCoordinateCalibrator {
   Acts::Vector3 operator()(const Acts::GeometryContext& geoCtx,
                            const Acts::SourceLink& sourceLink) const {
     auto ssl = sourceLink.get<SimpleSourceLink>();
-    auto res =
-        m_surfaceAccessor(sourceLink)
-            ->localToGlobal(geoCtx, ssl.parameters(), Acts::Vector3{0, 1, 0});
+    auto res = m_surfaceAccessor(sourceLink)
+                   ->localToGlobal(geoCtx, ssl.parametersLoc(),
+                                   Acts::Vector3{0, 1, 0});
     return res;
   }
 };

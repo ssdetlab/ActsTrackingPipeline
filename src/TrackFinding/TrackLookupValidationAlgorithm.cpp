@@ -3,9 +3,12 @@
 #include <Acts/Definitions/Algebra.hpp>
 #include <Acts/Definitions/TrackParametrization.hpp>
 #include <Acts/Surfaces/Surface.hpp>
+#include <Acts/Utilities/Logger.hpp>
 #include <Acts/Utilities/VectorHelpers.hpp>
 
 #include <optional>
+
+#include "TrackingPipeline/EventData/SimpleSourceLink.hpp"
 
 TrackLookupValidationAlgorithm::TrackLookupValidationAlgorithm(
     const Config& config, Acts::Logging::Level level)
@@ -25,22 +28,31 @@ ProcessCode TrackLookupValidationAlgorithm::execute(
 
   auto clusters = m_inputClusters(ctx);
 
+  ACTS_DEBUG("Received " << clusters.size() << " clusters");
   std::vector<Acts::CurvilinearTrackParameters> ipPars;
   std::vector<Acts::CurvilinearTrackParameters> refLayerPars;
   std::vector<Acts::CurvilinearTrackParameters> ipParsEst;
   std::vector<Acts::CurvilinearTrackParameters> refLayerParsEst;
   for (const auto& cluster : clusters) {
+    ACTS_VERBOSE("Analysing cluster at GeoID "
+                 << cluster.sourceLink.geometryId());
     if (!m_cfg.refLayers.contains(cluster.sourceLink.geometryId())) {
+      ACTS_VERBOSE("Cluster is not in the reference layer. Continue");
       continue;
     }
     if (!cluster.isSignal) {
+      ACTS_VERBOSE("Cluster is not signal. Continue");
       continue;
     }
 
     const Acts::Surface* layer =
         m_cfg.refLayers.at(cluster.sourceLink.geometryId());
+    ACTS_VERBOSE("Cluster layer GeoID "
+                 << layer->geometryId() << " at center ["
+                 << layer->center(ctx.geoContext).transpose() << "]");
     for (const auto& hit : cluster.truthHits) {
       if (hit.trackId != 1) {
+        ACTS_VERBOSE("Cluster hit does not belong to a signal track. Continue");
         continue;
       }
 
@@ -66,7 +78,12 @@ ProcessCode TrackLookupValidationAlgorithm::execute(
           hit.truthParameters[Acts::eBoundQOverP], std::nullopt,
           ip.particleHypothesis());
 
-      auto [ipEst, refEst] = m_cfg.estimator(ctx.geoContext, hit.sourceLink);
+      SimpleSourceLink hitSsl(
+          refLocalPos, refGlobalPos, cluster.sourceLink.covariance(),
+          cluster.sourceLink.geometryId(), cluster.sourceLink.eventId(),
+          cluster.sourceLink.index());
+      auto [ipEst, refEst] =
+          m_cfg.estimator(ctx.geoContext, Acts::SourceLink{hitSsl});
 
       ipPars.push_back(ip);
       refLayerPars.push_back(ref);
@@ -74,6 +91,13 @@ ProcessCode TrackLookupValidationAlgorithm::execute(
       refLayerParsEst.push_back(refEst);
     }
   }
+
+  ACTS_DEBUG("Collected true " << ipPars.size() << " IP parameters");
+  ACTS_DEBUG("Collected true " << refLayerPars.size()
+                               << " reference layer parameters");
+  ACTS_DEBUG("Estimated " << ipParsEst.size() << " IP parameters");
+  ACTS_DEBUG("Estimated " << refLayerParsEst.size()
+                          << " reference layer parameters");
 
   m_outputIpPars(ctx, std::move(ipPars));
   m_outputRefLayerPars(ctx, std::move(refLayerPars));

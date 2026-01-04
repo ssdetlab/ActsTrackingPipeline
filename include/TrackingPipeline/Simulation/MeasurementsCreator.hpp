@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Acts/EventData/ParticleHypothesis.hpp"
 #include "Acts/Navigation/DetectorNavigator.hpp"
 #include "Acts/Propagator/EigenStepper.hpp"
 
@@ -11,6 +12,8 @@
 #include "TrackingPipeline/Simulation/IMeasurementGenerator.hpp"
 #include "TrackingPipeline/Simulation/IMomentumGenerator.hpp"
 #include "TrackingPipeline/Simulation/IVertexGenerator.hpp"
+
+using namespace Acts::UnitLiterals;
 
 /// @brief Class creating measurements along
 /// simulated tracks
@@ -36,8 +39,12 @@ class MeasurementsCreator : public IMeasurementGenerator {
     /// Maximum number of steps
     /// to propagate
     std::size_t maxSteps;
-    /// Is background flag
+    /// Is signal flag
     bool isSignal;
+    /// Particle hypothesis
+    Acts::ParticleHypothesis hypothesis = Acts::ParticleHypothesis::electron();
+    /// Particle charge
+    int charge = -1_e;
   };
 
   /// @brief Constructor
@@ -54,6 +61,8 @@ class MeasurementsCreator : public IMeasurementGenerator {
  private:
   /// Configuration
   Config m_cfg;
+
+  Acts::BoundSquareMatrix m_ipCov;
 
   /// Propagator instance
   Propagator m_propagator;

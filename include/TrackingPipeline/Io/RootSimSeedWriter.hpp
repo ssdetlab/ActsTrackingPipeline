@@ -12,7 +12,7 @@
 #include "TrackingPipeline/Infrastructure/IWriter.hpp"
 #include "TrackingPipeline/Infrastructure/ProcessCode.hpp"
 
-using TrackID = std::tuple<std::int32_t, std::int32_t, std::int32_t>;
+using TrackID = std::tuple<int, int, int>;
 
 class RootSimSeedWriter : public IWriter {
  public:
@@ -26,8 +26,6 @@ class RootSimSeedWriter : public IWriter {
     std::string treeName;
     /// The names of the input files
     std::string filePath;
-    /// Target size of the true track
-    std::size_t targetTrueTrackSize;
   };
 
   RootSimSeedWriter(const RootSimSeedWriter &) = delete;
@@ -70,22 +68,46 @@ class RootSimSeedWriter : public IWriter {
   TTree *m_tree = nullptr;
 
  protected:
-  /// Fraction of a true track
-  /// contained within the seed
-  /// source link list
-  double m_efficiency;
+  /// Measurements in a given seed
+  std::vector<TVector3> m_seedMeasurementsGlob;
+  std::vector<TVector2> m_seedMeasurementsLoc;
+  std::vector<int> m_geoIds;
+
+  /// Event ID of the seed
+  std::size_t m_eventId;
 
   /// Number of source links
   /// in a seed
-  int m_size;
+  std::size_t m_size;
+
+  /// Track ID of the seed
+  std::size_t m_trackId;
+
+  /// Parent track ID of the seed
+  std::size_t m_parentTrackId;
+
+  /// Run ID of the seed
+  std::size_t m_runId;
+
+  /// Size of the true track
+  std::size_t m_trueTrackSize;
+
+  /// Size of the true track in seed
+  std::size_t m_trackInSeedSize;
 
   /// Flag idicating if pivot
   /// cluster is a signal
   bool m_isSignal;
 
-  /// True momentum at the IP
+  /// True momentum, vertex at the IP
   /// associated with a pivot
   TLorentzVector m_ipMomentumTruth;
+  TVector3 m_vertexTruth;
+
+  /// Estimated momentum, vertex at the IP
+  /// associated with a pivot
+  TLorentzVector m_ipMomentumEst;
+  TVector3 m_vertexEst;
 
   /// Mutex to protect the tree filling
   std::mutex m_mutex;

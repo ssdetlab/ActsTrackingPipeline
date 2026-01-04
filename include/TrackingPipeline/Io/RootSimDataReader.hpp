@@ -3,6 +3,8 @@
 #include "Acts/EventData/SourceLink.hpp"
 #include "Acts/Utilities/Logger.hpp"
 
+#include <cstddef>
+
 #include "TChain.h"
 #include "TLorentzVector.h"
 #include "TVector3.h"
@@ -35,6 +37,7 @@ class RootSimDataReader : public IReader {
     std::vector<std::string> filePaths;
     /// The keys we have in the ROOT file
     std::vector<const char*> vVector3Keys;
+    std::vector<const char*> vVector2Keys;
     std::vector<const char*> vector3Keys;
     std::vector<const char*> vLorentzKeys;
     std::vector<const char*> vIntKeys;
@@ -88,20 +91,23 @@ class RootSimDataReader : public IReader {
   std::mutex m_read_mutex;
 
   /// Vector of {eventNr, entryMin, entryMax}
-  std::vector<std::tuple<uint32_t, std::size_t, std::size_t>> m_eventMap;
+  std::vector<std::tuple<std::size_t, std::size_t, std::size_t>> m_eventMap;
 
   /// The input tree name
   TChain* m_chain = nullptr;
 
  protected:
   /// The exausitive list of columns
-  std::unordered_map<std::string_view, std::int32_t> m_intColumns;
-  std::unordered_map<std::string_view, std::vector<std::int32_t>*>
-      m_vIntColumns;
+  std::unordered_map<std::string_view, int> m_intColumns;
+  std::unordered_map<std::string_view, std::vector<int>*> m_vIntColumns;
 
   std::unordered_map<std::string_view, std::double_t> m_doubleColumns;
   std::unordered_map<std::string_view, std::vector<std::double_t>*>
       m_vDoubleColumns;
+
+  std::unordered_map<std::string_view, TVector2*> m_vector2Columns;
+  std::unordered_map<std::string_view, std::vector<TVector2>*>
+      m_vVector2Columns;
 
   std::unordered_map<std::string_view, TVector3*> m_vector3Columns;
   std::unordered_map<std::string_view, std::vector<TVector3>*>
