@@ -3,9 +3,9 @@
 IdealQuadrupoleMagField::IdealQuadrupoleMagField(double gradient)
     : m_gradient(gradient) {};
 
-IdealQuadrupoleMagField::IdealQuadrupoleMagField(double gradient,
-                                       const Acts::Vector3& origin,
-                                       const Acts::RotationMatrix3& rotation)
+IdealQuadrupoleMagField::IdealQuadrupoleMagField(
+    double gradient, const Acts::Vector3& origin,
+    const Acts::RotationMatrix3& rotation)
     : m_gradient(gradient), m_origin(origin), m_rotation(rotation) {};
 
 IdealQuadrupoleMagField::~IdealQuadrupoleMagField() = default;

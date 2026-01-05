@@ -2,145 +2,276 @@
 
 #include "Acts/Definitions/Algebra.hpp"
 #include "Acts/Definitions/Units.hpp"
-#include "Acts/Utilities/BinUtility.hpp"
 
 #include <cmath>
-#include <map>
+#include <memory>
 
-#include "G4ThreeVector.hh"
-#include "G4Transform3D.hh"
+#include "TrackingPipeline/Geometry/detail/BinningValueUtils.hpp"
+#include "TrackingPipeline/Geometry/detail/SurfaceParameters.hpp"
 
-/// Namespace for the E320 geometry
-/// parameters
 namespace E320Geometry {
+
 using namespace Acts::UnitLiterals;
 
 struct GeometryOptions {
-  /// Constants for the translation
-  /// to the local coordinates
-  const float chipSizeY = 29.94176_mm;
-  const float chipSizeX = 13.76256_mm;
+  GeometryOptions() = default;
+  ~GeometryOptions() = default;
 
-  const float pixelSizeX = 26.88_um;
-  const float pixelSizeY = 29.24_um;
+  struct DipoleParameters {
+    using AxisQuadruple =
+        std::tuple<Acts::BinningValue, double, double, double>;
 
-  // Chip Id to the translation in the x direction
-  double chipY = 93.775_mm;
+    DipoleParameters(AxisQuadruple tPrimary, AxisQuadruple tLong,
+                     AxisQuadruple tShort)
+        : rotationAnglePrimary(std::get<2>(tPrimary)),
+          rotationAngleLong(std::get<2>(tLong)),
+          rotationAngleShort(std::get<2>(tShort)) {
+      center[detail::binningValueToIndex(std::get<0>(tPrimary))] =
+          std::get<1>(tPrimary);
+      center[detail::binningValueToIndex(std::get<0>(tLong))] =
+          std::get<1>(tLong);
+      center[detail::binningValueToIndex(std::get<0>(tShort))] =
+          std::get<1>(tShort);
 
-  // Stave Id to the translation in the z direction
-  const std::map<int, double> staveZ{{8, 16674.4_mm},
-                                     {6, 16694.4_mm},
-                                     {4, 16714.4_mm},
-                                     {2, 16734.4_mm},
-                                     {0, 16754.4_mm}};
+      field[detail::binningValueToIndex(std::get<0>(tPrimary))] =
+          std::get<3>(tPrimary);
+      field[detail::binningValueToIndex(std::get<0>(tLong))] =
+          std::get<3>(tLong);
+      field[detail::binningValueToIndex(std::get<0>(tShort))] =
+          std::get<3>(tShort);
+    }
+    DipoleParameters() = delete;
 
-  // All the staves are at the same y position
-  double chipX = 0.61872_mm;
+    Acts::Vector3 center;
 
-  // Positions of the volumes
-  // encapsulating the layers
-  const std::vector<double> layerZPositions{
-      staveZ.at(8), staveZ.at(6), staveZ.at(4), staveZ.at(2), staveZ.at(0)};
+    double rotationAnglePrimary;
+    double rotationAngleLong;
+    double rotationAngleShort;
 
-  // Tracker volume encapsulating the
-  // whole detector
-  const Acts::Vector3 trackerTranslation{0_mm, 0_mm, 8550_mm};
+    Acts::Vector3 field;
+  };
 
-  const std::vector<double> trackerBounds = {
-      chipSizeX / 2 + 2000_mm, chipY + chipSizeY / 2 + 2000_mm, 8600_mm};
+  using TrackingChamberParameters = std::vector<SurfaceParameters>;
 
-  // Be window poisiton
-  const Acts::Vector3 beWindowTranslation{0_mm, 0_mm, -842_mm};
-  const std::vector<double> beWindowBounds = {
-      chipSizeX / 2 + 2000_mm, chipY + chipSizeY / 2 + 2000_mm, 10_mm};
+  /// --------------------------------------------------------------
+  /// General parameters
 
-  // Quadrupole volume encapsulating the
-  // magnetic field
-  const Acts::Vector3 quad1Translation{0_mm, 0_mm, 4160_mm};
+  /// Detector binning directions
+  const Acts::BinningValue primaryBinValue = Acts::BinningValue::binX;
+  const Acts::BinningValue longBinValue = Acts::BinningValue::binY;
+  const Acts::BinningValue shortBinValue = Acts::BinningValue::binZ;
 
-  const std::vector<double> quad1Bounds = {
-      chipSizeX / 2 + 2000_mm, chipY + chipSizeY / 2 + 2000_mm, 486.664_mm + 200_mm};
+  const std::size_t primaryIdx = detail::binningValueToIndex(primaryBinValue);
+  const std::size_t longIdx = detail::binningValueToIndex(longBinValue);
+  const std::size_t shortIdx = detail::binningValueToIndex(shortBinValue);
 
-  const Acts::Vector3 quad2Translation{0_mm, 0_mm, 6390_mm};
+  const Acts::Vector3 primaryDir =
+      detail::binningValueToDirection(primaryBinValue);
+  const Acts::Vector3 longDir = detail::binningValueToDirection(longBinValue);
+  const Acts::Vector3 shortDir = detail::binningValueToDirection(shortBinValue);
 
-  const std::vector<double> quad2Bounds = {
-      chipSizeX / 2 + 2000_mm, chipY + chipSizeY / 2 + 2000_mm, 486.664_mm + 200_mm};
+  const std::size_t gapVolumeIdPrefactor = 50;
+  const std::size_t magVolumeIdPrefactor = 100;
+  const std::size_t ipVolumeIdPrefactor = 150;
 
-  const Acts::Vector3 quad3Translation{0_mm, 0_mm, 8610_mm};
+  const double worldHalfLong = 2_m;
+  const double worldHalfShort = 2_m;
 
-  const std::vector<double> quad3Bounds = {
-      chipSizeX / 2 + 2000_mm, chipY + chipSizeY / 2 + 2000_mm, 486.664_mm + 200_mm};
+  /// Rotation of the plane surfaces into the global frame
+  const double toWorldAngleX = 0;
+  const double toWorldAngleY = -M_PI_2;
+  const double toWorldAngleZ = M_PI_2;
 
-  // Dipole and quadrupole field parameters
-  const std::tuple<Acts::Vector2, Acts::Vector4, Acts::Vector4> dipoleParams = {
-      {-30.0_mm, 30.0_mm},
-      {-165.0_mm, 165.0_mm, 7.7_mm, 7.7_mm},
-      {-457.0_mm, 457.0_mm, 25.0_mm, 25.0_mm}};
+  /// --------------------------------------------------------------
+  /// Parameters of the Be window
 
-  // Run 489
-  /*const Acts::Vector3 quadrupolesParams = {-3.218_T / 1_m, 4.719_T / 1_m,*/
-  /*                                         -3.218_T / 1_m};*/
-  // Run 502
-  const Acts::Vector3 quadrupolesParams = {-0.7637_T / 1_m, 2.855_T / 1_m,
-                                           -0.7637_T / 1_m};
+  const double beWindowHalfX = worldHalfLong;
+  const double beWindowHalfY = worldHalfShort;
 
-  // X-corrector volume encapsulating the
-  // magnetic field
-  const Acts::Vector3 xCorrectorTranslation{0_mm, 0_mm, 9994.63_mm};
+  const double beWindowThickness = 1_mm;
 
-  const std::vector<double> xCorrectorBounds = {
-      chipSizeX / 2 + 2000_mm, chipY + chipSizeY / 2 + 2000_mm, 116.84_mm};
+  /// --------------------------------------------------------------
+  /// Parameters of the quads
 
-  // Dipole volume encapsulating the
-  // magnetic field
-  const Acts::Vector3 dipoleTranslation{0_mm, 0_mm, 13060.6_mm};
+  const double quad1HalfPrimary = 486.664_mm;
+  const double quad1HalfLong = 40_mm;
+  const double quad1HalfShort = 40_mm;
+  // const double quad1Gradient = -0.7637_T / 1_m;
+  const double quad1Gradient = 0_T / 1_m;
 
-  const std::vector<double> dipoleBounds = {
-      chipSizeX / 2 + 2000_mm, chipY + chipSizeY / 2 + 2000_mm, 1000_mm};
+  const double quad2HalfPrimary = 486.664_mm;
+  const double quad2HalfLong = 40_mm;
+  const double quad2HalfShort = 40_mm;
+  // const double quad2Gradient = 2.855_T / 1_m;
+  const double quad2Gradient = 0_T / 1_m;
 
-  // PDC window volume
-  // TODO: Add machinery to move the PDC window
-  const Acts::Vector3 pdcWindowTranslation{0_mm, 0_mm, 16549.7_mm};
+  const double quad3HalfPrimary = 486.664_mm;
+  const double quad3HalfLong = 40_mm;
+  const double quad3HalfShort = 40_mm;
+  // const double quad3Gradient = -0.7637_T / 1_m;
+  const double quad3Gradient = 0_T / 1_m;
 
-  const std::vector<double> pdcWindowBounds = {
-      chipSizeX / 2 + 2000_mm, chipY + chipSizeY / 2 + 2000_mm, 2_mm};
+  /// --------------------------------------------------------------
+  /// Parameters of the x-corrector
 
-  // Arm volume encapsulating the layers
-  const Acts::Vector3 armTranslation{0_mm, 0_mm,
-                                     (staveZ.at(0) + staveZ.at(8)) / 2};
+  const double xCorrectorHalfPrimary = 116.84_mm;
+  const double xCorrectorHalfLong = 40_mm;
+  const double xCorrectorHalfShort = 40_mm;
 
-  /// Layer volumes encapsulating the staves
-  const double deltaZ = (staveZ.at(6) - staveZ.at(8)) / 10 + 1_mm;
+  const double xCorrectorFieldPrimary = 0;
+  const double xCorrectorFieldLong = 0.026107_T;
+  const double xCorrectorFieldShort = 0;
 
-  const std::vector<double> layerBounds = {
-      chipSizeX / 2 + 2000_mm, chipY + chipSizeY / 2 + 2000_mm, deltaZ};
+  /// --------------------------------------------------------------
+  /// Parameters of the dipole
 
-  /// Global rotation of the world volume
-  /// in the Acts format for volumes
-  const Acts::RotationMatrix3 actsToWorldRotation =
-      Acts::AngleAxis3(M_PI_2, Acts::Vector3(1., 0., 0.)).toRotationMatrix();
+  const double dipoleHalfPrimary = 457.2_mm;
+  const double dipoleHalfLong = 40_mm;
+  const double dipoleHalfShort = 40_mm;
 
-  /// Global translation of the world volume
-  /// in the Acts format for volumes
-  const Acts::Translation3 actsToWorldTranslation = Acts::Translation3(0, 0, 0);
+  const double dipoleFieldPrimary = 0;
+  const double dipoleFieldLong = 0;
+  const double dipoleFieldShort = 0.2192_T;
 
-  /// In case we'll need something less trivial
-  const Acts::Transform3 actsToWorld =
-      Acts::Transform3(actsToWorldRotation * actsToWorldTranslation);
+  /// --------------------------------------------------------------
+  /// Parameters of the PDC window
 
-  /// Global rotation of the world volume
-  /// in the Geant4 format for surfaces
-  const G4Transform3D g4ToWorld =
-      G4Transform3D(CLHEP::HepRotationX(M_PI_2), G4ThreeVector(0, 0, 0));
+  const double pdcWindowHalfX = 25_mm;
+  const double pdcWindowHalfY = 60_mm;
 
-  // Material binning for the surfaces
-  const Acts::BinUtility materialBinningX =
-      Acts::BinUtility(256, -chipSizeY / 2, chipSizeY / 2, Acts::closed,
-                       Acts::BinningValue::binX);
+  const double pdcWindowThickness = 0.51_mm;
 
-  const Acts::BinUtility materialBinningY =
-      Acts::BinUtility(128, -chipSizeX / 2, chipSizeX / 2, Acts::closed,
-                       Acts::BinningValue::binY);
+  /// --------------------------------------------------------------
+  /// Parameters of the tracking chambers
+
+  /// Chip size in chips's local coordinates
+  const double chipHalfX = 14.97088_mm;
+  const double chipHalfY = 6.88128_mm;
+
+  const double pixelHalfX = 14.62_um;
+  const double pixelHalfY = 13.44_um;
+
+  const double pixelThickness = 25_um;
+
+  /// Volume spacing around the chips
+  const double chipVolumeHalfSpacing = 1_mm;
+
+  /// Distances within the detector box
+  const double tcWindowToFirstChipDistance = 8.9_mm;
+  const double tcWindowToLastChipDistance = 8.7_mm;
+  const double interChipDistance = 20_mm;
+
+  /// Transverse volume parameters
+  const double tcHalfLong = chipHalfX + chipVolumeHalfSpacing;
+  const double tcHalfShort = chipHalfY + chipVolumeHalfSpacing;
+
+  /// Correction of the box width
+  const double tcBoxWidthCorrection = 0.11_mm;
+
+  /// --------------------------------------------------------------
+  /// Be window placement
+
+  const double beWindowCenterPrimary = -842_mm;
+  const double beWindowCenterLong = 0_mm;
+  const double beWindowCenterShort = 0_mm;
+
+  const SurfaceParameters beWindowParameters{
+      {primaryBinValue, beWindowCenterPrimary, toWorldAngleX},
+      {longBinValue, beWindowCenterLong, toWorldAngleY},
+      {shortBinValue, beWindowCenterShort, toWorldAngleZ},
+      40};
+
+  /// --------------------------------------------------------------
+  /// Quads placement
+
+  const double quad1CenterPrimary = 4160_mm;
+  const double quad1CenterLong = 0_mm;
+  const double quad1CenterShort = 0_mm;
+
+  const double quad2CenterPrimary = 6390_mm;
+  const double quad2CenterLong = 0_mm;
+  const double quad2CenterShort = 0_mm;
+
+  const double quad3CenterPrimary = 8610_mm;
+  const double quad3CenterLong = 0_mm;
+  const double quad3CenterShort = 0_mm;
+
+  /// --------------------------------------------------------------
+  /// X-corrector placement
+
+  const double xCorrectorCenterPrimary = 9994.63_mm;
+  const double xCorrectorCenterLong = 0_mm;
+  const double xCorrectorCenterShort = 0_mm;
+
+  /// --------------------------------------------------------------
+  /// Dipole placement
+
+  const double dipoleCenterPrimary = 13060.6_mm;
+  const double dipoleCenterLong = 0_mm;
+  const double dipoleCenterShort = 0_mm;
+
+  /// --------------------------------------------------------------
+  /// PDC window placement
+
+  const double pdcWindowCenterPrimary = 16549.745_mm;
+  const double pdcWindowCenterLong = 118_mm;
+  const double pdcWindowCenterShort = 0_mm;
+
+  const SurfaceParameters pdcWindowParameters{
+      {primaryBinValue, pdcWindowCenterPrimary, toWorldAngleX},
+      {longBinValue, pdcWindowCenterLong, toWorldAngleY},
+      {shortBinValue, pdcWindowCenterShort, toWorldAngleZ},
+      30};
+
+  /// --------------------------------------------------------------
+  /// Tracking chamber placement
+
+  const double ipTcDistance = 16674.4_mm;
+
+  const double tcCenterLong = 93.775_mm;
+  const double tcCenterShort = -0.61872_mm;
+
+  const std::vector<SurfaceParameters> tcParameters{
+      SurfaceParameters({primaryBinValue, ipTcDistance + 0 * interChipDistance,
+                         toWorldAngleX},
+                        {longBinValue, tcCenterLong, toWorldAngleY},
+                        {shortBinValue, tcCenterShort, toWorldAngleZ}, 18),
+      SurfaceParameters{{primaryBinValue, ipTcDistance + 1 * interChipDistance,
+                         toWorldAngleX},
+                        {longBinValue, tcCenterLong, toWorldAngleY},
+                        {shortBinValue, tcCenterShort, toWorldAngleZ},
+                        16},
+      SurfaceParameters{{primaryBinValue, ipTcDistance + 2 * interChipDistance,
+                         toWorldAngleX},
+                        {longBinValue, tcCenterLong, toWorldAngleY},
+                        {shortBinValue, tcCenterShort, toWorldAngleZ},
+                        14},
+      SurfaceParameters{{primaryBinValue, ipTcDistance + 3 * interChipDistance,
+                         toWorldAngleX},
+                        {longBinValue, tcCenterLong, toWorldAngleY},
+                        {shortBinValue, tcCenterShort, toWorldAngleZ},
+                        12},
+      SurfaceParameters{{primaryBinValue, ipTcDistance + 4 * interChipDistance,
+                         toWorldAngleX},
+                        {longBinValue, tcCenterLong, toWorldAngleY},
+                        {shortBinValue, tcCenterShort, toWorldAngleZ},
+                        10}};
+
+  const double tcHalfPrimary =
+      interChipDistance * (tcParameters.size() - 1) / 2.0 +
+      chipVolumeHalfSpacing;
+
+  const double tcCenterPrimary = ipTcDistance + tcHalfPrimary;
+
+  static const std::unique_ptr<const GeometryOptions>& instance() {
+    if (!m_instance) {
+      m_instance = std::make_unique<GeometryOptions>();
+    }
+    return m_instance;
+  }
+
+ protected:
+  static std::unique_ptr<const GeometryOptions> m_instance;
 };
 
 }  // namespace E320Geometry

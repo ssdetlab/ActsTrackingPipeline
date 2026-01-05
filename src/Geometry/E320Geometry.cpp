@@ -1,292 +1,337 @@
 #include "TrackingPipeline/Geometry/E320Geometry.hpp"
 
-#include "Acts/Detector/CuboidalContainerBuilder.hpp"
-#include "Acts/Detector/DetectorBuilder.hpp"
-#include "Acts/Detector/detail/BlueprintHelper.hpp"
-#include "Acts/Plugins/Json/JsonMaterialDecorator.hpp"
+#include "Acts/Definitions/Algebra.hpp"
+#include "Acts/Detector/Detector.hpp"
+#include "Acts/Detector/DetectorVolume.hpp"
+#include "Acts/Detector/detail/CuboidalDetectorHelper.hpp"
+#include "Acts/Geometry/CuboidVolumeBounds.hpp"
+#include "Acts/Geometry/GeometryIdentifier.hpp"
+#include "Acts/Material/HomogeneousSurfaceMaterial.hpp"
+#include "Acts/Navigation/DetectorVolumeFinders.hpp"
+#include "Acts/Surfaces/PlaneSurface.hpp"
+#include "Acts/Surfaces/RectangleBounds.hpp"
+#include "Acts/Surfaces/Surface.hpp"
 #include <Acts/Definitions/Algebra.hpp>
 
+#include <algorithm>
+#include <cstddef>
 #include <memory>
+#include <string>
 #include <vector>
 
+#include <unistd.h>
+
 #include "TrackingPipeline/Alignment/AlignableDetectorElement.hpp"
-#include "TrackingPipeline/Alignment/AlignableDetectorElementBuilder.hpp"
 #include "TrackingPipeline/Geometry/E320GeometryConstraints.hpp"
-#include "TrackingPipeline/Geometry/E320GeometryIdGenerator.hpp"
-#include "TrackingPipeline/Geometry/LayerBuilderConstruction.hpp"
-#include "TrackingPipeline/Geometry/PlaneSurfaceStructureBuilder.hpp"
-#include "TrackingPipeline/Material/NoMaterialDecorator.hpp"
+#include "TrackingPipeline/Geometry/detail/GeometryConstructionUtils.hpp"
+#include "TrackingPipeline/MagneticField/CompositeMagField.hpp"
+#include "TrackingPipeline/MagneticField/ConstantBoundedField.hpp"
+#include "TrackingPipeline/MagneticField/IdealQuadrupoleMagField.hpp"
 
 namespace E320Geometry {
 
-std::unique_ptr<Acts::Experimental::Blueprint::Node> makeBlueprintE320(
-    const std::string& gdmlPath, const std::vector<std::string>& names,
-    const E320Geometry::GeometryOptions& gOpt) {
-  // Read the gdml file and get the world volume
-  G4GDMLParser parser;
-  parser.Read(gdmlPath, false);
-  auto world = parser.GetWorldVolume();
+using go = GeometryOptions;
 
-  std::size_t numLayers = gOpt.layerZPositions.size();
+std::shared_ptr<const Acts::Experimental::Detector> buildDetector(
+    const Acts::GeometryContext& gctx) {
+  const auto& goInst = *go::instance();
 
-  // Here binning is dont in the unrotated frame
-  // Have to fix the consistency inside Acts
-  std::vector<Acts::BinningValue> trackerBins = {Acts::BinningValue::binZ};
+  std::vector<std::shared_ptr<Acts::Experimental::DetectorVolume>>
+      detectorVolumes;
 
-  Acts::Transform3 trackerTransform = Acts::Transform3::Identity();
-  trackerTransform.rotate(gOpt.actsToWorld.rotation().inverse());
-  trackerTransform.translate(gOpt.trackerTranslation);
+  std::vector<std::shared_ptr<Acts::DetectorElementBase>> detectorElements;
+  std::size_t nDetElements = goInst.tcParameters.size();
+  detectorElements.reserve(nDetElements);
 
-  // Create the tracker node of the blueprint
-  auto trackerBP = std::make_unique<Acts::Experimental::Blueprint::Node>(
-      "Tracker", trackerTransform, Acts::VolumeBounds::eCuboid,
-      gOpt.trackerBounds, trackerBins);
+  auto chipBounds = std::make_shared<Acts::RectangleBounds>(goInst.chipHalfX,
+                                                            goInst.chipHalfY);
+  auto pdcWindowBounds = std::make_shared<Acts::RectangleBounds>(
+      goInst.pdcWindowHalfX, goInst.pdcWindowHalfY);
 
-  // Iterate over the layers and create
-  // the child nodes
-  for (std::size_t i = 0; i < numLayers; i++) {
-    // Layer bounds
-    auto zBounds =
-        std::make_tuple(gOpt.layerZPositions.at(i) - gOpt.layerBounds.at(2),
-                        gOpt.layerZPositions.at(i) + gOpt.layerBounds.at(2));
+  std::size_t gapVolumeCounter = 0;
+  std::size_t magVolumeCounter = 0;
 
-    // As the volumes are already rotated,
-    // the selection has to happen along the y-axis
-    auto layerBuilder = makeLayerBuilder(world, gOpt.g4ToWorld, names,
-                                         {zBounds}, {Acts::BinningValue::binY});
-                                         // {zBounds}, {Acts::BinningValue::binZ});
+  double negLongEdge = std::min(
+      {goInst.tcCenterLong - goInst.tcHalfLong,
+       goInst.dipoleCenterLong - goInst.dipoleHalfLong, -goInst.worldHalfLong});
+  double posLongEdge = std::max(
+      {goInst.tcCenterLong + goInst.tcHalfLong,
+       goInst.dipoleCenterLong + goInst.dipoleHalfLong, goInst.worldHalfLong});
 
-    auto detElementBuilder =
-        std::make_shared<AlignableDetectorElementBuilder>();
+  double negShortEdge =
+      std::min({goInst.tcCenterShort - goInst.tcHalfShort,
+                goInst.dipoleCenterShort - goInst.dipoleHalfShort,
+                -goInst.worldHalfShort});
+  double posShortEdge =
+      std::max({goInst.tcCenterShort + goInst.tcHalfShort,
+                goInst.dipoleCenterShort + goInst.dipoleHalfShort,
+                goInst.worldHalfShort});
 
-    // Convention is that the transformations
-    // are with respect to the global frame
-    Acts::Vector3 layerTranslation =
-        Acts::Vector3(gOpt.armTranslation.x(), gOpt.armTranslation.y(),
-                      gOpt.layerZPositions.at(i));
+  Acts::Material silicon = Acts::Material::fromMolarDensity(
+      9.370_cm, 46.52_cm, 28.0855, 14, (2.329 / 28.0855) * 1_mol / 1_cm3);
+  Acts::MaterialSlab siliconSlab(silicon, goInst.pixelThickness);
+  auto siSurfMaterial =
+      std::make_shared<Acts::HomogeneousSurfaceMaterial>(siliconSlab);
 
-    layerTranslation = gOpt.actsToWorld.rotation().inverse() * layerTranslation;
+  Acts::Material alminium = Acts::Material::fromMolarDensity(
+      8.897_cm, 25.81_cm, 26.9815385, 13, (2.699 / 26.9815385) * 1_mol / 1_cm3);
+  Acts::MaterialSlab aluminiumSlab(alminium, goInst.pdcWindowThickness);
+  auto alSurfMaterial =
+      std::make_shared<Acts::HomogeneousSurfaceMaterial>(aluminiumSlab);
 
-    Acts::Transform3 layerTransform = Acts::Transform3::Identity();
-    layerTransform.rotate(gOpt.actsToWorld.rotation().inverse());
-    layerTransform.pretranslate(layerTranslation);
+  double longVolumeSize = (posLongEdge - negLongEdge) / 2.0;
+  double shortVolumeSize = (posShortEdge - negShortEdge) / 2.0;
 
-    auto layerNode = std::make_unique<Acts::Experimental::Blueprint::Node>(
-        "layer" + std::to_string(i), layerTransform,
-        Acts::VolumeBounds::eCuboid, gOpt.layerBounds, layerBuilder,
-        detElementBuilder);
+  double longVolumeCenter = (posLongEdge + negLongEdge) / 2.0;
+  double shortVolumeCenter = (posShortEdge + negShortEdge) / 2.0;
 
-    trackerBP->add(std::move(layerNode));
-  }
-  // Be window
-  auto beWindowZBounds =
-      std::make_tuple(gOpt.beWindowTranslation.z() - gOpt.beWindowBounds.at(2),
-                      gOpt.beWindowTranslation.z() + gOpt.beWindowBounds.at(2));
+  auto constructE320Volume =
+      [&](double halfPrimary, double centerPrimary,
+          const std::string& namePrefix, std::size_t id,
+          const std::vector<std::shared_ptr<Acts::Surface>>& surfaces) {
+        detectorVolumes.push_back(constructVolume(
+            halfPrimary, longVolumeSize, shortVolumeSize, centerPrimary,
+            longVolumeCenter, shortVolumeCenter, goInst.primaryIdx,
+            goInst.longIdx, goInst.shortIdx, namePrefix, id, surfaces, gctx));
+      };
 
-  Acts::Transform3 beWindowTransform = Acts::Transform3::Identity();
-  beWindowTransform.rotate(gOpt.actsToWorld.rotation().inverse());
-  beWindowTransform.translate(gOpt.beWindowTranslation);
+  auto constructE320Surface =
+      [&](const SurfaceParameters& pars,
+          const std::shared_ptr<Acts::RectangleBounds>& bounds) {
+        return constructSurface(pars, bounds, goInst.primaryDir, goInst.longDir,
+                                goInst.shortDir);
+      };
 
-  auto beWindowLayerBuilder = std::make_shared<PlaneSurfaceStructureBuilder>(
-      PlaneSurfaceStructureBuilder::Config{beWindowTransform, 2000_mm,
-                                           2000_mm});
+  auto constructTrackingChamber =
+      [&](const go::TrackingChamberParameters& pars) {
+        double tcBoxCenterPrimary =
+            (pars.front().toWorldTranslation[goInst.primaryIdx] -
+             goInst.tcWindowToFirstChipDistance +
+             pars.back().toWorldTranslation[goInst.primaryIdx] +
+             goInst.tcWindowToLastChipDistance) /
+            2.0;
+        for (const auto& parameters : pars) {
+          auto surf = constructE320Surface(parameters, chipBounds);
 
-  auto beWindowNode = std::make_unique<Acts::Experimental::Blueprint::Node>(
-      "beWindow", beWindowTransform, Acts::VolumeBounds::eCuboid,
-      gOpt.beWindowBounds, beWindowLayerBuilder);
+          surf->assignSurfaceMaterial(siSurfMaterial);
 
-  trackerBP->add(std::move(beWindowNode));
+          Acts::GeometryIdentifier surfGeoId;
+          surfGeoId.setSensitive(parameters.geoId);
+          surf->assignGeometryId(surfGeoId);
 
-  // PDC window
-  auto pdcWindowZBounds = std::make_tuple(
-      gOpt.pdcWindowTranslation.z() - gOpt.pdcWindowBounds.at(2),
-      gOpt.pdcWindowTranslation.z() + gOpt.pdcWindowBounds.at(2));
+          detectorElements.push_back(std::make_shared<AlignableDetectorElement>(
+              surf, surf->transform(gctx)));
+          surf->assignDetectorElement(*detectorElements.back());
 
-  auto pdcWindowLayerBuilder =
-      makeLayerBuilder(world, gOpt.g4ToWorld, names, {pdcWindowZBounds},
-                       {Acts::BinningValue::binY}, true);
-                       // {Acts::BinningValue::binZ}, true);
+          constructE320Volume(goInst.interChipDistance / 2.0,
+                              parameters.toWorldTranslation[goInst.primaryIdx],
+                              "sensVol", parameters.geoId, {surf});
+        }
+      };
 
-  Acts::Transform3 pdcWindowTransform = Acts::Transform3::Identity();
-  pdcWindowTransform.rotate(gOpt.actsToWorld.rotation().inverse());
-  pdcWindowTransform.translate(gOpt.pdcWindowTranslation);
+  auto constructMagVolume =
+      [&](double halfPrimary, double centerPrimary,
+          const std::string& namePrefix,
+          const std::vector<std::shared_ptr<Acts::Surface>>& surfaces) {
+        int id = goInst.magVolumeIdPrefactor + magVolumeCounter;
+        constructE320Volume(halfPrimary, centerPrimary, namePrefix, id,
+                            surfaces);
+        magVolumeCounter++;
+      };
 
-  auto pdcWindowNode = std::make_unique<Acts::Experimental::Blueprint::Node>(
-      "pdcWindow", pdcWindowTransform, Acts::VolumeBounds::eCuboid,
-      gOpt.pdcWindowBounds, pdcWindowLayerBuilder);
+  auto constructE320GapVolume =
+      [&](const std::shared_ptr<Acts::Experimental::DetectorVolume>& vol1,
+          const std::shared_ptr<Acts::Experimental::DetectorVolume>& vol2) {
+        std::size_t id = goInst.gapVolumeIdPrefactor + gapVolumeCounter;
+        detectorVolumes.push_back(
+            constructGapVolume(vol1, vol2, goInst.primaryIdx, goInst.longIdx,
+                               goInst.shortIdx, id, gctx));
+        gapVolumeCounter++;
+      };
 
-  trackerBP->add(std::move(pdcWindowNode));
+  auto constructPDCWindow = [&](const SurfaceParameters& pars) {
+    auto surf = constructE320Surface(pars, pdcWindowBounds);
 
-  // Dipole
-  auto dipoleZBounds =
-      std::make_tuple(gOpt.dipoleTranslation.z() - gOpt.dipoleBounds.at(2),
-                      gOpt.dipoleTranslation.z() + gOpt.dipoleBounds.at(2));
+    surf->assignSurfaceMaterial(alSurfMaterial);
 
-  auto dipoleLayerBuilder =
-      makeLayerBuilder(world, gOpt.g4ToWorld, names, {dipoleZBounds},
-                       {Acts::BinningValue::binZ});
+    Acts::GeometryIdentifier surfGeoId;
+    surfGeoId.setPassive(pars.geoId);
+    surf->assignGeometryId(surfGeoId);
 
-  Acts::Transform3 dipoleTransform = Acts::Transform3::Identity();
-  dipoleTransform.rotate(gOpt.actsToWorld.rotation().inverse());
-  dipoleTransform.translate(gOpt.dipoleTranslation);
+    constructE320Volume(goInst.chipVolumeHalfSpacing,
+                        pars.toWorldTranslation[goInst.primaryIdx], "pdcVol",
+                        pars.geoId, {surf});
+  };
 
-  auto dipoleNode = std::make_unique<Acts::Experimental::Blueprint::Node>(
-      "Dipole", dipoleTransform, Acts::VolumeBounds::eCuboid, gOpt.dipoleBounds,
-      dipoleLayerBuilder);
+  // IP
+  constructE320Volume(goInst.quad1CenterPrimary - goInst.quad1HalfPrimary, 0,
+                      "ipVol", goInst.ipVolumeIdPrefactor, {});
 
-  trackerBP->add(std::move(dipoleNode));
+  // Quad 1
+  constructMagVolume(goInst.quad1HalfPrimary, goInst.quad1CenterPrimary,
+                     "quad1", {});
+  const auto& quad1Volume = detectorVolumes.back();
 
-  // Quadrupole 1
-  auto quad1ZBounds =
-      std::make_tuple(gOpt.quad1Translation.z() - gOpt.quad1Bounds.at(2),
-                      gOpt.quad1Translation.z() + gOpt.quad1Bounds.at(2));
+  // Quad 2
+  constructMagVolume(goInst.quad2HalfPrimary, goInst.quad2CenterPrimary,
+                     "quad2", {});
+  const auto& quad2Volume = detectorVolumes.back();
+  constructE320GapVolume(quad1Volume, quad2Volume);
 
-  auto quad1LayerBuilder = makeLayerBuilder(
-      world, gOpt.g4ToWorld, names, {quad1ZBounds}, {Acts::BinningValue::binZ});
-
-  Acts::Transform3 quad1Transform = Acts::Transform3::Identity();
-  quad1Transform.rotate(gOpt.actsToWorld.rotation().inverse());
-  quad1Transform.translate(gOpt.quad1Translation);
-
-  auto quad1Node = std::make_unique<Acts::Experimental::Blueprint::Node>(
-      "Quad1", quad1Transform, Acts::VolumeBounds::eCuboid, gOpt.quad1Bounds,
-      quad1LayerBuilder);
-
-  trackerBP->add(std::move(quad1Node));
-
-  // Quadrupole 2
-  auto quad2ZBounds =
-      std::make_tuple(gOpt.quad2Translation.z() - gOpt.quad2Bounds.at(2),
-                      gOpt.quad2Translation.z() + gOpt.quad2Bounds.at(2));
-
-  auto quad2LayerBuilder = makeLayerBuilder(
-      world, gOpt.g4ToWorld, names, {quad2ZBounds}, {Acts::BinningValue::binZ});
-
-  Acts::Transform3 quad2Transform = Acts::Transform3::Identity();
-  quad2Transform.rotate(gOpt.actsToWorld.rotation().inverse());
-  quad2Transform.translate(gOpt.quad2Translation);
-
-  auto quad2Node = std::make_unique<Acts::Experimental::Blueprint::Node>(
-      "Quad2", quad2Transform, Acts::VolumeBounds::eCuboid, gOpt.quad2Bounds,
-      quad2LayerBuilder);
-
-  trackerBP->add(std::move(quad2Node));
-
-  // Quadrupole 3
-  auto quad3ZBounds =
-      std::make_tuple(gOpt.quad3Translation.z() - gOpt.quad3Bounds.at(2),
-                      gOpt.quad3Translation.z() + gOpt.quad3Bounds.at(2));
-
-  auto quad3LayerBuilder = makeLayerBuilder(
-      world, gOpt.g4ToWorld, names, {quad3ZBounds}, {Acts::BinningValue::binZ});
-
-  Acts::Transform3 quad3Transform = Acts::Transform3::Identity();
-  quad3Transform.rotate(gOpt.actsToWorld.rotation().inverse());
-  quad3Transform.translate(gOpt.quad3Translation);
-
-  auto quad3Node = std::make_unique<Acts::Experimental::Blueprint::Node>(
-      "Quad3", quad3Transform, Acts::VolumeBounds::eCuboid, gOpt.quad3Bounds,
-      quad3LayerBuilder);
-
-  trackerBP->add(std::move(quad3Node));
+  // Quad 3
+  constructMagVolume(goInst.quad3HalfPrimary, goInst.quad3CenterPrimary,
+                     "quad3", {});
+  const auto quad3Volume = detectorVolumes.back();
+  constructE320GapVolume(quad2Volume, quad3Volume);
 
   // X-Corrector
-  auto xCorrectorZBounds = std::make_tuple(
-      gOpt.xCorrectorTranslation.z() - gOpt.xCorrectorBounds.at(2),
-      gOpt.xCorrectorTranslation.z() + gOpt.xCorrectorBounds.at(2));
+  constructMagVolume(goInst.xCorrectorHalfPrimary,
+                     goInst.xCorrectorCenterPrimary, "xCorrector", {});
+  const auto& xCorrectorVolume = detectorVolumes.back();
+  constructE320GapVolume(quad3Volume, xCorrectorVolume);
 
-  auto xCorrectorLayerBuilder =
-      makeLayerBuilder(world, gOpt.g4ToWorld, names, {xCorrectorZBounds},
-                       {Acts::BinningValue::binZ});
+  // Dipole
+  constructMagVolume(goInst.dipoleHalfPrimary, goInst.dipoleCenterPrimary,
+                     "dipole", {});
+  const auto& dipoleVolume = detectorVolumes.back();
+  constructE320GapVolume(xCorrectorVolume, dipoleVolume);
 
-  Acts::Transform3 xCorrectorTransform = Acts::Transform3::Identity();
-  xCorrectorTransform.rotate(gOpt.actsToWorld.rotation().inverse());
-  xCorrectorTransform.translate(gOpt.xCorrectorTranslation);
+  // PDC window
+  constructPDCWindow(goInst.pdcWindowParameters);
+  std::size_t pdcVolumeIdx = detectorVolumes.size() - 1;
+  const auto& pdcVolume = detectorVolumes.at(pdcVolumeIdx);
+  constructE320GapVolume(dipoleVolume, pdcVolume);
 
-  auto xCorrectorNode = std::make_unique<Acts::Experimental::Blueprint::Node>(
-      "xCorrector", xCorrectorTransform, Acts::VolumeBounds::eCuboid,
-      gOpt.xCorrectorBounds, xCorrectorLayerBuilder);
+  // Tracking chamber
+  constructTrackingChamber(goInst.tcParameters);
+  const auto& firstTcVolume = detectorVolumes.at(pdcVolumeIdx + 2);
+  constructE320GapVolume(pdcVolume, firstTcVolume);
 
-  trackerBP->add(std::move(xCorrectorNode));
+  std::sort(detectorVolumes.begin(), detectorVolumes.end(),
+            [&](const auto& vol1, const auto& vol2) {
+              return (vol1->transform(gctx).translation()[goInst.primaryIdx] <
+                      vol2->transform(gctx).translation()[goInst.primaryIdx]);
+            });
 
-  return trackerBP;
-};
+  auto portalContainer =
+      Acts::Experimental::detail::CuboidalDetectorHelper::connect(
+          gctx, detectorVolumes, goInst.primaryBinValue, {},
+          Acts::Logging::VERBOSE);
 
-std::shared_ptr<const Acts::Experimental::Detector> buildE320Detector(
-    const std::unique_ptr<Acts::Experimental::Blueprint::Node> detectorBpr,
-    const Acts::GeometryContext& gctx,
-    const E320Geometry::GeometryOptions& gOpt,
-    const std::vector<Acts::GeometryIdentifier>& materialVetos) {
-  // Complete and fill gaps
-  Acts::Experimental::detail::BlueprintHelper::fillGaps(*detectorBpr, false);
-
-  auto detectorBuilder =
-      std::make_shared<Acts::Experimental::CuboidalContainerBuilder>(
-          *detectorBpr, Acts::Logging::VERBOSE);
-
-  auto idGenCfg = E320GeometryIdGenerator::Config{false, 0u, true, false, gOpt};
-
-  // Initialize the material binning
-  Acts::BinUtility materialBinning = gOpt.materialBinningX;
-  materialBinning += gOpt.materialBinningY;
-
-  auto mpCfg = NoMaterialDecorator::Config();
-  mpCfg.surfaceBinning = materialBinning;
-  mpCfg.vetos = materialVetos;
-
-  // Detector builder
-  Acts::Experimental::DetectorBuilder::Config dCfg;
-  dCfg.auxiliary = "Detector builder";
-  dCfg.name = "Detector from blueprint";
-  dCfg.builder = detectorBuilder;
-  dCfg.materialDecorator = std::make_shared<NoMaterialDecorator>(mpCfg);
-  dCfg.geoIdGenerator = std::make_shared<E320GeometryIdGenerator>(
-      idGenCfg,
-      Acts::getDefaultLogger("GeoIdGenerator", Acts::Logging::VERBOSE));
-
-  auto detector = Acts::Experimental::DetectorBuilder(dCfg).construct(gctx);
+  auto detector = Acts::Experimental::Detector::makeShared(
+      "TelescopeDetector", detectorVolumes,
+      Acts::Experimental::tryRootVolumes(), detectorElements);
 
   return detector;
 }
 
-std::shared_ptr<const Acts::Experimental::Detector> buildE320Detector(
-    const std::unique_ptr<Acts::Experimental::Blueprint::Node> detectorBpr,
-    const Acts::GeometryContext& gctx,
-    const E320Geometry::GeometryOptions& gOpt,
-    const std::string jsonMaterialPath,
-    const std::vector<Acts::GeometryIdentifier>& materialVetos) {
-  // Complete and fill gaps
-  Acts::Experimental::detail::BlueprintHelper::fillGaps(*detectorBpr, false);
+std::shared_ptr<Acts::MagneticFieldProvider> buildMagField(
+    const Acts::GeometryContext& gctx) {
+  const auto& goInst = *go::instance();
 
-  auto detectorBuilder =
-      std::make_shared<Acts::Experimental::CuboidalContainerBuilder>(
-          *detectorBpr, Acts::Logging::VERBOSE);
+  Acts::Extent quad1Extent;
+  quad1Extent.set(goInst.primaryBinValue,
+                  goInst.quad1CenterPrimary - goInst.quad1HalfPrimary,
+                  goInst.quad1CenterPrimary + goInst.quad1HalfPrimary);
+  quad1Extent.set(goInst.longBinValue,
+                  goInst.quad1CenterLong - goInst.quad1HalfLong,
+                  goInst.quad1CenterLong + goInst.quad1HalfLong);
+  quad1Extent.set(goInst.shortBinValue,
+                  goInst.quad1CenterShort - goInst.quad1HalfShort,
+                  goInst.quad1CenterShort + goInst.quad1HalfShort);
 
-  auto idGenCfg = E320GeometryIdGenerator::Config{false, 0u, true, false, gOpt};
+  Acts::Extent quad2Extent;
+  quad2Extent.set(goInst.primaryBinValue,
+                  goInst.quad2CenterPrimary - goInst.quad2HalfPrimary,
+                  goInst.quad2CenterPrimary + goInst.quad2HalfPrimary);
+  quad2Extent.set(goInst.longBinValue,
+                  goInst.quad2CenterLong - goInst.quad2HalfLong,
+                  goInst.quad2CenterLong + goInst.quad2HalfLong);
+  quad2Extent.set(goInst.shortBinValue,
+                  goInst.quad2CenterShort - goInst.quad2HalfShort,
+                  goInst.quad2CenterShort + goInst.quad2HalfShort);
 
-  // Material provider
-  auto jMatMapConverterCfg = Acts::MaterialMapJsonConverter::Config();
-  jMatMapConverterCfg.context = gctx;
+  Acts::Extent quad3Extent;
+  quad3Extent.set(goInst.primaryBinValue,
+                  goInst.quad3CenterPrimary - goInst.quad3HalfPrimary,
+                  goInst.quad3CenterPrimary + goInst.quad3HalfPrimary);
+  quad3Extent.set(goInst.longBinValue,
+                  goInst.quad3CenterLong - goInst.quad3HalfLong,
+                  goInst.quad3CenterLong + goInst.quad3HalfLong);
+  quad3Extent.set(goInst.shortBinValue,
+                  goInst.quad3CenterShort - goInst.quad3HalfShort,
+                  goInst.quad3CenterShort + goInst.quad3HalfShort);
 
-  auto jMatDecorator = std::make_shared<Acts::JsonMaterialDecorator>(
-      jMatMapConverterCfg, jsonMaterialPath, Acts::Logging::VERBOSE,
-      materialVetos);
+  Acts::Extent xCorrectorExtent;
+  xCorrectorExtent.set(
+      goInst.primaryBinValue,
+      goInst.xCorrectorCenterPrimary - goInst.xCorrectorHalfPrimary,
+      goInst.xCorrectorCenterPrimary + goInst.xCorrectorHalfPrimary);
+  xCorrectorExtent.set(goInst.longBinValue,
+                       goInst.xCorrectorCenterLong - goInst.xCorrectorHalfLong,
+                       goInst.xCorrectorCenterLong + goInst.xCorrectorHalfLong);
+  xCorrectorExtent.set(
+      goInst.shortBinValue,
+      goInst.xCorrectorCenterShort - goInst.xCorrectorHalfShort,
+      goInst.xCorrectorCenterShort + goInst.xCorrectorHalfShort);
 
-  // Detector builder
-  Acts::Experimental::DetectorBuilder::Config dCfg;
-  dCfg.auxiliary = "Detector builder";
-  dCfg.name = "Detector from blueprint";
-  dCfg.builder = detectorBuilder;
-  dCfg.materialDecorator = jMatDecorator;
-  dCfg.geoIdGenerator = std::make_shared<E320GeometryIdGenerator>(
-      idGenCfg,
-      Acts::getDefaultLogger("GeoIdGenerator", Acts::Logging::VERBOSE));
+  Acts::Extent dipoleExtent;
+  dipoleExtent.set(goInst.primaryBinValue,
+                   goInst.dipoleCenterPrimary - goInst.dipoleHalfPrimary,
+                   goInst.dipoleCenterPrimary + goInst.dipoleHalfPrimary);
+  dipoleExtent.set(goInst.longBinValue,
+                   goInst.dipoleCenterLong - goInst.dipoleHalfLong,
+                   goInst.dipoleCenterLong + goInst.dipoleHalfLong);
+  dipoleExtent.set(goInst.shortBinValue,
+                   goInst.dipoleCenterShort - goInst.dipoleHalfShort,
+                   goInst.dipoleCenterShort + goInst.dipoleHalfShort);
 
-  auto detector = Acts::Experimental::DetectorBuilder(
-                      dCfg, Acts::getDefaultLogger("DetectorBuilder",
-                                                   Acts::Logging::VERBOSE))
-                      .construct(gctx);
-  return detector;
+  Acts::RotationMatrix3 quadRotation =
+      Acts::AngleAxis3(-M_PI_2, Acts::Vector3::UnitY()).toRotationMatrix();
+
+  Acts::Vector3 quad1Center;
+  quad1Center[goInst.primaryIdx] = goInst.quad1CenterPrimary;
+  quad1Center[goInst.longIdx] = goInst.quad1CenterLong;
+  quad1Center[goInst.shortIdx] = goInst.quad1CenterShort;
+  auto quad1Field = std::make_shared<IdealQuadrupoleMagField>(
+      goInst.quad1Gradient, quad1Center, quadRotation);
+
+  Acts::Vector3 quad2Center;
+  quad2Center[goInst.primaryIdx] = goInst.quad2CenterPrimary;
+  quad2Center[goInst.longIdx] = goInst.quad2CenterLong;
+  quad2Center[goInst.shortIdx] = goInst.quad2CenterShort;
+  auto quad2Field = std::make_shared<IdealQuadrupoleMagField>(
+      goInst.quad2Gradient, quad2Center, quadRotation);
+
+  Acts::Vector3 quad3Center;
+  quad3Center[goInst.primaryIdx] = goInst.quad3CenterPrimary;
+  quad3Center[goInst.longIdx] = goInst.quad3CenterLong;
+  quad3Center[goInst.shortIdx] = goInst.quad3CenterShort;
+  auto quad3Field = std::make_shared<IdealQuadrupoleMagField>(
+      goInst.quad3Gradient, quad3Center, quadRotation);
+
+  Acts::Vector3 xCorrectorB;
+  xCorrectorB[goInst.primaryIdx] = goInst.xCorrectorFieldPrimary;
+  xCorrectorB[goInst.longIdx] = goInst.xCorrectorFieldLong;
+  xCorrectorB[goInst.shortIdx] = goInst.xCorrectorFieldShort;
+  auto xCorrectorField =
+      std::make_shared<ConstantBoundedField>(xCorrectorB, xCorrectorExtent);
+
+  Acts::Vector3 dipoleB;
+  dipoleB[goInst.primaryIdx] = goInst.dipoleFieldPrimary;
+  dipoleB[goInst.longIdx] = goInst.dipoleFieldLong;
+  dipoleB[goInst.shortIdx] = goInst.dipoleFieldShort;
+  auto dipoleField =
+      std::make_shared<ConstantBoundedField>(dipoleB, dipoleExtent);
+
+  CompositeMagField::FieldComponents fieldComponents = {
+      {quad1Extent, quad1Field},
+      {quad2Extent, quad2Field},
+      {quad3Extent, quad3Field},
+      {xCorrectorExtent, xCorrectorField},
+      {dipoleExtent, dipoleField}};
+
+  return std::make_shared<CompositeMagField>(fieldComponents);
 }
 
 }  // namespace E320Geometry
