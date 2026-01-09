@@ -10,8 +10,11 @@
 #include <memory>
 #include <vector>
 
+#include "TrackingPipeline/Alignment/AlignmentContext.hpp"
+#include "TrackingPipeline/Alignment/detail/AlignmentUtils.hpp"
 #include "TrackingPipeline/Geometry/E320Geometry.hpp"
 #include "TrackingPipeline/Geometry/E320GeometryConstraints.hpp"
+#include "TrackingPipeline/Geometry/GeometryContextDecorator.hpp"
 #include "TrackingPipeline/Infrastructure/Sequencer.hpp"
 #include "TrackingPipeline/Io/DummyReader.hpp"
 #include "TrackingPipeline/Io/RootSimClusterWriter.hpp"
@@ -51,7 +54,7 @@ int main() {
   const auto& goInst = *eg::GeometryOptions::instance();
 
   // Set the log level
-  Acts::Logging::Level logLevel = Acts::Logging::DEBUG;
+  Acts::Logging::Level logLevel = Acts::Logging::INFO;
 
   // Dummy context and options
   Acts::GeometryContext gctx;
@@ -84,6 +87,41 @@ int main() {
     }
   }
 
+  auto aStore = detail::makeAlignmentStore(detector.get());
+  AlignmentContext alignCtx(aStore);
+  Acts::GeometryContext testCtx{alignCtx};
+  for (auto& v : detector->volumes()) {
+    for (auto& s : v->surfaces()) {
+      if (s->geometryId().sensitive()) {
+        std::cout << "-----------------------------------\n";
+        std::cout << "SURFACE " << s->geometryId() << "\n";
+        std::cout << "CENTER " << s->center(testCtx).transpose() << " -- "
+                  << s->center(Acts::GeometryContext()).transpose() << "\n";
+        std::cout << "NORMAL "
+                  << s->normal(testCtx, s->center(testCtx),
+                               Acts::Vector3::UnitY())
+                         .transpose()
+                  << " -- "
+                  << s->normal(testCtx, s->center(Acts::GeometryContext()),
+                               Acts::Vector3::UnitY())
+                         .transpose()
+                  << "\n";
+        std::cout << "ROTATION \n"
+                  << s->transform(testCtx).rotation() << " -- \n"
+                  << "\n"
+                  << s->transform(Acts::GeometryContext()).rotation() << "\n";
+
+        std::cout << "EXTENT "
+                  << s->polyhedronRepresentation(testCtx, 1000).extent()
+                  << "\n -- \n"
+                  << s->polyhedronRepresentation(Acts::GeometryContext(), 1000)
+                         .extent()
+                  << "\n";
+      }
+    }
+  }
+  gctx = Acts::GeometryContext{alignCtx};
+
   // --------------------------------------------------------------
   // The magnetic field setup
 
@@ -100,6 +138,9 @@ int main() {
   seqCfg.trackFpes = false;
   seqCfg.logLevel = logLevel;
   Sequencer sequencer(seqCfg);
+
+  sequencer.addContextDecorator(
+      std::make_shared<GeometryContextDecorator>(aStore));
 
   // --------------------------------------------------------------
   // Add dummy reader
@@ -173,7 +214,8 @@ int main() {
   clusterWriterCfgSig.inputClusters = "Clusters";
   clusterWriterCfgSig.treeName = "clusters";
   clusterWriterCfgSig.filePath =
-      "/home/romanurmanov/work/TrackingPipeline/ActsTrackingPipeline_build/"
+      "/home/romanurmanov/work/E320/E320Prototype/"
+      "E320Prototype_dataInRootFormat/sim/"
       "clusters.root";
 
   sequencer.addWriter(

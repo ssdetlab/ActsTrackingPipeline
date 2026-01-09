@@ -22,10 +22,9 @@
 #include "TrackingPipeline/Geometry/GeometryContextDecorator.hpp"
 #include "TrackingPipeline/Infrastructure/Sequencer.hpp"
 #include "TrackingPipeline/Io/AlignmentParametersProvider.hpp"
-#include "TrackingPipeline/Io/E320RootDataReader.hpp"
-#include "TrackingPipeline/Io/RootMeasurementWriter.hpp"
-#include "TrackingPipeline/Io/RootSeedWriter.hpp"
-#include "TrackingPipeline/Io/RootTrackWriter.hpp"
+#include "TrackingPipeline/Io/RootSimClusterReader.hpp"
+#include "TrackingPipeline/Io/RootSimSeedWriter.hpp"
+#include "TrackingPipeline/Io/RootSimTrackWriter.hpp"
 #include "TrackingPipeline/TrackFinding/E320SeedingAlgorithm.hpp"
 #include "TrackingPipeline/TrackFinding/HoughTransformSeeder.hpp"
 #include "TrackingPipeline/TrackFitting/KFTrackFittingAlgorithm.hpp"
@@ -55,7 +54,7 @@ int main() {
   const auto& goInst = *ag::GeometryOptions::instance();
 
   // Set the log level
-  Acts::Logging::Level logLevel = Acts::Logging::DEBUG;
+  Acts::Logging::Level logLevel = Acts::Logging::INFO;
 
   // Dummy context and options
   Acts::GeometryContext gctx;
@@ -83,49 +82,49 @@ int main() {
     }
   }
 
-  // AlignmentParametersProvider::Config alignmentProviderCfg;
-  // alignmentProviderCfg.filePath =
-  //     "/home/romanurmanov/work/E320/E320Prototype/E320Prototype_analysis/sim/"
-  //     "alignment/aligned/"
-  //     "alignment-parameters.root";
-  // alignmentProviderCfg.treeName = "alignment-parameters";
-  // AlignmentParametersProvider alignmentProvider1(alignmentProviderCfg);
-  // auto aStore = alignmentProvider1.getAlignmentStore();
+  AlignmentParametersProvider::Config alignmentProviderCfg;
+  alignmentProviderCfg.filePath =
+      "/home/romanurmanov/work/E320/E320Prototype/E320Prototype_analysis/sim/"
+      "alignment/aligned/"
+      "alignment-parameters.root";
+  alignmentProviderCfg.treeName = "alignment-parameters";
+  AlignmentParametersProvider alignmentProvider1(alignmentProviderCfg);
+  auto aStore = alignmentProvider1.getAlignmentStore();
 
-  // AlignmentContext alignCtx(aStore);
-  // Acts::GeometryContext testCtx{alignCtx};
-  // for (auto& v : detector->volumes()) {
-  //   for (auto& s : v->surfaces()) {
-  //     if (s->geometryId().sensitive()) {
-  //       std::cout << "-----------------------------------\n";
-  //       std::cout << "SURFACE " << s->geometryId() << "\n";
-  //       std::cout << "CENTER " << s->center(testCtx).transpose() << " -- "
-  //                 << s->center(Acts::GeometryContext()).transpose() << "\n";
-  //       std::cout << "NORMAL "
-  //                 << s->normal(testCtx, s->center(testCtx),
-  //                              Acts::Vector3::UnitY())
-  //                        .transpose()
-  //                 << " -- "
-  //                 << s->normal(testCtx, s->center(Acts::GeometryContext()),
-  //                              Acts::Vector3::UnitY())
-  //                        .transpose()
-  //                 << "\n";
-  //       std::cout << "ROTATION \n"
-  //                 << s->transform(testCtx).rotation() << " -- \n"
-  //                 << "\n"
-  //                 << s->transform(Acts::GeometryContext()).rotation() << "\n";
+  AlignmentContext alignCtx(aStore);
+  Acts::GeometryContext testCtx{alignCtx};
+  for (auto& v : detector->volumes()) {
+    for (auto& s : v->surfaces()) {
+      if (s->geometryId().sensitive()) {
+        std::cout << "-----------------------------------\n";
+        std::cout << "SURFACE " << s->geometryId() << "\n";
+        std::cout << "CENTER " << s->center(testCtx).transpose() << " -- "
+                  << s->center(Acts::GeometryContext()).transpose() << "\n";
+        std::cout << "NORMAL "
+                  << s->normal(testCtx, s->center(testCtx),
+                               Acts::Vector3::UnitY())
+                         .transpose()
+                  << " -- "
+                  << s->normal(testCtx, s->center(Acts::GeometryContext()),
+                               Acts::Vector3::UnitY())
+                         .transpose()
+                  << "\n";
+        std::cout << "ROTATION \n"
+                  << s->transform(testCtx).rotation() << " -- \n"
+                  << "\n"
+                  << s->transform(Acts::GeometryContext()).rotation() << "\n";
 
-  //       std::cout << "EXTENT "
-  //                 << s->polyhedronRepresentation(testCtx, 1000).extent()
-  //                 << "\n -- \n"
-  //                 << s->polyhedronRepresentation(Acts::GeometryContext(),
-  //                 1000)
-  //                        .extent()
-  //                 << "\n";
-  //     }
-  //   }
-  // }
-  // gctx = Acts::GeometryContext{alignCtx};
+        std::cout << "EXTENT "
+                  << s->polyhedronRepresentation(testCtx, 1000).extent()
+                  << "\n -- \n"
+                  << s->polyhedronRepresentation(Acts::GeometryContext(),
+                  1000)
+                         .extent()
+                  << "\n";
+      }
+    }
+  }
+  gctx = Acts::GeometryContext{alignCtx};
 
   // --------------------------------------------------------------
   // The magnetic field setup
@@ -138,25 +137,28 @@ int main() {
 
   // Setup the sequencer
   Sequencer::Config seqCfg;
-  seqCfg.events = 1e1;
+  // seqCfg.events = 1e1;
   // seqCfg.skip = 1;
   seqCfg.numThreads = 1;
   seqCfg.trackFpes = false;
   seqCfg.logLevel = logLevel;
   Sequencer sequencer(seqCfg);
 
-  // sequencer.addContextDecorator(
-  //     std::make_shared<GeometryContextDecorator>(aStore));
+  sequencer.addContextDecorator(
+      std::make_shared<GeometryContextDecorator>(aStore));
 
   // Add the sim data reader
-  E320Io::E320RootDataReader::Config readerCfg;
+  RootSimClusterReader::Config readerCfg;
   readerCfg.outputSourceLinks = "Measurements";
-  readerCfg.treeName = "MyTree";
-  readerCfg.eventKey = "event";
+  readerCfg.outputSimClusters = "SimClusters";
+  readerCfg.treeName = "clusters";
+  readerCfg.minGeoId = 10;
+  readerCfg.maxGeoId = 18;
+  readerCfg.surfaceLocalToGlobal = true;
   readerCfg.surfaceMap = surfaceMap;
   std::string pathToDir =
       "/home/romanurmanov/work/E320/E320Prototype/"
-      "E320Prototype_dataInRootFormat/E320Shift_Fev_2025/processed/data_Run502";
+      "E320Prototype_dataInRootFormat/sim/alignment";
 
   // Get the paths to the files in the directory
   for (const auto& entry : std::filesystem::directory_iterator(pathToDir)) {
@@ -169,7 +171,7 @@ int main() {
 
   // Add the reader to the sequencer
   sequencer.addReader(
-      std::make_shared<E320Io::E320RootDataReader>(readerCfg, logLevel));
+      std::make_shared<RootSimClusterReader>(readerCfg, logLevel));
 
   // --------------------------------------------------------------
   // HT seeding setup
@@ -197,11 +199,11 @@ int main() {
   htSeederOpt.lastLayerId = goInst.tcParameters.back().geoId;
   htSeederOpt.nLayers = goInst.tcParameters.size();
 
-  htSeederOpt.minXCount = 3;
+  htSeederOpt.minXCount = 4;
   htSeederOpt.minSeedSize = 5;
   htSeederOpt.maxSeedSize = 100;
 
-  htSeederOpt.maxChi2 = 1e-1;
+  htSeederOpt.maxChi2 = 1e-2;
 
   E320SeedingAlgorithm::Config seedingAlgoCfg;
   seedingAlgoCfg.htSeeder = std::make_shared<HoughTransformSeeder>(htSeederCfg);
@@ -259,7 +261,6 @@ int main() {
           .toRotationMatrix();
 
   Acts::Transform3 transform = Acts::Transform3::Identity();
-  transform.translate(Acts::Vector3(goInst.ipTcDistance - 0.4_mm, 0, 0));
   transform.rotate(refSurfToWorldRotationX);
   transform.rotate(refSurfToWorldRotationY);
   transform.rotate(refSurfToWorldRotationZ);
@@ -301,42 +302,33 @@ int main() {
   // --------------------------------------------------------------
   // Event write out
 
-  // Cluster writer
-  auto measurementWriterCfg = RootMeasurementWriter::Config();
-  measurementWriterCfg.inputMeasurements = "Measurements";
-  measurementWriterCfg.treeName = "measurements";
-  measurementWriterCfg.filePath =
-      "/home/romanurmanov/work/E320/E320Prototype/E320Prototype_analysis/data/"
-      "measurements.root";
-
-  sequencer.addWriter(
-      std::make_shared<RootMeasurementWriter>(measurementWriterCfg, logLevel));
-
   // Seed writer
-  auto seedWriterCfg = RootSeedWriter::Config();
+  auto seedWriterCfg = RootSimSeedWriter::Config();
   seedWriterCfg.inputSeeds = "Seeds";
+  seedWriterCfg.inputTruthClusters = "SimClusters";
   seedWriterCfg.treeName = "seeds";
   seedWriterCfg.filePath =
-      "/home/romanurmanov/work/E320/E320Prototype/E320Prototype_analysis/data/"
+      "/home/romanurmanov/work/E320/E320Prototype/E320Prototype_analysis/sim/"
       "seeds.root";
 
   sequencer.addWriter(
-      std::make_shared<RootSeedWriter>(seedWriterCfg, logLevel));
+      std::make_shared<RootSimSeedWriter>(seedWriterCfg, logLevel));
 
   // Fitted track writer
-  auto trackWriterCfg = RootTrackWriter::Config();
+  auto trackWriterCfg = RootSimTrackWriter::Config();
   trackWriterCfg.surfaceAccessor
       .connect<&SimpleSourceLink::SurfaceAccessor::operator()>(
           &surfaceAccessor);
   trackWriterCfg.referenceSurface = refSurface.get();
   trackWriterCfg.inputTracks = "Tracks";
+  trackWriterCfg.inputSimClusters = "SimClusters";
   trackWriterCfg.treeName = "fitted-tracks";
   trackWriterCfg.filePath =
-      "/home/romanurmanov/work/E320/E320Prototype/E320Prototype_analysis/data/"
+      "/home/romanurmanov/work/E320/E320Prototype/E320Prototype_analysis/sim/"
       "fitted-tracks.root";
 
   sequencer.addWriter(
-      std::make_shared<RootTrackWriter>(trackWriterCfg, logLevel));
+      std::make_shared<RootSimTrackWriter>(trackWriterCfg, logLevel));
 
   return sequencer.run();
 }

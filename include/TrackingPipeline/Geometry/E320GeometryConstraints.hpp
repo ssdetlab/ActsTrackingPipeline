@@ -9,6 +9,8 @@
 #include "TrackingPipeline/Geometry/detail/BinningValueUtils.hpp"
 #include "TrackingPipeline/Geometry/detail/SurfaceParameters.hpp"
 
+/// TODO: cross-reference parameters with the paper
+
 namespace E320Geometry {
 
 using namespace Acts::UnitLiterals;
@@ -96,20 +98,17 @@ struct GeometryOptions {
   const double quad1HalfPrimary = 486.664_mm;
   const double quad1HalfLong = 40_mm;
   const double quad1HalfShort = 40_mm;
-  // const double quad1Gradient = -0.7637_T / 1_m;
-  const double quad1Gradient = 0_T / 1_m;
+  const double quad1Gradient = -0.7637_T / 1_m;
 
   const double quad2HalfPrimary = 486.664_mm;
   const double quad2HalfLong = 40_mm;
   const double quad2HalfShort = 40_mm;
-  // const double quad2Gradient = 2.855_T / 1_m;
-  const double quad2Gradient = 0_T / 1_m;
+  const double quad2Gradient = 2.855_T / 1_m;
 
   const double quad3HalfPrimary = 486.664_mm;
   const double quad3HalfLong = 40_mm;
   const double quad3HalfShort = 40_mm;
-  // const double quad3Gradient = -0.7637_T / 1_m;
-  const double quad3Gradient = 0_T / 1_m;
+  const double quad3Gradient = -0.7637_T / 1_m;
 
   /// --------------------------------------------------------------
   /// Parameters of the x-corrector
@@ -118,8 +117,10 @@ struct GeometryOptions {
   const double xCorrectorHalfLong = 40_mm;
   const double xCorrectorHalfShort = 40_mm;
 
+  const double xCorrectorFieldStrength = 0.026107_T;
+
   const double xCorrectorFieldPrimary = 0;
-  const double xCorrectorFieldLong = 0.026107_T;
+  const double xCorrectorFieldLong = xCorrectorFieldStrength;
   const double xCorrectorFieldShort = 0;
 
   /// --------------------------------------------------------------
@@ -129,9 +130,11 @@ struct GeometryOptions {
   const double dipoleHalfLong = 40_mm;
   const double dipoleHalfShort = 40_mm;
 
+  const double dipoleFieldStrength = 0.2192_T;
+
   const double dipoleFieldPrimary = 0;
   const double dipoleFieldLong = 0;
-  const double dipoleFieldShort = 0.2192_T;
+  const double dipoleFieldShort = dipoleFieldStrength;
 
   /// --------------------------------------------------------------
   /// Parameters of the PDC window
@@ -235,12 +238,12 @@ struct GeometryOptions {
       SurfaceParameters({primaryBinValue, ipTcDistance + 0 * interChipDistance,
                          toWorldAngleX},
                         {longBinValue, tcCenterLong, toWorldAngleY},
-                        {shortBinValue, tcCenterShort, toWorldAngleZ}, 18),
+                        {shortBinValue, tcCenterShort, toWorldAngleZ}, 10),
       SurfaceParameters{{primaryBinValue, ipTcDistance + 1 * interChipDistance,
                          toWorldAngleX},
                         {longBinValue, tcCenterLong, toWorldAngleY},
                         {shortBinValue, tcCenterShort, toWorldAngleZ},
-                        16},
+                        12},
       SurfaceParameters{{primaryBinValue, ipTcDistance + 2 * interChipDistance,
                          toWorldAngleX},
                         {longBinValue, tcCenterLong, toWorldAngleY},
@@ -250,12 +253,12 @@ struct GeometryOptions {
                          toWorldAngleX},
                         {longBinValue, tcCenterLong, toWorldAngleY},
                         {shortBinValue, tcCenterShort, toWorldAngleZ},
-                        12},
+                        16},
       SurfaceParameters{{primaryBinValue, ipTcDistance + 4 * interChipDistance,
                          toWorldAngleX},
                         {longBinValue, tcCenterLong, toWorldAngleY},
                         {shortBinValue, tcCenterShort, toWorldAngleZ},
-                        10}};
+                        18}};
 
   const double tcHalfPrimary =
       interChipDistance * (tcParameters.size() - 1) / 2.0 +

@@ -3,6 +3,8 @@
 #include "Acts/EventData/SourceLink.hpp"
 #include "Acts/Utilities/Logger.hpp"
 
+#include <cstddef>
+
 #include <RtypesCore.h>
 
 #include "DetectorEvent.hpp"
@@ -76,6 +78,9 @@ class E320RootDataReader : public IReader {
 
   /// Vector of {eventNr, entryMin, entryMax}
   std::vector<std::tuple<uint32_t, std::size_t, std::size_t>> m_eventMap;
+
+  std::unordered_map<std::uint8_t, std::size_t> m_geoIdMap{
+      {0, 18}, {2, 16}, {4, 14}, {6, 12}, {8, 10}};
 
   /// The input tree name
   // TChain* m_chain = nullptr;

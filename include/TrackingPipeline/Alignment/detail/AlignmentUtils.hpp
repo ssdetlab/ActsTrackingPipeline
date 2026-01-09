@@ -20,24 +20,16 @@ namespace detail {
 
 using namespace Acts::UnitLiterals;
 
-std::shared_ptr<AlignmentContext::AlignmentStore> makeAlignmentStore(
+inline std::shared_ptr<AlignmentContext::AlignmentStore> makeAlignmentStore(
     const Acts::Experimental::Detector* detector) {
-  std::map<int, Acts::Vector3> shifts{
-      {10, Acts::Vector3(0_mm, 7_um, 17_um)},
-      {12, Acts::Vector3(0_mm, 50_um, -10_um)},
-      {14, Acts::Vector3(0_mm, -50_um, 10_um)},
-      {16, Acts::Vector3(0_mm, -35_um, 35_um)},
-      {18, Acts::Vector3(0_mm, 35_um, -35_um)},
-      {20, Acts::Vector3(0_mm, 40_um - 24_um, -30_um - 24_um)},
-      {22, Acts::Vector3(0_mm, 40_um + 48_um, -30_um + 124_um)},
-      {24, Acts::Vector3(0_mm, 40_um + 67_um, -30_um - 40_um)},
-      {26, Acts::Vector3(0_mm, 40_um - 67_um, -30_um + 40_um)},
-      {28, Acts::Vector3(0_mm, 40_um - 24_um, -30_um - 100_um)}};
+  std::map<int, Acts::Vector3> shifts{{10, Acts::Vector3(0_mm, 7_um, 17_um)},
+                                      {12, Acts::Vector3(0_mm, 50_um, -10_um)},
+                                      {14, Acts::Vector3(0_mm, -50_um, 10_um)},
+                                      {16, Acts::Vector3(0_mm, -35_um, 35_um)},
+                                      {18, Acts::Vector3(0_mm, 35_um, -35_um)}};
 
   std::map<int, double> angles{
-      {10, 1e-3_rad},  {12, 2e-3_rad}, {14, -1.5e-3_rad}, {16, -0.5e-3_rad},
-      {18, -1e-3_rad}, {20, 4e-3_rad}, {22, 6e-3_rad},    {24, -7e-3_rad},
-      {26, -3e-3_rad}, {28, 1e-4_rad}};
+      {10, 0_rad}, {12, 0_rad}, {14, 0_rad}, {16, 0_rad}, {18, 0_rad}};
 
   auto aStore = std::make_shared<AlignmentContext::AlignmentStore>();
   Acts::GeometryContext gctx;
@@ -64,7 +56,7 @@ std::shared_ptr<AlignmentContext::AlignmentStore> makeAlignmentStore(
   return aStore;
 }
 
-std::shared_ptr<AlignmentContext::AlignmentStore> makeAlignmentStore(
+inline std::shared_ptr<AlignmentContext::AlignmentStore> makeAlignmentStore(
     const Acts::Experimental::Detector* detector, std::size_t longIdx,
     double sigmaTransLong, std::size_t shortIdx, double sigmaTransShort) {
   RandomNumbers::Config rnCfg;

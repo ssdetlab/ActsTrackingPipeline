@@ -40,6 +40,20 @@ find_package(
     REQUIRED
 )
 
+find_package(
+  OpenMP 
+  COMPONENTS
+  CXX
+  REQUIRED
+)
+
+find_package(
+  eudaq_preprocessor
+  COMPONENTS
+  detector_event
+  REQUIRED
+)
+
 # Dictionary for the sim data
 add_library(SimEventDict SHARED)
 include_directories(
@@ -48,10 +62,6 @@ include_directories(
 ROOT_GENERATE_DICTIONARY(
     G__SimEventDict
     ./include/TrackingPipeline/Io/detail/ROOTDictDefs.h
-    ./include/TrackingPipeline/Io/detail/AlpideRegisters.h
-    ./include/TrackingPipeline/Io/detail/MosaicRegisters.h
-    ./include/TrackingPipeline/Io/detail/EudaqDetectorEvent.h
-    ./include/TrackingPipeline/Io/detail/DetectorEvent.hpp
     MODULE 
     SimEventDict 
     LINKDEF 
@@ -63,6 +73,7 @@ target_link_libraries(
     ROOT::RIO
     ROOT::Physics
     ROOT::GeomPainter
+    eudaq_preprocessor::detector_event
 )
 
 # Geant4 is required for the geometry
@@ -78,10 +89,10 @@ find_package(
     COMPONENTS
     Core
     Fatras
-    Alignment
     PluginGeant4
     PluginJson
     PluginFpeMonitoring
+    Alignment
     REQUIRED
 )
 
@@ -93,6 +104,7 @@ target_link_libraries(
     TrackingPipelineCore
     PUBLIC
     TBB::tbb
+    OpenMP::OpenMP_CXX
     ROOT::Core
     ROOT::RIO
     ROOT::Tree
@@ -103,10 +115,11 @@ target_link_libraries(
     G__SimEventDict
     ActsCore
     ActsFatras
-    ActsAlignment
     ActsPluginGeant4
     ActsPluginJson
     ActsPluginFpeMonitoring
+    ActsAlignment
+    eudaq_preprocessor::detector_event
 )
 
 target_include_directories(
