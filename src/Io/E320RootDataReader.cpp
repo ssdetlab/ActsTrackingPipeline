@@ -119,7 +119,8 @@ ProcessCode E320Io::E320RootDataReader::read(const AlgorithmContext& context) {
         for (const auto& [hitX, hitY, sizeX, sizeY, size] : chipEv.hits) {
           Acts::Vector2 hitLoc{
               (hitX + 0.5) * goInst.pixelHalfX * 2 - goInst.chipHalfX,
-              (hitY + 0.5) * goInst.pixelHalfY * 2 - goInst.chipHalfY};
+              -(hitY + 0.5) * goInst.pixelHalfY * 2 + goInst.chipHalfY};
+
           Acts::Vector3 hitGlob = m_cfg.surfaceMap.at(geoId)->localToGlobal(
               context.geoContext, hitLoc, Acts::Vector3::UnitX());
 

@@ -96,18 +96,18 @@ struct GeometryOptions {
   /// Parameters of the quads
 
   const double quad1HalfPrimary = 486.664_mm;
-  const double quad1HalfLong = 40_mm;
-  const double quad1HalfShort = 40_mm;
+  const double quad1HalfLong = 32.33_mm;
+  const double quad1HalfShort = 32.33_mm;
   const double quad1Gradient = -0.7637_T / 1_m;
 
   const double quad2HalfPrimary = 486.664_mm;
-  const double quad2HalfLong = 40_mm;
-  const double quad2HalfShort = 40_mm;
+  const double quad2HalfLong = 32.33_mm;
+  const double quad2HalfShort = 32.33_mm;
   const double quad2Gradient = 2.855_T / 1_m;
 
   const double quad3HalfPrimary = 486.664_mm;
-  const double quad3HalfLong = 40_mm;
-  const double quad3HalfShort = 40_mm;
+  const double quad3HalfLong = 32.33_mm;
+  const double quad3HalfShort = 32.33_mm;
   const double quad3Gradient = -0.7637_T / 1_m;
 
   /// --------------------------------------------------------------
@@ -127,8 +127,8 @@ struct GeometryOptions {
   /// Parameters of the dipole
 
   const double dipoleHalfPrimary = 457.2_mm;
-  const double dipoleHalfLong = 40_mm;
-  const double dipoleHalfShort = 40_mm;
+  const double dipoleHalfLong = 50.927_mm;
+  const double dipoleHalfShort = 22.352_mm;
 
   const double dipoleFieldStrength = 0.2192_T;
 
@@ -139,8 +139,8 @@ struct GeometryOptions {
   /// --------------------------------------------------------------
   /// Parameters of the PDC window
 
-  const double pdcWindowHalfX = 25_mm;
-  const double pdcWindowHalfY = 60_mm;
+  const double pdcWindowHalfX = 60_mm;
+  const double pdcWindowHalfY = 25_mm;
 
   const double pdcWindowThickness = 0.51_mm;
 
@@ -209,7 +209,7 @@ struct GeometryOptions {
   /// --------------------------------------------------------------
   /// Dipole placement
 
-  const double dipoleCenterPrimary = 13060.6_mm;
+  const double dipoleCenterPrimary = 13060.61_mm;
   const double dipoleCenterLong = 0_mm;
   const double dipoleCenterShort = 0_mm;
 
