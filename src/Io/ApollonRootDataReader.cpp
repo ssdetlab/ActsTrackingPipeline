@@ -6,6 +6,9 @@
 
 #include "TrackingPipeline/EventData/SimpleSourceLink.hpp"
 #include "TrackingPipeline/Infrastructure/ProcessCode.hpp"
+#include "TrackingPipeline/Infrastructure/ReaderRegistry.hpp"
+
+#include <toml.hpp>
 
 namespace ag = ApollonGeometry;
 
@@ -151,3 +154,42 @@ ProcessCode ApollonIo::ApollonRootDataReader::read(
   // Return success flag
   return ProcessCode::SUCCESS;
 }
+
+namespace {
+
+struct ApollonRootDataReaderRegistrar {
+  ApollonRootDataReaderRegistrar() {
+    using namespace TrackingPipeline;
+
+    ReaderRegistry::instance().registerBuilder(
+      "ApollonRootDataReader",
+      [](const toml::value& section,
+         const SurfaceMap& surfaceMap,
+         Acts::Logging::Level logLevel) -> ReaderPtr {
+
+        ApollonIo::ApollonRootDataReader::Config cfg;
+
+        // Fill config from TOML section
+        cfg.outputSourceLinks =
+            toml::find<std::string>(section, "outputSourceLinks");
+        cfg.filePaths =
+            toml::find<std::vector<std::string>>(section, "filePaths");
+        cfg.treeName =
+            toml::find<std::string>(section, "treeName");
+        cfg.eventKey =
+            toml::find<std::string>(section, "eventKey");
+        cfg.minGeoId =
+            toml::find<int>(section, "minGeoId");
+        cfg.maxGeoId =
+            toml::find<int>(section, "maxGeoId");
+
+        // Surface map comes from PipelineRun / geometry builder
+        cfg.surfaceMap = surfaceMap;
+
+        return std::make_shared<ApollonIo::ApollonRootDataReader>(
+            cfg, logLevel);
+      });
+  }
+} _ApollonRootDataReaderRegistrar;
+
+}  // namespace

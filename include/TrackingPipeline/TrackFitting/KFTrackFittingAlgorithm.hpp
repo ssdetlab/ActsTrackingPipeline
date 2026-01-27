@@ -30,6 +30,16 @@ class KFTrackFittingAlgorithm : public IAlgorithm {
     const Acts::KalmanFitter<Propagator, Trajectory>& fitter;
     /// KF options
     Acts::KalmanFitterOptions<Trajectory> kfOptions;
+///
+    Config(const std::string& in,
+         const std::string& out,
+         const Acts::KalmanFitter<Propagator, Trajectory>& f,
+         Acts::KalmanFitterOptions<Trajectory> opts)
+    : inputTrackCandidates(in),
+      outputTracks(out),
+      fitter(f),
+      kfOptions(std::move(opts)) {}
+///
   };
 
   /// @brief Constructor

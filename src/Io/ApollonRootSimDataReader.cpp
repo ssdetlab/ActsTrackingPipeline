@@ -10,6 +10,9 @@
 #include "TrackingPipeline/EventData/SimpleSourceLink.hpp"
 #include "TrackingPipeline/Geometry/ApollonGeometryConstraints.hpp"
 #include "TrackingPipeline/Infrastructure/ProcessCode.hpp"
+#include "TrackingPipeline/Infrastructure/ReaderRegistry.hpp"
+
+#include <toml.hpp>
 
 namespace ApollonIo {
 
@@ -246,3 +249,35 @@ ProcessCode ApollonRootSimDataReader::read(const AlgorithmContext& context) {
 }
 
 }  // namespace ApollonIo
+
+namespace {
+  struct ApollonRootSimDataReaderRegistrar {
+    ApollonRootSimDataReaderRegistrar() {
+      using namespace TrackingPipeline;
+
+      ReaderRegistry::instance().registerBuilder(
+          "ApollonRootSimDataReader",
+          [](const toml::value& section,
+             const SurfaceMap& surfaceMap,
+             Acts::Logging::Level logLevel) -> ReaderPtr {
+
+            ApollonIo::ApollonRootSimDataReader::Config cfg;
+
+            // Fill config from TOML section
+            cfg.outputSourceLinks =
+                toml::find<std::string>(section, "outputSourceLinks");
+            cfg.outputSimClusters =
+                toml::find<std::string>(section, "outputSimClusters");
+            cfg.filePaths =
+                toml::find<std::vector<std::string>>(section, "filePaths");
+            cfg.treeName =
+                toml::find<std::string>(section, "treeName");
+            cfg.eventSplit =
+                toml::find<bool>(section, "eventSplit", false);
+            cfg.surfaceMap = surfaceMap;
+
+            return std::make_shared<ApollonIo::ApollonRootSimDataReader>(cfg, logLevel);
+          });
+    }
+  } _ApollonRootSimDataReaderRegistrar;
+} //namespace

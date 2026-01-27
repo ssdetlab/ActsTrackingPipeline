@@ -3,11 +3,14 @@
 #include "Acts/EventData/TrackParameters.hpp"
 #include "Acts/Utilities/Logger.hpp"
 
+#include "TrackingPipeline/TrackFitting/FittingServices.hpp"
+#include "TrackingPipeline/Infrastructure/AlgorithmRegistry.hpp"
+#include <toml.hpp>
+
 ProcessCode KFTrackFittingAlgorithm::execute(const AlgorithmContext& ctx) const {
   // Get the input seeds
   // from the context
   const auto& inputCandidates = m_inputTrackCandidates(ctx);
-
   ACTS_DEBUG("Received " << inputCandidates.size() << " track candidates");
 
   auto trackContainer = std::make_shared<TrackContainer>();
@@ -40,3 +43,51 @@ ProcessCode KFTrackFittingAlgorithm::execute(const AlgorithmContext& ctx) const 
 
   return ProcessCode::SUCCESS;
 }
+
+//------------------------------------------------------------------------
+
+namespace {
+
+struct KFTrackFittingAlgorithmRegistrar {
+  KFTrackFittingAlgorithmRegistrar() {
+    using namespace TrackingPipeline;
+
+    AlgorithmRegistry::instance().registerBuilder(
+      "KFTrackFittingAlgorithm",
+      [](const toml::value& section,
+         Acts::Logging::Level logLevel) -> AlgorithmPtr {
+
+        auto& svc = FittingServices::instance();
+        if (!svc.kalmanFitter || !svc.baseKfOptions) {
+          throw std::runtime_error(
+              "KFTrackFittingAlgorithm: FittingServices not initialized");
+        }
+
+        // start from global base options
+        Acts::KalmanFitterOptions<KFTrackFittingAlgorithm::Trajectory>
+            kfOptions = *svc.baseKfOptions;
+
+        // (optional) tweak via TOML
+        auto maxSteps = toml::find_or<unsigned int>(
+            section,
+            "maxSteps",
+            kfOptions.propagatorPlainOptions.maxSteps);
+        kfOptions.propagatorPlainOptions.maxSteps = maxSteps;
+
+        auto inputName  = toml::find<std::string>(section, "inputTrackCandidates");
+        auto outputName = toml::find<std::string>(section, "outputTracks");
+
+        KFTrackFittingAlgorithm::Config cfg(
+            inputName,
+            outputName,
+            *svc.kalmanFitter,    // reference stored in Config
+            std::move(kfOptions)  // per-algorithm options
+        );
+
+        return std::make_shared<KFTrackFittingAlgorithm>(std::move(cfg),
+                                                         logLevel);
+      });
+  }
+} _KFTrackFittingAlgorithmRegistrar;
+
+} // namespace

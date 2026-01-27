@@ -13,6 +13,9 @@
 
 #include "TrackingPipeline/EventData/DataContainers.hpp"
 #include "TrackingPipeline/EventData/SimpleSourceLink.hpp"
+#include "TrackingPipeline/Infrastructure/ReaderRegistry.hpp"
+
+#include <toml.hpp>
 
 using namespace Acts::UnitLiterals;
 
@@ -140,6 +143,11 @@ RootTrackReader::RootTrackReader(const Config& config,
   // Initialize the data handles
   m_outputSourceLinks.initialize(m_cfg.outputMeasurements);
   m_outputSeeds.initialize(m_cfg.outputSeeds);
+
+  // initialize tracks handle only if requested
+  if (!m_cfg.outputTracks.empty()) {                      
+    m_outputTracks.initialize(m_cfg.outputTracks);        
+  }     
 }
 
 std::pair<std::size_t, std::size_t> RootTrackReader::availableEvents() const {
@@ -162,6 +170,11 @@ ProcessCode RootTrackReader::read(const AlgorithmContext& ctx) {
     }
 
     m_outputSourceLinks(ctx, {});
+
+    // If tracks are configured, write empty collection
+    if (!m_cfg.outputTracks.empty()) {                   
+      m_outputTracks(ctx, CleaningTracks{});              
+    }                     
 
     // Return success flag
     return ProcessCode::SUCCESS;
@@ -189,6 +202,7 @@ ProcessCode RootTrackReader::read(const AlgorithmContext& ctx) {
   std::vector<Acts::SourceLink> sourceLinks{};
   SimClusters simClusters{};
   Seeds seeds{};
+  CleaningTracks tracks{};  
   std::size_t eventId = std::get<0>(*it);
   std::size_t sslIdx = 0;
   for (auto entry = std::get<1>(*it); entry < std::get<2>(*it); entry++) {
@@ -210,6 +224,17 @@ ProcessCode RootTrackReader::read(const AlgorithmContext& ctx) {
         hypothesis);
 
     std::vector<Acts::SourceLink> trackSourceLinks{};
+    // Fill source links + one TrackDescriptor for cleaning
+    TrackDescriptor trk;                           
+    trk.eventId      = eventId;                       
+    trk.trackId      = m_trackId;                     
+    trk.pdgId        = m_pdgId;                       
+    trk.charge       = m_charge;                      
+    trk.chi2Smoothed = m_chi2Smoothed;                
+    trk.ndf          = m_ndf;                         
+    // Fill hit positions into track descriptor for cleaning
+    trk.trackHitsGlobal.clear();                      
+
     for (std::size_t i = 0; i < m_trackHitsGlobal->size(); i++) {
       Acts::Vector2 trackHitLocal(m_trackHitsLocal->at(i).X(),
                                   m_trackHitsLocal->at(i).Y());
@@ -227,8 +252,16 @@ ProcessCode RootTrackReader::read(const AlgorithmContext& ctx) {
       sourceLinks.push_back(Acts::SourceLink{obsSourceLink});
       trackSourceLinks.push_back(Acts::SourceLink{obsSourceLink});
 
+      // store hit global position in track descriptor
+      trk.trackHitsGlobal.push_back(trackHitGlobal);       
+
       sslIdx++;
     }
+    // push track descriptor into tracks container (only if configured)
+    if (!m_cfg.outputTracks.empty()) {                    
+      tracks.push_back(std::move(trk));                    
+    }                  
+
     seeds.emplace_back(trackSourceLinks, ipParameters,
                        static_cast<int>(seeds.size()));
   }
@@ -239,6 +272,44 @@ ProcessCode RootTrackReader::read(const AlgorithmContext& ctx) {
   m_outputSourceLinks(ctx, std::move(sourceLinks));
   m_outputSeeds(ctx, std::move(seeds));
 
+  // write tracks if requested
+  if (!m_cfg.outputTracks.empty()) {                       
+    m_outputTracks(ctx, std::move(tracks));                
+  }            
+
   // Return success flag
   return ProcessCode::SUCCESS;
 }
+
+namespace {
+  struct RootTrackReaderRegistrar {
+    RootTrackReaderRegistrar() {
+      using namespace TrackingPipeline;
+
+      ReaderRegistry::instance().registerBuilder(
+          "RootTrackReader",
+          [](const toml::value& section,
+            const SurfaceMap& /*surfaceMap*/,
+            Acts::Logging::Level logLevel) -> ReaderPtr {
+
+            RootTrackReader::Config cfg;
+
+            // Fill config from TOML section
+            cfg.outputMeasurements = toml::find<std::string>(
+                section, "outputMeasurements");
+            cfg.outputSeeds = toml::find<std::string>(section, "outputSeeds");
+            cfg.outputTracks =
+                toml::find_or<std::string>(section, "outputTracks", ""); // <<< NEW
+            cfg.filePaths = toml::find<std::vector<std::string>>(
+                section, "filePaths");
+            cfg.treeName = toml::find<std::string>(section, "treeName");
+            cfg.minChi2 = toml::find_or<double>(section, "minChi2", 0.0);
+            cfg.maxChi2 = toml::find_or<double>(section, "maxChi2", 1e9);
+            cfg.mergeIntoOneEvent =
+                toml::find_or<bool>(section, "mergeIntoOneEvent", false);
+
+            return std::make_shared<RootTrackReader>(cfg, logLevel);
+          });
+    }
+  } _RootTrackReaderRegistrar;
+} //namespace

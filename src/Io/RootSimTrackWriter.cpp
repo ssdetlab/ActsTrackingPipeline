@@ -6,6 +6,9 @@
 #include <ranges>
 
 #include "TrackingPipeline/EventData/SimpleSourceLink.hpp"
+#include "TrackingPipeline/Infrastructure/WriterRegistry.hpp"
+
+#include <toml.hpp>
 
 RootSimTrackWriter::RootSimTrackWriter(const Config& config,
                                        Acts::Logging::Level level)
@@ -629,3 +632,35 @@ ProcessCode RootSimTrackWriter::write(const AlgorithmContext& ctx) {
   // Return success flag
   return ProcessCode::SUCCESS;
 }
+
+namespace {
+
+struct RootSimTrackWriterRegistrar {
+  RootSimTrackWriterRegistrar() {
+    using namespace TrackingPipeline;
+
+    WriterRegistry::instance().registerBuilder(
+      "RootSimTrackWriter",
+      [](const toml::value& section,
+         Acts::Logging::Level logLevel,
+         const std::string& runRoot) -> WriterPtr {
+
+        RootSimTrackWriter::Config cfg;
+
+        // NOTE: surfaceAccessor and referenceSurface must be set from C++,
+        // not from TOML. For now they stay default-initialized.
+        cfg.inputTracks =
+            toml::find<std::string>(section, "inputTracks");
+        cfg.inputSimClusters =
+            toml::find<std::string>(section, "inputSimClusters");
+        cfg.treeName =
+            toml::find<std::string>(section, "treeName");
+        cfg.filePath =
+            runRoot + "/" + toml::find<std::string>(section, "filePath");
+
+        return std::make_shared<RootSimTrackWriter>(cfg, logLevel);
+      });
+  }
+} _RootSimTrackWriterRegistrar;
+
+}  // namespace

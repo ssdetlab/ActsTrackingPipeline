@@ -24,6 +24,8 @@ class RootTrackReader : public IReader {
     std::string outputMeasurements;
     /// Output seeds
     std::string outputSeeds;
+    /// Output tracks (for cleaning)
+    std::string outputTracks; 
     /// The names of the input files
     std::vector<std::string> filePaths;
     /// Name of the input tree
@@ -68,6 +70,9 @@ class RootTrackReader : public IReader {
 
   /// WriteDataHandle for the seed data
   WriteDataHandle<Seeds> m_outputSeeds{this, "Seeds"};
+
+  /// WriteDataHandle for track collection (optional)
+  WriteDataHandle<CleaningTracks> m_outputTracks{this, "Tracks"};
 
   std::unique_ptr<const Acts::Logger> m_logger;
 

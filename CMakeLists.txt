@@ -33,6 +33,7 @@ find_package(
     RIO
     Tree
     Hist
+    HistPainter
     Gpad
     Net
     Physics
@@ -47,11 +48,59 @@ find_package(
   REQUIRED
 )
 
-find_package(
-  eudaq_preprocessor
-  COMPONENTS
-  detector_event
-  REQUIRED
+# find_package(
+#   eudaq_preprocessor
+#   COMPONENTS
+#   detector_event
+#   REQUIRED
+# )
+
+# Dictionary for EUDAQ detector_event
+add_library(DetEventDict SHARED)
+
+target_include_directories(
+    DetEventDict
+    PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+)
+
+ROOT_GENERATE_DICTIONARY(
+    G__DetEventDict
+    ./include/TrackingPipeline/from_eudaq/DetectorEvent.h
+    MODULE
+    DetEventDict
+    LINKDEF
+    ./include/TrackingPipeline/from_eudaq/LinkDef.h
+)
+
+target_link_libraries(
+    DetEventDict
+    PRIVATE
+    ROOT::RIO
+    ROOT::Physics
+    ROOT::GeomPainter
+)
+
+
+# Dictionary for apollonIo detector_event
+add_library(DetEventClusteredDict SHARED)
+include_directories(
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/TrackingPipeline/Preprocessing
+)
+ROOT_GENERATE_DICTIONARY(
+    G__DetEventClusteredDict 
+    ./include/TrackingPipeline/Preprocessing/DetectorEvent.hpp
+    MODULE 
+    DetEventClusteredDict 
+    LINKDEF 
+    ./include/TrackingPipeline/Preprocessing/LinkDef.hpp
+)
+target_link_libraries(
+    DetEventClusteredDict
+    PRIVATE 
+    ROOT::RIO
+    ROOT::Physics
+    ROOT::GeomPainter
 )
 
 # Dictionary for the sim data
@@ -73,7 +122,8 @@ target_link_libraries(
     ROOT::RIO
     ROOT::Physics
     ROOT::GeomPainter
-    eudaq_preprocessor::detector_event
+    DetEventClusteredDict
+    # eudaq_preprocessor::detector_event
 )
 
 # Geant4 is required for the geometry
@@ -94,6 +144,31 @@ find_package(
     PluginFpeMonitoring
     Alignment
     REQUIRED
+)
+
+add_library(
+    TrackingPipelineAnalysis SHARED
+    src/Analysis/TrackCleaning.cpp
+)
+
+target_include_directories(
+    TrackingPipelineAnalysis
+    PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+)
+
+target_link_libraries(
+    TrackingPipelineAnalysis
+    PUBLIC
+    ROOT::Core
+    ROOT::RIO
+    ROOT::Tree
+    ROOT::Hist
+    ROOT::Gpad
+    ROOT::Physics
+    ROOT::Matrix
+    ROOT::Net
+    ROOT::GeomPainter
 )
 
 # source files will be added later
@@ -119,13 +194,20 @@ target_link_libraries(
     ActsPluginJson
     ActsPluginFpeMonitoring
     ActsAlignment
-    eudaq_preprocessor::detector_event
+    DetEventClusteredDict
+    DetEventDict
+    TrackingPipelineAnalysis
+    # eudaq_preprocessor::detector_event
 )
+
+# toml11 header-only include
+set(TOML11_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/external/toml11")
 
 target_include_directories(
     TrackingPipelineCore
     PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<BUILD_INTERFACE:${TOML11_INCLUDE_DIR}>
 )
 
 # collect the library dependencies
@@ -138,6 +220,36 @@ add_subdirectory(src/Simulation)
 add_subdirectory(src/TrackFinding)
 add_subdirectory(src/TrackFitting)
 add_subdirectory(src/Alignment)
+add_subdirectory(src/Run)
+add_subdirectory(src/Analysis)
+
+
+add_library(
+    ActsPreprocessing SHARED
+    src/Preprocessing/AnalysisFunctions.cpp
+    src/Preprocessing/Preprocessing.cpp
+)
+
+target_include_directories(
+    ActsPreprocessing
+    PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+)
+
+target_link_libraries(
+    ActsPreprocessing
+    PUBLIC
+    ROOT::Core
+    ROOT::RIO
+    ROOT::Tree
+    ROOT::Hist
+    ROOT::Gpad
+    ROOT::Physics
+    DetEventClusteredDict
+    DetEventDict
+)
+
+
 
 # macro to add a run executables
 macro(add_run _name _source)
@@ -150,6 +262,8 @@ macro(add_run _name _source)
         ${_target}
         PRIVATE
         TrackingPipelineCore
+        ActsPreprocessing
+        TrackingPipelineAnalysis
     )
 endmacro()
 

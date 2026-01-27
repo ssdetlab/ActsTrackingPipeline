@@ -48,12 +48,11 @@ struct SimCluster {
 using SimClusters = std::vector<SimCluster>;
 
 ///-----------------------------------------------
-/// Obserbable data containers
+/// Observable data containers
 
 /// @brief Seed to be passed to the CKF
 struct Seed {
-  /// Source links related
-  /// to the seed measurements
+  /// Source links related to the seed measurements
   std::vector<Acts::SourceLink> sourceLinks;
   /// IP parameters
   Acts::CurvilinearTrackParameters ipParameters;
@@ -64,10 +63,14 @@ struct Seed {
 /// @brief Collection of Seeds
 using Seeds = std::vector<Seed>;
 
-/// @brief Collection of Tracks
+///-----------------------------------------------
+/// High-level Acts track container (for fitting etc.)
+
+/// @brief Collection of Tracks stored in Acts containers
 using ActsTracks =
     Acts::TrackContainer<Acts::VectorTrackContainer,
                          Acts::VectorMultiTrajectory, std::shared_ptr>;
+
 struct Tracks {
   ActsTracks tracks;
   std::vector<int> trackIds;
@@ -75,3 +78,28 @@ struct Tracks {
 
   std::size_t size() const { return tracks.size(); }
 };
+
+///-----------------------------------------------
+/// Lightweight track descriptor for cleaning
+
+/// @brief Minimal per-track descriptor for cleaning and analysis
+struct TrackDescriptor {
+  /// Event identifier
+  std::size_t eventId = 0;
+  /// Track identifier (from file)
+  std::size_t trackId = 0;
+
+  /// PDG ID and charge
+  int pdgId  = 0;
+  int charge = 0;
+
+  /// Chi2 (typically smoothed) and ndf
+  double      chi2Smoothed = 0.0;
+  std::size_t ndf          = 0;
+
+  /// Global hit positions (used to detect shared hits)
+  std::vector<Acts::Vector3> trackHitsGlobal;
+};
+
+/// @brief Collection of lightweight tracks used for cleaning
+using CleaningTracks = std::vector<TrackDescriptor>;

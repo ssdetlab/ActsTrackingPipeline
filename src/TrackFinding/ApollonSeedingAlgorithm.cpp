@@ -10,13 +10,16 @@
 #include <span>
 #include <utility>
 #include <vector>
-
+#include <set>
+#include <toml.hpp>
 #include <omp.h>
 
 #include "TrackingPipeline/EventData/DataContainers.hpp"
 #include "TrackingPipeline/EventData/SimpleSourceLink.hpp"
 #include "TrackingPipeline/Geometry/ApollonGeometryConstraints.hpp"
 #include "TrackingPipeline/TrackFinding/HoughTransformSeeder.hpp"
+#include "TrackingPipeline/Infrastructure/AlgorithmRegistry.hpp"
+
 
 using go = ApollonGeometry::GeometryOptions;
 
@@ -389,3 +392,88 @@ Seeds ApollonSeedingAlgorithm::scanEnergy(
   }
   return outSeeds;
 }
+
+namespace {
+
+struct ApollonSeedingAlgorithmRegistrar {
+  ApollonSeedingAlgorithmRegistrar() {
+    using namespace TrackingPipeline;
+
+    AlgorithmRegistry::instance().registerBuilder(
+      "ApollonSeedingAlgorithm",
+      [](const toml::value& section,
+         Acts::Logging::Level logLevel) -> AlgorithmPtr {
+
+        using Acts::UnitConstants::GeV;
+
+        // Access geometry options for default Hough box
+        const auto& goInst = *ApollonGeometry::GeometryOptions::instance();
+
+        // 1) Build HoughTransformSeeder config
+        HoughTransformSeeder::Config htCfg;
+
+        // Use original FullTrackingRun geometry-based values
+        htCfg.boundBoxHalfX =
+            goInst.tc1HalfPrimary - goInst.chipVolumeHalfSpacing * 2;
+        htCfg.boundBoxHalfY = goInst.tcHalfLong;
+        htCfg.boundBoxHalfZ = goInst.tcHalfShort;
+
+        htCfg.nCellsThetaX = toml::find<int>(section, "nCellsThetaX");
+        htCfg.nCellsRhoX   = toml::find<int>(section, "nCellsRhoX");
+        htCfg.nCellsThetaY = toml::find<int>(section, "nCellsThetaY");
+        htCfg.nCellsRhoY   = toml::find<int>(section, "nCellsRhoY");
+
+        htCfg.nLSIterations = toml::find<int>(section, "nLSIterations");
+
+        auto htSeeder = std::make_shared<HoughTransformSeeder>(htCfg);
+
+        // 2) Build ApollonSeedingAlgorithm config
+        ApollonSeedingAlgorithm::Config cfg;
+        cfg.htSeeder         = htSeeder;
+        cfg.inputSourceLinks =
+            toml::find<std::string>(section, "inputSourceLinks");
+        cfg.outputSeeds      =
+            toml::find<std::string>(section, "outputSeeds");
+
+        cfg.minLayers   = toml::find<int>(section, "minLayers");
+        cfg.maxLayers   = toml::find<int>(section, "maxLayers");
+        cfg.minSeedSize = toml::find<int>(section, "minSeedSize");
+        cfg.maxSeedSize = toml::find<int>(section, "maxSeedSize");
+
+        cfg.minScanEnergy  =
+            toml::find<double>(section, "minScanEnergyGeV") * GeV;
+        cfg.maxScanEnergy  =
+            toml::find<double>(section, "maxScanEnergyGeV") * GeV;
+        cfg.energyScanStep =
+            toml::find<double>(section, "energyScanStepGeV") * GeV;
+
+        cfg.maxConnectionDistance =
+            toml::find<double>(section, "maxConnectionDistance");
+
+        const auto scopeStr =
+            toml::find<std::string>(section, "scope");
+        if (scopeStr == "detector1") {
+          cfg.scope = ApollonSeedingAlgorithm::SeedingScope::detector1;
+        } else if (scopeStr == "detector2") {
+          cfg.scope = ApollonSeedingAlgorithm::SeedingScope::detector2;
+        } else if (scopeStr == "fullDetector") {
+          cfg.scope = ApollonSeedingAlgorithm::SeedingScope::fullDetector;
+        } else {
+          throw std::runtime_error("Unknown scope '" + scopeStr + "'");
+        }
+
+        cfg.minXCountDet1   = toml::find<int>(section, "minXCountDet1");
+        cfg.minXCountDet2   = toml::find<int>(section, "minXCountDet2");
+        cfg.minSeedSizeDet1 = toml::find<int>(section, "minSeedSizeDet1");
+        cfg.maxSeedSizeDet1 = toml::find<int>(section, "maxSeedSizeDet1");
+        cfg.minSeedSizeDet2 = toml::find<int>(section, "minSeedSizeDet2");
+        cfg.maxSeedSizeDet2 = toml::find<int>(section, "maxSeedSizeDet2");
+        cfg.maxLineChi2Det1 = toml::find<double>(section, "maxLineChi2Det1");
+        cfg.maxLineChi2Det2 = toml::find<double>(section, "maxLineChi2Det2");
+
+        return std::make_shared<ApollonSeedingAlgorithm>(cfg, logLevel);
+      });
+  }
+} _ApollonSeedingAlgorithmRegistrar;
+
+}  // namespace

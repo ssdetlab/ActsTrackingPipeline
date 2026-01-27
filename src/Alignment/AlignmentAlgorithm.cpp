@@ -21,6 +21,12 @@
 #include "TrackingPipeline/EventData/SimpleSourceLink.hpp"
 #include "TrackingPipeline/Geometry/ApollonGeometryConstraints.hpp"
 #include "TrackingPipeline/Infrastructure/ProcessCode.hpp"
+#include "TrackingPipeline/Alignment/AlignmentContext.hpp"
+#include "TrackingPipeline/TrackFitting/FittingServices.hpp"
+#include "TrackingPipeline/Infrastructure/AlgorithmRegistry.hpp"
+#include "TrackingPipeline/Geometry/ApollonGeometry.hpp"
+
+#include <toml.hpp>
 
 using go = ApollonGeometry::GeometryOptions;
 
@@ -179,3 +185,130 @@ ProcessCode AlignmentAlgorithm::execute(const AlgorithmContext& ctx) const {
   m_outputAlignmentParameters(ctx, std::move(alignedParameters));
   return ProcessCode::SUCCESS;
 }
+
+extern std::shared_ptr<AlignmentContext::AlignmentStore> g_alignmentStore;
+
+namespace {
+
+struct AlignmentAlgorithmRegistrar {
+  AlignmentAlgorithmRegistrar() {
+    using namespace TrackingPipeline;
+
+    AlgorithmRegistry::instance().registerBuilder(
+      "AlignmentAlgorithm",
+      [](const toml::value& section,
+         Acts::Logging::Level logLevel) -> AlgorithmPtr {
+
+        auto& svc = FittingServices::instance();
+        if (!svc.detector || !svc.baseKfOptions || !svc.referenceSurface) {
+          throw std::runtime_error(
+              "AlignmentAlgorithm: FittingServices not initialized "
+              "(detector/baseKfOptions/referenceSurface missing)");
+        }
+
+        using Trajectory = FittingServices::Trajectory;
+        Acts::KalmanFitterOptions<Trajectory> kfOptions = *svc.baseKfOptions;
+
+        // Match AlignmentRun: maxSteps = 1000 (override-able from TOML)
+        auto maxSteps = toml::find_or<unsigned int>(section, "maxSteps", 1000u);
+        kfOptions.propagatorPlainOptions.maxSteps = maxSteps;
+        kfOptions.referenceSurface = svc.referenceSurface.get();
+
+        // Initial config, matching AlignmentRun defaults
+        AlignmentAlgorithm::Config cfg{
+            /*inputTrackCandidates*/
+            toml::find<std::string>(section, "inputTrackCandidates"),
+            /*outputAlignmentParameters*/
+            toml::find<std::string>(section, "outputAlignmentParameters"),
+            /*align*/ nullptr,
+            /*alignedTransformUpdater*/ ActsAlignment::AlignedTransformUpdater(),
+            /*alignedDetElements*/ {},
+            /*kfOptions*/ std::move(kfOptions),
+            /*chi2ONdfCutOff*/ 1e-3,
+            /*deltaChi2ONdfCutOff*/ {10, 1e-5},
+            /*maxNumIterations*/ 200,
+            /*alignmentMask*/
+            ActsAlignment::AlignmentMask::Center1 |
+            ActsAlignment::AlignmentMask::Center2 |
+            ActsAlignment::AlignmentMask::Rotation2,
+            /*alignmentMode*/ ActsAlignment::AlignmentMode::local};
+
+        // Override chi2 / convergence from TOML if provided
+        cfg.chi2ONdfCutOff =
+            toml::find_or<double>(section, "chi2ONdfCutOff",
+                                  cfg.chi2ONdfCutOff);
+        std::size_t dChi2N =
+            toml::find_or<std::size_t>(section, "deltaChi2ONdfCutOffN",
+                                       cfg.deltaChi2ONdfCutOff.first);
+        double dChi2Val =
+            toml::find_or<double>(section, "deltaChi2ONdfCutOffValue",
+                                  cfg.deltaChi2ONdfCutOff.second);
+        cfg.deltaChi2ONdfCutOff = {dChi2N, dChi2Val};
+        cfg.maxNumIterations =
+            toml::find_or<std::size_t>(section, "maxNumIterations",
+                                       cfg.maxNumIterations);
+
+        // Optional mask/mode overrides
+        const auto maskStr =
+            toml::find_or<std::string>(section, "alignmentMask",
+                                       "Center1Center2Rotation2");
+        if (maskStr == "Center1Center2Rotation2") {
+          cfg.alignmentMask = ActsAlignment::AlignmentMask::Center1 |
+                              ActsAlignment::AlignmentMask::Center2 |
+                              ActsAlignment::AlignmentMask::Rotation2;
+        } else if (maskStr == "All") {
+          cfg.alignmentMask = ActsAlignment::AlignmentMask::All;
+        } else {
+          throw std::runtime_error("Unknown alignmentMask '" + maskStr + "'");
+        }
+
+        const auto modeStr =
+            toml::find_or<std::string>(section, "alignmentMode", "local");
+        if (modeStr == "local") {
+          cfg.alignmentMode = ActsAlignment::AlignmentMode::local;
+        } else if (modeStr == "global") {
+          cfg.alignmentMode = ActsAlignment::AlignmentMode::global;
+        } else {
+          throw std::runtime_error("Unknown alignmentMode '" + modeStr + "'");
+        }
+
+        // Alignment function: as in AlignmentRun.cpp
+        auto detector = svc.detector;
+        auto magneticField =
+            ApollonGeometry::buildMagField(Acts::GeometryContext{});
+        cfg.align =
+            AlignmentAlgorithm::makeAlignmentFunction(detector, magneticField);
+
+        // Same alignedDetElements selection as AlignmentRun.cpp:
+        // all sensitive surfaces with id < 22 and != 10
+        for (const auto& detElem : detector->detectorElements()) {
+          auto* de = detElem.get();
+          const auto& surf = de->surface();
+          auto sid = surf.geometryId().sensitive();
+          if (!sid) {
+            continue;
+          }
+          if (sid < 22 && sid != 10) {
+            cfg.alignedDetElements.push_back(de);
+          }
+        }
+
+        // AlignedTransformUpdater: write transforms into the shared alignment store
+        cfg.alignedTransformUpdater =
+          [](Acts::DetectorElementBase* element,
+             const Acts::GeometryContext&,
+             const Acts::Transform3& trf) {
+            if (!g_alignmentStore) {
+              throw std::runtime_error(
+                  "AlignmentAlgorithm: alignment store not set (g_alignmentStore is null)");
+            }
+            (*g_alignmentStore)[element->surface().geometryId()] = trf;
+            return true;
+          };
+
+        return std::make_shared<AlignmentAlgorithm>(std::move(cfg), logLevel);
+      });
+  }
+} _AlignmentAlgorithmRegistrar;
+
+}  // namespace

@@ -1,6 +1,7 @@
 target_sources(
     TrackingPipelineCore
     PRIVATE
-    AlignmentAlgorithm.cpp  
+    AlignmentAlgorithm.cpp
+    AlignmentContext.cpp
 )
     

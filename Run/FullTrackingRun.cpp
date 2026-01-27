@@ -83,31 +83,31 @@ int main() {
     }
   }
 
-  AlignmentParametersProvider::Config alignmentProviderCfg1;
-  alignmentProviderCfg1.filePath =
-      "/home/romanurmanov/work/Apollon/tracking/out_data/Apollon_cosmic_data/"
-      "alignment/stave_1/aligned_1/"
-      "alignment-parameters.root";
-  alignmentProviderCfg1.treeName = "alignment-parameters";
-  AlignmentParametersProvider alignmentProvider1(alignmentProviderCfg1);
-  auto aStore1 = alignmentProvider1.getAlignmentStore();
+//   AlignmentParametersProvider::Config alignmentProviderCfg1;
+//   alignmentProviderCfg1.filePath =
+//       "/home/romanurmanov/work/Apollon/tracking/out_data/Apollon_cosmic_data/"
+//       "alignment/stave_1/aligned_1/"
+//       "alignment-parameters.root";
+//   alignmentProviderCfg1.treeName = "alignment-parameters";
+//   AlignmentParametersProvider alignmentProvider1(alignmentProviderCfg1);
+//   auto aStore1 = alignmentProvider1.getAlignmentStore();
 
-  AlignmentParametersProvider::Config alignmentProviderCfg2;
-  alignmentProviderCfg2.filePath =
-      "/home/romanurmanov/work/Apollon/tracking/out_data/Apollon_cosmic_data/"
-      "alignment/stave_0/aligned/"
-      "alignment-parameters.root";
-  alignmentProviderCfg2.treeName = "alignment-parameters";
-  AlignmentParametersProvider alignmentProvider2(alignmentProviderCfg2);
-  auto aStore2 = alignmentProvider2.getAlignmentStore();
+//   AlignmentParametersProvider::Config alignmentProviderCfg2;
+//   alignmentProviderCfg2.filePath =
+//       "/home/romanurmanov/work/Apollon/tracking/out_data/Apollon_cosmic_data/"
+//       "alignment/stave_0/aligned/"
+//       "alignment-parameters.root";
+//   alignmentProviderCfg2.treeName = "alignment-parameters";
+//   AlignmentParametersProvider alignmentProvider2(alignmentProviderCfg2);
+//   auto aStore2 = alignmentProvider2.getAlignmentStore();
 
-  auto aStore = std::make_shared<AlignmentContext::AlignmentStore>();
-  for (const auto& entry : *aStore1) {
-    aStore->insert(entry);
-  }
-  for (const auto& entry : *aStore2) {
-    aStore->insert(entry);
-  }
+//   auto aStore = std::make_shared<AlignmentContext::AlignmentStore>();
+//   for (const auto& entry : *aStore1) {
+//     aStore->insert(entry);
+//   }
+//   for (const auto& entry : *aStore2) {
+//     aStore->insert(entry);
+//   }
 
   // AlignmentParametersProvider::Config alignmentProviderCfg;
   // alignmentProviderCfg.filePath =
@@ -118,39 +118,39 @@ int main() {
   // AlignmentParametersProvider alignmentProvider(alignmentProviderCfg);
   // auto aStore = alignmentProvider.getAlignmentStore();
 
-  AlignmentContext alignCtx(aStore);
-  Acts::GeometryContext testCtx{alignCtx};
-  for (auto& v : detector->volumes()) {
-    for (auto& s : v->surfaces()) {
-      if (s->geometryId().sensitive()) {
-        std::cout << "-----------------------------------\n";
-        std::cout << "SURFACE " << s->geometryId() << "\n";
-        std::cout << "CENTER " << s->center(testCtx).transpose() << " -- "
-                  << s->center(Acts::GeometryContext()).transpose() << "\n";
-        std::cout << "NORMAL "
-                  << s->normal(testCtx, s->center(testCtx),
-                               Acts::Vector3::UnitY())
-                         .transpose()
-                  << " -- "
-                  << s->normal(testCtx, s->center(Acts::GeometryContext()),
-                               Acts::Vector3::UnitY())
-                         .transpose()
-                  << "\n";
-        std::cout << "ROTATION \n"
-                  << s->transform(testCtx).rotation() << " -- \n"
-                  << "\n"
-                  << s->transform(Acts::GeometryContext()).rotation() << "\n";
+//   AlignmentContext alignCtx(aStore);
+//   Acts::GeometryContext testCtx{alignCtx};
+//   for (auto& v : detector->volumes()) {
+//     for (auto& s : v->surfaces()) {
+//       if (s->geometryId().sensitive()) {
+//         std::cout << "-----------------------------------\n";
+//         std::cout << "SURFACE " << s->geometryId() << "\n";
+//         std::cout << "CENTER " << s->center(testCtx).transpose() << " -- "
+//                   << s->center(Acts::GeometryContext()).transpose() << "\n";
+//         std::cout << "NORMAL "
+//                   << s->normal(testCtx, s->center(testCtx),
+//                                Acts::Vector3::UnitY())
+//                          .transpose()
+//                   << " -- "
+//                   << s->normal(testCtx, s->center(Acts::GeometryContext()),
+//                                Acts::Vector3::UnitY())
+//                          .transpose()
+//                   << "\n";
+//         std::cout << "ROTATION \n"
+//                   << s->transform(testCtx).rotation() << " -- \n"
+//                   << "\n"
+//                   << s->transform(Acts::GeometryContext()).rotation() << "\n";
 
-        std::cout << "EXTENT "
-                  << s->polyhedronRepresentation(testCtx, 1000).extent()
-                  << "\n -- \n"
-                  << s->polyhedronRepresentation(Acts::GeometryContext(), 1000)
-                         .extent()
-                  << "\n";
-      }
-    }
-  }
-  gctx = Acts::GeometryContext{alignCtx};
+//         std::cout << "EXTENT "
+//                   << s->polyhedronRepresentation(testCtx, 1000).extent()
+//                   << "\n -- \n"
+//                   << s->polyhedronRepresentation(Acts::GeometryContext(), 1000)
+//                          .extent()
+//                   << "\n";
+//       }
+//     }
+//   }
+//   gctx = Acts::GeometryContext{alignCtx};
 
   // --------------------------------------------------------------
   // The magnetic field setup
@@ -170,8 +170,8 @@ int main() {
   seqCfg.logLevel = logLevel;
   Sequencer sequencer(seqCfg);
 
-  sequencer.addContextDecorator(
-      std::make_shared<GeometryContextDecorator>(aStore));
+//   sequencer.addContextDecorator(
+//       std::make_shared<GeometryContextDecorator>(aStore));
 
   // Add the sim data reader
   ApollonIo::ApollonRootDataReader::Config readerCfg;
@@ -179,11 +179,10 @@ int main() {
   readerCfg.treeName = "MyTree";
   readerCfg.eventKey = "event";
   readerCfg.minGeoId = 10;
-  readerCfg.maxGeoId = 28;
+  readerCfg.maxGeoId = 18;
   readerCfg.surfaceMap = surfaceMap;
   std::string pathToDir =
-      "/home/romanurmanov/work/Apollon/eudaq_data/processed/Apollon_alignment/"
-      "global";
+      "/Users/nathalyn/Desktop/Masters/ACTS-data/input/";
 
   // Get the paths to the files in the directory
   for (const auto& entry : std::filesystem::directory_iterator(pathToDir)) {
@@ -219,23 +218,23 @@ int main() {
   seedingAlgoCfg.htSeeder = std::make_shared<HoughTransformSeeder>(htSeederCfg);
   seedingAlgoCfg.inputSourceLinks = "Measurements";
   seedingAlgoCfg.outputSeeds = "Seeds";
-  seedingAlgoCfg.minLayers = 9;
-  seedingAlgoCfg.maxLayers = 9;
-  seedingAlgoCfg.minSeedSize = 9;
+  seedingAlgoCfg.minLayers = 5;
+  seedingAlgoCfg.maxLayers = 5;
+  seedingAlgoCfg.minSeedSize = 5;
   seedingAlgoCfg.maxSeedSize = 100;
   seedingAlgoCfg.minScanEnergy = 1_GeV;
   seedingAlgoCfg.maxScanEnergy = 1_GeV;
   seedingAlgoCfg.energyScanStep = 0.001_GeV;
   seedingAlgoCfg.maxConnectionDistance = 2.0;
-  seedingAlgoCfg.scope = ApollonSeedingAlgorithm::SeedingScope::fullDetector;
-  seedingAlgoCfg.minXCountDet1 = 4;
-  seedingAlgoCfg.minXCountDet2 = 3;
+  seedingAlgoCfg.scope = ApollonSeedingAlgorithm::SeedingScope::detector1;
+  seedingAlgoCfg.minXCountDet1 = 3;
+  seedingAlgoCfg.minXCountDet2 = 2;
   seedingAlgoCfg.minSeedSizeDet1 = 5;
   seedingAlgoCfg.maxSeedSizeDet1 = 100;
   seedingAlgoCfg.minSeedSizeDet2 = 4;
   seedingAlgoCfg.maxSeedSizeDet2 = 100;
-  seedingAlgoCfg.maxLineChi2Det1 = 1e-2;
-  seedingAlgoCfg.maxLineChi2Det2 = 1e-2;
+  seedingAlgoCfg.maxLineChi2Det1 = 1e-1;
+  seedingAlgoCfg.maxLineChi2Det2 = 1e-1;
 
   sequencer.addAlgorithm(
       std::make_shared<ApollonSeedingAlgorithm>(seedingAlgoCfg, logLevel));
@@ -331,8 +330,7 @@ int main() {
   measurementWriterCfg.inputMeasurements = "Measurements";
   measurementWriterCfg.treeName = "measurements";
   measurementWriterCfg.filePath =
-      "/home/romanurmanov/work/Apollon/tracking/out_data/Apollon_cosmic_data/"
-      "measurements.root";
+      "/Users/nathalyn/Desktop/Masters/ACTS-data/output/measurements.root";
 
   sequencer.addWriter(
       std::make_shared<RootMeasurementWriter>(measurementWriterCfg, logLevel));
@@ -342,7 +340,7 @@ int main() {
   seedWriterCfg.inputSeeds = "Seeds";
   seedWriterCfg.treeName = "seeds";
   seedWriterCfg.filePath =
-      "/home/romanurmanov/work/Apollon/tracking/out_data/Apollon_cosmic_data/"
+      "/Users/nathalyn/Desktop/Masters/ACTS-data/output/"
       "seeds.root";
 
   sequencer.addWriter(
@@ -357,7 +355,7 @@ int main() {
   trackWriterCfg.inputTracks = "Tracks";
   trackWriterCfg.treeName = "fitted-tracks";
   trackWriterCfg.filePath =
-      "/home/romanurmanov/work/Apollon/tracking/out_data/Apollon_cosmic_data/"
+      "/Users/nathalyn/Desktop/Masters/ACTS-data/output/"
       "fitted-tracks.root";
 
   sequencer.addWriter(

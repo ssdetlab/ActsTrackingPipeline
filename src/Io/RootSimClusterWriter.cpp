@@ -10,6 +10,9 @@
 
 #include "TrackingPipeline/EventData/SimpleSourceLink.hpp"
 #include "TrackingPipeline/Infrastructure/ProcessCode.hpp"
+#include "TrackingPipeline/Infrastructure/WriterRegistry.hpp"
+
+#include <toml.hpp>
 
 RootSimClusterWriter::RootSimClusterWriter(const Config& config,
                                            Acts::Logging::Level level)
@@ -191,3 +194,31 @@ ProcessCode RootSimClusterWriter::write(const AlgorithmContext& ctx) {
   // Return success flag
   return ProcessCode::SUCCESS;
 }
+
+namespace {
+
+struct RootSimClusterWriterRegistrar {
+  RootSimClusterWriterRegistrar() {
+    using namespace TrackingPipeline;
+
+    WriterRegistry::instance().registerBuilder(
+      "RootSimClusterWriter",
+      [](const toml::value& section,
+         Acts::Logging::Level logLevel,
+         const std::string& runRoot) -> WriterPtr {
+
+        RootSimClusterWriter::Config cfg;
+
+        cfg.inputClusters =
+            toml::find<std::string>(section, "inputClusters");
+        cfg.treeName =
+            toml::find<std::string>(section, "treeName");
+        cfg.filePath =
+            runRoot + "/" + toml::find<std::string>(section, "filePath");
+            
+        return std::make_shared<RootSimClusterWriter>(cfg, logLevel);
+      });
+  }
+} _RootSimClusterWriterRegistrar;
+
+}  // namespace

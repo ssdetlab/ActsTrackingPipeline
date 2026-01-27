@@ -13,6 +13,9 @@
 
 #include "TrackingPipeline/EventData/DataContainers.hpp"
 #include "TrackingPipeline/EventData/SimpleSourceLink.hpp"
+#include "TrackingPipeline/Infrastructure/ReaderRegistry.hpp"
+
+#include <toml.hpp>
 
 using namespace Acts::UnitLiterals;
 
@@ -299,3 +302,36 @@ ProcessCode RootSimTrackReader::read(const AlgorithmContext& ctx) {
   // Return success flag
   return ProcessCode::SUCCESS;
 }
+
+namespace {
+  struct RootSimTrackReaderRegistrar {
+    RootSimTrackReaderRegistrar() {
+      using namespace TrackingPipeline;
+
+      ReaderRegistry::instance().registerBuilder(
+        "RootSimTrackReader.cpp",
+        [](const toml::value& section,
+        const SurfaceMap& /*surfaceMap*/,
+        Acts::Logging::Level logLevel) -> ReaderPtr {
+
+          RootSimTrackReader::Config cfg;
+
+          // Fill config from TOML section
+          cfg.outputMeasurements = toml::find<std::string>(
+              section, "SimMeasurements");
+          cfg.outputSimClusters = toml::find<std::string>(
+              section, "SimClusters");
+          cfg.outputSeeds = toml::find<std::string>(section, "outputSeeds");
+          cfg.filePaths = toml::find<std::vector<std::string>>(
+              section, "filePaths");
+          cfg.treeName = toml::find<std::string>(section, "treeName");
+          cfg.minChi2 = toml::find<double>(section, "minChi2");
+          cfg.maxChi2 = toml::find<double>(section, "maxChi2");
+          cfg.mergeIntoOneEvent = toml::find<bool>(
+              section, "mergeIntoOneEvent");
+
+          return std::make_shared<RootSimTrackReader>(cfg, logLevel);
+        });
+    }
+  } _RootSimTrackReaderRegistrar;
+} //namespace

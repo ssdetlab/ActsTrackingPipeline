@@ -23,4 +23,6 @@ target_sources(
     ApollonRootDataReader.cpp
     AlignmentParametersWriter.cpp
     AlignmentParametersProvider.cpp
+    DummyReader.cpp
+    RootTrackCleaningWriter.cpp
 )
