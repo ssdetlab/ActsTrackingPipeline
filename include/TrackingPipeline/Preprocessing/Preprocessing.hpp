@@ -6,6 +6,9 @@
 namespace TrackingPipeline::Preprocessing {
 
 struct PreprocessingConfig {
+  //enable/disable preprocessing step
+  bool enable = false;
+
   // Directories containing input ROOT files (EUDAQ ev_data folders)
   std::vector<std::string> inputDirs;
 

@@ -125,8 +125,7 @@ void runPreprocessing(const PreprocessingConfig& cfg) {
     std::vector<ApollonIo::StaveEvent> outStaveEvents;
     outStaveEvents.reserve(detEvent->st_ev_buffer.size());
 
-    // NOTE: this still uses the original single-stave logic; you will generalize
-    //       it to "all staves" in a follow-up step.
+    // NOTE: this still uses the original single-stave logic
     const int requiredStaveId = 1;
     const int requiredChipSize = 5;
 
@@ -211,13 +210,16 @@ void runPreprocessing(const PreprocessingConfig& cfg) {
   }
 
   // 8. Save diagnostic histograms
+  const std::string baseDir =
+    std::filesystem::path(cfg.outputFile).parent_path().string();
+
   TCanvas c1("c1", "c1", 800, 800);
   rawOcc.Draw("hist");
-  c1.SaveAs("raw.pdf");
+  c1.SaveAs((baseDir + "/raw.pdf").c_str());
 
   TCanvas c2("c2", "c2", 800, 800);
   filteredOcc.Draw("hist");
-  c2.SaveAs("filtered.pdf");
+  c2.SaveAs((baseDir + "/filtered.pdf").c_str());
 
   // 9. Write tree and close file
   outTree.Write();

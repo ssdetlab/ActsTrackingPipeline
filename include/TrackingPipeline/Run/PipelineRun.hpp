@@ -59,7 +59,17 @@ struct PipelineConfig {
   struct TrackCleaning {
   bool enable;
   std::vector<std::string> types;
-} trackCleaning;
+  } trackCleaning;
+
+  struct Preprocessing {
+    bool enable = false;
+    std::vector<std::string> inputDirs;
+    std::string inputTreeName;
+    std::string inputBranchName = "event";
+    std::string outputFile;
+    std::string outputTreeName = "MyTree";
+    std::size_t skipEntries = 0;
+  } preprocessing;
 
 };
 

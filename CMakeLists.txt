@@ -48,13 +48,6 @@ find_package(
   REQUIRED
 )
 
-# find_package(
-#   eudaq_preprocessor
-#   COMPONENTS
-#   detector_event
-#   REQUIRED
-# )
-
 # Dictionary for EUDAQ detector_event
 add_library(DetEventDict SHARED)
 
@@ -147,18 +140,19 @@ find_package(
 )
 
 add_library(
-    TrackingPipelineAnalysis SHARED
-    src/Analysis/TrackCleaning.cpp
+    ActsPreprocessing SHARED
+    src/Preprocessing/AnalysisFunctions.cpp
+    src/Preprocessing/Preprocessing.cpp
 )
 
 target_include_directories(
-    TrackingPipelineAnalysis
+    ActsPreprocessing
     PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
 )
 
 target_link_libraries(
-    TrackingPipelineAnalysis
+    ActsPreprocessing
     PUBLIC
     ROOT::Core
     ROOT::RIO
@@ -166,9 +160,8 @@ target_link_libraries(
     ROOT::Hist
     ROOT::Gpad
     ROOT::Physics
-    ROOT::Matrix
-    ROOT::Net
-    ROOT::GeomPainter
+    DetEventClusteredDict
+    DetEventDict
 )
 
 # source files will be added later
@@ -196,8 +189,7 @@ target_link_libraries(
     ActsAlignment
     DetEventClusteredDict
     DetEventDict
-    TrackingPipelineAnalysis
-    # eudaq_preprocessor::detector_event
+    ActsPreprocessing
 )
 
 # toml11 header-only include
@@ -224,33 +216,6 @@ add_subdirectory(src/Run)
 add_subdirectory(src/Analysis)
 
 
-add_library(
-    ActsPreprocessing SHARED
-    src/Preprocessing/AnalysisFunctions.cpp
-    src/Preprocessing/Preprocessing.cpp
-)
-
-target_include_directories(
-    ActsPreprocessing
-    PUBLIC
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-)
-
-target_link_libraries(
-    ActsPreprocessing
-    PUBLIC
-    ROOT::Core
-    ROOT::RIO
-    ROOT::Tree
-    ROOT::Hist
-    ROOT::Gpad
-    ROOT::Physics
-    DetEventClusteredDict
-    DetEventDict
-)
-
-
-
 # macro to add a run executables
 macro(add_run _name _source)
     # automatically prefix the target name
@@ -262,8 +227,6 @@ macro(add_run _name _source)
         ${_target}
         PRIVATE
         TrackingPipelineCore
-        ActsPreprocessing
-        TrackingPipelineAnalysis
     )
 endmacro()
 

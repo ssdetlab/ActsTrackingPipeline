@@ -18,7 +18,8 @@
 #include "TrackingPipeline/Geometry/GeometryContextDecorator.hpp"
 #include "TrackingPipeline/Io/AlignmentParametersProvider.hpp"
 #include "TrackingPipeline/Alignment/AlignmentContext.hpp"
-
+//preprocessing
+#include "TrackingPipeline/Preprocessing/Preprocessing.hpp"
 // Fitting services (singleton with propagator + KF)
 #include "TrackingPipeline/TrackFitting/FittingServices.hpp"
 #include "TrackingPipeline/TrackFitting/KFTrackFittingAlgorithm.hpp"
@@ -129,6 +130,27 @@ PipelineConfig parsePipelineConfig(const std::string& path) {
   } else {
     cfg.trackCleaning.enable = false;
     cfg.trackCleaning.types.clear();
+  }
+
+  // [PREPROCESSING] (optional)
+  if (root.contains("PREPROCESSING")) {
+    const auto& preTbl = toml::find(root, "PREPROCESSING");
+    cfg.preprocessing.enable =
+        toml::find_or<bool>(preTbl, "enable", false);
+    cfg.preprocessing.inputDirs =
+        toml::find_or<std::vector<std::string>>(preTbl, "input_dirs", {});
+    cfg.preprocessing.inputTreeName =
+        toml::find_or<std::string>(preTbl, "input_tree", std::string{});
+    cfg.preprocessing.inputBranchName =
+        toml::find_or<std::string>(preTbl, "input_branch", std::string("event"));
+    cfg.preprocessing.outputFile =
+        toml::find_or<std::string>(preTbl, "output_file", std::string("preprocessed.root"));
+    cfg.preprocessing.outputTreeName =
+        toml::find_or<std::string>(preTbl, "output_tree", std::string("MyTree"));
+    cfg.preprocessing.skipEntries =
+        toml::find_or<std::size_t>(preTbl, "skip_entries", 0u);
+  } else {
+    cfg.preprocessing.enable = false;
   }
 
   return cfg;
@@ -352,6 +374,41 @@ int runPipeline(const std::string& configPath) {
 	sequencer.addContextDecorator(std::make_shared<GeometryContextDecorator>(aStore));
 
 	//--------------- build pipeline components ----------------
+  // PREPROCESSING
+  if (pcfg.preprocessing.enable) {
+    pcfg.preprocessing.outputFile = runRoot + "/preprocessed.root";
+    // Build PreprocessingConfig
+    TrackingPipeline::Preprocessing::PreprocessingConfig preCfg;
+    preCfg.enable = true;  // not used inside runPreprocessing, but harmless
+    preCfg.inputDirs = pcfg.preprocessing.inputDirs;
+    preCfg.inputTreeName = pcfg.preprocessing.inputTreeName;
+    preCfg.inputBranchName = pcfg.preprocessing.inputBranchName;
+    preCfg.outputFile = pcfg.preprocessing.outputFile;
+    preCfg.outputTreeName = pcfg.preprocessing.outputTreeName;
+    preCfg.skipEntries = pcfg.preprocessing.skipEntries;
+    std::cout << "Running preprocessing on " << preCfg.inputDirs.size()
+              << " input directories, writing to '" << preCfg.outputFile << "'\n";
+    TrackingPipeline::Preprocessing::runPreprocessing(preCfg);
+
+    try {
+      auto& readersection = toml::find(pcfg.root, pcfg.dataReader.type);
+      // overwrite / create filepaths array
+      readersection.as_table()["filePaths"] =
+          toml::array{ pcfg.preprocessing.outputFile };
+    } catch (const std::exception& e) {
+      std::cerr << "Failed to override reader's filepaths for preprocessing: "
+                << e.what() << "\n";
+      return 1;
+    }
+    //debug:
+    auto& readerSection = toml::find(pcfg.root, pcfg.dataReader.type);
+    auto filePaths = toml::find<std::vector<std::string>>(readerSection, "filePaths");
+    std::cout << "DEBUG: reader filePaths after preprocessing:\n";
+    for (const auto& p : filePaths) {
+      std::cout << "  " << p << "\n";
+    }
+  }
+
   // Reader
   try {
     std::cout << "Building reader of type: " << pcfg.dataReader.type << "\n";
