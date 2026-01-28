@@ -1,9 +1,22 @@
 #include "TrackingPipeline/Simulation/MeasurementsEmbeddingAlgorithm.hpp"
 
 #include <stdexcept>
+#include <utility>
 
 #include "TrackingPipeline/Infrastructure/DataHandle.hpp"
 #include "TrackingPipeline/Infrastructure/IAlgorithm.hpp"
+#include "TrackingPipeline/Infrastructure/AlgorithmRegistry.hpp"
+
+#include "TrackingPipeline/Simulation/MeasurementsCreator.hpp"
+#include "TrackingPipeline/Simulation/SimpleDigitizer.hpp"
+#include "TrackingPipeline/Simulation/GaussianVertexGenerator.hpp"
+#include "TrackingPipeline/Simulation/SphericalMomentumGenerator.hpp"
+#include "TrackingPipeline/Simulation/UniformBackgroundCreator.hpp"
+
+#include "TrackingPipeline/TrackFitting/FittingServices.hpp"
+
+#include <toml.hpp>
+
 
 MeasurementsEmbeddingAlgorithm::MeasurementsEmbeddingAlgorithm(
     const Config& config, Acts::Logging::Level level)
@@ -51,3 +64,106 @@ ProcessCode MeasurementsEmbeddingAlgorithm::execute(
 
   return ProcessCode::SUCCESS;
 }
+
+//---------------------------------------------------------------------
+// Registrars for SignalMeasurementEmbedding and BkgMeasurementEmbedding
+//---------------------------------------------------------------------
+
+namespace {
+
+using TrackingPipeline::AlgorithmPtr;
+using TrackingPipeline::AlgorithmRegistry;
+
+// Signal: uses MeasurementsCreator with helpers from FittingServices
+AlgorithmPtr buildSignalMeasurementEmbedding(
+    const toml::value& section,
+    Acts::Logging::Level logLevel) {
+
+  auto& svc = FittingServices::instance();
+
+  if (!svc.propagator || !svc.simDigitizer ||
+      !svc.simVertexGenerator || !svc.simMomentumGenerator) {
+    throw std::runtime_error(
+        "SignalMeasurementEmbedding: FittingServices FastSim helpers not initialized");
+  }
+
+  // MeasurementCreator config: shared helpers + per-instance maxSteps
+  MeasurementsCreator::Config mcfg;
+  mcfg.vertexGenerator   = svc.simVertexGenerator;
+  mcfg.momentumGenerator = svc.simMomentumGenerator;
+  mcfg.hitDigitizer      = svc.simDigitizer;
+  mcfg.maxSteps          = toml::find_or<int>(section, "meas_creator_maxSteps", 1000);
+  mcfg.isSignal          = true;
+
+  auto measCreator =
+      std::make_shared<MeasurementsCreator>(*svc.propagator, mcfg);
+
+  // Algorithm config from TOML
+  MeasurementsEmbeddingAlgorithm::Config cfg;
+  cfg.inputSourceLinks  = toml::find<std::string>(section, "inputSourceLinks");
+  cfg.inputSimClusters  = toml::find<std::string>(section, "inputSimClusters");
+  cfg.outputSourceLinks = toml::find<std::string>(section, "outputSourceLinks");
+  cfg.outputSimClusters = toml::find<std::string>(section, "outputSimClusters");
+  cfg.nMeasurements     = toml::find_or<std::size_t>(section, "nMeasurements", 0);
+
+  cfg.measurementGenerator = measCreator;
+  cfg.randomNumberSvc      =
+      std::make_shared<RandomNumbers>(RandomNumbers::Config());
+
+  return std::make_shared<MeasurementsEmbeddingAlgorithm>(cfg, logLevel);
+}
+
+// Background: uses UniformBackgroundCreator with surfaces from gDetSurfaces
+AlgorithmPtr buildBackgroundMeasurementEmbedding(
+    const toml::value& section,
+    Acts::Logging::Level logLevel) {
+
+  auto& svc = FittingServices::instance();
+  if (svc.simDetSurfaces.empty()) {
+    throw std::runtime_error(
+        "BkgMeasurementEmbedding: simDetSurfaces is empty; detector surfaces were not initialized");
+  }
+
+  UniformBackgroundCreator::Config bcfg;
+
+  // Resolution as [dx, dy]; default 5e-6 if not provided
+  auto res = toml::find_or<std::vector<double>>(
+      section, "bkgCreator_resolution", {5.0e-6, 5.0e-6});
+  if (res.size() != 2u) {
+    throw std::runtime_error(
+        "BkgMeasurementEmbedding: bkgCreator_resolution must be [dx, dy]");
+  }
+  bcfg.resolution    = {res[0], res[1]};
+  bcfg.nMeasurements =
+      toml::find_or<int>(section, "bkgCreator_nMeasurements", 20);
+  bcfg.surfaces      = svc.simDetSurfaces;
+
+  auto bkgCreator = std::make_shared<UniformBackgroundCreator>(bcfg);
+
+  MeasurementsEmbeddingAlgorithm::Config cfg;
+  cfg.inputSourceLinks  = toml::find<std::string>(section, "inputSourceLinks");
+  cfg.inputSimClusters  = toml::find<std::string>(section, "inputSimClusters");
+  cfg.outputSourceLinks = toml::find<std::string>(section, "outputSourceLinks");
+  cfg.outputSimClusters = toml::find<std::string>(section, "outputSimClusters");
+  cfg.nMeasurements     = toml::find_or<std::size_t>(section, "nMeasurements", 0);
+
+  cfg.measurementGenerator = bkgCreator;
+  cfg.randomNumberSvc      =
+      std::make_shared<RandomNumbers>(RandomNumbers::Config());
+
+  return std::make_shared<MeasurementsEmbeddingAlgorithm>(cfg, logLevel);
+}
+
+struct MeasurementsEmbeddingRegistrar {
+  MeasurementsEmbeddingRegistrar() {
+    // Factory keys used from TOML "type" fields
+    AlgorithmRegistry::instance().registerBuilder(
+        "SignalMeasurementEmbedding", buildSignalMeasurementEmbedding);
+    AlgorithmRegistry::instance().registerBuilder(
+        "BkgMeasurementEmbedding", buildBackgroundMeasurementEmbedding);
+  }
+};
+
+MeasurementsEmbeddingRegistrar _MeasurementsEmbeddingRegistrar;
+
+}  // namespace

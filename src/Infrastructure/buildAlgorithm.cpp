@@ -15,14 +15,21 @@ std::vector<AlgorithmPtr> buildAlgorithms(
   std::vector<AlgorithmPtr> algos;
   algos.reserve(types.size());
 
-  for (const auto& type : types) {
-    if (!root.contains(type)) {
+  for (const auto& name : types) {
+    if (!root.contains(name)) {
       throw std::runtime_error(
-          "buildAlgorithms: section ['" + type + "'] not found in config");
+          "buildAlgorithms: section ['" + name + "'] not found in config");
     }
-    const auto& section = toml::find(root, type);
+    const auto& section = toml::find(root, name);
+
+    if (!section.contains("type")) {
+      throw std::runtime_error(
+          "buildAlgorithms: section ['" + name +
+          "'] has no 'type' field (expected algorithm type string)");
+    }
+    const auto algoType = toml::find<std::string>(section, "type");
     algos.push_back(
-        AlgorithmRegistry::instance().build(type, section, logLevel));
+        AlgorithmRegistry::instance().build(algoType, section, logLevel));
   }
 
   return algos;

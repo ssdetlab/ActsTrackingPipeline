@@ -5,6 +5,9 @@
 #include "Acts/Navigation/DetectorNavigator.hpp"
 #include "Acts/EventData/VectorTrackContainer.hpp"
 #include "TrackingPipeline/EventData/SimpleSourceLink.hpp"
+#include "TrackingPipeline/Simulation/SimpleDigitizer.hpp"
+#include "TrackingPipeline/Simulation/GaussianVertexGenerator.hpp"
+#include "TrackingPipeline/Simulation/SphericalMomentumGenerator.hpp"
 
 struct FittingServices {
   using Stepper    = Acts::EigenStepper<>;
@@ -22,6 +25,14 @@ struct FittingServices {
   // for writers
   std::optional<SimpleSourceLink::SurfaceAccessor> surfaceAccessor;
   std::shared_ptr<Acts::Surface> referenceSurface;
+
+  // --- FastSim helpers ---
+  std::shared_ptr<SimpleDigitizer>              simDigitizer;
+  std::shared_ptr<GaussianVertexGenerator>      simVertexGenerator;
+  std::shared_ptr<SphericalMomentumGenerator>   simMomentumGenerator;
+  // Sensitive detector surfaces for background generator
+  std::vector<const Acts::Surface*> simDetSurfaces;
+
 
   static FittingServices& instance() {
     static FittingServices s;

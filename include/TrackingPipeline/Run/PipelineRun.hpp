@@ -71,6 +71,11 @@ struct PipelineConfig {
     std::size_t skipEntries = 0;
   } preprocessing;
 
+  struct MeasEmbedding {
+    bool enable = false;
+    std::vector<std::string> types;
+  } measEmbedding;
+
 };
 
 PipelineConfig parsePipelineConfig(const std::string& path);

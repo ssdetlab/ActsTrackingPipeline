@@ -153,6 +153,18 @@ PipelineConfig parsePipelineConfig(const std::string& path) {
     cfg.preprocessing.enable = false;
   }
 
+  // [MEAS_EMBEDDING] (optional)
+  if (root.contains("MEAS_EMBEDDING")) {
+    const auto& measTbl = toml::find(root, "MEAS_EMBEDDING");
+    cfg.measEmbedding.enable =
+        toml::find_or(measTbl, "enable", false);
+    cfg.measEmbedding.types =
+        toml::find_or<std::vector<std::string>>(measTbl, "types", {});
+  } else {
+    cfg.measEmbedding.enable = false;
+    cfg.measEmbedding.types.clear();
+  }
+
   return cfg;
 }
 // Map string log level to Acts::Logging::Level
@@ -207,6 +219,7 @@ int runPipeline(const std::string& configPath) {
       }
     }
   }
+
 	//--------------- Alignment store setup ---------------
 	std::shared_ptr<AlignmentContext::AlignmentStore> aStore;
   const auto& goInst = *ApollonGeometry::GeometryOptions::instance();
@@ -363,6 +376,34 @@ int runPipeline(const std::string& configPath) {
 	svc.surfaceAccessor.emplace(surfaceAccessor);
 	svc.referenceSurface = refSurface;
 
+  // --- FastSim helpers (digitizer + generators) ---
+  SimpleDigitizer::Config digitizerCfg;
+  digitizerCfg.resolution = {5_um, 5_um};
+  svc.simDigitizer = std::make_shared<SimpleDigitizer>(digitizerCfg);
+
+  Acts::Vector3 vertexMean = Acts::Vector3::Zero();
+  Acts::SquareMatrix3 vertexCov =
+      Acts::SquareMatrix3::Identity() * 0_um;
+  svc.simVertexGenerator =
+      std::make_shared<GaussianVertexGenerator>(vertexMean, vertexCov);
+
+  svc.simMomentumGenerator = std::make_shared<SphericalMomentumGenerator>();
+  svc.simMomentumGenerator->pRange     = std::make_pair(0.1_GeV, 0.7_GeV);
+  svc.simMomentumGenerator->thetaRange =
+      std::make_pair(M_PI_2 - 5e-3, M_PI_2 + 5e-3);
+  svc.simMomentumGenerator->phiRange   =
+      std::make_pair(-5e-3, 5e-3);
+
+  svc.simDetSurfaces.clear();
+  for (const auto* vol : detector->volumes()) {
+    for (const auto* surf : vol->surfaces()) {
+      if (surf->geometryId().sensitive()) {
+        svc.simDetSurfaces.push_back(surf);
+      }
+    }
+  }
+  
+
   // Sequencer
   Sequencer::Config seqCfg;
   seqCfg.logLevel = globalLogLevel;
@@ -486,6 +527,29 @@ int runPipeline(const std::string& configPath) {
     }
   } catch (const std::exception& e) {
     std::cerr << "Failed to build track cleaning algorithms: " << e.what() << "\n";
+    return 1;
+  }
+
+  // Measurement embedding (FastSim) algorithms
+  try {
+    if (pcfg.measEmbedding.enable && !pcfg.measEmbedding.types.empty()) {
+      std::cout << "Building " << pcfg.measEmbedding.types.size()
+                << " measurement embedding algorithms\n";
+
+      auto measAlgos = TrackingPipeline::buildAlgorithms(
+          pcfg.measEmbedding.types,
+          pcfg.root,
+          globalLogLevel);
+
+      for (auto& algo : measAlgos) {
+        sequencer.addAlgorithm(algo);
+      }
+    } else {
+      std::cout << "Measurement embedding disabled or no types configured\n";
+    }
+  } catch (const std::exception& e) {
+    std::cerr << "Failed to build measurement embedding algorithms: "
+              << e.what() << "\n";
     return 1;
   }
 

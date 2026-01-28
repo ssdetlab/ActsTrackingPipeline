@@ -15,15 +15,21 @@ std::vector<WriterPtr> buildWriters(const std::vector<std::string>& types,
   std::vector<WriterPtr> writers;
   writers.reserve(types.size());
 
-  for (const auto& type : types) {
-    if (!root.contains(type)) {
+  for (const auto& name : types) {
+    if (!root.contains(name)) {
       throw std::runtime_error(
-          "buildWriters: section ['" + type + "'] not found in config");
+          "buildWriters: section ['" + name + "'] not found in config");
     }
 
-    const auto& section = toml::find(root, type);
+    const auto& section = toml::find(root, name);
+    if (!section.contains("type")) {
+      throw std::runtime_error(
+          "buildWriters: section ['" + name +
+          "'] has no 'type' field (expected writer type string)");
+    }
+    const auto writerType = toml::find<std::string>(section, "type");
     writers.push_back(
-        WriterRegistry::instance().build(type, section, logLevel, runRoot));
+        WriterRegistry::instance().build(writerType, section, logLevel, runRoot));
   }
 
   return writers;
