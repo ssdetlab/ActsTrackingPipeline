@@ -44,8 +44,6 @@ ProcessCode KFTrackFittingAlgorithm::execute(const AlgorithmContext& ctx) const 
   return ProcessCode::SUCCESS;
 }
 
-//------------------------------------------------------------------------
-
 namespace {
 
 struct KFTrackFittingAlgorithmRegistrar {

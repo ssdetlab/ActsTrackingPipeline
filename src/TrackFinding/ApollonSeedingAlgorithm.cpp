@@ -412,7 +412,6 @@ struct ApollonSeedingAlgorithmRegistrar {
         // 1) Build HoughTransformSeeder config
         HoughTransformSeeder::Config htCfg;
 
-        // Use original FullTrackingRun geometry-based values
         htCfg.boundBoxHalfX =
             goInst.tc1HalfPrimary - goInst.chipVolumeHalfSpacing * 2;
         htCfg.boundBoxHalfY = goInst.tcHalfLong;

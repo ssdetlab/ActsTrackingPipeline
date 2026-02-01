@@ -65,10 +65,7 @@ ProcessCode MeasurementsEmbeddingAlgorithm::execute(
   return ProcessCode::SUCCESS;
 }
 
-//---------------------------------------------------------------------
 // Registrars for SignalMeasurementEmbedding and BkgMeasurementEmbedding
-//---------------------------------------------------------------------
-
 namespace {
 
 using TrackingPipeline::AlgorithmPtr;

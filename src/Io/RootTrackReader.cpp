@@ -299,7 +299,7 @@ namespace {
                 section, "outputMeasurements");
             cfg.outputSeeds = toml::find<std::string>(section, "outputSeeds");
             cfg.outputTracks =
-                toml::find_or<std::string>(section, "outputTracks", ""); // <<< NEW
+                toml::find_or<std::string>(section, "outputTracks", ""); 
             cfg.filePaths = toml::find<std::vector<std::string>>(
                 section, "filePaths");
             cfg.treeName = toml::find<std::string>(section, "treeName");

@@ -38,21 +38,17 @@ TrackCleaningAlgorithm::TrackCleaningAlgorithm(const Config& cfg,
   m_outputTracks.initialize(m_cfg.outputTracks);
 }
 
-//---------------------------------------------------------------------
 // Helper: convert Acts Tracks -> CleaningTracks
-//---------------------------------------------------------------------
-
 namespace {
 
 // Build CleaningTracks (TrackDescriptor vector) from Acts Tracks,
-// using the same chi2Smoothed and hit extraction logic as RootTrackWriter.
 static CleaningTracks
 makeCleaningTracksFromActs(const Tracks& inputTracks,
                            const AlgorithmContext& ctx) {
   CleaningTracks out;
   out.reserve(inputTracks.tracks.size());
 
-  // Use eventNumber from context as eventId (you can refine this if needed)
+  // Use eventNumber from context as eventId
   std::size_t eventId = ctx.eventNumber;
 
   // Loop over fitted tracks
@@ -64,14 +60,14 @@ makeCleaningTracksFromActs(const Tracks& inputTracks,
     desc.eventId = eventId;
     desc.trackId = static_cast<std::size_t>(inputTracks.trackIds.at(tid));
 
-    // You can fill these later if you have them
+    // fill these
     desc.pdgId  = 0;
     desc.charge = 0;
 
     // ndf from Acts track
     desc.ndf = track.nDoF();
 
-    // chi2Smoothed and global hit positions, following RootTrackWriter
+    // chi2Smoothed and global hit positions
     double chi2Smoothed = 0.0;
     std::vector<Acts::Vector3> hitsGlobal;
     hitsGlobal.reserve(track.nTrackStates());
@@ -91,7 +87,6 @@ makeCleaningTracksFromActs(const Tracks& inputTracks,
               ctx.geoContext, hit, Acts::Vector3(1., 0., 0.));
       hitsGlobal.push_back(hitGlobal);
 
-      // We follow the same chi2Smoothed definition as RootTrackWriter
       if (state.hasSmoothed()) {
         Acts::Vector2 smoothedHit =
             state.effectiveProjector() * state.smoothed();
@@ -127,10 +122,7 @@ makeCleaningTracksFromActs(const Tracks& inputTracks,
 
 } // namespace
 
-//---------------------------------------------------------------------
 // execute()
-//---------------------------------------------------------------------
-
 ProcessCode TrackCleaningAlgorithm::execute(const AlgorithmContext& ctx) const {
   CleaningContainer workingTracks;
 
@@ -204,10 +196,7 @@ ProcessCode TrackCleaningAlgorithm::execute(const AlgorithmContext& ctx) const {
   return ProcessCode::SUCCESS;
 }
 
-//---------------------------------------------------------------------
 // Registrar
-//---------------------------------------------------------------------
-
 namespace {
 
 struct TrackCleaningAlgorithmRegistrar {

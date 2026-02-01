@@ -238,6 +238,10 @@ int runPipeline(const std::string& configPath) {
     aStore = 
 			makeAlignmentStore(detector.get(), longIdx, longTransStd, shortIdx, shortTransStd);
 
+  } else if (pcfg.detector.storeMode == "none") {
+    // no internal misalignment pattern at all
+    aStore = std::make_shared<AlignmentContext::AlignmentStore>();
+
   } else {
     aStore = makeAlignmentStore(detector.get()); // "fixed" pattern as in FastSimRun
   }
@@ -407,12 +411,16 @@ int runPipeline(const std::string& configPath) {
   // Sequencer
   Sequencer::Config seqCfg;
   seqCfg.logLevel = globalLogLevel;
-  seqCfg.events   = -1;
+  // seqCfg.events   = -1;
   seqCfg.numThreads = 1;
   Sequencer sequencer(seqCfg);
 
 	//geometry context decorator
-	sequencer.addContextDecorator(std::make_shared<GeometryContextDecorator>(aStore));
+  // Only decorate geometry if we actually have a misalignment pattern
+  if (pcfg.detector.storeMode != "none") {
+    sequencer.addContextDecorator(
+        std::make_shared<GeometryContextDecorator>(aStore));
+  }
 
 	//--------------- build pipeline components ----------------
   // PREPROCESSING

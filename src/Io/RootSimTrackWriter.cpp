@@ -7,6 +7,7 @@
 
 #include "TrackingPipeline/EventData/SimpleSourceLink.hpp"
 #include "TrackingPipeline/Infrastructure/WriterRegistry.hpp"
+#include "TrackingPipeline/TrackFitting/FittingServices.hpp"
 
 #include <toml.hpp>
 
@@ -645,10 +646,15 @@ struct RootSimTrackWriterRegistrar {
          Acts::Logging::Level logLevel,
          const std::string& runRoot) -> WriterPtr {
 
+        auto& svc = FittingServices::instance();
+        if (!svc.surfaceAccessor.has_value() || !svc.referenceSurface) {
+          throw std::runtime_error(
+              "RootSimTrackWriter: FittingServices not initialized "
+              "(surfaceAccessor / referenceSurface missing)");
+        }
+
         RootSimTrackWriter::Config cfg;
 
-        // NOTE: surfaceAccessor and referenceSurface must be set from C++,
-        // not from TOML. For now they stay default-initialized.
         cfg.inputTracks =
             toml::find<std::string>(section, "inputTracks");
         cfg.inputSimClusters =
@@ -657,6 +663,12 @@ struct RootSimTrackWriterRegistrar {
             toml::find<std::string>(section, "treeName");
         cfg.filePath =
             runRoot + "/" + toml::find<std::string>(section, "filePath");
+
+        // Wire services into config
+        cfg.surfaceAccessor
+            .connect<&SimpleSourceLink::SurfaceAccessor::operator()>(
+                &(*svc.surfaceAccessor));
+        cfg.referenceSurface = svc.referenceSurface.get();
 
         return std::make_shared<RootSimTrackWriter>(cfg, logLevel);
       });

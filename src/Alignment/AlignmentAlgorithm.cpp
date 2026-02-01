@@ -209,12 +209,11 @@ struct AlignmentAlgorithmRegistrar {
         using Trajectory = FittingServices::Trajectory;
         Acts::KalmanFitterOptions<Trajectory> kfOptions = *svc.baseKfOptions;
 
-        // Match AlignmentRun: maxSteps = 1000 (override-able from TOML)
         auto maxSteps = toml::find_or<unsigned int>(section, "maxSteps", 1000u);
         kfOptions.propagatorPlainOptions.maxSteps = maxSteps;
         kfOptions.referenceSurface = svc.referenceSurface.get();
 
-        // Initial config, matching AlignmentRun defaults
+        // Initial config
         AlignmentAlgorithm::Config cfg{
             /*inputTrackCandidates*/
             toml::find<std::string>(section, "inputTrackCandidates"),
@@ -272,14 +271,13 @@ struct AlignmentAlgorithmRegistrar {
           throw std::runtime_error("Unknown alignmentMode '" + modeStr + "'");
         }
 
-        // Alignment function: as in AlignmentRun.cpp
+        // Alignment function
         auto detector = svc.detector;
         auto magneticField =
             ApollonGeometry::buildMagField(Acts::GeometryContext{});
         cfg.align =
             AlignmentAlgorithm::makeAlignmentFunction(detector, magneticField);
 
-        // Same alignedDetElements selection as AlignmentRun.cpp:
         // all sensitive surfaces with id < 22 and != 10
         for (const auto& detElem : detector->detectorElements()) {
           auto* de = detElem.get();

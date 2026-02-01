@@ -309,7 +309,7 @@ namespace {
       using namespace TrackingPipeline;
 
       ReaderRegistry::instance().registerBuilder(
-        "RootSimTrackReader.cpp",
+        "RootSimTrackReader",
         [](const toml::value& section,
         const SurfaceMap& /*surfaceMap*/,
         Acts::Logging::Level logLevel) -> ReaderPtr {
@@ -318,9 +318,9 @@ namespace {
 
           // Fill config from TOML section
           cfg.outputMeasurements = toml::find<std::string>(
-              section, "SimMeasurements");
+              section, "outputMeasurements");
           cfg.outputSimClusters = toml::find<std::string>(
-              section, "SimClusters");
+              section, "outputSimClusters");
           cfg.outputSeeds = toml::find<std::string>(section, "outputSeeds");
           cfg.filePaths = toml::find<std::vector<std::string>>(
               section, "filePaths");

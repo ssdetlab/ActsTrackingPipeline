@@ -245,11 +245,18 @@ struct RootSimClusterReaderRegistrar {
         RootSimClusterReader::Config cfg;
         cfg.outputSourceLinks =
             toml::find<std::string>(section, "outputSourceLinks");
+        cfg.outputSimClusters =
+              toml::find<std::string>(section, "outputSimClusters");
         cfg.filePaths =
             toml::find<std::vector<std::string>>(section, "filePaths");
         cfg.treeName =
             toml::find<std::string>(section, "treeName");
-        // any other fields you have…
+        cfg.minGeoId =
+            toml::find<int>(section, "minGeoId");
+        cfg.maxGeoId =
+            toml::find<int>(section, "maxGeoId");
+        cfg.surfaceLocalToGlobal =
+              toml::find_or<bool>(section, "surfaceLocalToGlobal", true);
         cfg.surfaceMap = surfaceMap;
 
         return std::make_shared<RootSimClusterReader>(

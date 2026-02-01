@@ -17,7 +17,6 @@ namespace TrackingPipeline {
 
 using WriterPtr = std::shared_ptr<IWriter>;
 
-// Builder takes a TOML section and a log level and returns a constructed writer.
 using WriterBuilder =
     std::function<WriterPtr(const toml::value& section,
                             Acts::Logging::Level logLevel,

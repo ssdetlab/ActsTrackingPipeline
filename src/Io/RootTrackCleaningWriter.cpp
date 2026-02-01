@@ -106,8 +106,6 @@ RootCleaningTrackWriter::~RootCleaningTrackWriter() {
   }
 }
 
-
-
 namespace {
 struct RootCleaningTrackWriterRegistrar {
   RootCleaningTrackWriterRegistrar() {
