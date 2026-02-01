@@ -25,6 +25,13 @@ std::shared_ptr<Acts::Experimental::DetectorVolume> constructGapVolume(
     std::size_t primaryIdx, std::size_t longIdx, std::size_t shortIdx,
     std::size_t id, const Acts::GeometryContext& gctx);
 
+void constructGaps(
+    const Acts::GeometryContext& gctx, std::size_t primaryIdx,
+    std::size_t longIdx, std::size_t shortIdx,
+    std::vector<std::shared_ptr<Acts::Experimental::DetectorVolume>>&
+        detectorVolumes,
+    std::size_t idPrefix);
+
 std::shared_ptr<Acts::PlaneSurface> constructSurface(
     const SurfaceParameters& pars,
     const std::shared_ptr<Acts::RectangleBounds>& bounds,

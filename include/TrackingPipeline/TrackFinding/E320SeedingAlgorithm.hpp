@@ -2,6 +2,7 @@
 
 #include "Acts/EventData/SourceLink.hpp"
 #include <Acts/Definitions/Algebra.hpp>
+#include <Acts/Definitions/TrackParametrization.hpp>
 
 #include <cstddef>
 
@@ -22,10 +23,16 @@ class E320SeedingAlgorithm : public IAlgorithm {
     std::string inputSourceLinks;
     /// Output seeds
     std::string outputSeeds;
+    /// Reference surface
+    const Acts::Surface* referenceSurface;
+    /// Initial track state covariance prior
+    Acts::BoundMatrix originCov;
     /// Lower cutoff on the number of layers in a seed
     std::size_t minLayers;
     /// Higher cutoff on the number of layers in a seed
     std::size_t maxLayers;
+    /// Beamline tilt
+    double beamlineTilt;
   };
 
   /// @brief Constructor
@@ -41,17 +48,8 @@ class E320SeedingAlgorithm : public IAlgorithm {
   /// Configuration
   Config m_cfg;
 
-  Acts::Vector3 m_detFirstLayerPoint;
-  Acts::Vector3 m_detFirstLayerNormal;
-  Acts::Vector3 m_backShift;
-
   double m_dipoleLength;
   double m_dipoleFieldStrength;
-
-  double m_xCorrectorLength;
-  double m_xCorrectorFieldStrength;
-
-  Acts::BoundSquareMatrix m_ipCov;
 
   ReadDataHandle<std::vector<Acts::SourceLink>> m_inputSourceLinks{
       this, "InputSourceLinks"};

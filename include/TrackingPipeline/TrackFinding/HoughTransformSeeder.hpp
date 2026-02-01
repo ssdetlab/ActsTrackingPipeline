@@ -92,23 +92,27 @@ class HoughTransformSeeder {
   using SourceLinkRef = std::reference_wrapper<const Acts::SourceLink>;
 
   struct Config {
-    double boundBoxHalfX;
-    double boundBoxHalfY;
-    double boundBoxHalfZ;
+    double boundBoxHalfPrimary;
+    double boundBoxHalfLong;
+    double boundBoxHalfShort;
 
-    std::size_t nCellsThetaX;
-    std::size_t nCellsRhoX;
+    std::size_t nCellsThetaShort;
+    std::size_t nCellsRhoShort;
 
-    std::size_t nCellsThetaY;
-    std::size_t nCellsRhoY;
+    std::size_t nCellsThetaLong;
+    std::size_t nCellsRhoLong;
 
-    std::size_t nLSIterations;
+    std::size_t nGLSIterations;
+
+    std::size_t primaryIdx;
+    std::size_t longIdx;
+    std::size_t shortIdx;
   };
 
   struct Options {
-    double boundBoxCenterX;
-    double boundBoxCenterY;
-    double boundBoxCenterZ;
+    double boundBoxCenterPrimary;
+    double boundBoxCenterLong;
+    double boundBoxCenterShort;
 
     int firstLayerId;
     int lastLayerId;
@@ -118,12 +122,15 @@ class HoughTransformSeeder {
     std::size_t minSeedSize;
     std::size_t maxSeedSize;
 
+    double primaryInterchipDistance;
+    double thetaRms;
     double maxChi2;
   };
 
   struct HTSeed {
     Acts::Vector3 lineRefPoint;
     Acts::Vector3 lineDir;
+    Acts::ActsSquareMatrix<6> cov;
     std::vector<Acts::SourceLink> sourceLinks;
   };
 
@@ -136,29 +143,32 @@ class HoughTransformSeeder {
   Config m_cfg;
 
   void fillVotingMap(VotingMap& votingMap, std::span<SourceLinkRef> points,
-                     int nThreads, const Options& opt,
-                     const Acts::Vector3& shift) const;
+                     const Options& opt, const Acts::Vector3& shift) const;
 
   std::vector<std::pair<int, int>> findLineSourceLinks(
-      const std::span<SourceLinkRef>& sourceLinks,
-      const Acts::Vector3& pointBL, const Acts::Vector3& dirBL,
-      const Acts::Vector3& pointTR, const Acts::Vector3& dirTR,
-      const Acts::Vector3& shift) const;
+      const std::span<SourceLinkRef>& sourceLinks, const Acts::Vector3& pointBL,
+      const Acts::Vector3& dirBL, const Acts::Vector3& pointTR,
+      const Acts::Vector3& dirTR, const Acts::Vector3& shift) const;
 
   std::vector<std::pair<int, int>> findLineSourceLinks(
       const std::span<SourceLinkRef>& sourceLinks, const Acts::Vector3& point,
       const Acts::Vector3& dir, double dist, const Acts::Vector3& shift) const;
 
-  double orthogonalLeastSquares(const std::vector<SourceLinkRef>& sourceLinks,
-                                Acts::Vector3& a, Acts::Vector3& b,
-                                const Acts::Vector3& shift) const;
+  Eigen::MatrixXd constructCov(const std::vector<SourceLinkRef>& sourceLinks,
+                               const Acts::Vector3& dir,
+                               const Options& opt) const;
 
-  double m_deltaThetaZ;
-  double m_deltaRhoZ;
+  double globalChi2Fit(const std::vector<SourceLinkRef>& sourceLinks,
+                       Acts::Vector3& pos, Acts::Vector3& dir,
+                       Acts::ActsSquareMatrix<6>& cov,
+                       const Options& opt) const;
 
-  double m_deltaThetaY;
-  double m_deltaRhoY;
+  double m_deltaThetaShort;
+  double m_deltaRhoShort;
 
-  double m_maxRhoY;
-  double m_maxRhoZ;
+  double m_deltaThetaLong;
+  double m_deltaRhoLong;
+
+  double m_maxRhoLong;
+  double m_maxRhoShort;
 };

@@ -1,28 +1,30 @@
 #pragma once
 
+#include "Acts/Definitions/Algebra.hpp"
+
 #include "TrackingPipeline/Simulation/IMomentumGenerator.hpp"
 
 /// @brief Spherical momentum generator
-struct SphericalMomentumGenerator : public IMomentumGenerator {
-  std::pair<double, double> pRange;
-  std::pair<double, double> thetaRange;
-  std::pair<double, double> phiRange;
+class SphericalMomentumGenerator : public IMomentumGenerator {
+ public:
+  struct Config {
+    std::pair<double, double> pRange;
+    std::pair<double, double> thetaRange;
+    std::pair<double, double> phiRange;
+  };
 
-  Acts::Vector3 genMomentum(RandomEngine& rng) const override {
-    std::uniform_real_distribution<double> uniform(0, 1);
+  SphericalMomentumGenerator(const Config& config);
 
-    double pMag = pRange.first + (pRange.second - pRange.first) * uniform(rng);
+  Acts::Vector3 genMomentum(RandomEngine& rng) const override;
 
-    double phi =
-        phiRange.first + (phiRange.second - phiRange.first) * uniform(rng);
+  Acts::SquareMatrix4 getCovariance() const override;
 
-    double theta =
-        std::acos(std::cos(thetaRange.first) -
-                  (std::cos(thetaRange.first) - std::cos(thetaRange.second)) *
-                      uniform(rng));
+  Acts::Vector3 getMean() const override;
 
-    return pMag * Acts::Vector3(std::sin(theta) * std::cos(phi),
-                                std::sin(theta) * std::sin(phi),
-                                std::cos(theta));
-  }
+ private:
+  Config m_cfg;
+
+  Acts::SquareMatrix4 m_cov;
+
+  Acts::Vector3 m_mean;
 };

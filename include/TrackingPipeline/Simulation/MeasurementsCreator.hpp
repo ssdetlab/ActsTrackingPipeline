@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Acts/Definitions/TrackParametrization.hpp"
 #include "Acts/EventData/ParticleHypothesis.hpp"
 #include "Acts/Navigation/DetectorNavigator.hpp"
 #include "Acts/Propagator/EigenStepper.hpp"
@@ -28,6 +29,14 @@ class MeasurementsCreator : public IMeasurementGenerator {
 
   using TrackParameters = Acts::CurvilinearTrackParameters;
 
+  struct Constraints {
+    double minLocX;
+    double maxLocX;
+
+    double minLocY;
+    double maxLocY;
+  };
+
   /// @brief Nested configuration struct
   struct Config {
     /// Vertex generator
@@ -36,15 +45,19 @@ class MeasurementsCreator : public IMeasurementGenerator {
     std::shared_ptr<IMomentumGenerator> momentumGenerator;
     /// Digitizer
     std::shared_ptr<IDigitizer> hitDigitizer;
+    /// Reference surface
+    const Acts::Surface* referenceSurface;
     /// Maximum number of steps
     /// to propagate
     std::size_t maxSteps;
     /// Is signal flag
     bool isSignal;
     /// Particle hypothesis
-    Acts::ParticleHypothesis hypothesis = Acts::ParticleHypothesis::electron();
+    Acts::ParticleHypothesis hypothesis;
     /// Particle charge
-    int charge = -1_e;
+    double charge;
+    /// Constraint surfaces cuts
+    std::unordered_map<Acts::GeometryIdentifier, Constraints> constraints;
   };
 
   /// @brief Constructor
@@ -62,7 +75,8 @@ class MeasurementsCreator : public IMeasurementGenerator {
   /// Configuration
   Config m_cfg;
 
-  Acts::BoundSquareMatrix m_ipCov;
+  /// IP process covariance
+  Acts::FreeMatrix m_freeIpCov;
 
   /// Propagator instance
   Propagator m_propagator;

@@ -165,16 +165,14 @@ struct GeometryOptions {
   const double interChipDistance = 20_mm;
 
   /// Transverse volume parameters
-  const double tcHalfLong = chipHalfX + chipVolumeHalfSpacing;
-  const double tcHalfShort = chipHalfY + chipVolumeHalfSpacing;
-
-  /// Correction of the box width
-  const double tcBoxWidthCorrection = 0.11_mm;
+  const double tcHalfLong = chipHalfX;
+  const double tcHalfShort = chipHalfY;
 
   /// --------------------------------------------------------------
   /// Be window placement
 
-  const double beWindowCenterPrimary = -842_mm;
+  // const double beWindowCenterPrimary = -842_mm;
+  const double beWindowCenterPrimary = 0.01_um;
   const double beWindowCenterLong = 0_mm;
   const double beWindowCenterShort = 0_mm;
 
@@ -183,6 +181,32 @@ struct GeometryOptions {
       {longBinValue, beWindowCenterLong, toWorldAngleY},
       {shortBinValue, beWindowCenterShort, toWorldAngleZ},
       40};
+
+  /// --------------------------------------------------------------
+  /// BMP placement
+
+  const double bpm1CenterPrimary = 4160_mm + 500_mm;
+  const double bpm2CenterPrimary = 6390_mm + 500_mm;
+  const double bpm3CenterPrimary = 8610_mm + 500_mm;
+
+  const double bpmCenterLong = 0_mm;
+  const double bpmCenterShort = 0_mm;
+
+  const SurfaceParameters bpm1Parameters{
+      {primaryBinValue, bpm1CenterPrimary, toWorldAngleX},
+      {longBinValue, bpmCenterLong, toWorldAngleY},
+      {shortBinValue, bpmCenterShort, toWorldAngleZ},
+      41};
+  const SurfaceParameters bpm2Parameters{
+      {primaryBinValue, bpm2CenterPrimary, toWorldAngleX},
+      {longBinValue, bpmCenterLong, toWorldAngleY},
+      {shortBinValue, bpmCenterShort, toWorldAngleZ},
+      42};
+  const SurfaceParameters bpm3Parameters{
+      {primaryBinValue, bpm3CenterPrimary, toWorldAngleX},
+      {longBinValue, bpmCenterLong, toWorldAngleY},
+      {shortBinValue, bpmCenterShort, toWorldAngleZ},
+      43};
 
   /// --------------------------------------------------------------
   /// Quads placement
@@ -261,8 +285,7 @@ struct GeometryOptions {
                         18}};
 
   const double tcHalfPrimary =
-      interChipDistance * (tcParameters.size() - 1) / 2.0 +
-      chipVolumeHalfSpacing;
+      interChipDistance * (tcParameters.size() - 1) / 2.0;
 
   const double tcCenterPrimary = ipTcDistance + tcHalfPrimary;
 

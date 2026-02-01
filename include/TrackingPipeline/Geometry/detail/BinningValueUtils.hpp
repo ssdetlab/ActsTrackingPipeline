@@ -46,4 +46,17 @@ inline std::size_t binningValueToIndex(const Acts::BinningValue& binningValue) {
   }
 }
 
+inline Acts::Vector3 indexToDirection(std::size_t idx) {
+  switch (idx) {
+    case 0:
+      return Acts::Vector3::UnitX();
+    case 1:
+      return Acts::Vector3::UnitY();
+    case 2:
+      return Acts::Vector3::UnitZ();
+    default:
+      throw std::runtime_error("Invalid index to vector conversion");
+  }
+}
+
 };  // namespace detail

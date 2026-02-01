@@ -2,4 +2,13 @@ target_sources(
     TrackingPipelineCore
     PRIVATE
     MeasurementsEmbeddingAlgorithm.cpp
-    MeasurementsCreator.cpp)
+    MeasurementsCreator.cpp
+    StationaryVertexGenerator.cpp
+    GaussianVertexGenerator.cpp
+    UniformVertexGenerator.cpp
+    RangedUniformMomentumgenerator.cpp
+    SphericalMomentumGenerator.cpp
+    StationaryMomentumGenerator.cpp
+    IdealDigitizer.cpp
+    SimpleDigitizer.cpp
+  )

@@ -5,6 +5,7 @@
 #include "Acts/Navigation/InternalNavigation.hpp"
 
 #include <cstddef>
+#include <memory>
 #include <stdexcept>
 
 std::shared_ptr<Acts::Experimental::DetectorVolume> constructVolume(
@@ -80,6 +81,12 @@ std::shared_ptr<Acts::Experimental::DetectorVolume> constructGapVolume(
         "along "
         "non-primary directions");
   }
+  if (translation1[primaryIdx] + bounds1[primaryIdx] >=
+      translation2[primaryIdx] - bounds2[primaryIdx]) {
+    throw std::runtime_error(
+        "Volumes " + vol1->name() + " and " + vol2->name() +
+        " are touching or overlapping, can't construct gap");
+  }
 
   double primaryCenter = (translation2[primaryIdx] - bounds2.at(primaryIdx) +
                           translation1[primaryIdx] + bounds1.at(primaryIdx)) /
@@ -98,6 +105,35 @@ std::shared_ptr<Acts::Experimental::DetectorVolume> constructGapVolume(
                          longCenter, shortCenter, primaryIdx, longIdx, shortIdx,
                          "gapVol", id, {}, gctx);
 };
+
+void constructGaps(
+    const Acts::GeometryContext& gctx, std::size_t primaryIdx,
+    std::size_t longIdx, std::size_t shortIdx,
+    std::vector<std::shared_ptr<Acts::Experimental::DetectorVolume>>&
+        detectorVolumes,
+    std::size_t idPrefix) {
+  std::sort(detectorVolumes.begin(), detectorVolumes.end(),
+            [&](const auto& vol1, const auto& vol2) {
+              return (vol1->transform(gctx).translation()[primaryIdx] <
+                      vol2->transform(gctx).translation()[primaryIdx]);
+            });
+  std::size_t gapCounter = 0;
+  std::size_t nGaps = detectorVolumes.size() - 1;
+  for (std::size_t i = 0; i < nGaps; i++) {
+    const auto& vol1 = detectorVolumes.at(i);
+    const auto& vol2 = detectorVolumes.at(i + 1);
+
+    std::size_t id = idPrefix + gapCounter;
+    detectorVolumes.push_back(constructGapVolume(vol1, vol2, primaryIdx,
+                                                 longIdx, shortIdx, id, gctx));
+    gapCounter++;
+  }
+  std::sort(detectorVolumes.begin(), detectorVolumes.end(),
+            [&](const auto& vol1, const auto& vol2) {
+              return (vol1->transform(gctx).translation()[primaryIdx] <
+                      vol2->transform(gctx).translation()[primaryIdx]);
+            });
+}
 
 std::shared_ptr<Acts::PlaneSurface> constructSurface(
     const SurfaceParameters& pars,

@@ -1,39 +1,40 @@
+#include "Acts/Definitions/Algebra.hpp"
 #include "Acts/EventData/VectorMultiTrajectory.hpp"
 #include "Acts/EventData/VectorTrackContainer.hpp"
 #include "Acts/Geometry/GeometryIdentifier.hpp"
 #include "Acts/Navigation/DetectorNavigator.hpp"
 #include "Acts/Propagator/EigenStepper.hpp"
-#include "Acts/Seeding/PathSeeder.hpp"
 #include "Acts/Surfaces/PlaneSurface.hpp"
 #include "Acts/Surfaces/RectangleBounds.hpp"
-#include "Acts/TrackFinding/MeasurementSelector.hpp"
 #include "Acts/TrackFitting/GainMatrixUpdater.hpp"
 #include "Acts/TrackFitting/KalmanFitter.hpp"
 #include "Acts/Utilities/Logger.hpp"
-#include <Acts/Definitions/Algebra.hpp>
 
+#include <cstddef>
 #include <filesystem>
 #include <iostream>
-#include <limits>
 #include <memory>
 #include <unordered_map>
 
+#include <nlohmann/json.hpp>
 #include <unistd.h>
 
 #include "TrackingPipeline/Alignment/AlignmentAlgorithm.hpp"
 #include "TrackingPipeline/Alignment/AlignmentContext.hpp"
+#include "TrackingPipeline/Alignment/detail/AlignmentStoreBuilders.hpp"
+#include "TrackingPipeline/Alignment/detail/AlignmentStoreUpdaterBuilders.hpp"
+#include "TrackingPipeline/EventData/ExtendedSourceLink.hpp"
+#include "TrackingPipeline/EventData/MixedSourceLinkCalibrator.hpp"
+#include "TrackingPipeline/EventData/MixedSourceLinkSurfaceAccessor.hpp"
 #include "TrackingPipeline/Geometry/E320Geometry.hpp"
 #include "TrackingPipeline/Geometry/E320GeometryConstraints.hpp"
 #include "TrackingPipeline/Geometry/GeometryContextDecorator.hpp"
 #include "TrackingPipeline/Infrastructure/Sequencer.hpp"
 #include "TrackingPipeline/Io/AlignmentParametersProvider.hpp"
 #include "TrackingPipeline/Io/AlignmentParametersWriter.hpp"
+#include "TrackingPipeline/Io/RootSeedWriter.hpp"
 #include "TrackingPipeline/Io/RootTrackReader.hpp"
 #include "TrackingPipeline/Io/RootTrackWriter.hpp"
-#include "TrackingPipeline/MagneticField/CompositeMagField.hpp"
-#include "TrackingPipeline/MagneticField/ConstantBoundedField.hpp"
-#include "TrackingPipeline/MagneticField/DipoleMagField.hpp"
-#include "TrackingPipeline/MagneticField/IdealQuadrupoleMagField.hpp"
 #include "TrackingPipeline/TrackFitting/KFTrackFittingAlgorithm.hpp"
 
 // Propagator short-hands
@@ -46,258 +47,269 @@ using PropagatorOptions =
     typename Propagator::template Options<ActionList, AbortList>;
 
 // KF short-hands
-using KFTrajectory = KFTrackFittingAlgorithm::Trajectory;
-using KFTrackContainer = KFTrackFittingAlgorithm::TrackContainer;
-using KF = Acts::KalmanFitter<Propagator, KFTrajectory>;
+using RecoTrajectory = KFTrackFittingAlgorithm::Trajectory;
+using RecoTrackContainer = KFTrackFittingAlgorithm::TrackContainer;
+using KF = Acts::KalmanFitter<Propagator, RecoTrajectory>;
 
 using namespace Acts::UnitLiterals;
 
+namespace ag = E320Geometry;
+
+std::unique_ptr<const ag::GeometryOptions> ag::GeometryOptions::m_instance =
+    nullptr;
+
 int main() {
+  const auto& goInst = *ag::GeometryOptions::instance();
+
   // Set the log level
-  Acts::Logging::Level logLevel = Acts::Logging::DEBUG;
+  Acts::Logging::Level logLevel = Acts::Logging::INFO;
 
   // Dummy context and options
   Acts::GeometryContext gctx;
   Acts::MagneticFieldContext mctx;
   Acts::CalibrationContext cctx;
-  E320Geometry::GeometryOptions gOpt;
 
   // --------------------------------------------------------------
   // Detector setup
 
-  // Set the path to the gdml file
-  // and the names of the volumes to be converted
-  std::string gdmlPath =
-      "/home/romanurmanov/lab/LUXE/acts_tracking/E320Prototype/"
-      "E320Prototype_gdmls/"
-      "ett_geometry_f566a577.gdml";
-  std::vector<std::string> names{"OPPPSensitive", "DetChamberWindow"};
+  auto detector = E320Geometry::buildDetector(gctx);
 
-  // Veto PDC window material mapping
-  // to preserve homogeneous material
-  // from Geant4
-  Acts::GeometryIdentifier pdcWindowId;
-  pdcWindowId.setApproach(1);
-  std::vector<Acts::GeometryIdentifier> materialVeto{pdcWindowId};
-
-  std::string materialPath =
-      "/home/romanurmanov/lab/LUXE/acts_tracking/E320Prototype/"
-      "E320Prototype_material/"
-      "Uniform_DirectZ_TrackerOnly_256x128_1M/material.json";
-
-  // Build the detector
-  auto trackerBP = E320Geometry::makeBlueprintE320(gdmlPath, names, gOpt);
-  auto detector = E320Geometry::buildE320Detector(
-      std::move(trackerBP), gctx, gOpt, materialPath, materialVeto);
-
-  auto aStore =
-      std::make_shared<std::map<Acts::GeometryIdentifier, Acts::Transform3>>();
-
-  double detectorTilt = 0.00297;
-  std::map<int, Acts::Vector3> shifts{
-      {8, Acts::Vector3(-11.1_mm, 0, -0.75_mm)},
-      {6, Acts::Vector3(-11.1_mm, 0, -0.75_mm)},
-      {4, Acts::Vector3(-11.1_mm, 0, -0.75_mm)},
-      {2, Acts::Vector3(-11.1_mm, 0, -0.75_mm)},
-      {0, Acts::Vector3(-11.1_mm, 0, -0.75_mm)}};
-  for (auto& v : detector->volumes()) {
-    for (auto& s : v->surfaces()) {
-      if (s->geometryId().sensitive()) {
-        Acts::Transform3 nominal = s->transform(gctx);
-        nominal.pretranslate(shifts.at(s->geometryId().sensitive() - 1));
-        std::cout << nominal.translation().transpose() << "\n";
-        aStore->emplace(s->geometryId(), nominal);
+  std::map<Acts::GeometryIdentifier, const Acts::Surface*> surfaceMap;
+  for (const auto& vol : detector->volumes()) {
+    std::cout << "------------------------------------------\n";
+    std::cout << vol->name() << "\n";
+    std::cout << vol->extent(gctx);
+    std::cout << "Surfaces:\n";
+    for (const auto& surf : vol->surfaces()) {
+      std::cout << surf->geometryId() << "\n";
+      std::cout << surf->polyhedronRepresentation(gctx, 1000).extent() << "\n";
+      if (surf->geometryId().sensitive()) {
+        surfaceMap[surf->geometryId()] = surf;
       }
     }
   }
+
+  AlignmentParametersProvider::Config alignmentProviderCfg;
+  alignmentProviderCfg.filePath =
+      "/home/romanurmanov/work/E320/E320Prototype/E320Prototype_analysis/data/"
+      "alignment/local/aligned/"
+      "alignment-parameters.root";
+  alignmentProviderCfg.treeName = "alignment-parameters";
+  AlignmentParametersProvider alignmentProvider(alignmentProviderCfg);
+  auto aStore = alignmentProvider.getAlignmentStore();
+
+  for (auto& [geoId, transform] : *aStore) {
+    transform.translation() =
+        transform.translation() + Acts::Vector3(0, 1_mm, -10_mm);
+  }
+
   AlignmentContext alignCtx(aStore);
+  Acts::GeometryContext testCtx{alignCtx};
+  for (auto& v : detector->volumes()) {
+    for (auto& s : v->surfaces()) {
+      if (s->geometryId().sensitive()) {
+        std::cout << "-----------------------------------\n";
+        std::cout << "SURFACE " << s->geometryId() << "\n";
+        std::cout << "CENTER " << s->center(testCtx).transpose() << " -- "
+                  << s->center(Acts::GeometryContext()).transpose() << "\n";
+        std::cout << "NORMAL "
+                  << s->normal(testCtx, s->center(testCtx),
+                               Acts::Vector3::UnitY())
+                         .transpose()
+                  << " -- "
+                  << s->normal(testCtx, s->center(Acts::GeometryContext()),
+                               Acts::Vector3::UnitY())
+                         .transpose()
+                  << "\n";
+        std::cout << "ROTATION \n"
+                  << s->transform(testCtx).rotation() << " -- \n"
+                  << "\n"
+                  << s->transform(Acts::GeometryContext()).rotation() << "\n";
+
+        std::cout << "EXTENT "
+                  << s->polyhedronRepresentation(testCtx, 1000).extent()
+                  << "\n -- \n"
+                  << s->polyhedronRepresentation(Acts::GeometryContext(), 1000)
+                         .extent()
+                  << "\n";
+      }
+    }
+  }
   gctx = Acts::GeometryContext{alignCtx};
 
-  Acts::GeometryIdentifier midGeoId;
-  midGeoId.setSensitive(5);
-  Acts::Vector3 detectorCenter = detector->findSurface(midGeoId)->center(gctx);
-  for (auto& v : detector->volumes()) {
-    for (auto& s : v->surfaces()) {
-      if (s->geometryId().sensitive()) {
-        Acts::Transform3 nominal = aStore->at(s->geometryId());
-        nominal.pretranslate(-detectorCenter);
-        nominal.prerotate(Acts::AngleAxis3(detectorTilt, Acts::Vector3::UnitX())
-                              .toRotationMatrix());
-        nominal.pretranslate(detectorCenter);
-        aStore->at(s->geometryId()) = nominal;
-      }
-    }
-  }
+  // auto aStore = detail::makeAlignmentStore(gctx, detector.get());
+  // AlignmentContext alignCtx(aStore);
+  // Acts::GeometryContext testCtx{alignCtx};
+  // for (auto& v : detector->volumes()) {
+  //   for (auto& s : v->surfaces()) {
+  //     if (s->geometryId().sensitive()) {
+  //       std::cout << "-----------------------------------\n";
+  //       std::cout << "SURFACE " << s->geometryId() << "\n";
+  //       std::cout << "CENTER " << s->center(testCtx).transpose() << " -- "
+  //                 << s->center(Acts::GeometryContext()).transpose() << "\n";
+  //       std::cout << "NORMAL "
+  //                 << s->normal(testCtx, s->center(testCtx),
+  //                              Acts::Vector3::UnitY())
+  //                        .transpose()
+  //                 << " -- "
+  //                 << s->normal(testCtx, s->center(Acts::GeometryContext()),
+  //                              Acts::Vector3::UnitY())
+  //                        .transpose()
+  //                 << "\n";
+  //       std::cout << "ROTATION \n"
+  //                 << s->transform(testCtx).rotation() << " -- \n"
+  //                 << "\n"
+  //                 << s->transform(Acts::GeometryContext()).rotation() << "\n";
+  //       std::cout << "EXTENT "
+  //                 << s->polyhedronRepresentation(testCtx, 1000).extent()
+  //                 << "\n -- \n"
+  //                 << s->polyhedronRepresentation(Acts::GeometryContext(),
+  //                 1000)
+  //                        .extent()
+  //                 << "\n";
+  //     }
+  //   }
+  // }
+  // gctx = Acts::GeometryContext{alignCtx};
 
   // --------------------------------------------------------------
   // The magnetic field setup
 
-  // Extent in already rotated frame
-  Acts::Extent quad1Extent;
-  quad1Extent.set(Acts::BinningValue::binX,
-                  gOpt.quad1Translation[0] - gOpt.quad1Bounds[0],
-                  gOpt.quad1Translation[0] + gOpt.quad1Bounds[0]);
-  quad1Extent.set(Acts::BinningValue::binZ,
-                  gOpt.quad1Translation[1] - gOpt.quad1Bounds[1],
-                  gOpt.quad1Translation[1] + gOpt.quad1Bounds[1]);
-  quad1Extent.set(Acts::BinningValue::binY,
-                  gOpt.quad1Translation[2] - gOpt.quad1Bounds[2],
-                  gOpt.quad1Translation[2] + gOpt.quad1Bounds[2]);
+  auto field = E320Geometry::buildMagField(gctx);
 
-  Acts::Extent quad2Extent;
-  quad2Extent.set(Acts::BinningValue::binX,
-                  gOpt.quad2Translation[0] - gOpt.quad2Bounds[0],
-                  gOpt.quad2Translation[0] + gOpt.quad2Bounds[0]);
-  quad2Extent.set(Acts::BinningValue::binZ,
-                  gOpt.quad2Translation[1] - gOpt.quad2Bounds[1],
-                  gOpt.quad2Translation[1] + gOpt.quad2Bounds[1]);
-  quad2Extent.set(Acts::BinningValue::binY,
-                  gOpt.quad2Translation[2] - gOpt.quad2Bounds[2],
-                  gOpt.quad2Translation[2] + gOpt.quad2Bounds[2]);
+  // --------------------------------------------------------------
+  // Reference surface for sampling the track
+  double halfX = std::numeric_limits<double>::max();
+  double halfY = std::numeric_limits<double>::max();
 
-  Acts::Extent quad3Extent;
-  quad3Extent.set(Acts::BinningValue::binX,
-                  gOpt.quad3Translation[0] - gOpt.quad3Bounds[0],
-                  gOpt.quad3Translation[0] + gOpt.quad3Bounds[0]);
-  quad3Extent.set(Acts::BinningValue::binZ,
-                  gOpt.quad3Translation[1] - gOpt.quad3Bounds[1],
-                  gOpt.quad3Translation[1] + gOpt.quad3Bounds[1]);
-  quad3Extent.set(Acts::BinningValue::binY,
-                  gOpt.quad3Translation[2] - gOpt.quad3Bounds[2],
-                  gOpt.quad3Translation[2] + gOpt.quad3Bounds[2]);
+  Acts::RotationMatrix3 refSurfToWorldRotationX =
+      Acts::AngleAxis3(goInst.toWorldAngleX, Acts::Vector3::UnitX())
+          .toRotationMatrix();
+  Acts::RotationMatrix3 refSurfToWorldRotationY =
+      Acts::AngleAxis3(goInst.toWorldAngleY, Acts::Vector3::UnitY())
+          .toRotationMatrix();
+  Acts::RotationMatrix3 refSurfToWorldRotationZ =
+      Acts::AngleAxis3(goInst.toWorldAngleZ, Acts::Vector3::UnitZ())
+          .toRotationMatrix();
 
-  Acts::Extent dipoleExtent;
-  dipoleExtent.set(Acts::BinningValue::binX,
-                   gOpt.dipoleTranslation.x() - gOpt.dipoleBounds[0],
-                   gOpt.dipoleTranslation.x() + gOpt.dipoleBounds[0]);
-  dipoleExtent.set(Acts::BinningValue::binZ,
-                   gOpt.dipoleTranslation.y() - gOpt.dipoleBounds[1],
-                   gOpt.dipoleTranslation.y() + gOpt.dipoleBounds[1]);
-  dipoleExtent.set(Acts::BinningValue::binY,
-                   gOpt.dipoleTranslation.z() - gOpt.dipoleBounds[2],
-                   gOpt.dipoleTranslation.z() + gOpt.dipoleBounds[2]);
+  Acts::Transform3 refSurfaceTransform = Acts::Transform3::Identity();
+  refSurfaceTransform.translate(Acts::Vector3(0, 0, 0));
+  refSurfaceTransform.rotate(refSurfToWorldRotationX);
+  refSurfaceTransform.rotate(refSurfToWorldRotationY);
+  refSurfaceTransform.rotate(refSurfToWorldRotationZ);
 
-  Acts::Extent xCorrectorExtent;
-  xCorrectorExtent.set(
-      Acts::BinningValue::binX,
-      gOpt.xCorrectorTranslation.x() - gOpt.xCorrectorBounds[0],
-      gOpt.xCorrectorTranslation.x() + gOpt.xCorrectorBounds[0]);
-  xCorrectorExtent.set(
-      Acts::BinningValue::binZ,
-      gOpt.xCorrectorTranslation.y() - gOpt.xCorrectorBounds[1],
-      gOpt.xCorrectorTranslation.y() + gOpt.xCorrectorBounds[1]);
-  xCorrectorExtent.set(
-      Acts::BinningValue::binY,
-      gOpt.xCorrectorTranslation.z() - gOpt.xCorrectorBounds[2],
-      gOpt.xCorrectorTranslation.z() + gOpt.xCorrectorBounds[2]);
+  auto refSurface = Acts::Surface::makeShared<Acts::PlaneSurface>(
+      refSurfaceTransform,
+      std::make_shared<Acts::RectangleBounds>(halfX, halfY));
 
-  IdealQuadrupoleMagField quad1Field(
-      gOpt.quadrupolesParams[0],
-      gOpt.actsToWorldRotation.inverse() * gOpt.quad1Translation,
-      gOpt.actsToWorldRotation);
-  IdealQuadrupoleMagField quad2Field(
-      gOpt.quadrupolesParams[1],
-      gOpt.actsToWorldRotation.inverse() * gOpt.quad2Translation,
-      gOpt.actsToWorldRotation);
-  IdealQuadrupoleMagField quad3Field(
-      gOpt.quadrupolesParams[2],
-      gOpt.actsToWorldRotation.inverse() * gOpt.quad3Translation,
-      gOpt.actsToWorldRotation);
-
-  double dipoleB = 0.2192_T;
-  DipoleMagField dipoleField(
-      gOpt.dipoleParams, dipoleB, gOpt.actsToWorldRotation,
-      gOpt.actsToWorldRotation.inverse() * gOpt.dipoleTranslation);
-
-  Acts::Vector3 xCorrectorB(0, 0, -0.026107_T);
-  ConstantBoundedField xCorrectorField(xCorrectorB, xCorrectorExtent);
-
-  CompositeMagField::FieldComponents fieldComponents = {
-      {quad1Extent, &quad1Field},
-      {quad2Extent, &quad2Field},
-      {quad3Extent, &quad3Field},
-      {dipoleExtent, &dipoleField},
-      {xCorrectorExtent, &xCorrectorField}};
-
-  auto field = std::make_shared<CompositeMagField>(fieldComponents);
+  Acts::GeometryIdentifier geoId;
+  geoId.setExtra(1);
+  refSurface->assignGeometryId(std::move(geoId));
 
   // --------------------------------------------------------------
   // Event reading
-  SimpleSourceLink::SurfaceAccessor surfaceAccessor{detector.get()};
+  SimpleSourceLink::SurfaceAccessor simpleSurfaceAccessor{detector.get()};
+  ExtendedSourceLink::SurfaceAccessor extendedSurfaceAccessor{detector.get()};
+
+  MixedSourceLinkSurfaceAccessor surfaceAccessor;
+  surfaceAccessor.connect<&SimpleSourceLink::SurfaceAccessor::operator(),
+                          SimpleSourceLink>(&simpleSurfaceAccessor);
+  surfaceAccessor.connect<&ExtendedSourceLink::SurfaceAccessor::operator(),
+                          ExtendedSourceLink>(&extendedSurfaceAccessor);
 
   // Setup the sequencer
   Sequencer::Config seqCfg;
-  seqCfg.events = 1e0;
+  // seqCfg.events = 1e1;
   seqCfg.numThreads = 1;
+  seqCfg.skip = 0;
   seqCfg.trackFpes = false;
   Sequencer sequencer(seqCfg);
 
   sequencer.addContextDecorator(
       std::make_shared<GeometryContextDecorator>(aStore));
 
-  // --------------------------------------------------------------
-  // Add sim clusters reader
+  // Add the sim data reader
   RootTrackReader::Config readerCfg;
   readerCfg.treeName = "fitted-tracks";
-  readerCfg.outputMeasurements = "Measurements";
-  readerCfg.outputSeeds = "PreFittedTrackCandidates";
-  readerCfg.batch = false;
-  readerCfg.stack = true;
-  readerCfg.batchSize = 1e3;
-  readerCfg.covAnnealingFactor = 1e0;
-  readerCfg.filePaths = {
-      "/home/romanurmanov/lab/LUXE/acts_tracking/E320Prototype/"
-      "E320Prototype_analysis/noam_split/temp/"
-      "initial_full_tracking_run/fitted-tracks-data.root"};
+  readerCfg.outputMeasurements = "SimMeasurements";
+  readerCfg.outputSeedsGuess = "SeedsGuess";
+  readerCfg.outputSeedsEst = "SeedsEst";
+  readerCfg.minChi2 = 0;
+  readerCfg.maxChi2 = 18;
+  readerCfg.mergeIntoOneEvent = true;
 
-  // // Get the paths to the files in the directory
-  // for (const auto& entry : std::filesystem::directory_iterator(pathToDir)) {
-  //   if (!entry.is_regular_file() || entry.path().extension() != ".root") {
-  //     continue;
-  //   }
-  //   std::string pathToFile = entry.path();
-  //   readerCfg.filePaths.push_back(pathToFile);
-  // }
+  std::string pathToDir =
+      "/home/romanurmanov/work/E320/E320Prototype/E320Prototype_analysis/data/"
+      "alignment/global/filtered";
+
+  // Get the paths to the files in the directory
+  for (const auto& entry : std::filesystem::directory_iterator(pathToDir)) {
+    if (!entry.is_regular_file() || entry.path().extension() != ".root") {
+      continue;
+    }
+    std::string pathToFile = entry.path();
+    readerCfg.filePaths.push_back(pathToFile);
+  }
+
+  // Add the reader to the sequencer
   sequencer.addReader(std::make_shared<RootTrackReader>(readerCfg, logLevel));
-
-  // --------------------------------------------------------------
-  // Reference surface for sampling the track at the IP
-  double halfX = std::numeric_limits<double>::max();
-  double halfY = std::numeric_limits<double>::max();
-
-  double refZ = gOpt.beWindowTranslation[2];
-  // double refZ = gOpt.staveZ.at(8) - 0.1_mm;
-  Acts::Transform3 transform(Acts::Translation3(Acts::Vector3(0, refZ, 0)) *
-                             gOpt.actsToWorldRotation.inverse());
-
-  auto refSurface = Acts::Surface::makeShared<Acts::PlaneSurface>(
-      transform, std::make_shared<Acts::RectangleBounds>(halfX, halfY));
-  Acts::GeometryIdentifier geoId;
-  geoId.setExtra(1);
-  refSurface->assignGeometryId(std::move(geoId));
 
   // --------------------------------------------------------------
   // Alignment
 
+  // Initialize constraints
+  std::vector<Acts::GeometryIdentifier> constraintsSurfaceIds;
+  for (auto& det : detector->detectorElements()) {
+    const auto& surface = det->surface();
+    const auto& geoId = surface.geometryId();
+    if (geoId.sensitive() && geoId.sensitive() >= 40) {
+      constraintsSurfaceIds.push_back(geoId);
+    }
+  }
+
+  std::vector<Acts::SourceLink> alignmentConstraints;
+  for (const auto& geoId : constraintsSurfaceIds) {
+    Acts::ActsVector<7> glob =
+        Acts::ActsVector<ExtendedSourceLink::globalSubspaceSize>::Zero();
+    Acts::ActsVector<ExtendedSourceLink::localSubspaceSize> loc =
+        Acts::ActsVector<ExtendedSourceLink::localSubspaceSize>::Zero();
+    loc(3) = M_PI_2;
+    loc(4) = 1.0 / 2.5_GeV;
+    Acts::ActsVector<ExtendedSourceLink::localSubspaceSize> stdDev = {
+        1_mm, 1_mm, 1_rad, 1_rad, 1 / 0.1_GeV};
+    Acts::ActsSquareMatrix<ExtendedSourceLink::localSubspaceSize> cov =
+        stdDev.cwiseProduct(stdDev).asDiagonal();
+    alignmentConstraints.emplace_back(
+        ExtendedSourceLink(loc, glob, cov, geoId, 0, 0));
+  }
+
+  // Initialize calibrators
+  MixedSourceLinkCalibrator<RecoTrajectory> mixedSourceLinkCalibrator;
+  mixedSourceLinkCalibrator.connect<
+      &extendedSourceLinkCalibrator<RecoTrajectory>, ExtendedSourceLink>();
+  mixedSourceLinkCalibrator
+      .connect<&simpleSourceLinkCalibrator<RecoTrajectory>, SimpleSourceLink>();
+
+  // Initialize track fitter options
   Acts::GainMatrixUpdater kfUpdater;
   Acts::GainMatrixSmoother kfSmoother;
 
-  // Initialize track fitter options
-  Acts::KalmanFitterExtensions<KFTrajectory> alignmentExtensions;
+  Acts::KalmanFitterExtensions<RecoTrajectory> alignmentExtensions;
   // Add calibrator
   alignmentExtensions.calibrator
-      .connect<&simpleSourceLinkCalibrator<KFTrajectory>>();
+      .connect<&MixedSourceLinkCalibrator<RecoTrajectory>::operator()>(
+          &mixedSourceLinkCalibrator);
   // Add the updater
   alignmentExtensions.updater
-      .connect<&Acts::GainMatrixUpdater::operator()<KFTrajectory>>(&kfUpdater);
+      .connect<&Acts::GainMatrixUpdater::operator()<RecoTrajectory>>(
+          &kfUpdater);
   // Add the smoother
   alignmentExtensions.smoother
-      .connect<&Acts::GainMatrixSmoother::operator()<KFTrajectory>>(
+      .connect<&Acts::GainMatrixSmoother::operator()<RecoTrajectory>>(
           &kfSmoother);
   // Add the surface accessor
   alignmentExtensions.surfaceAccessor
-      .connect<&SimpleSourceLink::SurfaceAccessor::operator()>(
-          &surfaceAccessor);
+      .connect<&MixedSourceLinkSurfaceAccessor::operator()>(&surfaceAccessor);
 
   auto alignmentPropOptions = PropagatorOptions(gctx, mctx);
 
@@ -308,41 +320,39 @@ int main() {
 
   alignmentKFOptions.referenceSurface = refSurface.get();
 
-  ActsAlignment::AlignedTransformUpdater voidAlignUpdater =
-      [&alignCtx](Acts::DetectorElementBase* element,
-                  const Acts::GeometryContext& gctx,
-                  const Acts::Transform3& transform) {
-        std::cout << "\n\n\nUPDATER CALL\n";
-        std::cout << "AT: " << element->surface().geometryId() << "\n";
-        std::cout << "TRANSLATION: " << transform.translation().transpose()
-                  << "\n";
-        std::cout << "ROTATION: " << transform.rotation() << "\n";
-        std::cout << element->surface()
-                         .polyhedronRepresentation(
-                             Acts::GeometryContext(alignCtx), 1000)
-                         .extent();
-        alignCtx.alignmentStore->at(element->surface().geometryId()) =
-            transform;
-        return true;
-      };
-  AlignmentTransformUpdater transformUpdater;
+  // Initial track state covariance matrix
+  Acts::BoundVector trackOriginStdDevPrior;
+  trackOriginStdDevPrior[Acts::eBoundLoc0] = 100_mm;
+  trackOriginStdDevPrior[Acts::eBoundLoc1] = 100_mm;
+  trackOriginStdDevPrior[Acts::eBoundTime] = 25_ns;
+  trackOriginStdDevPrior[Acts::eBoundPhi] = 10_rad;
+  trackOriginStdDevPrior[Acts::eBoundTheta] = 10_rad;
+  trackOriginStdDevPrior[Acts::eBoundQOverP] = 1 / 0.001_GeV;
+  Acts::BoundMatrix trackOriginCov =
+      trackOriginStdDevPrior.cwiseProduct(trackOriginStdDevPrior).asDiagonal();
 
   AlignmentAlgorithm::Config alignmentCfg{
-      .inputTrackCandidates = "PreFittedTrackCandidates",
+      .inputTrackCandidates = "SeedsEst",
       .outputAlignmentParameters = "AlignmentParameters",
-      .referenceSurface =
-          detector->findDetectorVolume("beWindow")->surfaces().at(0),
       .align = AlignmentAlgorithm::makeAlignmentFunction(detector, field),
-      .alignedTransformUpdater = voidAlignUpdater,
+      .alignedTransformUpdater = detail::makeGlobalAlignmentUpdater(alignCtx),
       .kfOptions = alignmentKFOptions,
-      .chi2ONdfCutOff = 1e-6,
-      .maxNumIterations = 20};
+      .chi2ONdfCutOff = 1e-16,
+      .deltaChi2ONdfCutOff = {50, 1e-5},
+      .maxNumIterations = 200,
+      .alignmentMask = (ActsAlignment::AlignmentMask::Center1 |
+                        ActsAlignment::AlignmentMask::Center2 |
+                        ActsAlignment::AlignmentMask::Rotation2),
+      .alignmentMode = ActsAlignment::AlignmentMode::global,
+      .originCov = trackOriginCov,
+      .constraints = alignmentConstraints,
+      .propDirection = AlignmentAlgorithm::PropagationDirection::forward};
 
   for (auto& det : detector->detectorElements()) {
     const auto& surface = det->surface();
-    // if (surface.geometryId().sensitive() != 9) {
-    if (surface.geometryId().sensitive() != 9 &&
-        surface.geometryId().sensitive() != 1) {
+    const auto& geoId = surface.geometryId().sensitive();
+    if (geoId && surface.geometryId().sensitive() >= 10 &&
+        surface.geometryId().sensitive() < 40) {
       alignmentCfg.alignedDetElements.push_back(det.get());
     }
   }
@@ -355,20 +365,22 @@ int main() {
   // Track fitting
 
   // Initialize track fitter options
-  Acts::KalmanFitterExtensions<KFTrajectory> extensions;
+  Acts::KalmanFitterExtensions<RecoTrajectory> extensions;
   // Add calibrator
-  extensions.calibrator.connect<&simpleSourceLinkCalibrator<KFTrajectory>>();
+  extensions.calibrator
+      .connect<&MixedSourceLinkCalibrator<RecoTrajectory>::operator()>(
+          &mixedSourceLinkCalibrator);
   // Add the updater
   extensions.updater
-      .connect<&Acts::GainMatrixUpdater::operator()<KFTrajectory>>(&kfUpdater);
+      .connect<&Acts::GainMatrixUpdater::operator()<RecoTrajectory>>(
+          &kfUpdater);
   // Add the smoother
   extensions.smoother
-      .connect<&Acts::GainMatrixSmoother::operator()<KFTrajectory>>(
+      .connect<&Acts::GainMatrixSmoother::operator()<RecoTrajectory>>(
           &kfSmoother);
   // Add the surface accessor
   extensions.surfaceAccessor
-      .connect<&SimpleSourceLink::SurfaceAccessor::operator()>(
-          &surfaceAccessor);
+      .connect<&MixedSourceLinkSurfaceAccessor::operator()>(&surfaceAccessor);
 
   auto propOptions = PropagatorOptions(gctx, mctx);
 
@@ -376,7 +388,6 @@ int main() {
 
   auto options =
       Acts::KalmanFitterOptions(gctx, mctx, cctx, extensions, propOptions);
-
   options.referenceSurface = refSurface.get();
 
   Acts::Experimental::DetectorNavigator::Config cfg;
@@ -397,7 +408,7 @@ int main() {
 
   // Add the track fitting algorithm to the sequencer
   KFTrackFittingAlgorithm::Config fitterCfg{
-      .inputTrackCandidates = "PreFittedTrackCandidates",
+      .inputTrackCandidates = "SeedsGuess",
       .outputTracks = "Tracks",
       .fitter = fitter,
       .kfOptions = options};
@@ -406,113 +417,75 @@ int main() {
       std::make_shared<KFTrackFittingAlgorithm>(fitterCfg, logLevel));
 
   // --------------------------------------------------------------
-  // Event writeout
+  // Event write out
+
+  // Seed writer
+  RootSeedWriter::Config seedWriterCfg;
+  seedWriterCfg.inputSeeds = "SeedsGuess";
+  seedWriterCfg.inputTruthClusters = "SimClusters";
+  seedWriterCfg.treeName = "seeds";
+  seedWriterCfg.filePath =
+      "/home/romanurmanov/work/E320/E320Prototype/E320Prototype_analysis/data/"
+      "seeds.root";
+
+  sequencer.addWriter(
+      std::make_shared<RootSeedWriter>(seedWriterCfg, logLevel));
 
   // Fitted track writer
-  auto trackWriterCfg = RootTrackWriter::Config();
+  RootTrackWriter::Config trackWriterCfg;
   trackWriterCfg.surfaceAccessor
-      .connect<&SimpleSourceLink::SurfaceAccessor::operator()>(
-          &surfaceAccessor);
-
+      .connect<&MixedSourceLinkSurfaceAccessor::operator()>(&surfaceAccessor);
+  trackWriterCfg.referenceSurface = refSurface.get();
   trackWriterCfg.inputTracks = "Tracks";
   trackWriterCfg.treeName = "fitted-tracks";
   trackWriterCfg.filePath =
-      "/home/romanurmanov/lab/LUXE/acts_tracking/E320Prototype/"
-      "E320Prototype_analysis/noam_split/temp/"
-      "fitted-tracks-aligned.root";
+      "/home/romanurmanov/work/E320/E320Prototype/E320Prototype_analysis/data/"
+      "fitted-tracks.root";
 
   sequencer.addWriter(
       std::make_shared<RootTrackWriter>(trackWriterCfg, logLevel));
 
-  // Alignment writer
-  auto alignmentWriterCfg = AlignmentParametersWriter::Config();
-
+  // Alignment parameters writer
+  AlignmentParametersWriter::Config alignmentWriterCfg;
+  alignmentWriterCfg.treeName = "alignment-parameters";
   alignmentWriterCfg.inputAlignmentResults = "AlignmentParameters";
-  alignmentWriterCfg.treeName = "alignment-results";
   alignmentWriterCfg.filePath =
-      "/home/romanurmanov/lab/LUXE/acts_tracking/E320Prototype/"
-      "E320Prototype_analysis/noam_split/temp/"
-      "alignment-results.root";
+      "/home/romanurmanov/work/E320/E320Prototype/E320Prototype_analysis/data/"
+      "alignment-parameters.root";
 
   sequencer.addWriter(std::make_shared<AlignmentParametersWriter>(
       alignmentWriterCfg, logLevel));
 
   sequencer.run();
 
-  // Alignment provider
-  auto alignmentProviderCfg = AlignmentParametersProvider::Config();
-
-  alignmentProviderCfg.treeName = "alignment-results";
-  alignmentProviderCfg.filePath =
-      "/home/romanurmanov/lab/LUXE/acts_tracking/E320Prototype/"
-      "E320Prototype_analysis/noam_split/temp/"
-      "alignment-results.root";
-
-  AlignmentParametersProvider alignmentProvider(alignmentProviderCfg);
-  auto bStore =
-      std::make_shared<std::map<Acts::GeometryIdentifier, Acts::Transform3>>();
-  for (auto& v : detector->volumes()) {
-    for (auto& s : v->surfaces()) {
-      // if (s->geometryId().sensitive() && s->geometryId().sensitive() != 9) {
-      if (s->geometryId().sensitive() && s->geometryId().sensitive() != 9 &&
-          s->geometryId().sensitive() != 1) {
-        Acts::Transform3 nominal = s->transform(Acts::GeometryContext());
-        const auto [shift, rot] =
-            alignmentProvider.getAlignedTransform(s->geometryId());
-        nominal.pretranslate(shift);
-        nominal.rotate(rot);
-        bStore->emplace(s->geometryId(), nominal);
-        // } else if (s->geometryId().sensitive() == 9) {
-      } else if (s->geometryId().sensitive() == 9 ||
-                 s->geometryId().sensitive() == 1) {
-        Acts::Transform3 nominal = s->transform(Acts::GeometryContext());
-        nominal.pretranslate(shifts.at(s->geometryId().sensitive() - 1));
-        bStore->emplace(s->geometryId(), nominal);
-      }
-    }
-  }
-  AlignmentContext blignCtx(bStore);
-  Acts::GeometryContext testCtx{blignCtx};
-
-  for (auto& v : detector->volumes()) {
-    for (auto& s : v->surfaces()) {
-      // if (s->geometryId().sensitive() == 9) {
-      if (s->geometryId().sensitive() == 9 ||
-          s->geometryId().sensitive() == 1) {
-        Acts::Transform3 nominal = bStore->at(s->geometryId());
-        nominal.pretranslate(-detectorCenter);
-        nominal.prerotate(Acts::AngleAxis3(detectorTilt, Acts::Vector3::UnitX())
-                              .toRotationMatrix());
-        nominal.pretranslate(detectorCenter);
-        bStore->at(s->geometryId()) = nominal;
-      }
-    }
-  }
   for (auto& v : detector->volumes()) {
     for (auto& s : v->surfaces()) {
       if (s->geometryId().sensitive()) {
         std::cout << "-----------------------------------\n";
         std::cout << "SURFACE " << s->geometryId() << "\n";
-        std::cout << "CENTER " << s->center(testCtx).transpose() << " -- "
-                  << s->center(gctx).transpose() << "\n";
+        std::cout << "CENTER " << s->center(gctx).transpose() << " -- "
+                  << s->center(Acts::GeometryContext()).transpose() << "\n";
         std::cout << "NORMAL "
-                  << s->normal(testCtx, s->center(testCtx),
-                               Acts::Vector3::UnitY())
+                  << s->normal(gctx, s->center(gctx), Acts::Vector3::UnitY())
                          .transpose()
                   << " -- "
-                  << s->normal(testCtx, s->center(gctx), Acts::Vector3::UnitY())
+                  << s->normal(gctx, s->center(Acts::GeometryContext()),
+                               Acts::Vector3::UnitY())
                          .transpose()
                   << "\n";
         std::cout << "ROTATION \n"
-                  << s->transform(testCtx).rotation() << " -- \n"
+                  << s->transform(gctx).rotation() << " -- \n"
                   << "\n"
-                  << s->transform(gctx).rotation() << "\n";
+                  << s->transform(Acts::GeometryContext()).rotation() << "\n";
         std::cout << "EXTENT "
-                  << s->polyhedronRepresentation(testCtx, 1000).extent()
+                  << s->polyhedronRepresentation(gctx, 1000).extent()
                   << "\n -- \n"
-                  << s->polyhedronRepresentation(gctx, 1000).extent() << "\n";
+                  << s->polyhedronRepresentation(Acts::GeometryContext(), 1000)
+                         .extent()
+                  << "\n";
       }
     }
   }
+
   return 0;
 }

@@ -3,10 +3,20 @@
 #include "TrackingPipeline/Simulation/IMomentumGenerator.hpp"
 
 /// @brief Stationary momentum generator
-struct StationaryMomentumGenerator : public IMomentumGenerator {
-  Acts::Vector3 momentum{0., 0., 0.};
+class StationaryMomentumGenerator : public IMomentumGenerator {
+ public:
+  struct Config {
+    Acts::Vector3 momentum;
+  };
 
-  Acts::Vector3 genMomentum(RandomEngine& /*rng*/) const override {
-    return momentum;
-  }
+  StationaryMomentumGenerator(const Config& config);
+
+  Acts::Vector3 genMomentum(RandomEngine& rng) const override;
+
+  Acts::SquareMatrix4 getCovariance() const override;
+
+ private:
+  Config m_cfg;
+
+  Acts::SquareMatrix4 m_cov;
 };

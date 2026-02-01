@@ -9,7 +9,6 @@
 #include "TrackingPipeline/Simulation/IMomentumGenerator.hpp"
 #include "TrackingPipeline/Simulation/detail/NormalKDE.hpp"
 
-/// @brief Uniform momentum generator
 class KDEMomentumGenerator : public IMomentumGenerator {
  public:
   struct Config {

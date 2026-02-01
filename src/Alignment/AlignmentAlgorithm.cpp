@@ -9,6 +9,7 @@
 #include "Acts/Propagator/Propagator.hpp"
 #include "Acts/TrackFitting/GainMatrixSmoother.hpp"
 #include "Acts/TrackFitting/GainMatrixUpdater.hpp"
+#include "Acts/Utilities/Logger.hpp"
 #include "ActsAlignment/Kernel/Alignment.hpp"
 
 #include <cstddef>
@@ -17,7 +18,6 @@
 #include <utility>
 #include <vector>
 
-#include "TrackingPipeline/EventData/SimpleSourceLink.hpp"
 #include "TrackingPipeline/Infrastructure/ProcessCode.hpp"
 
 namespace {
@@ -46,52 +46,7 @@ struct AlignmentFunctionImpl : public AlignmentAlgorithm::AlignmentFunction {
 
 }  // namespace
 
-double orthogonalLeastSquares(const std::vector<Acts::SourceLink>& sourceLinks,
-                              Acts::Vector3& a, Acts::Vector3& b, int minGeoId,
-                              int maxGeoId) {
-  Acts::Vector3 meanVector(0, 0, 0);
-
-  int nPoints = 0;
-  for (std::size_t i = 0; i < sourceLinks.size(); i++) {
-    const auto& sl = sourceLinks.at(i).get<SimpleSourceLink>();
-    if (sl.geometryId().sensitive() < minGeoId ||
-        sl.geometryId().sensitive() > maxGeoId) {
-      continue;
-    }
-    nPoints++;
-  }
-
-  Eigen::MatrixXf points = Eigen::MatrixXf::Constant(nPoints, 3, 0);
-  int k = 0;
-  for (std::size_t i = 0; i < sourceLinks.size(); i++) {
-    const auto& sl = sourceLinks.at(i).get<SimpleSourceLink>();
-    if (sl.geometryId().sensitive() < minGeoId ||
-        sl.geometryId().sensitive() > maxGeoId) {
-      continue;
-    }
-    Acts::Vector3 parameters = sl.parametersGlob();
-    points(k, 0) = parameters.x();
-    points(k, 1) = parameters.y();
-    points(k, 2) = parameters.z();
-
-    meanVector += parameters;
-    std::cout << "PARS " << parameters.transpose() << "\n";
-    k++;
-  }
-  meanVector /= nPoints;
-  a = meanVector;
-
-  Eigen::MatrixXf centered = points.rowwise() - points.colwise().mean();
-  Eigen::MatrixXf scatter = (centered.adjoint() * centered);
-
-  Eigen::SelfAdjointEigenSolver<Eigen::MatrixXf> eig(scatter);
-  Eigen::MatrixXf eigvecs = eig.eigenvectors();
-
-  b[0] = eigvecs(0, 2);
-  b[1] = eigvecs(1, 2);
-  b[2] = eigvecs(2, 2);
-  return eig.eigenvalues()(2);
-}
+using namespace Acts::UnitLiterals;
 
 std::shared_ptr<AlignmentAlgorithm::AlignmentFunction>
 AlignmentAlgorithm::makeAlignmentFunction(
@@ -104,9 +59,12 @@ AlignmentAlgorithm::makeAlignmentFunction(
   cfg.resolveMaterial = true;
   cfg.resolveSensitive = true;
   Acts::Experimental::DetectorNavigator navigator(
-      cfg, Acts::getDefaultLogger("DetectorNavigator", Acts::Logging::INFO));
+      cfg, Acts::getDefaultLogger("AlignmentDetectorNavigator",
+                                  Acts::Logging::INFO));
   Propagator propagator(std::move(stepper), std::move(navigator));
-  Fitter trackFitter(std::move(propagator));
+  Fitter trackFitter(
+      std::move(propagator),
+      Acts::getDefaultLogger("AlignmentKalmanFilter", Acts::Logging::INFO));
   Alignment alignment(std::move(trackFitter));
 
   // build the alignment functions. owns the alignment object.
@@ -145,8 +103,29 @@ ProcessCode AlignmentAlgorithm::execute(const AlgorithmContext& ctx) const {
   for (std::size_t i = 0; i < numTracksUsed; ++i) {
     // The list of hits and the initial start parameters
     const auto& candidate = trackCandidates.at(i);
-    sourceLinkTrackContainer.push_back(candidate.sourceLinks);
-    trackParametersContainer.push_back(candidate.ipParameters);
+
+    std::vector<Acts::SourceLink> sourceLinks = candidate.sourceLinks;
+    sourceLinks.insert(sourceLinks.end(), m_cfg.constraints.begin(),
+                       m_cfg.constraints.end());
+    sourceLinkTrackContainer.push_back(sourceLinks);
+
+    if (m_cfg.propDirection == PropagationDirection::forward) {
+      const auto& candidateIpPars = candidate.ipParameters;
+      auto ipPars = Acts::CurvilinearTrackParameters(
+          candidateIpPars.fourPosition(ctx.geoContext),
+          candidateIpPars.direction(),
+          candidateIpPars.charge() / candidateIpPars.absoluteMomentum(),
+          m_cfg.originCov, candidateIpPars.particleHypothesis());
+      trackParametersContainer.push_back(ipPars);
+    } else {
+      const auto& candidateIpPars = candidate.ipParameters;
+      auto ipPars = Acts::CurvilinearTrackParameters(
+          candidateIpPars.fourPosition(ctx.geoContext),
+          -candidateIpPars.direction(),
+          -candidateIpPars.charge() / candidateIpPars.absoluteMomentum(),
+          m_cfg.originCov, candidateIpPars.particleHypothesis());
+      trackParametersContainer.push_back(ipPars);
+    }
   }
 
   // Prepare the output for alignment parameters

@@ -3,6 +3,7 @@
 #include "Acts/Definitions/Algebra.hpp"
 
 #include <cstddef>
+#include <stdexcept>
 
 #include "TrackingPipeline/EventData/SimpleSourceLink.hpp"
 #include "TrackingPipeline/Infrastructure/ProcessCode.hpp"

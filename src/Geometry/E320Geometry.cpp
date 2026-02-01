@@ -123,7 +123,7 @@ std::shared_ptr<const Acts::Experimental::Detector> buildDetector(
               surf, surf->transform(gctx)));
           surf->assignDetectorElement(*detectorElements.back());
 
-          constructE320Volume(goInst.interChipDistance / 2.0,
+          constructE320Volume(goInst.interChipDistance / 2.0 * 0.9,
                               parameters.toWorldTranslation[goInst.primaryIdx],
                               "sensVol", parameters.geoId, {surf});
         }
@@ -164,54 +164,83 @@ std::shared_ptr<const Acts::Experimental::Detector> buildDetector(
   };
 
   // IP
-  constructE320Volume(goInst.quad1CenterPrimary - goInst.quad1HalfPrimary, 0,
-                      "ipVol", goInst.ipVolumeIdPrefactor, {});
+  auto beWindowBounds = std::make_shared<Acts::RectangleBounds>(
+      goInst.beWindowHalfX, goInst.beWindowHalfY);
+  auto beWindowSurface =
+      constructE320Surface(goInst.beWindowParameters, beWindowBounds);
+  Acts::GeometryIdentifier beWindowGeoId;
+  beWindowGeoId.setSensitive(goInst.beWindowParameters.geoId);
+  beWindowSurface->assignGeometryId(beWindowGeoId);
+  detectorElements.push_back(std::make_shared<AlignableDetectorElement>(
+      beWindowSurface, beWindowSurface->transform(gctx)));
+  beWindowSurface->assignDetectorElement(*detectorElements.back());
+  constructE320Volume(10_mm, 0, "ipVol", goInst.ipVolumeIdPrefactor,
+                      {beWindowSurface});
 
   // Quad 1
   constructMagVolume(goInst.quad1HalfPrimary, goInst.quad1CenterPrimary,
                      "quad1", {});
-  const auto& quad1Volume = detectorVolumes.back();
+
+  // BPM 1
+  auto bpm1Surface =
+      constructE320Surface(goInst.bpm1Parameters, beWindowBounds);
+  Acts::GeometryIdentifier bpm1GeoId;
+  bpm1GeoId.setSensitive(goInst.bpm1Parameters.geoId);
+  bpm1Surface->assignGeometryId(bpm1GeoId);
+  detectorElements.push_back(std::make_shared<AlignableDetectorElement>(
+      bpm1Surface, bpm1Surface->transform(gctx)));
+  bpm1Surface->assignDetectorElement(*detectorElements.back());
+  constructE320Volume(10, goInst.bpm1CenterPrimary, "bpm1Vol", 1000,
+                      {bpm1Surface});
 
   // Quad 2
   constructMagVolume(goInst.quad2HalfPrimary, goInst.quad2CenterPrimary,
                      "quad2", {});
-  const auto& quad2Volume = detectorVolumes.back();
-  constructE320GapVolume(quad1Volume, quad2Volume);
+
+  // BPM 2
+  auto bpm2Surface =
+      constructE320Surface(goInst.bpm2Parameters, beWindowBounds);
+  Acts::GeometryIdentifier bpm2GeoId;
+  bpm2GeoId.setSensitive(goInst.bpm2Parameters.geoId);
+  bpm2Surface->assignGeometryId(bpm2GeoId);
+  detectorElements.push_back(std::make_shared<AlignableDetectorElement>(
+      bpm2Surface, bpm2Surface->transform(gctx)));
+  bpm2Surface->assignDetectorElement(*detectorElements.back());
+  constructE320Volume(10, goInst.bpm2CenterPrimary, "bpm2Vol", 1001,
+                      {bpm2Surface});
 
   // Quad 3
   constructMagVolume(goInst.quad3HalfPrimary, goInst.quad3CenterPrimary,
                      "quad3", {});
-  const auto quad3Volume = detectorVolumes.back();
-  constructE320GapVolume(quad2Volume, quad3Volume);
+
+  // BPM 3
+  auto bpm3Surface =
+      constructE320Surface(goInst.bpm3Parameters, beWindowBounds);
+  Acts::GeometryIdentifier bpm3GeoId;
+  bpm3GeoId.setSensitive(goInst.bpm3Parameters.geoId);
+  bpm3Surface->assignGeometryId(bpm3GeoId);
+  detectorElements.push_back(std::make_shared<AlignableDetectorElement>(
+      bpm3Surface, bpm3Surface->transform(gctx)));
+  bpm3Surface->assignDetectorElement(*detectorElements.back());
+  constructE320Volume(10, goInst.bpm3CenterPrimary, "bpm3Vol", 1002,
+                      {bpm3Surface});
 
   // X-Corrector
   constructMagVolume(goInst.xCorrectorHalfPrimary,
                      goInst.xCorrectorCenterPrimary, "xCorrector", {});
-  const auto& xCorrectorVolume = detectorVolumes.back();
-  constructE320GapVolume(quad3Volume, xCorrectorVolume);
 
   // Dipole
   constructMagVolume(goInst.dipoleHalfPrimary, goInst.dipoleCenterPrimary,
                      "dipole", {});
-  const auto& dipoleVolume = detectorVolumes.back();
-  constructE320GapVolume(xCorrectorVolume, dipoleVolume);
 
   // PDC window
   constructPDCWindow(goInst.pdcWindowParameters);
-  std::size_t pdcVolumeIdx = detectorVolumes.size() - 1;
-  const auto& pdcVolume = detectorVolumes.at(pdcVolumeIdx);
-  constructE320GapVolume(dipoleVolume, pdcVolume);
 
   // Tracking chamber
   constructTrackingChamber(goInst.tcParameters);
-  const auto& firstTcVolume = detectorVolumes.at(pdcVolumeIdx + 2);
-  constructE320GapVolume(pdcVolume, firstTcVolume);
 
-  std::sort(detectorVolumes.begin(), detectorVolumes.end(),
-            [&](const auto& vol1, const auto& vol2) {
-              return (vol1->transform(gctx).translation()[goInst.primaryIdx] <
-                      vol2->transform(gctx).translation()[goInst.primaryIdx]);
-            });
+  constructGaps(gctx, goInst.primaryIdx, goInst.longIdx, goInst.shortIdx,
+                detectorVolumes, goInst.gapVolumeIdPrefactor);
 
   auto portalContainer =
       Acts::Experimental::detail::CuboidalDetectorHelper::connect(
