@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Acts/Geometry/GeometryIdentifier.hpp"
 #include "Acts/TrackFitting/KalmanFitter.hpp"
 #include "Acts/Propagator/EigenStepper.hpp"
 #include "Acts/Navigation/DetectorNavigator.hpp"
@@ -33,6 +34,10 @@ struct FittingServices {
   // Sensitive detector surfaces for background generator
   std::vector<const Acts::Surface*> simDetSurfaces;
 
+  // --- Lookup helpers ---
+  // Reference tracking layers for lookup-table estimation
+  std::unordered_map<Acts::GeometryIdentifier, const Acts::Surface*>
+      lookupRefLayers;
 
   static FittingServices& instance() {
     static FittingServices s;
