@@ -5,7 +5,6 @@ target_sources(
     ForwardOrderedIntersectionFinder.cpp
     IdealSeedingAlgorithm.cpp
     HoughTransformSeeder.cpp
-    E320SeedingAlgorithm.cpp
     TrackLookupProvider.cpp
     TrackLookupAccumulator.cpp
     TrackLookupEstimationAlgorithm.cpp

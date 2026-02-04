@@ -21,5 +21,4 @@ target_sources(
     JsonTrackLookupWriter.cpp
     AlignmentParametersWriter.cpp
     AlignmentParametersProvider.cpp
-    E320RootDataReader.cpp
 )
