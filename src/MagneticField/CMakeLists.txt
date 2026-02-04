@@ -4,5 +4,5 @@ target_sources(
     BinnedMagneticField.cpp
     CompositeMagField.cpp
     QuadrupoleMagField.cpp
+    IdealQuadrupoleMagField.cpp
   )
-    
