@@ -315,7 +315,7 @@ ProcessCode RootSimTrackWriter::write(const AlgorithmContext& ctx) {
     for (std::size_t i = 0; i < Acts::eBoundSize; i++) {
       boundTrackParsGuessData[i] = boundTrackParametersGuess(i);
     }
-    m_boundTrackParametersGuess.Use(1, Acts::eBoundSize,
+    m_boundTrackParametersGuess.Use(0, Acts::eBoundSize,
                                     boundTrackParsGuessData.GetArray());
 
     // Guessed bound errors
@@ -349,7 +349,7 @@ ProcessCode RootSimTrackWriter::write(const AlgorithmContext& ctx) {
     for (std::size_t i = 0; i < Acts::eBoundSize; i++) {
       boundTrackParsEstData[i] = boundTrackParametersEst(i);
     }
-    m_boundTrackParametersEst.Use(1, Acts::eBoundSize,
+    m_boundTrackParametersEst.Use(0, Acts::eBoundSize,
                                   boundTrackParsEstData.GetArray());
 
     // KF predicted bound errors
@@ -693,7 +693,7 @@ ProcessCode RootSimTrackWriter::write(const AlgorithmContext& ctx) {
       for (std::size_t i = 0; i < Acts::eBoundSize; i++) {
         boundTrackParsTruthData[i] = boundTrackParametersTruth(i);
       }
-      m_boundTrackParametersTruth.Use(1, Acts::eBoundSize,
+      m_boundTrackParametersTruth.Use(0, Acts::eBoundSize,
                                       boundTrackParsTruthData.GetArray());
 
       // Truth bound errors

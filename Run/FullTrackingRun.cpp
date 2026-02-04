@@ -168,6 +168,7 @@ int main() {
       // Acts::Vector3(goInst.ipTcDistance + 2 * goInst.tcHalfPrimary + 0.1_mm,
       // 0,
       //               0);
+      // Acts::Vector3(goInst.ipTcDistance - 0.1_mm, 0, 0);
       Acts::Vector3(
           goInst.dipoleCenterPrimary + goInst.dipoleHalfPrimary + 0.01_mm, 0,
           0);
@@ -282,10 +283,10 @@ int main() {
   Acts::BoundVector trackOriginStdDevPrior;
   trackOriginStdDevPrior[Acts::eBoundLoc0] = 10_mm;
   trackOriginStdDevPrior[Acts::eBoundLoc1] = 10_mm;
-  trackOriginStdDevPrior[Acts::eBoundTime] = 25_ns;
   trackOriginStdDevPrior[Acts::eBoundPhi] = 10_degree;
   trackOriginStdDevPrior[Acts::eBoundTheta] = 10_degree;
-  trackOriginStdDevPrior[Acts::eBoundQOverP] = 1 / 1_GeV;
+  trackOriginStdDevPrior[Acts::eBoundQOverP] = 1 / 100_GeV;
+  trackOriginStdDevPrior[Acts::eBoundTime] = 1_fs;
   seedingAlgoCfg.originCov =
       trackOriginStdDevPrior.cwiseProduct(trackOriginStdDevPrior).asDiagonal();
 

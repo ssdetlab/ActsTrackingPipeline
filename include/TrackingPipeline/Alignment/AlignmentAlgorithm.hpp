@@ -8,7 +8,7 @@
 #include "Acts/Surfaces/Surface.hpp"
 #include "Acts/TrackFitting/KalmanFitter.hpp"
 #include "ActsAlignment/Kernel/Alignment.hpp"
-#include <ActsAlignment/Kernel/AlignmentMask.hpp>
+#include "ActsAlignment/Kernel/AlignmentMask.hpp"
 
 #include <memory>
 #include <vector>
