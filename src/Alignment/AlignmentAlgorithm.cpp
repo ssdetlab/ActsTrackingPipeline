@@ -19,16 +19,12 @@
 #include <vector>
 
 #include "TrackingPipeline/EventData/SimpleSourceLink.hpp"
-#include "TrackingPipeline/Geometry/ApollonGeometryConstraints.hpp"
 #include "TrackingPipeline/Infrastructure/ProcessCode.hpp"
 #include "TrackingPipeline/Alignment/AlignmentContext.hpp"
 #include "TrackingPipeline/TrackFitting/FittingServices.hpp"
 #include "TrackingPipeline/Infrastructure/AlgorithmRegistry.hpp"
-#include "TrackingPipeline/Geometry/ApollonGeometry.hpp"
 
 #include <toml.hpp>
-
-using go = ApollonGeometry::GeometryOptions;
 
 namespace {
 
@@ -200,10 +196,10 @@ struct AlignmentAlgorithmRegistrar {
          Acts::Logging::Level logLevel) -> AlgorithmPtr {
 
         auto& svc = FittingServices::instance();
-        if (!svc.detector || !svc.baseKfOptions || !svc.referenceSurface) {
+        if (!svc.detector || !svc.baseKfOptions || !svc.referenceSurface || !svc.magneticField) {
           throw std::runtime_error(
               "AlignmentAlgorithm: FittingServices not initialized "
-              "(detector/baseKfOptions/referenceSurface missing)");
+              "(detector/baseKfOptions/referenceSurface/magneticField missing)");
         }
 
         using Trajectory = FittingServices::Trajectory;
@@ -273,8 +269,7 @@ struct AlignmentAlgorithmRegistrar {
 
         // Alignment function
         auto detector = svc.detector;
-        auto magneticField =
-            ApollonGeometry::buildMagField(Acts::GeometryContext{});
+        auto magneticField = svc.magneticField;
         cfg.align =
             AlignmentAlgorithm::makeAlignmentFunction(detector, magneticField);
 

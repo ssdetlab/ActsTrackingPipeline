@@ -5,6 +5,8 @@
 #include "Acts/Propagator/EigenStepper.hpp"
 #include "Acts/Navigation/DetectorNavigator.hpp"
 #include "Acts/EventData/VectorTrackContainer.hpp"
+#include "Acts/MagneticField/MagneticFieldProvider.hpp"
+
 #include "TrackingPipeline/EventData/SimpleSourceLink.hpp"
 #include "TrackingPipeline/Simulation/SimpleDigitizer.hpp"
 #include "TrackingPipeline/Simulation/GaussianVertexGenerator.hpp"
@@ -38,6 +40,9 @@ struct FittingServices {
   // Reference tracking layers for lookup-table estimation
   std::unordered_map<Acts::GeometryIdentifier, const Acts::Surface*>
       lookupRefLayers;
+
+  // --- Generic magnetic field for AlignmentAlgorithm
+  std::shared_ptr<const Acts::MagneticFieldProvider> magneticField;
 
   static FittingServices& instance() {
     static FittingServices s;

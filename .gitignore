@@ -1,7 +1,8 @@
-/Run/AlignmentRun.cpp
-/Run/FullSimTrackingRun.cpp
-/Run/FastSimRun.cpp
-/Run/FullTrackingRun.cpp
-/Run/SimAlignmentRun.cpp
 .DS_Store
 .clang-tidy
+Run/.DS_Store
+Run/AlignmentRun.cpp
+Run/FastSimRun.cpp
+Run/FullSimTrackingRun.cpp
+Run/FullTrackingRun.cpp
+Run/SimAlignmentRun.cpp

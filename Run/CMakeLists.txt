@@ -8,4 +8,4 @@
 # add_run(SimAlignment SimAlignmentRun.cpp)
 #add_run(Alignment AlignmentRun.cpp)
 # add_run(PipelineRun PipelineRun.cpp)
-add_run(Pipeline PipelineMain.cpp)
+# add_run(Pipeline PipelineMain.cpp)
