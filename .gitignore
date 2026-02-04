@@ -3,3 +3,5 @@
 /Run/FastSimRun.cpp
 /Run/FullTrackingRun.cpp
 /Run/SimAlignmentRun.cpp
+.DS_Store
+.clang-tidy
