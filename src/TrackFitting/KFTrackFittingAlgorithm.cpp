@@ -3,7 +3,8 @@
 #include "Acts/EventData/TrackParameters.hpp"
 #include "Acts/Utilities/Logger.hpp"
 
-ProcessCode KFTrackFittingAlgorithm::execute(const AlgorithmContext& ctx) const {
+ProcessCode KFTrackFittingAlgorithm::execute(
+    const AlgorithmContext& ctx) const {
   // Get the input seeds
   // from the context
   const auto& inputCandidates = m_inputTrackCandidates(ctx);
