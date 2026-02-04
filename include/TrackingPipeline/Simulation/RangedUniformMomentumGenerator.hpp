@@ -1,21 +1,29 @@
 #pragma once
 
+#include "Acts/Definitions/Algebra.hpp"
+
 #include "TrackingPipeline/Simulation/IMomentumGenerator.hpp"
 
 /// @brief Uniform momentum generator
-struct RangedUniformMomentumGenerator : public IMomentumGenerator {
-  std::vector<std::pair<double, double>> Pranges;
+class RangedUniformMomentumGenerator : public IMomentumGenerator {
+ public:
+  struct Config {
+    std::vector<std::pair<double, double>> pRanges;
+    Acts::Vector3 direction;
+  };
 
-  Acts::Vector3 genMomentum(RandomEngine& rng) const override {
-    std::uniform_int_distribution<int> range_select(0, Pranges.size() - 1);
-    int range = range_select(rng);
+  RangedUniformMomentumGenerator(const Config& config);
 
-    double Pmin = Pranges.at(range).first;
-    double Pmax = Pranges.at(range).second;
+  Acts::Vector3 genMomentum(RandomEngine& rng) const override;
 
-    std::uniform_real_distribution<double> uniform(Pmin, Pmax);
-    double p = uniform(rng);
+  Acts::SquareMatrix4 getCovariance() const override;
 
-    return p * Acts::Vector3(0, 1, 0);
-  }
+  Acts::Vector3 getMean() const override;
+
+ private:
+  Config m_cfg;
+
+  Acts::SquareMatrix4 m_cov;
+
+  Acts::Vector3 m_mean;
 };

@@ -4,12 +4,16 @@
 
 #include "TrackingPipeline/Simulation/IDigitizer.hpp"
 
-struct IdealDigitizer : public IDigitizer {
-  std::pair<Acts::SquareMatrix2, Acts::Vector2> genCluster(
-      RandomEngine& rng, Acts::GeometryIdentifier /*geoId*/,
-      Acts::Vector2 pos) const override {
-    Acts::SquareMatrix2 cov = Acts::SquareMatrix2::Zero();
+class IdealDigitizer : public IDigitizer {
+ public:
+  IdealDigitizer();
 
-    return {cov, pos};
-  }
+  Acts::Vector2 genCluster(RandomEngine& rng,
+                           const Acts::GeometryIdentifier& geoId,
+                           const Acts::Vector2& pos) const override;
+  Acts::SquareMatrix2 getCovariance(
+      const Acts::GeometryIdentifier& geoId) const override;
+
+ private:
+  Acts::SquareMatrix2 m_cov;
 };

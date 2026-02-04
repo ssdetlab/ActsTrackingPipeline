@@ -4,13 +4,25 @@
 #include "TrackingPipeline/Simulation/detail/NormalRandomVariable.hpp"
 
 /// @brief Gaussian momentum generator
-struct GaussianVertexGenerator : public IVertexGenerator {
-  NormalRandomVariable normal;
+class GaussianVertexGenerator : public IVertexGenerator {
+ public:
+  struct Config {
+    Acts::Vector3 mean;
+    Acts::SquareMatrix3 cov;
+  };
 
-  GaussianVertexGenerator(Acts::Vector3 mean, Acts::SquareMatrix3 cov)
-      : normal(mean, cov) {};
+  GaussianVertexGenerator(const Config& cfg);
 
-  Acts::Vector3 genVertex(RandomEngine& rng) const override {
-    return normal.gen(rng);
-  }
+  Acts::Vector3 genVertex(RandomEngine& rng) const override;
+
+  Acts::SquareMatrix3 getCovariance() const override;
+
+  Acts::Vector3 getMean() const override;
+
+ private:
+  Config m_cfg;
+
+  NormalRandomVariable m_normal;
+
+  Acts::SquareMatrix3 m_cov;
 };
