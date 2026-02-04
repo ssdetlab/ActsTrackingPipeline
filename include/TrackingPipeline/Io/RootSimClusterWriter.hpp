@@ -5,6 +5,7 @@
 #include "TFile.h"
 #include "TLorentzVector.h"
 #include "TMatrixD.h"
+#include "TVectorD.h"
 #include "TTree.h"
 #include "TVector3.h"
 #include "TrackingPipeline/EventData/DataContainers.hpp"
@@ -76,9 +77,10 @@ class RootSimClusterWriter : public IWriter {
   TTree *m_tree = nullptr;
 
  protected:
+  /// Cluster parameters
   TVector3 m_geoCenterGlobal;
   TVector2 m_geoCenterLocal;
-  TMatrixD m_cov = TMatrixD(2, 2);
+  TMatrixD m_clusterCov = TMatrixD(2, 2);
 
   std::size_t m_geoId;
   std::size_t m_eventId;
@@ -93,9 +95,18 @@ class RootSimClusterWriter : public IWriter {
   std::vector<int> m_parentTrackId;
   std::vector<int> m_runId;
 
+  /// Bound origin parameters
+  std::vector<TVectorD> m_boundTrackParameters;
+  std::vector<TMatrixD> m_boundTrackCov;
+
+  /// Origin momentum
   std::vector<TLorentzVector> m_originMomentum;
-  std::vector<TLorentzVector> m_onSurfaceMomentum;
+
+  /// Origin vertex
   std::vector<TVector3> m_vertex;
+
+  /// Momentum at clusters
+  std::vector<TLorentzVector> m_onSurfaceMomentum;
 
   std::vector<int> m_charge;
   std::vector<int> m_pdgId;

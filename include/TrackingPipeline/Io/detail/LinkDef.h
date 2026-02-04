@@ -3,4 +3,5 @@
 #pragma link C++ class vector < TVector2> + ;
 #pragma link C++ class vector < TLorentzVector> + ;
 #pragma link C++ class vector < TMatrixD> + ;
+#pragma link C++ class vector < TVectorD> + ;
 #endif

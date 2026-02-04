@@ -61,8 +61,6 @@ class RootSimClusterReader : public IReader {
   /// The config class
   Config m_cfg;
 
-  Acts::BoundSquareMatrix m_ipCov;
-
   /// WriteDataHandle for the sim data
   WriteDataHandle<SimClusters> m_outputSimClusters{this, "SimClusters"};
 
@@ -86,7 +84,7 @@ class RootSimClusterReader : public IReader {
  protected:
   TVector2* m_geoCenterLocal = nullptr;
   TVector3* m_geoCenterGlobal = nullptr;
-  TMatrixD* m_cov = nullptr;
+  TMatrixD* m_clusterCov = nullptr;
 
   std::size_t m_geoId;
   std::size_t m_eventId;
@@ -94,16 +92,25 @@ class RootSimClusterReader : public IReader {
   int m_isSignal;
 
   /// Measurement hits
-  std::vector<TVector2>* m_trackHitsLoc = nullptr;
-  std::vector<TVector3>* m_trackHitsGlob = nullptr;
+  std::vector<TVector2>* m_trackHitsLocal = nullptr;
+  std::vector<TVector3>* m_trackHitsGlobal = nullptr;
 
   std::vector<int>* m_trackId = nullptr;
   std::vector<int>* m_parentTrackId = nullptr;
   std::vector<int>* m_runId = nullptr;
 
+  /// Bound origin parameters
+  std::vector<TVectorD>* m_boundTrackParameters = nullptr;
+  std::vector<TMatrixD>* m_boundTrackCov = nullptr;
+
+  /// Origin momentum
   std::vector<TLorentzVector>* m_originMomentum = nullptr;
-  std::vector<TLorentzVector>* m_onSurfaceMomentum = nullptr;
+
+  /// Origin vertex
   std::vector<TVector3>* m_vertex = nullptr;
+
+  /// Momentum at clusters
+  std::vector<TLorentzVector>* m_onSurfaceMomentum = nullptr;
 
   std::vector<int>* m_charge = nullptr;
   std::vector<int>* m_pdgId = nullptr;
