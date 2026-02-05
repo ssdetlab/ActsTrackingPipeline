@@ -139,30 +139,30 @@ find_package(
     REQUIRED
 )
 
-add_library(
-    ActsPreprocessing SHARED
-    src/Preprocessing/AnalysisFunctions.cpp
-    src/Preprocessing/Preprocessing.cpp
-)
+# add_library(
+#     ActsPreprocessing SHARED
+#     src/Preprocessing/AnalysisFunctions.cpp
+#     src/Preprocessing/Preprocessing.cpp
+# )
 
-target_include_directories(
-    ActsPreprocessing
-    PUBLIC
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-)
+# target_include_directories(
+#     ActsPreprocessing
+#     PUBLIC
+#     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+# )
 
-target_link_libraries(
-    ActsPreprocessing
-    PUBLIC
-    ROOT::Core
-    ROOT::RIO
-    ROOT::Tree
-    ROOT::Hist
-    ROOT::Gpad
-    ROOT::Physics
-    DetEventClusteredDict
-    DetEventDict
-)
+# target_link_libraries(
+#     ActsPreprocessing
+#     PUBLIC
+#     ROOT::Core
+#     ROOT::RIO
+#     ROOT::Tree
+#     ROOT::Hist
+#     ROOT::Gpad
+#     ROOT::Physics
+#     DetEventClusteredDict
+#     DetEventDict
+# )
 
 # source files will be added later
 add_library(
@@ -189,7 +189,7 @@ target_link_libraries(
     ActsAlignment
     DetEventClusteredDict
     DetEventDict
-    ActsPreprocessing
+    # ActsPreprocessing
 )
 
 # toml11 header-only include
@@ -214,6 +214,7 @@ add_subdirectory(src/TrackFitting)
 add_subdirectory(src/Alignment)
 add_subdirectory(src/Run)
 add_subdirectory(src/Analysis)
+add_subdirectory(src/Preprocessing)
 
 
 # macro to add a run executables
