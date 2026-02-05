@@ -1,0 +1,11 @@
+{
+    "files.associations": {
+        "__config": "cpp",
+        "__tree": "cpp",
+        "iomanip": "cpp",
+        "istream": "cpp",
+        "locale": "cpp",
+        "fstream": "cpp",
+        "tracksAnalysis.C": "cpp"
+    }
+}

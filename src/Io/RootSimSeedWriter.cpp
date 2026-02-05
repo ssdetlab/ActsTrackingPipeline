@@ -10,6 +10,9 @@
 #include "TrackingPipeline/EventData/DataContainers.hpp"
 #include "TrackingPipeline/EventData/SimpleSourceLink.hpp"
 #include "TrackingPipeline/Infrastructure/ProcessCode.hpp"
+#include "TrackingPipeline/Infrastructure/WriterRegistry.hpp"
+
+#include <toml.hpp>
 
 RootSimSeedWriter::RootSimSeedWriter(const Config& config,
                                      Acts::Logging::Level level)
@@ -179,3 +182,33 @@ ProcessCode RootSimSeedWriter::write(const AlgorithmContext& ctx) {
   // Return success flag
   return ProcessCode::SUCCESS;
 }
+
+namespace {
+
+struct RootSimSeedWriterRegistrar {
+  RootSimSeedWriterRegistrar() {
+    using namespace TrackingPipeline;
+
+    WriterRegistry::instance().registerBuilder(
+      "RootSimSeedWriter",
+      [](const toml::value& section,
+         Acts::Logging::Level logLevel,
+         const std::string& runRoot) -> WriterPtr {
+
+        RootSimSeedWriter::Config cfg;
+
+        cfg.inputSeeds =
+            toml::find<std::string>(section, "inputSeeds");
+        cfg.inputTruthClusters =
+            toml::find<std::string>(section, "inputTruthClusters");
+        cfg.treeName =
+            toml::find<std::string>(section, "treeName");
+        cfg.filePath =
+            runRoot + "/" + toml::find<std::string>(section, "filePath");
+
+        return std::make_shared<RootSimSeedWriter>(cfg, logLevel);
+      });
+  }
+} _RootSimSeedWriterRegistrar;
+
+}  // namespace

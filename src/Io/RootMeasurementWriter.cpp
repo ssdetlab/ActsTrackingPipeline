@@ -8,6 +8,9 @@
 #include <vector>
 
 #include "TrackingPipeline/EventData/SimpleSourceLink.hpp"
+#include "TrackingPipeline/Infrastructure/WriterRegistry.hpp"
+
+#include <toml.hpp>
 
 RootMeasurementWriter::RootMeasurementWriter(const Config& config,
                                              Acts::Logging::Level level)
@@ -81,3 +84,31 @@ ProcessCode RootMeasurementWriter::write(const AlgorithmContext& ctx) {
   // Return success flag
   return ProcessCode::SUCCESS;
 }
+
+namespace {
+
+struct RootMeasurementWriterRegistrar {
+  RootMeasurementWriterRegistrar() {
+    using namespace TrackingPipeline;
+
+    WriterRegistry::instance().registerBuilder(
+      "RootMeasurementWriter",
+      [](const toml::value& section,
+         Acts::Logging::Level logLevel,
+         const std::string& runRoot) -> WriterPtr {
+
+        RootMeasurementWriter::Config cfg;
+
+        cfg.inputMeasurements =
+            toml::find<std::string>(section, "inputMeasurements");
+        cfg.treeName =
+            toml::find<std::string>(section, "treeName");
+        cfg.filePath =
+            runRoot + "/" + toml::find<std::string>(section, "filePath");
+            
+        return std::make_shared<RootMeasurementWriter>(cfg, logLevel);
+      });
+  }
+} _RootMeasurementWriterRegistrar;
+
+}  // namespace

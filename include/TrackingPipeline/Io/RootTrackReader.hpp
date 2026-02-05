@@ -27,6 +27,8 @@ class RootTrackReader : public IReader {
     std::string outputSeedsGuess;
     /// Output fitted seeds
     std::string outputSeedsEst;
+    /// Output tracks (for cleaning)
+    std::string outputTracks; 
     /// The names of the input files
     std::vector<std::string> filePaths;
     /// Name of the input tree

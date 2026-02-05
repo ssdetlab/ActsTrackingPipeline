@@ -5,6 +5,7 @@
 #include "Acts/EventData/SourceLink.hpp"
 #include "Acts/EventData/TrackParameters.hpp"
 #include "Acts/Geometry/GeometryIdentifier.hpp"
+#include "Acts/Utilities/Logger.hpp"
 #include "Acts/Surfaces/CurvilinearSurface.hpp"
 #include "Acts/Utilities/VectorHelpers.hpp"
 

@@ -2,7 +2,6 @@
 
 #include "Acts/Definitions/Algebra.hpp"
 #include "Acts/EventData/SourceLink.hpp"
-
 #include <cstddef>
 #include <span>
 #include <unordered_map>

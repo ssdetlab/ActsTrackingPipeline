@@ -2,6 +2,11 @@
 
 #include "Acts/Surfaces/RectangleBounds.hpp"
 
+#include "TrackingPipeline/Infrastructure/AlgorithmRegistry.hpp"
+#include "TrackingPipeline/Io/JsonTrackLookupWriter.hpp"
+#include "TrackingPipeline/TrackFitting/FittingServices.hpp"
+#include <toml.hpp>
+
 TrackLookupEstimationAlgorithm::TrackLookupEstimationAlgorithm(
     const Config& config, Acts::Logging::Level level)
     : IAlgorithm("TrackLookupEstimationAlgorithm", level), m_cfg(config) {
@@ -90,3 +95,46 @@ ProcessCode TrackLookupEstimationAlgorithm::execute(
 
   return ProcessCode::SUCCESS;
 }
+
+
+namespace {
+
+struct TrackLookupEstimationAlgorithmRegistrar {
+  TrackLookupEstimationAlgorithmRegistrar() {
+    using namespace TrackingPipeline;
+
+    AlgorithmRegistry::instance().registerBuilder(
+        "TrackLookupEstimationAlgorithm",
+        [](const toml::value& section,
+           Acts::Logging::Level logLevel) -> AlgorithmPtr {
+          TrackLookupEstimationAlgorithm::Config cfg;
+
+          // 1) Ref layers from FittingServices
+          auto& fs = FittingServices::instance();
+          cfg.refLayers = fs.lookupRefLayers;
+
+          // 2) Binning from TOML
+          const auto binsX = toml::find<std::size_t>(section, "binsX");
+          const auto binsY = toml::find<std::size_t>(section, "binsY");
+          cfg.bins = {binsX, binsY};
+
+          // 3) Input clusters name 
+          cfg.inputClusters =
+              toml::find<std::string>(section, "inputClusters");
+
+          // 4) Build the JsonTrackLookupWriter helper
+          JsonTrackLookupWriter::Config writerCfg;
+          writerCfg.path =
+              toml::find<std::string>(section, "lookupJsonPath");
+
+          auto jsonWriter =
+              std::make_shared<JsonTrackLookupWriter>(writerCfg);
+
+          cfg.trackLookupGridWriters = {jsonWriter};
+
+          return std::make_shared<TrackLookupEstimationAlgorithm>(cfg, logLevel);
+        });
+  }
+} _TrackLookupEstimationAlgorithmRegistrar;
+
+}  // namespace

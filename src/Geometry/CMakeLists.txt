@@ -3,4 +3,3 @@ target_sources(
     PRIVATE
     detail/GeometryConstructionUtils.cpp
 )
-    

@@ -21,4 +21,6 @@ target_sources(
     JsonTrackLookupWriter.cpp
     AlignmentParametersWriter.cpp
     AlignmentParametersProvider.cpp
+    DummyReader.cpp
+    RootTrackCleaningWriter.cpp
 )

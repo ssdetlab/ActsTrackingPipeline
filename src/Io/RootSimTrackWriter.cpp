@@ -10,6 +10,10 @@
 #include <TVectorDfwd.h>
 
 #include "TrackingPipeline/EventData/SimpleSourceLink.hpp"
+#include "TrackingPipeline/Infrastructure/WriterRegistry.hpp"
+#include "TrackingPipeline/TrackFitting/FittingServices.hpp"
+
+#include <toml.hpp>
 
 RootSimTrackWriter::RootSimTrackWriter(const Config& config,
                                        Acts::Logging::Level level)
@@ -723,3 +727,46 @@ ProcessCode RootSimTrackWriter::write(const AlgorithmContext& ctx) {
   // Return success flag
   return ProcessCode::SUCCESS;
 }
+
+namespace {
+
+struct RootSimTrackWriterRegistrar {
+  RootSimTrackWriterRegistrar() {
+    using namespace TrackingPipeline;
+
+    WriterRegistry::instance().registerBuilder(
+      "RootSimTrackWriter",
+      [](const toml::value& section,
+         Acts::Logging::Level logLevel,
+         const std::string& runRoot) -> WriterPtr {
+
+        auto& svc = FittingServices::instance();
+        if (!svc.surfaceAccessor.has_value() || !svc.referenceSurface) {
+          throw std::runtime_error(
+              "RootSimTrackWriter: FittingServices not initialized "
+              "(surfaceAccessor / referenceSurface missing)");
+        }
+
+        RootSimTrackWriter::Config cfg;
+
+        cfg.inputTracks =
+            toml::find<std::string>(section, "inputTracks");
+        cfg.inputSimClusters =
+            toml::find<std::string>(section, "inputSimClusters");
+        cfg.treeName =
+            toml::find<std::string>(section, "treeName");
+        cfg.filePath =
+            runRoot + "/" + toml::find<std::string>(section, "filePath");
+
+        // Wire services into config
+        cfg.surfaceAccessor
+            .connect<&SimpleSourceLink::SurfaceAccessor::operator()>(
+                &(*svc.surfaceAccessor));
+        cfg.referenceSurface = svc.referenceSurface.get();
+
+        return std::make_shared<RootSimTrackWriter>(cfg, logLevel);
+      });
+  }
+} _RootSimTrackWriterRegistrar;
+
+}  // namespace

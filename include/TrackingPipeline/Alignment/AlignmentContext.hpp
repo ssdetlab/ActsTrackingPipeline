@@ -38,3 +38,6 @@ class AlignmentContext {
  private:
   std::shared_ptr<AlignmentStore> m_alignmentStore = nullptr;
 };
+
+// Global pointer to the alignment store used by the context decorator
+extern std::shared_ptr<AlignmentContext::AlignmentStore> g_alignmentStore;

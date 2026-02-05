@@ -12,13 +12,20 @@
 #include "Acts/Utilities/Logger.hpp"
 #include "ActsAlignment/Kernel/Alignment.hpp"
 
+#include <algorithm>
 #include <cstddef>
 #include <memory>
 #include <stdexcept>
 #include <utility>
 #include <vector>
 
+#include "TrackingPipeline/EventData/SimpleSourceLink.hpp"
 #include "TrackingPipeline/Infrastructure/ProcessCode.hpp"
+#include "TrackingPipeline/Alignment/AlignmentContext.hpp"
+#include "TrackingPipeline/TrackFitting/FittingServices.hpp"
+#include "TrackingPipeline/Infrastructure/AlgorithmRegistry.hpp"
+
+#include <toml.hpp>
 
 namespace {
 
@@ -154,3 +161,153 @@ ProcessCode AlignmentAlgorithm::execute(const AlgorithmContext& ctx) const {
   m_outputAlignmentParameters(ctx, std::move(alignedParameters));
   return ProcessCode::SUCCESS;
 }
+
+extern std::shared_ptr<AlignmentContext::AlignmentStore> g_alignmentStore;
+
+namespace {
+
+struct AlignmentAlgorithmRegistrar {
+  AlignmentAlgorithmRegistrar() {
+    using namespace TrackingPipeline;
+
+    AlgorithmRegistry::instance().registerBuilder(
+      "AlignmentAlgorithm",
+      [](const toml::value& section,
+         Acts::Logging::Level logLevel) -> AlgorithmPtr {
+
+        auto& svc = FittingServices::instance();
+        if (!svc.detector || !svc.baseKfOptions || !svc.referenceSurface || !svc.magneticField) {
+          throw std::runtime_error(
+              "AlignmentAlgorithm: FittingServices not initialized "
+              "(detector/baseKfOptions/referenceSurface/magneticField missing)");
+        }
+
+        using Trajectory = FittingServices::Trajectory;
+        Acts::KalmanFitterOptions<Trajectory> kfOptions = *svc.baseKfOptions;
+
+        auto maxSteps = toml::find_or<unsigned int>(section, "maxSteps", 1000u);
+        kfOptions.propagatorPlainOptions.maxSteps = maxSteps;
+        kfOptions.referenceSurface = svc.referenceSurface.get();
+
+        // Initial config
+        AlignmentAlgorithm::Config cfg{
+            /*inputTrackCandidates*/
+            toml::find<std::string>(section, "inputTrackCandidates"),
+            /*outputAlignmentParameters*/
+            toml::find<std::string>(section, "outputAlignmentParameters"),
+            /*align*/ nullptr,
+            /*alignedTransformUpdater*/ ActsAlignment::AlignedTransformUpdater(),
+            /*alignedDetElements*/ {},
+            /*kfOptions*/ std::move(kfOptions),
+            /*chi2ONdfCutOff*/ 1e-3,
+            /*deltaChi2ONdfCutOff*/ {10, 1e-5},
+            /*maxNumIterations*/ 200,
+            /*alignmentMask*/
+            ActsAlignment::AlignmentMask::Center1 |
+            ActsAlignment::AlignmentMask::Center2 |
+            ActsAlignment::AlignmentMask::Rotation2,
+            /*alignmentMode*/ ActsAlignment::AlignmentMode::local,
+            /*originCov*/ Acts::BoundMatrix::Identity(),     
+            /*constraints*/ {},
+            /*propDirection*/ AlignmentAlgorithm::PropagationDirection::forward};
+
+        // Override chi2 / convergence from TOML if provided
+        cfg.chi2ONdfCutOff =
+            toml::find_or<double>(section, "chi2ONdfCutOff",
+                                  cfg.chi2ONdfCutOff);
+        std::size_t dChi2N =
+            toml::find_or<std::size_t>(section, "deltaChi2ONdfCutOffN",
+                                       cfg.deltaChi2ONdfCutOff.first);
+        double dChi2Val =
+            toml::find_or<double>(section, "deltaChi2ONdfCutOffValue",
+                                  cfg.deltaChi2ONdfCutOff.second);
+        cfg.deltaChi2ONdfCutOff = {dChi2N, dChi2Val};
+        cfg.maxNumIterations =
+            toml::find_or<std::size_t>(section, "maxNumIterations",
+                                       cfg.maxNumIterations);
+
+        // Optional mask/mode overrides
+        const auto maskStr =
+            toml::find_or<std::string>(section, "alignmentMask",
+                                       "Center1Center2Rotation2");
+        if (maskStr == "Center1Center2Rotation2") {
+          cfg.alignmentMask = ActsAlignment::AlignmentMask::Center1 |
+                              ActsAlignment::AlignmentMask::Center2 |
+                              ActsAlignment::AlignmentMask::Rotation2;
+        } else if (maskStr == "All") {
+          cfg.alignmentMask = ActsAlignment::AlignmentMask::All;
+        } else {
+          throw std::runtime_error("Unknown alignmentMask '" + maskStr + "'");
+        }
+
+        const auto modeStr =
+            toml::find_or<std::string>(section, "alignmentMode", "local");
+        if (modeStr == "local") {
+          cfg.alignmentMode = ActsAlignment::AlignmentMode::local;
+        } else if (modeStr == "global") {
+          cfg.alignmentMode = ActsAlignment::AlignmentMode::global;
+        } else {
+          throw std::runtime_error("Unknown alignmentMode '" + modeStr + "'");
+        }
+
+        // Alignment function
+        auto detector = svc.detector;
+        auto magneticField = svc.magneticField;
+        cfg.align =
+            AlignmentAlgorithm::makeAlignmentFunction(detector, magneticField);
+
+        // all sensitive surfaces with id < 22 and != 10
+        for (const auto& detElem : detector->detectorElements()) {
+          auto* de = detElem.get();
+          const auto& surf = de->surface();
+          auto sid = surf.geometryId().sensitive();
+          if (!sid) {
+            continue;
+          }
+          if (sid < 22 && sid != 10) {
+            cfg.alignedDetElements.push_back(de);
+          }
+        }
+
+        // AlignedTransformUpdater: write transforms into the shared alignment store
+        cfg.alignedTransformUpdater =
+          [](Acts::DetectorElementBase* element,
+              const Acts::GeometryContext& gctx,
+              const Acts::Vector3& deltaTranslation,
+              const Acts::Vector3& deltaAngles) {
+            if (!g_alignmentStore) {
+              throw std::runtime_error(
+                  "AlignmentAlgorithm: alignment store not set (g_alignmentStore is null)");
+            }
+            
+            const auto& surf = element->surface();
+            const Acts::Transform3& oldTransform = surf.transform(gctx);
+
+            Acts::Transform3 newTransform = Acts::Transform3::Identity();
+
+            const Acts::Vector3& oldCenter = oldTransform.translation();
+            const Acts::RotationMatrix3& oldRotation = oldTransform.rotation();
+
+            Acts::Vector3 newCenter = oldCenter + deltaTranslation;
+            newTransform.translation() = newCenter;
+
+            Acts::RotationMatrix3 newRotation =
+                Acts::AngleAxis3(deltaAngles(2), Acts::Vector3::UnitZ())
+                    .toRotationMatrix() *
+                Acts::AngleAxis3(deltaAngles(1), Acts::Vector3::UnitY())
+                    .toRotationMatrix() *
+                Acts::AngleAxis3(deltaAngles(0), Acts::Vector3::UnitX())
+                    .toRotationMatrix() *
+                oldRotation;
+            newTransform.rotate(newRotation);
+
+            (*g_alignmentStore)[surf.geometryId()] = newTransform;
+            return true;
+          };
+
+        return std::make_shared<AlignmentAlgorithm>(std::move(cfg), logLevel);
+      });
+  }
+} _AlignmentAlgorithmRegistrar;
+
+}  // namespace

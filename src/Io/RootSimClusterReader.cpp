@@ -14,6 +14,9 @@
 #include "TrackingPipeline/EventData/DataContainers.hpp"
 #include "TrackingPipeline/EventData/SimpleSourceLink.hpp"
 #include "TrackingPipeline/Infrastructure/ProcessCode.hpp"
+#include "TrackingPipeline/Infrastructure/ReaderRegistry.hpp"
+
+#include <toml.hpp>
 
 using namespace Acts::UnitLiterals;
 
@@ -235,3 +238,41 @@ ProcessCode RootSimClusterReader::read(const AlgorithmContext& ctx) {
   // Return success flag
   return ProcessCode::SUCCESS;
 }
+
+
+namespace {
+
+struct RootSimClusterReaderRegistrar {
+  RootSimClusterReaderRegistrar() {
+    using namespace TrackingPipeline;
+
+    ReaderRegistry::instance().registerBuilder(
+      "RootSimClusterReader",
+      [](const toml::value& section,
+         const SurfaceMap& surfaceMap,
+         Acts::Logging::Level logLevel) -> ReaderPtr {
+
+        RootSimClusterReader::Config cfg;
+        cfg.outputSourceLinks =
+            toml::find<std::string>(section, "outputSourceLinks");
+        cfg.outputSimClusters =
+              toml::find<std::string>(section, "outputSimClusters");
+        cfg.filePaths =
+            toml::find<std::vector<std::string>>(section, "filePaths");
+        cfg.treeName =
+            toml::find<std::string>(section, "treeName");
+        cfg.minGeoId =
+            toml::find<int>(section, "minGeoId");
+        cfg.maxGeoId =
+            toml::find<int>(section, "maxGeoId");
+        cfg.surfaceLocalToGlobal =
+              toml::find_or<bool>(section, "surfaceLocalToGlobal", true);
+        cfg.surfaceMap = surfaceMap;
+
+        return std::make_shared<RootSimClusterReader>(
+            cfg, logLevel);
+      });
+  }
+} _RootSimClusterReaderRegistrar;
+
+}  // namespace

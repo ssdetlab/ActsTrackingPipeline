@@ -5,6 +5,11 @@
 
 #include <TVector3.h>
 
+#include "TrackingPipeline/Io/AlignmentParametersWriter.hpp"
+#include "TrackingPipeline/Infrastructure/WriterRegistry.hpp"
+
+#include <toml.hpp>
+
 AlignmentParametersWriter::AlignmentParametersWriter(const Config& config,
                                                      Acts::Logging::Level level)
     : m_cfg(config), m_logger(Acts::getDefaultLogger(name(), level)) {
@@ -109,3 +114,31 @@ ProcessCode AlignmentParametersWriter::write(const AlgorithmContext& ctx) {
   // Return success flag
   return ProcessCode::SUCCESS;
 }
+
+namespace {
+
+struct AlignmentParametersWriterRegistrar {
+  AlignmentParametersWriterRegistrar() {
+    using namespace TrackingPipeline;
+
+    WriterRegistry::instance().registerBuilder(
+      "AlignmentParametersWriter",
+      [](const toml::value& section,
+         Acts::Logging::Level logLevel,
+         const std::string& runRoot) -> WriterPtr {
+
+        AlignmentParametersWriter::Config cfg;
+
+        cfg.inputAlignmentResults =
+            toml::find<std::string>(section, "inputAlignmentResults");
+        cfg.treeName =
+            toml::find<std::string>(section, "treeName");
+        cfg.filePath = runRoot + "/" +
+            toml::find<std::string>(section, "filePath");
+
+        return std::make_shared<AlignmentParametersWriter>(cfg, logLevel);
+      });
+  }
+} _AlignmentParametersWriterRegistrar;
+
+}  // namespace

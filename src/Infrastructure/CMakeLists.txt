@@ -5,4 +5,11 @@ target_sources(
     RandomNumbers.cpp  
     SequenceElement.cpp  
     Sequencer.cpp  
-    WhiteBoard.cpp)
+    WhiteBoard.cpp
+    ReaderRegistry.cpp
+    buildReader.cpp
+    WriterRegistry.cpp
+    buildWriter.cpp
+    AlgorithmRegistry.cpp
+    buildAlgorithm.cpp
+)
