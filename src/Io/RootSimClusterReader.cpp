@@ -38,23 +38,33 @@ RootSimClusterReader::RootSimClusterReader(const Config& config,
 
   //------------------------------------------------------------------
   // Tree branches
-  int buf_size = 32000;
-  int split_lvl = 0;
+  int bufSize = 32000;
+  int splitLvl = 0;
 
-  // Parameters at measurements
-  m_chain->SetBranchAddress("geoCenterLocal", &m_geoCenterLocal);
+  // Cluster parameters
   m_chain->SetBranchAddress("geoCenterGlobal", &m_geoCenterGlobal);
-  m_chain->SetBranchAddress("cov", &m_cov);
+  m_chain->SetBranchAddress("geoCenterLocal", &m_geoCenterLocal);
+  m_chain->SetBranchAddress("clusterCov", &m_clusterCov);
   m_chain->SetBranchAddress("geoId", &m_geoId);
-  m_chain->SetBranchAddress("trackHitsLocal", &m_trackHitsLoc);
-  m_chain->SetBranchAddress("trackHitsGlobal", &m_trackHitsGlob);
+
+  // Measurement hits
+  m_chain->SetBranchAddress("trackHitsGlobal", &m_trackHitsGlobal);
+  m_chain->SetBranchAddress("trackHitsLocal", &m_trackHitsLocal);
   m_chain->SetBranchAddress("eventId", &m_eventId);
   m_chain->SetBranchAddress("charge", &m_charge);
   m_chain->SetBranchAddress("pdgId", &m_pdgId);
 
-  // Parameters at the origin
+  // Bound origin parameters
+  m_chain->SetBranchAddress("boundTrackParameters", &m_boundTrackParameters);
+  m_chain->SetBranchAddress("boundTrackCov", &m_boundTrackCov);
+
+  // Origin momentum
   m_chain->SetBranchAddress("originMomentum", &m_originMomentum);
+
+  // Origin vertex
   m_chain->SetBranchAddress("vertex", &m_vertex);
+
+  // Momentum at clusters
   m_chain->SetBranchAddress("onSurfaceMomentum", &m_onSurfaceMomentum);
 
   // Track ID
@@ -65,7 +75,7 @@ RootSimClusterReader::RootSimClusterReader(const Config& config,
   // Misc
   m_chain->SetBranchAddress("isSignal", &m_isSignal);
 
-  // Add the files to the chain
+  // // Add the files to the chain
   // for (const auto& path : m_cfg.filePaths) {
   //   m_chain->Add(path.c_str());
   // }
@@ -105,15 +115,6 @@ RootSimClusterReader::RootSimClusterReader(const Config& config,
   // Initialize the data handles
   m_outputSourceLinks.initialize(m_cfg.outputSourceLinks);
   m_outputSimClusters.initialize(m_cfg.outputSimClusters);
-
-  Acts::BoundVector ipStdDev;
-  ipStdDev[Acts::eBoundLoc0] = 100_um;
-  ipStdDev[Acts::eBoundLoc1] = 100_um;
-  ipStdDev[Acts::eBoundTime] = 25_ns;
-  ipStdDev[Acts::eBoundPhi] = 2_degree;
-  ipStdDev[Acts::eBoundTheta] = 2_degree;
-  ipStdDev[Acts::eBoundQOverP] = 1 / 100_GeV;
-  m_ipCov = ipStdDev.cwiseProduct(ipStdDev).asDiagonal();
 }
 
 std::pair<std::size_t, std::size_t> RootSimClusterReader::availableEvents()
@@ -177,38 +178,47 @@ ProcessCode RootSimClusterReader::read(const AlgorithmContext& ctx) {
                         m_geoCenterGlobal->Z());
     }
 
-    Acts::ActsSquareMatrix<2> cov;
-    cov << (*m_cov)(0, 0), (*m_cov)(0, 1), (*m_cov)(1, 0), (*m_cov)(1, 1);
+    Acts::SquareMatrix2 clusterCov;
+    clusterCov << (*m_clusterCov)(0, 0), (*m_clusterCov)(0, 1),
+        (*m_clusterCov)(1, 0), (*m_clusterCov)(1, 1);
 
-    SimpleSourceLink obsSourceLink(geoCenterLocal, geoCenterGlobal, cov, geoId,
-                                   eventId, sslIdx);
+    SimpleSourceLink obsSourceLink(geoCenterLocal, geoCenterGlobal, clusterCov,
+                                   geoId, eventId, sslIdx);
     sourceLinks.push_back(Acts::SourceLink{obsSourceLink});
 
     SimHits hits;
-    hits.reserve(m_trackHitsLoc->size());
-    for (std::size_t i = 0; i < m_trackHitsLoc->size(); i++) {
+    hits.reserve(m_trackHitsLocal->size());
+    for (std::size_t i = 0; i < m_trackHitsLocal->size(); i++) {
       Acts::Vector4 vertex(m_vertex->at(i).X(), m_vertex->at(i).Y(),
                            m_vertex->at(i).Z(), 0);
       Acts::Vector3 ipDirection(m_originMomentum->at(i).X(),
                                 m_originMomentum->at(i).Y(),
                                 m_originMomentum->at(i).Z());
       ipDirection.normalize();
+
+      Acts::BoundMatrix ipCov = Acts::BoundMatrix::Zero();
+      for (std::size_t n = 0; n < Acts::eBoundSize; n++) {
+        for (std::size_t m = 0; m < Acts::eBoundSize; m++) {
+          ipCov(n, m) = m_boundTrackCov->at(i)(n, m);
+        }
+      }
+
       Acts::ParticleHypothesis hypothesis(Acts::PdgParticle(m_pdgId->at(i)));
       Acts::CurvilinearTrackParameters ipParameters(
           vertex, ipDirection, m_charge->at(i) / m_originMomentum->at(i).P(),
-          m_ipCov, hypothesis);
+          ipCov, hypothesis);
 
       Acts::BoundVector truthParameters;
-      truthParameters[Acts::eBoundLoc0] = m_trackHitsLoc->at(i).X();
-      truthParameters[Acts::eBoundLoc1] = m_trackHitsLoc->at(i).Y();
+      truthParameters[Acts::eBoundLoc0] = m_trackHitsLocal->at(i).X();
+      truthParameters[Acts::eBoundLoc1] = m_trackHitsLocal->at(i).Y();
       truthParameters[Acts::eBoundPhi] = m_onSurfaceMomentum->at(i).Phi();
       truthParameters[Acts::eBoundTheta] = m_onSurfaceMomentum->at(i).Theta();
       truthParameters[Acts::eBoundQOverP] =
           m_charge->at(i) / m_onSurfaceMomentum->at(i).P();
 
-      Acts::Vector3 trueTrackHitGlobal(m_trackHitsGlob->at(i).X(),
-                                       m_trackHitsGlob->at(i).Y(),
-                                       m_trackHitsGlob->at(i).Z());
+      Acts::Vector3 trueTrackHitGlobal(m_trackHitsGlobal->at(i).X(),
+                                       m_trackHitsGlobal->at(i).Y(),
+                                       m_trackHitsGlobal->at(i).Z());
 
       SimHit trackHit{std::move(truthParameters), std::move(trueTrackHitGlobal),
                       std::move(ipParameters),    m_trackId->at(i),

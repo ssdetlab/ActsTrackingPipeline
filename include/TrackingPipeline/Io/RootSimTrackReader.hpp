@@ -4,12 +4,13 @@
 #include "Acts/Utilities/Logger.hpp"
 
 #include <cstddef>
-#include <TTree.h>
 
 #include "TChain.h"
 #include "TLorentzVector.h"
 #include "TMatrixD.h"
+#include "TTree.h"
 #include "TVector3.h"
+#include "TVectorD.h"
 #include "TrackingPipeline/EventData/DataContainers.hpp"
 #include "TrackingPipeline/Infrastructure/AlgorithmContext.hpp"
 #include "TrackingPipeline/Infrastructure/DataHandle.hpp"
@@ -25,7 +26,9 @@ class RootSimTrackReader : public IReader {
     /// Output sim clusters
     std::string outputSimClusters;
     /// Output seeds
-    std::string outputSeeds;
+    std::string outputSeedsGuess;
+    /// Output fitted seeds
+    std::string outputSeedsEst;
     /// The names of the input files
     std::vector<std::string> filePaths;
     /// Name of the input tree
@@ -71,8 +74,11 @@ class RootSimTrackReader : public IReader {
   /// WriteDataHandle for the sim cluster data
   WriteDataHandle<SimClusters> m_outputSimClusters{this, "SimClusters"};
 
-  /// WriteDataHandle for the sim cluster data
-  WriteDataHandle<Seeds> m_outputSeeds{this, "Seeds"};
+  /// WriteDataHandle for the seed data
+  WriteDataHandle<Seeds> m_outputSeedsGuess{this, "SeedsGuess"};
+
+  /// WriteDataHandle for the fitted seed data
+  WriteDataHandle<Seeds> m_outputSeedsEst{this, "SeedsEst"};
 
   std::unique_ptr<const Acts::Logger> m_logger;
 
@@ -91,7 +97,7 @@ class RootSimTrackReader : public IReader {
   /// True hits
   std::vector<TVector3>* m_trueTrackHitsGlobal = nullptr;
   std::vector<TVector2>* m_trueTrackHitsLocal = nullptr;
-  std::vector<TLorentzVector>* m_onSurfaceMomentum = nullptr;
+  std::vector<TLorentzVector>* m_onSurfaceMomentumTruth = nullptr;
   std::vector<int>* m_isSignal = nullptr;
 
   /// Measurement hits
@@ -166,18 +172,34 @@ class RootSimTrackReader : public IReader {
   /// Charge
   int m_charge;
 
+  /// Guessed bound track parameters
+  TVectorD* m_boundTrackParametersGuess = nullptr;
+  TMatrixD* m_boundTrackCovGuess = nullptr;
+
+  /// KF predicted bound track parameters
+  TVectorD* m_boundTrackParametersEst = nullptr;
+  TMatrixD* m_boundTrackCovEst = nullptr;
+
+  /// True bound track parameters
+  TVectorD* m_boundTrackParametersTruth = nullptr;
+  TMatrixD* m_boundTrackCovTruth = nullptr;
+
   /// Initial guess of the momentum at the IP
   TLorentzVector* m_ipMomentumGuess = nullptr;
+
+  /// Initial guess of the vertex at the IP
   TVector3* m_vertexGuess = nullptr;
 
   /// KF predicted momentum at the IP
   TLorentzVector* m_ipMomentumEst = nullptr;
-  TVector3* m_ipMomentumError = nullptr;
+
+  /// KF predicted vertex at the IP
   TVector3* m_vertexEst = nullptr;
-  TVector3* m_vertexError = nullptr;
 
   /// True momentum at the IP
   TLorentzVector* m_ipMomentumTruth = nullptr;
+
+  /// True vertex at the IP
   TVector3* m_vertexTruth = nullptr;
 
   /// Mutex to protect the tree filling

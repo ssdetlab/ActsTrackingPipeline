@@ -85,12 +85,18 @@ AlgorithmPtr buildSignalMeasurementEmbedding(
   }
 
   // MeasurementCreator config: shared helpers + per-instance maxSteps
-  MeasurementsCreator::Config mcfg;
-  mcfg.vertexGenerator   = svc.simVertexGenerator;
-  mcfg.momentumGenerator = svc.simMomentumGenerator;
-  mcfg.hitDigitizer      = svc.simDigitizer;
-  mcfg.maxSteps          = toml::find_or<int>(section, "meas_creator_maxSteps", 1000);
-  mcfg.isSignal          = true;
+  MeasurementsCreator::Config mcfg{
+      /*vertexGenerator*/   svc.simVertexGenerator,
+      /*momentumGenerator*/ svc.simMomentumGenerator,
+      /*hitDigitizer*/      svc.simDigitizer,
+      /*referenceSurface*/  svc.referenceSurface.get(),
+      /*maxSteps*/          static_cast<std::size_t>(
+                                toml::find_or<int>(section, "meas_creator_maxSteps", 1000)),
+      /*isSignal*/          true,
+      /*hypothesis*/        Acts::ParticleHypothesis::electron(),  
+      /*charge*/            -1.0,                              
+      /*constraints*/       {}                                 
+  };
 
   auto measCreator =
       std::make_shared<MeasurementsCreator>(*svc.propagator, mcfg);

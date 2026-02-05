@@ -21,6 +21,9 @@
 /// local hit coordinates, and the covariance
 class SimpleSourceLink {
  public:
+  static constexpr std::size_t localSubspaceSize = 2;
+  static constexpr std::size_t globalSubspaceSize = 3;
+
   struct SurfaceAccessor {
     const Acts::Experimental::Detector* detector = nullptr;
 
@@ -31,10 +34,10 @@ class SimpleSourceLink {
   };
 
   /// Construct a 2d source link
-  SimpleSourceLink(const Acts::ActsVector<2>& paramsLoc,
-                   const Acts::ActsVector<3>& paramsGlob,
-                   const Acts::ActsSquareMatrix<2>& cov,
-                   Acts::GeometryIdentifier gid, int eid, int idx)
+  SimpleSourceLink(const Acts::ActsVector<localSubspaceSize>& paramsLoc,
+                   const Acts::ActsVector<globalSubspaceSize>& paramsGlob,
+                   const Acts::ActsSquareMatrix<localSubspaceSize>& cov,
+                   const Acts::GeometryIdentifier& gid, int eid, int idx)
       : m_geometryId(gid),
         m_eventId(eid),
         m_index(idx),
@@ -58,7 +61,9 @@ class SimpleSourceLink {
 
   bool operator!=(const SimpleSourceLink& rhs) const { return !(*this == rhs); }
 
-  std::array<Acts::BoundIndices, 2> indices() const { return m_indices; }
+  std::array<Acts::BoundIndices, localSubspaceSize> indices() const {
+    return m_indices;
+  }
 
   int index() const { return m_index; }
 
@@ -87,17 +92,17 @@ class SimpleSourceLink {
   int m_index = 0u;
 
   /// Indices of the local coordinates
-  std::array<Acts::BoundIndices, 2> m_indices = {Acts::eBoundLoc0,
-                                                 Acts::eBoundLoc1};
+  std::array<Acts::BoundIndices, localSubspaceSize> m_indices = {
+      Acts::eBoundLoc0, Acts::eBoundLoc1};
 
   /// Local hit coordinates
-  Acts::ActsVector<2> m_parametersLoc;
+  Acts::ActsVector<localSubspaceSize> m_parametersLoc;
 
   /// Global hit coordinates
-  Acts::ActsVector<3> m_parametersGlob;
+  Acts::ActsVector<globalSubspaceSize> m_parametersGlob;
 
   /// Covariance matrix
-  Acts::ActsSquareMatrix<2> m_covariance;
+  Acts::ActsSquareMatrix<localSubspaceSize> m_covariance;
 };
 
 /// Extract the measurement from a SimpleSourceLink.
@@ -110,16 +115,21 @@ void simpleSourceLinkCalibratorReturn(
     const Acts::CalibrationContext& /*cctx*/,
     const Acts::SourceLink& sourceLink,
     typename trajectory_t::TrackStateProxy trackState) {
-  SimpleSourceLink sl = sourceLink.template get<SimpleSourceLink>();
+  const auto& sl = sourceLink.template get<SimpleSourceLink>();
 
   trackState.setUncalibratedSourceLink(sourceLink);
 
-  trackState.allocateCalibrated(2);
-  trackState.template calibrated<2>() = sl.parametersLoc();
-  trackState.template calibratedCovariance<2>() = sl.covariance();
+  trackState.allocateCalibrated(SimpleSourceLink::localSubspaceSize);
+  trackState.template calibrated<SimpleSourceLink::localSubspaceSize>() =
+      sl.parametersLoc();
+  trackState
+      .template calibratedCovariance<SimpleSourceLink::localSubspaceSize>() =
+      sl.covariance();
+  const auto& indices = sl.indices();
   trackState.setProjector(
-      Acts::detail::FixedSizeSubspace<Acts::BoundIndices::eBoundSize, 2>(
-          std::array{sl.indices()[0], sl.indices()[1]})
+      Acts::detail::FixedSizeSubspace<Acts::BoundIndices::eBoundSize,
+                                      SimpleSourceLink::localSubspaceSize>(
+          std::array{indices[0], indices[1]})
           .projector<double>());
 }
 
@@ -135,19 +145,3 @@ void simpleSourceLinkCalibrator(
   simpleSourceLinkCalibratorReturn<trajectory_t>(gctx, cctx, sourceLink,
                                                  trackState);
 }
-
-// Calibrator to transform the source links
-// to global coordinates
-class SimpleSourceLinkCoordinateCalibrator {
- public:
-  Acts::SourceLinkSurfaceAccessor m_surfaceAccessor;
-
-  Acts::Vector3 operator()(const Acts::GeometryContext& geoCtx,
-                           const Acts::SourceLink& sourceLink) const {
-    auto ssl = sourceLink.get<SimpleSourceLink>();
-    auto res = m_surfaceAccessor(sourceLink)
-                   ->localToGlobal(geoCtx, ssl.parametersLoc(),
-                                   Acts::Vector3{0, 1, 0});
-    return res;
-  }
-};

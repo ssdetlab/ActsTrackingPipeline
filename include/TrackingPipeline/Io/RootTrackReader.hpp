@@ -4,12 +4,13 @@
 #include "Acts/Utilities/Logger.hpp"
 
 #include <cstddef>
-#include <TTree.h>
 
 #include "TChain.h"
 #include "TLorentzVector.h"
 #include "TMatrixD.h"
+#include "TTree.h"
 #include "TVector3.h"
+#include "TVectorD.h"
 #include "TrackingPipeline/EventData/DataContainers.hpp"
 #include "TrackingPipeline/Infrastructure/AlgorithmContext.hpp"
 #include "TrackingPipeline/Infrastructure/DataHandle.hpp"
@@ -23,7 +24,9 @@ class RootTrackReader : public IReader {
     /// Output source links
     std::string outputMeasurements;
     /// Output seeds
-    std::string outputSeeds;
+    std::string outputSeedsGuess;
+    /// Output fitted seeds
+    std::string outputSeedsEst;
     /// Output tracks (for cleaning)
     std::string outputTracks; 
     /// The names of the input files
@@ -68,11 +71,11 @@ class RootTrackReader : public IReader {
   WriteDataHandle<std::vector<Acts::SourceLink>> m_outputSourceLinks{
       this, "OutputData"};
 
-  /// WriteDataHandle for the seed data
-  WriteDataHandle<Seeds> m_outputSeeds{this, "Seeds"};
+  /// WriteDataHandle for the guess seed data
+  WriteDataHandle<Seeds> m_outputSeedsGuess{this, "SeedsGuess"};
 
-  /// WriteDataHandle for track collection (optional)
-  WriteDataHandle<CleaningTracks> m_outputTracks{this, "Tracks"};
+  /// WriteDataHandle for the estimated seed data
+  WriteDataHandle<Seeds> m_outputSeedsEst{this, "SeedsEst"};
 
   std::unique_ptr<const Acts::Logger> m_logger;
 
@@ -140,17 +143,26 @@ class RootTrackReader : public IReader {
   /// Charge
   int m_charge;
 
+  /// Guessed bound track parameters
+  TVectorD* m_boundTrackParametersGuess = nullptr;
+  TMatrixD* m_boundTrackCovGuess = nullptr;
+
+  /// KF predicted bound track parameters
+  TVectorD* m_boundTrackParametersEst = nullptr;
+  TMatrixD* m_boundTrackCovEst = nullptr;
+
   /// Initial guess of the momentum at the IP
   TLorentzVector* m_ipMomentumGuess = nullptr;
+
+  /// Initial guess of the vertex at the IP
   TVector3* m_vertexGuess = nullptr;
 
   /// KF predicted momentum at the IP
   TLorentzVector* m_ipMomentumEst = nullptr;
-  TVector3* m_ipMomentumError = nullptr;
+
+  /// KF predicted vertex at the IP
   TVector3* m_vertexEst = nullptr;
-  TVector3* m_vertexError = nullptr;
 
   /// Mutex to protect the tree filling
   std::mutex m_mutex;
 };
-

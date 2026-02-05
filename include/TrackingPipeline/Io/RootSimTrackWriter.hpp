@@ -4,11 +4,14 @@
 #include "Acts/Utilities/Logger.hpp"
 #include <cstddef>
 
+#include <cstddef>
+
 #include "TFile.h"
 #include "TLorentzVector.h"
 #include "TMatrixD.h"
 #include "TTree.h"
 #include "TVector3.h"
+#include "TVectorD.h"
 #include "TrackingPipeline/EventData/DataContainers.hpp"
 #include "TrackingPipeline/Infrastructure/AlgorithmContext.hpp"
 #include "TrackingPipeline/Infrastructure/DataHandle.hpp"
@@ -35,7 +38,7 @@ class RootSimTrackWriter : public IWriter {
     /// Surface accessor
     Acts::SourceLinkSurfaceAccessor surfaceAccessor;
     /// Reference surface
-    const Acts::Surface* referenceSurface;
+    const Acts::Surface *referenceSurface;
     /// Fitted track collection
     std::string inputTracks;
     /// Truth cluster data
@@ -89,7 +92,7 @@ class RootSimTrackWriter : public IWriter {
   /// True hits
   std::vector<TVector3> m_trueTrackHitsGlobal;
   std::vector<TVector2> m_trueTrackHitsLocal;
-  std::vector<TLorentzVector> m_onSurfaceMomentum;
+  std::vector<TLorentzVector> m_onSurfaceMomentumTruth;
   std::vector<int> m_isSignal;
 
   /// Measurement hits
@@ -164,18 +167,34 @@ class RootSimTrackWriter : public IWriter {
   /// Charge
   int m_charge;
 
+  /// Guessed bound track parameters
+  TVectorD m_boundTrackParametersGuess;
+  TMatrixD m_boundTrackCovGuess;
+
+  /// KF predicted bound track parameters
+  TVectorD m_boundTrackParametersEst;
+  TMatrixD m_boundTrackCovEst;
+
+  /// True bound track parameters
+  TVectorD m_boundTrackParametersTruth;
+  TMatrixD m_boundTrackCovTruth;
+
   /// Initial guess of the momentum at the IP
   TLorentzVector m_ipMomentumGuess;
+
+  /// Initial guess of the vertex at the IP
   TVector3 m_vertexGuess;
 
   /// KF predicted momentum at the IP
   TLorentzVector m_ipMomentumEst;
-  TVector3 m_ipMomentumError;
+
+  /// KF predicted vertex at the IP
   TVector3 m_vertexEst;
-  TVector3 m_vertexError;
 
   /// True momentum at the IP
   TLorentzVector m_ipMomentumTruth;
+
+  /// True vertex at the IP
   TVector3 m_vertexTruth;
 
   /// Mutex to protect the tree filling

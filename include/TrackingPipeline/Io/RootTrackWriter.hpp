@@ -10,6 +10,7 @@
 #include "TMatrixD.h"
 #include "TTree.h"
 #include "TVector3.h"
+#include "TVectorD.h"
 #include "TrackingPipeline/EventData/DataContainers.hpp"
 #include "TrackingPipeline/Infrastructure/AlgorithmContext.hpp"
 #include "TrackingPipeline/Infrastructure/DataHandle.hpp"
@@ -130,15 +131,25 @@ class RootTrackWriter : public IWriter {
   /// Charge
   int m_charge;
 
+  /// Guessed bound track parameters
+  TVectorD m_boundTrackParametersGuess;
+  TMatrixD m_boundTrackCovGuess;
+
+  /// KF predicted bound track parameters
+  TVectorD m_boundTrackParametersEst;
+  TMatrixD m_boundTrackCovEst;
+
   /// Initial guess of the momentum at the IP
   TLorentzVector m_ipMomentumGuess;
+
+  /// Initial guess of the vertex at the IP
   TVector3 m_vertexGuess;
 
   /// KF predicted momentum at the IP
   TLorentzVector m_ipMomentumEst;
-  TVector3 m_ipMomentumError;
+
+  /// KF predicted vertex at the IP
   TVector3 m_vertexEst;
-  TVector3 m_vertexError;
 
   /// Mutex to protect the tree filling
   std::mutex m_mutex;

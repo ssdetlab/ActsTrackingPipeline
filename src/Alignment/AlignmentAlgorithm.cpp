@@ -1,15 +1,16 @@
 #include "TrackingPipeline/Alignment/AlignmentAlgorithm.hpp"
 
+#include "Acts/Definitions/Algebra.hpp"
 #include "Acts/Detector/Detector.hpp"
+#include "Acts/EventData/SourceLink.hpp"
 #include "Acts/EventData/TrackParameters.hpp"
 #include "Acts/Navigation/DetectorNavigator.hpp"
 #include "Acts/Propagator/EigenStepper.hpp"
 #include "Acts/Propagator/Propagator.hpp"
 #include "Acts/TrackFitting/GainMatrixSmoother.hpp"
 #include "Acts/TrackFitting/GainMatrixUpdater.hpp"
+#include "Acts/Utilities/Logger.hpp"
 #include "ActsAlignment/Kernel/Alignment.hpp"
-#include <Acts/Definitions/Algebra.hpp>
-#include <Acts/EventData/SourceLink.hpp>
 
 #include <algorithm>
 #include <cstddef>
@@ -52,52 +53,7 @@ struct AlignmentFunctionImpl : public AlignmentAlgorithm::AlignmentFunction {
 
 }  // namespace
 
-double orthogonalLeastSquares(const std::vector<Acts::SourceLink>& sourceLinks,
-                              Acts::Vector3& a, Acts::Vector3& b, int minGeoId,
-                              int maxGeoId) {
-  Acts::Vector3 meanVector(0, 0, 0);
-
-  int nPoints = 0;
-  for (std::size_t i = 0; i < sourceLinks.size(); i++) {
-    const auto& sl = sourceLinks.at(i).get<SimpleSourceLink>();
-    if (sl.geometryId().sensitive() < minGeoId ||
-        sl.geometryId().sensitive() > maxGeoId) {
-      continue;
-    }
-    nPoints++;
-  }
-
-  Eigen::MatrixXf points = Eigen::MatrixXf::Constant(nPoints, 3, 0);
-  int k = 0;
-  for (std::size_t i = 0; i < sourceLinks.size(); i++) {
-    const auto& sl = sourceLinks.at(i).get<SimpleSourceLink>();
-    if (sl.geometryId().sensitive() < minGeoId ||
-        sl.geometryId().sensitive() > maxGeoId) {
-      continue;
-    }
-    Acts::Vector3 parameters = sl.parametersGlob();
-    points(k, 0) = parameters.x();
-    points(k, 1) = parameters.y();
-    points(k, 2) = parameters.z();
-
-    meanVector += parameters;
-    std::cout << "PARS " << parameters.transpose() << "\n";
-    k++;
-  }
-  meanVector /= nPoints;
-  a = meanVector;
-
-  Eigen::MatrixXf centered = points.rowwise() - points.colwise().mean();
-  Eigen::MatrixXf scatter = (centered.adjoint() * centered);
-
-  Eigen::SelfAdjointEigenSolver<Eigen::MatrixXf> eig(scatter);
-  Eigen::MatrixXf eigvecs = eig.eigenvectors();
-
-  b[0] = eigvecs(0, 2);
-  b[1] = eigvecs(1, 2);
-  b[2] = eigvecs(2, 2);
-  return eig.eigenvalues()(2);
-}
+using namespace Acts::UnitLiterals;
 
 std::shared_ptr<AlignmentAlgorithm::AlignmentFunction>
 AlignmentAlgorithm::makeAlignmentFunction(
@@ -110,9 +66,12 @@ AlignmentAlgorithm::makeAlignmentFunction(
   cfg.resolveMaterial = true;
   cfg.resolveSensitive = true;
   Acts::Experimental::DetectorNavigator navigator(
-      cfg, Acts::getDefaultLogger("DetectorNavigator", Acts::Logging::INFO));
+      cfg, Acts::getDefaultLogger("AlignmentDetectorNavigator",
+                                  Acts::Logging::INFO));
   Propagator propagator(std::move(stepper), std::move(navigator));
-  Fitter trackFitter(std::move(propagator));
+  Fitter trackFitter(
+      std::move(propagator),
+      Acts::getDefaultLogger("AlignmentKalmanFilter", Acts::Logging::INFO));
   Alignment alignment(std::move(trackFitter));
 
   // build the alignment functions. owns the alignment object.
@@ -151,8 +110,29 @@ ProcessCode AlignmentAlgorithm::execute(const AlgorithmContext& ctx) const {
   for (std::size_t i = 0; i < numTracksUsed; ++i) {
     // The list of hits and the initial start parameters
     const auto& candidate = trackCandidates.at(i);
-    sourceLinkTrackContainer.push_back(candidate.sourceLinks);
-    trackParametersContainer.push_back(candidate.ipParameters);
+
+    std::vector<Acts::SourceLink> sourceLinks = candidate.sourceLinks;
+    sourceLinks.insert(sourceLinks.end(), m_cfg.constraints.begin(),
+                       m_cfg.constraints.end());
+    sourceLinkTrackContainer.push_back(sourceLinks);
+
+    if (m_cfg.propDirection == PropagationDirection::forward) {
+      const auto& candidateIpPars = candidate.ipParameters;
+      auto ipPars = Acts::CurvilinearTrackParameters(
+          candidateIpPars.fourPosition(ctx.geoContext),
+          candidateIpPars.direction(),
+          candidateIpPars.charge() / candidateIpPars.absoluteMomentum(),
+          m_cfg.originCov, candidateIpPars.particleHypothesis());
+      trackParametersContainer.push_back(ipPars);
+    } else {
+      const auto& candidateIpPars = candidate.ipParameters;
+      auto ipPars = Acts::CurvilinearTrackParameters(
+          candidateIpPars.fourPosition(ctx.geoContext),
+          -candidateIpPars.direction(),
+          -candidateIpPars.charge() / candidateIpPars.absoluteMomentum(),
+          m_cfg.originCov, candidateIpPars.particleHypothesis());
+      trackParametersContainer.push_back(ipPars);
+    }
   }
 
   // Prepare the output for alignment parameters
@@ -226,7 +206,10 @@ struct AlignmentAlgorithmRegistrar {
             ActsAlignment::AlignmentMask::Center1 |
             ActsAlignment::AlignmentMask::Center2 |
             ActsAlignment::AlignmentMask::Rotation2,
-            /*alignmentMode*/ ActsAlignment::AlignmentMode::local};
+            /*alignmentMode*/ ActsAlignment::AlignmentMode::local,
+            /*originCov*/ Acts::BoundMatrix::Identity(),     
+            /*constraints*/ {},
+            /*propDirection*/ AlignmentAlgorithm::PropagationDirection::forward};
 
         // Override chi2 / convergence from TOML if provided
         cfg.chi2ONdfCutOff =
@@ -289,13 +272,36 @@ struct AlignmentAlgorithmRegistrar {
         // AlignedTransformUpdater: write transforms into the shared alignment store
         cfg.alignedTransformUpdater =
           [](Acts::DetectorElementBase* element,
-             const Acts::GeometryContext&,
-             const Acts::Transform3& trf) {
+              const Acts::GeometryContext& gctx,
+              const Acts::Vector3& deltaTranslation,
+              const Acts::Vector3& deltaAngles) {
             if (!g_alignmentStore) {
               throw std::runtime_error(
                   "AlignmentAlgorithm: alignment store not set (g_alignmentStore is null)");
             }
-            (*g_alignmentStore)[element->surface().geometryId()] = trf;
+            
+            const auto& surf = element->surface();
+            const Acts::Transform3& oldTransform = surf.transform(gctx);
+
+            Acts::Transform3 newTransform = Acts::Transform3::Identity();
+
+            const Acts::Vector3& oldCenter = oldTransform.translation();
+            const Acts::RotationMatrix3& oldRotation = oldTransform.rotation();
+
+            Acts::Vector3 newCenter = oldCenter + deltaTranslation;
+            newTransform.translation() = newCenter;
+
+            Acts::RotationMatrix3 newRotation =
+                Acts::AngleAxis3(deltaAngles(2), Acts::Vector3::UnitZ())
+                    .toRotationMatrix() *
+                Acts::AngleAxis3(deltaAngles(1), Acts::Vector3::UnitY())
+                    .toRotationMatrix() *
+                Acts::AngleAxis3(deltaAngles(0), Acts::Vector3::UnitX())
+                    .toRotationMatrix() *
+                oldRotation;
+            newTransform.rotate(newRotation);
+
+            (*g_alignmentStore)[surf.geometryId()] = newTransform;
             return true;
           };
 

@@ -18,12 +18,13 @@
 
 struct SimHit {
   /// True parameters at the surface
+  /// True parameters at the surface
   Acts::BoundVector truthParameters;
   /// Global hit position
   Acts::Vector3 globalPosition;
   /// True IP parameters
   Acts::CurvilinearTrackParameters ipParameters;
-  /// True track Ids
+  /// True track Id
   int trackId;
   /// True parent track Ids
   int parentTrackId;
@@ -63,10 +64,7 @@ struct Seed {
 /// @brief Collection of Seeds
 using Seeds = std::vector<Seed>;
 
-///-----------------------------------------------
-/// High-level Acts track container (for fitting etc.)
-
-/// @brief Collection of Tracks stored in Acts containers
+/// @brief Collection of Tracks
 using ActsTracks =
     Acts::TrackContainer<Acts::VectorTrackContainer,
                          Acts::VectorMultiTrajectory, std::shared_ptr>;

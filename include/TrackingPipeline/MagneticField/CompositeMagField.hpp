@@ -3,6 +3,8 @@
 #include "Acts/Geometry/Extent.hpp"
 #include "Acts/MagneticField/MagneticFieldProvider.hpp"
 
+#include <memory>
+
 /// @brief Constant magnetic field with bounded region
 ///
 /// This class provides a constant magnetic field within a
@@ -11,7 +13,8 @@
 class CompositeMagField : public Acts::MagneticFieldProvider {
  public:
   using FieldComponent =
-      std::pair<Acts::Extent, const Acts::MagneticFieldProvider*>;
+      std::pair<Acts::Extent,
+                const std::shared_ptr<Acts::MagneticFieldProvider>>;
   using FieldComponents = std::vector<FieldComponent>;
 
   /// @brief Cache for the magnetic field provider

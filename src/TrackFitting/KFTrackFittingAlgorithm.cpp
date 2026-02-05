@@ -7,10 +7,12 @@
 #include "TrackingPipeline/Infrastructure/AlgorithmRegistry.hpp"
 #include <toml.hpp>
 
-ProcessCode KFTrackFittingAlgorithm::execute(const AlgorithmContext& ctx) const {
+ProcessCode KFTrackFittingAlgorithm::execute(
+    const AlgorithmContext& ctx) const {
   // Get the input seeds
   // from the context
   const auto& inputCandidates = m_inputTrackCandidates(ctx);
+
   ACTS_DEBUG("Received " << inputCandidates.size() << " track candidates");
 
   auto trackContainer = std::make_shared<TrackContainer>();

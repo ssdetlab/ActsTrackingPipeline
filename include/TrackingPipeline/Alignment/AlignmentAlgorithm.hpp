@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Acts/Definitions/Algebra.hpp"
 #include "Acts/EventData/SourceLink.hpp"
 #include "Acts/EventData/TrackParameters.hpp"
 #include "Acts/EventData/VectorMultiTrajectory.hpp"
@@ -7,7 +8,7 @@
 #include "Acts/Surfaces/Surface.hpp"
 #include "Acts/TrackFitting/KalmanFitter.hpp"
 #include "ActsAlignment/Kernel/Alignment.hpp"
-#include <ActsAlignment/Kernel/AlignmentMask.hpp>
+#include "ActsAlignment/Kernel/AlignmentMask.hpp"
 
 #include <memory>
 #include <vector>
@@ -53,6 +54,8 @@ class AlignmentAlgorithm final : public IAlgorithm {
       const std::shared_ptr<const Acts::Experimental::Detector>& detector,
       const std::shared_ptr<const Acts::MagneticFieldProvider>& magneticField);
 
+  enum struct PropagationDirection : int { forward = 0, backward = 1 };
+
   struct Config {
     /// Input track candidates
     std::string inputTrackCandidates;
@@ -67,17 +70,21 @@ class AlignmentAlgorithm final : public IAlgorithm {
     /// KF options
     Acts::KalmanFitterOptions<Acts::VectorMultiTrajectory> kfOptions;
     /// Cutoff value for average chi2/ndf
-    double chi2ONdfCutOff = 0.10;
+    double chi2ONdfCutOff;
     /// Cutoff value for delta of average chi2/ndf within a couple of iterations
-    std::pair<std::size_t, double> deltaChi2ONdfCutOff = {10, 0.00001};
+    std::pair<std::size_t, double> deltaChi2ONdfCutOff;
     /// Maximum number of iterations
-    std::size_t maxNumIterations = 100;
+    std::size_t maxNumIterations;
     /// Alignment mask
-    ActsAlignment::AlignmentMask alignmentMask =
-        ActsAlignment::AlignmentMask::All;
+    ActsAlignment::AlignmentMask alignmentMask;
     /// Alignment mode
-    ActsAlignment::AlignmentMode alignmentMode =
-        ActsAlignment::AlignmentMode::local;
+    ActsAlignment::AlignmentMode alignmentMode;
+    /// Initial track state covariance prior
+    Acts::BoundMatrix originCov;
+    /// Constraints vector
+    std::vector<Acts::SourceLink> constraints;
+    /// Propagation direction
+    PropagationDirection propDirection;
   };
 
   /// Constructor of the alignment algorithm

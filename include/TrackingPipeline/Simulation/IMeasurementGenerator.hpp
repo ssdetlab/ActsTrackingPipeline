@@ -5,9 +5,6 @@
 
 /// @brief Interface for generating backgorund hits
 struct IMeasurementGenerator {
-    virtual std::tuple<std::vector<Acts::SourceLink>, SimClusters> 
-    gen(
-        const AlgorithmContext& ctx,
-        RandomEngine& rng,
-        std::size_t id) const = 0;
+  virtual std::tuple<std::vector<Acts::SourceLink>, SimClusters> gen(
+      const AlgorithmContext& ctx, RandomEngine& rng, std::size_t id) const = 0;
 };

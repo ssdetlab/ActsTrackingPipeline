@@ -29,30 +29,40 @@ RootSimClusterWriter::RootSimClusterWriter(const Config& config,
 
   //------------------------------------------------------------------
   // Tree branches
-  int buf_size = 32000;
-  int split_lvl = 0;
+  int bufSize = 32000;
+  int splitLvl = 0;
 
-  // Parameters at measurements
-  m_tree->Branch("geoCenterGlobal", &m_geoCenterGlobal, buf_size, split_lvl);
-  m_tree->Branch("geoCenterLocal", &m_geoCenterLocal, buf_size, split_lvl);
-  m_tree->Branch("cov", &m_cov, buf_size, split_lvl);
-  m_tree->Branch("geoId", &m_geoId, buf_size, split_lvl);
-  m_tree->Branch("trackHitsGlobal", &m_trackHitsGlobal, buf_size, split_lvl);
-  m_tree->Branch("trackHitsLocal", &m_trackHitsLocal, buf_size, split_lvl);
-  m_tree->Branch("eventId", &m_eventId, buf_size, split_lvl);
-  m_tree->Branch("charge", &m_charge, buf_size, split_lvl);
-  m_tree->Branch("pdgId", &m_pdgId, buf_size, split_lvl);
+  // Cluster parameters
+  m_tree->Branch("geoCenterGlobal", &m_geoCenterGlobal, bufSize, splitLvl);
+  m_tree->Branch("geoCenterLocal", &m_geoCenterLocal, bufSize, splitLvl);
+  m_tree->Branch("clusterCov", &m_clusterCov, bufSize, splitLvl);
+  m_tree->Branch("geoId", &m_geoId, bufSize, splitLvl);
 
-  // Parameters at the origin
-  m_tree->Branch("originMomentum", &m_originMomentum, buf_size, split_lvl);
-  m_tree->Branch("vertex", &m_vertex, buf_size, split_lvl);
-  m_tree->Branch("onSurfaceMomentum", &m_onSurfaceMomentum, buf_size,
-                 split_lvl);
+  // Measurement hits
+  m_tree->Branch("trackHitsGlobal", &m_trackHitsGlobal, bufSize, splitLvl);
+  m_tree->Branch("trackHitsLocal", &m_trackHitsLocal, bufSize, splitLvl);
+  m_tree->Branch("eventId", &m_eventId, bufSize, splitLvl);
+  m_tree->Branch("charge", &m_charge, bufSize, splitLvl);
+  m_tree->Branch("pdgId", &m_pdgId, bufSize, splitLvl);
+
+  // Bound origin parameters
+  m_tree->Branch("boundTrackParameters", &m_boundTrackParameters, bufSize,
+                 splitLvl);
+  m_tree->Branch("boundTrackCov", &m_boundTrackCov, bufSize, splitLvl);
+
+  // Origin momentum
+  m_tree->Branch("originMomentum", &m_originMomentum, bufSize, splitLvl);
+
+  // Origin vertex
+  m_tree->Branch("vertex", &m_vertex, bufSize, splitLvl);
+
+  // Momentum at clusters
+  m_tree->Branch("onSurfaceMomentum", &m_onSurfaceMomentum, bufSize, splitLvl);
 
   // Track ID
-  m_tree->Branch("trackId", &m_trackId, buf_size, split_lvl);
-  m_tree->Branch("parentTrackId", &m_parentTrackId, buf_size, split_lvl);
-  m_tree->Branch("runId", &m_runId, buf_size, split_lvl);
+  m_tree->Branch("trackId", &m_trackId, bufSize, splitLvl);
+  m_tree->Branch("parentTrackId", &m_parentTrackId, bufSize, splitLvl);
+  m_tree->Branch("runId", &m_runId, bufSize, splitLvl);
 
   // Misc
   m_tree->Branch("isSignal", &m_isSignal, "isSignal/I");
@@ -83,109 +93,127 @@ ProcessCode RootSimClusterWriter::write(const AlgorithmContext& ctx) {
   for (const auto& cluster : inputClusters) {
     const auto& clusterSsl = cluster.sourceLink;
 
-    m_geoCenterGlobal = TVector3(clusterSsl.parametersGlob().x(),
-                                 clusterSsl.parametersGlob().y(),
-                                 clusterSsl.parametersGlob().z());
-    m_geoCenterLocal = TVector2(clusterSsl.parametersLoc().x(),
-                                clusterSsl.parametersLoc().y());
+    const Acts::Vector3& clusterParsGlob = clusterSsl.parametersGlob();
+    const Acts::Vector2& clusterParsLoc = clusterSsl.parametersLoc();
+    m_geoCenterGlobal =
+        TVector3(clusterParsGlob.x(), clusterParsGlob.y(), clusterParsGlob.z());
+    m_geoCenterLocal = TVector2(clusterParsLoc.x(), clusterParsLoc.y());
     m_geoId = clusterSsl.geometryId().sensitive();
     m_eventId = ctx.eventNumber;
 
-    TArrayD data(4);
+    m_isSignal = cluster.isSignal;
+
+    TArrayD clusterCovData(4);
     for (std::size_t i = 0; i < 4; i++) {
-      data[i] = clusterSsl.covariance()(i);
+      clusterCovData[i] = clusterSsl.covariance()(i);
     }
-    m_cov.Use(2, 2, data.GetArray());
+    m_clusterCov.Use(2, 2, clusterCovData.GetArray());
 
-    std::vector<TVector3> trackHitsGlobal;
-    trackHitsGlobal.reserve(cluster.truthHits.size());
+    std::size_t truthHitsSize = cluster.truthHits.size();
+    m_trackHitsGlobal.clear();
+    m_trackHitsGlobal.reserve(truthHitsSize);
 
-    std::vector<TVector2> trackHitsLocal;
-    trackHitsLocal.reserve(cluster.truthHits.size());
+    m_trackHitsLocal.clear();
+    m_trackHitsLocal.reserve(truthHitsSize);
 
-    std::vector<int> trackId;
-    trackId.reserve(cluster.truthHits.size());
+    m_trackId.clear();
+    m_trackId.reserve(truthHitsSize);
 
-    std::vector<int> parentTrackId;
-    parentTrackId.reserve(cluster.truthHits.size());
+    m_parentTrackId.clear();
+    m_parentTrackId.reserve(truthHitsSize);
 
-    std::vector<int> runId;
-    runId.reserve(cluster.truthHits.size());
+    m_runId.clear();
+    m_runId.reserve(truthHitsSize);
 
-    std::vector<int> charge;
-    charge.reserve(cluster.truthHits.size());
+    m_charge.clear();
+    m_charge.reserve(truthHitsSize);
 
-    std::vector<int> pdgId;
-    pdgId.reserve(cluster.truthHits.size());
+    m_pdgId.clear();
+    m_pdgId.reserve(truthHitsSize);
 
-    std::vector<TLorentzVector> momenta;
-    momenta.reserve(cluster.truthHits.size());
+    m_boundTrackParameters.clear();
+    m_boundTrackParameters.reserve(truthHitsSize);
 
-    std::vector<TLorentzVector> originMomenta;
-    originMomenta.reserve(cluster.truthHits.size());
+    m_boundTrackCov.clear();
+    m_boundTrackCov.reserve(truthHitsSize);
 
-    std::vector<TVector3> vertices;
-    vertices.reserve(cluster.truthHits.size());
+    m_originMomentum.clear();
+    m_originMomentum.reserve(truthHitsSize);
 
-    std::vector<TLorentzVector> onSurfaceMomenta;
-    onSurfaceMomenta.reserve(cluster.truthHits.size());
+    m_vertex.clear();
+    m_vertex.reserve(truthHitsSize);
+
+    m_onSurfaceMomentum.clear();
+    m_onSurfaceMomentum.reserve(truthHitsSize);
 
     for (const auto& hit : cluster.truthHits) {
-      trackHitsLocal.push_back(TVector2(hit.truthParameters[Acts::eBoundLoc0],
-                                        hit.truthParameters[Acts::eBoundLoc1]));
+      const Acts::BoundVector& hitTruthPars = hit.truthParameters;
+      m_trackHitsLocal.push_back(TVector2(hitTruthPars[Acts::eBoundLoc0],
+                                          hitTruthPars[Acts::eBoundLoc1]));
 
-      Acts::Vector3 trackHitGlobal = hit.globalPosition;
+      const Acts::Vector3& trackHitGlobal = hit.globalPosition;
 
-      trackHitsGlobal.push_back(
+      m_trackHitsGlobal.push_back(
           TVector3(trackHitGlobal.x(), trackHitGlobal.y(), trackHitGlobal.z()));
 
-      trackId.push_back(hit.trackId);
-      parentTrackId.push_back(hit.parentTrackId);
-      runId.push_back(hit.runId);
+      m_trackId.push_back(hit.trackId);
+      m_parentTrackId.push_back(hit.parentTrackId);
+      m_runId.push_back(hit.runId);
 
-      charge.push_back(hit.ipParameters.charge());
-      pdgId.push_back(hit.ipParameters.particleHypothesis().absolutePdg());
+      m_charge.push_back(hit.ipParameters.charge());
+      m_pdgId.push_back(hit.ipParameters.particleHypothesis().absolutePdg());
 
-      TLorentzVector originMom;
-      originMom.SetPxPyPzE(
-          hit.ipParameters.momentum().x(), hit.ipParameters.momentum().y(),
-          hit.ipParameters.momentum().z(),
-          std::hypot(hit.ipParameters.absoluteMomentum(),
-                     hit.ipParameters.particleHypothesis().mass()));
-      originMomenta.push_back(originMom);
+      const Acts::CurvilinearTrackParameters& originParameters =
+          hit.ipParameters;
 
-      TVector3 vertex(hit.ipParameters.position().x(),
-                      hit.ipParameters.position().y(),
-                      hit.ipParameters.position().z());
-      vertices.push_back(vertex);
+      // Origin momentum
+      const Acts::Vector3& ipMomentum = originParameters.momentum();
+      double particleMass = originParameters.particleHypothesis().mass();
 
+      TLorentzVector originMomentum;
+      originMomentum.SetPxPyPzE(ipMomentum.x(), ipMomentum.y(), ipMomentum.z(),
+                                std::hypot(ipMomentum.norm(), particleMass));
+      m_originMomentum.push_back(originMomentum);
+
+      // Vertex
+      const auto& ipPosition = originParameters.position(ctx.geoContext);
+      TVector3 vertex(ipPosition.x(), ipPosition.y(), ipPosition.z());
+      m_vertex.push_back(vertex);
+
+      // Bound track parameters
+      Acts::BoundVector boundTrackParameters = originParameters.parameters();
+
+      TVectorD boundTrackParametersVec;
+      TArrayD boundTrackParsData(Acts::eBoundSize);
+      for (std::size_t i = 0; i < Acts::eBoundSize; i++) {
+        boundTrackParsData[i] = boundTrackParameters(i);
+      }
+      boundTrackParametersVec.Use(1, Acts::eBoundSize,
+                                  boundTrackParsData.GetArray());
+      m_boundTrackParameters.push_back(boundTrackParametersVec);
+
+      Acts::BoundMatrix boundTrackCov = originParameters.covariance().value();
+      TMatrixD boundTrackCovMat;
+      TArrayD boundTrackCovData(Acts::eBoundSize * Acts::eBoundSize);
+      for (std::size_t i = 0; i < Acts::eBoundSize * Acts::eBoundSize; i++) {
+        boundTrackCovData[i] = boundTrackCov(i);
+      }
+      boundTrackCovMat.Use(Acts::eBoundSize, Acts::eBoundSize,
+                           boundTrackCovData.GetArray());
+      m_boundTrackCov.push_back(boundTrackCovMat);
+
+      // On surface momentum
       TLorentzVector onSurfaceMom;
-      double onSurfP = std::abs(1. / hit.truthParameters[Acts::eBoundQOverP]);
+      double onSurfP = std::abs(1. / hitTruthPars[Acts::eBoundQOverP]);
       onSurfaceMom.SetPxPyPzE(
-          onSurfP * std::sin(hit.truthParameters[Acts::eBoundTheta]) *
-              std::cos(hit.truthParameters[Acts::eBoundPhi]),
-          onSurfP * std::sin(hit.truthParameters[Acts::eBoundTheta]) *
-              std::sin(hit.truthParameters[Acts::eBoundPhi]),
-          onSurfP * std::cos(hit.truthParameters[Acts::eBoundTheta]),
+          onSurfP * std::sin(hitTruthPars[Acts::eBoundTheta]) *
+              std::cos(hitTruthPars[Acts::eBoundPhi]),
+          onSurfP * std::sin(hitTruthPars[Acts::eBoundTheta]) *
+              std::sin(hitTruthPars[Acts::eBoundPhi]),
+          onSurfP * std::cos(hitTruthPars[Acts::eBoundTheta]),
           std::hypot(onSurfP, hit.ipParameters.particleHypothesis().mass()));
-      onSurfaceMomenta.push_back(onSurfaceMom);
+      m_onSurfaceMomentum.push_back(onSurfaceMom);
     }
-
-    m_trackHitsGlobal = trackHitsGlobal;
-    m_trackHitsLocal = trackHitsLocal;
-
-    m_trackId = trackId;
-    m_parentTrackId = parentTrackId;
-    m_runId = runId;
-
-    m_charge = charge;
-    m_pdgId = pdgId;
-
-    m_originMomentum = originMomenta;
-    m_vertex = vertices;
-    m_onSurfaceMomentum = onSurfaceMomenta;
-
-    m_isSignal = cluster.isSignal;
 
     // Fill the tree
     m_tree->Fill();

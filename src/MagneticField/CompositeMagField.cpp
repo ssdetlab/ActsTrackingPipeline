@@ -14,7 +14,6 @@ Acts::MagneticFieldProvider::Cache CompositeMagField::makeCache(
 
 Acts::Result<Acts::Vector3> CompositeMagField::getField(
     const Acts::Vector3& position, MagneticFieldProvider::Cache& cache) const {
-  (void)cache;
   Acts::Vector3 fieldValue = Acts::Vector3::Zero();
   for (const auto& [extent, field] : m_fieldComponents) {
     if (extent.contains(position)) {

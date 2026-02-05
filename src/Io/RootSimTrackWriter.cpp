@@ -1,9 +1,13 @@
 #include "TrackingPipeline/Io/RootSimTrackWriter.hpp"
 
 #include "Acts/Definitions/Algebra.hpp"
+#include <Acts/Definitions/TrackParametrization.hpp>
+#include <Acts/EventData/TransformationHelpers.hpp>
 
 #include <algorithm>
 #include <ranges>
+
+#include <TVectorDfwd.h>
 
 #include "TrackingPipeline/EventData/SimpleSourceLink.hpp"
 #include "TrackingPipeline/Infrastructure/WriterRegistry.hpp"
@@ -34,7 +38,8 @@ RootSimTrackWriter::RootSimTrackWriter(const Config& config,
                  splitLvl);
   m_tree->Branch("trueTrackHitsLocal", &m_trueTrackHitsLocal, bufSize,
                  splitLvl);
-  m_tree->Branch("onSurfaceMomentum", &m_onSurfaceMomentum, bufSize, splitLvl);
+  m_tree->Branch("onSurfaceMomentumTruth", &m_onSurfaceMomentumTruth, bufSize,
+                 splitLvl);
   m_tree->Branch("isSignal", &m_isSignal, bufSize, splitLvl);
 
   // Measurement hits
@@ -87,18 +92,39 @@ RootSimTrackWriter::RootSimTrackWriter(const Config& config,
   m_tree->Branch("filteredPulls", &m_filteredPulls, bufSize, splitLvl);
   m_tree->Branch("smoothedPulls", &m_smoothedPulls, bufSize, splitLvl);
 
-  // Initial guess of the momentum at the IP
+  /// Guessed bound track parameters
+  m_tree->Branch("boundTrackParametersGuess", &m_boundTrackParametersGuess,
+                 bufSize, splitLvl);
+  m_tree->Branch("boundTrackCovGuess", &m_boundTrackCovGuess, bufSize,
+                 splitLvl);
+
+  /// KF predicted bound track parameters
+  m_tree->Branch("boundTrackParametersEst", &m_boundTrackParametersEst, bufSize,
+                 splitLvl);
+  m_tree->Branch("boundTrackCovEst", &m_boundTrackCovEst, bufSize, splitLvl);
+
+  /// True bound track parameters
+  m_tree->Branch("boundTrackParametersTruth", &m_boundTrackParametersTruth,
+                 bufSize, splitLvl);
+  m_tree->Branch("boundTrackCovTruth", &m_boundTrackCovTruth, bufSize,
+                 splitLvl);
+
+  /// Initial guess of the momentum at the IP
   m_tree->Branch("ipMomentumGuess", &m_ipMomentumGuess, bufSize, splitLvl);
+
+  /// Initial guess of the vertex at the IP
   m_tree->Branch("vertexGuess", &m_vertexGuess, bufSize, splitLvl);
 
-  // KF predicted momentum at the IP
+  /// KF predicted momentum at the IP
   m_tree->Branch("ipMomentumEst", &m_ipMomentumEst, bufSize, splitLvl);
-  m_tree->Branch("ipMomentumError", &m_ipMomentumError, bufSize, splitLvl);
+
+  /// KF predicted vertex at the IP
   m_tree->Branch("vertexEst", &m_vertexEst, bufSize, splitLvl);
-  m_tree->Branch("vertexError", &m_vertexError, bufSize, splitLvl);
 
   // True momentum at the IP
   m_tree->Branch("ipMomentumTruth", &m_ipMomentumTruth, bufSize, splitLvl);
+
+  // True vertex at the IP
   m_tree->Branch("vertexTruth", &m_vertexTruth, bufSize, splitLvl);
 
   // Chi2 and ndf of the fitted track
@@ -178,8 +204,8 @@ ProcessCode RootSimTrackWriter::write(const AlgorithmContext& ctx) {
     m_trueTrackHitsLocal.clear();
     m_trueTrackHitsLocal.reserve(nStates);
 
-    m_onSurfaceMomentum.clear();
-    m_onSurfaceMomentum.reserve(nStates);
+    m_onSurfaceMomentumTruth.clear();
+    m_onSurfaceMomentumTruth.reserve(nStates);
 
     m_isSignal.clear();
     m_isSignal.reserve(nStates);
@@ -268,47 +294,82 @@ ProcessCode RootSimTrackWriter::write(const AlgorithmContext& ctx) {
     m_stateRunId.clear();
     m_stateRunId.reserve(nStates);
 
-    // Guess IP momentum
-    const auto& ipParsGuess = inputTracks.ipParametersGuesses.at(tid);
-    m_ipMomentumGuess.SetPxPyPzE(
-        ipParsGuess.momentum().x(), ipParsGuess.momentum().y(),
-        ipParsGuess.momentum().z(),
-        std::hypot(ipParsGuess.momentum().norm(),
-                   ipParsGuess.particleHypothesis().mass()));
+    // ----------------------------------------------
+    // Guess track parameters
 
-    // Initial guess of the vertex
+    const auto& ipParametersGuess = inputTracks.ipParametersGuesses.at(tid);
+
+    // Guessed IP momentum
+    const auto& ipMomentumGuess = ipParametersGuess.momentum();
+    double particleMass = ipParametersGuess.particleHypothesis().mass();
+    m_ipMomentumGuess.SetPxPyPzE(
+        ipMomentumGuess.x(), ipMomentumGuess.y(), ipMomentumGuess.z(),
+        std::hypot(ipMomentumGuess.norm(), particleMass));
+
+    // Guessed vertex
+    const auto& ipPositionGuess = ipParametersGuess.position(ctx.geoContext);
     m_vertexGuess =
-        TVector3(ipParsGuess.position().x(), ipParsGuess.position().y(),
-                 ipParsGuess.position().z());
+        TVector3(ipPositionGuess.x(), ipPositionGuess.y(), ipPositionGuess.z());
+
+    // Guessed bound track parameters
+    Acts::BoundVector boundTrackParametersGuess =
+        ipParametersGuess.parameters();
+
+    TArrayD boundTrackParsGuessData(Acts::eBoundSize);
+    for (std::size_t i = 0; i < Acts::eBoundSize; i++) {
+      boundTrackParsGuessData[i] = boundTrackParametersGuess(i);
+    }
+    m_boundTrackParametersGuess.Use(0, Acts::eBoundSize,
+                                    boundTrackParsGuessData.GetArray());
+
+    // Guessed bound errors
+    Acts::BoundMatrix boundTrackCovGuess =
+        ipParametersGuess.covariance().value();
+    TArrayD boundTrackCovGuessData(Acts::eBoundSize * Acts::eBoundSize);
+    for (std::size_t i = 0; i < Acts::eBoundSize * Acts::eBoundSize; i++) {
+      boundTrackCovGuessData[i] = boundTrackCovGuess(i);
+    }
+    m_boundTrackCovGuess.Use(Acts::eBoundSize, Acts::eBoundSize,
+                             boundTrackCovGuessData.GetArray());
+
+    // ----------------------------------------------
+    // Estimated track parameters
 
     // Estimated IP momentum
-    Acts::Vector3 pVec = track.momentum();
-    double pMag = pVec.norm();
-    m_ipMomentumEst.SetPxPyPzE(
-        pVec.x(), pVec.y(), pVec.z(),
-        std::hypot(pMag, ipParsGuess.particleHypothesis().mass()));
-
-    // KF predicted IP momentum error
-    m_ipMomentumError =
-        TVector3(std::sqrt(track.covariance().diagonal().head<4>()[2]),
-                 std::sqrt(track.covariance().diagonal().head<4>()[3]), 0);
+    Acts::Vector3 ipMomentumEst = track.momentum();
+    m_ipMomentumEst.SetPxPyPzE(ipMomentumEst.x(), ipMomentumEst.y(),
+                               ipMomentumEst.z(),
+                               std::hypot(ipMomentumEst.norm(), particleMass));
 
     // KF predicted vertex position
     Acts::Vector3 vertexEst = m_cfg.referenceSurface->localToGlobal(
-        ctx.geoContext, {track.loc0(), track.loc1()}, Acts::Vector3::UnitX());
+        ctx.geoContext, {track.loc0(), track.loc1()},
+        ipMomentumEst.normalized());
     m_vertexEst = TVector3(vertexEst.x(), vertexEst.y(), vertexEst.z());
 
-    // KF predicted vertex error
-    Acts::Vector3 vertexError = {
-        std::sqrt(track.covariance().diagonal().head<2>()[0]), 0,
-        std::sqrt(track.covariance().diagonal().head<2>()[1])};
-    m_vertexError = TVector3(vertexError.x(), vertexError.y(), vertexError.z());
+    // KF predicted bound track parameters
+    Acts::BoundVector boundTrackParametersEst = track.parameters();
+    TArrayD boundTrackParsEstData(Acts::eBoundSize);
+    for (std::size_t i = 0; i < Acts::eBoundSize; i++) {
+      boundTrackParsEstData[i] = boundTrackParametersEst(i);
+    }
+    m_boundTrackParametersEst.Use(0, Acts::eBoundSize,
+                                  boundTrackParsEstData.GetArray());
+
+    // KF predicted bound errors
+    Acts::BoundMatrix boundTrackCovEst = track.covariance();
+    TArrayD boundTrackCovEstData(Acts::eBoundSize * Acts::eBoundSize);
+    for (std::size_t i = 0; i < Acts::eBoundSize * Acts::eBoundSize; i++) {
+      boundTrackCovEstData[i] = boundTrackCovEst(i);
+    }
+    m_boundTrackCovEst.Use(Acts::eBoundSize, Acts::eBoundSize,
+                           boundTrackCovEstData.GetArray());
 
     // Get PDG id
-    m_pdgId = ipParsGuess.particleHypothesis().absolutePdg();
+    m_pdgId = ipParametersGuess.particleHypothesis().absolutePdg();
 
     // Get charge
-    m_charge = ipParsGuess.charge();
+    m_charge = ipParametersGuess.charge();
 
     // Get DoFs
     m_ndf = track.nDoF();
@@ -328,13 +389,13 @@ ProcessCode RootSimTrackWriter::write(const AlgorithmContext& ctx) {
       auto ssl = state.getUncalibratedSourceLink().get<SimpleSourceLink>();
 
       m_geometryIds.push_back(ssl.geometryId().sensitive());
-      TArrayD data(4);
-      TMatrixD cov(2, 2);
+      TArrayD trackHitCovData(4);
+      TMatrixD trackHitCov(2, 2);
       for (std::size_t i = 0; i < 4; i++) {
-        data[i] = ssl.covariance()(i);
+        trackHitCovData[i] = ssl.covariance()(i);
       }
-      cov.Use(2, 2, data.GetArray());
-      m_trackHitCovs.push_back(cov);
+      trackHitCov.Use(2, 2, trackHitCovData.GetArray());
+      m_trackHitCovs.push_back(trackHitCov);
 
       const auto& cluster = inputTruthClusters.at(ssl.index());
       m_isSignal.push_back(cluster.isSignal);
@@ -346,23 +407,25 @@ ProcessCode RootSimTrackWriter::write(const AlgorithmContext& ctx) {
       if (cluster.truthHits.size() == 0 || !cluster.isSignal) {
         trueHit = ssl.parametersLoc();
         onSurfaceMom.SetPxPyPzE(0, 0, 0, 0);
+        m_onSurfaceMomentumTruth.push_back(onSurfaceMom);
         currentTrackId = std::make_tuple(-1, -1, -1);
       } else {
         auto sig = std::ranges::find_if(cluster.truthHits, [](const auto& hit) {
           return (hit.trackId == 1);
         });
-        trueHit = sig->truthParameters.head<2>();
+        Acts::BoundVector onSurfaceTruthParameters = sig->truthParameters;
+        trueHit = onSurfaceTruthParameters.head<2>();
 
         double onSurfP =
-            std::abs(1. / sig->truthParameters[Acts::eBoundQOverP]);
+            std::abs(1. / onSurfaceTruthParameters[Acts::eBoundQOverP]);
         onSurfaceMom.SetPxPyPzE(
-            onSurfP * std::sin(sig->truthParameters[Acts::eBoundTheta]) *
-                std::cos(sig->truthParameters[Acts::eBoundPhi]),
-            onSurfP * std::sin(sig->truthParameters[Acts::eBoundTheta]) *
-                std::sin(sig->truthParameters[Acts::eBoundPhi]),
-            onSurfP * std::cos(sig->truthParameters[Acts::eBoundTheta]),
-            std::hypot(onSurfP, sig->ipParameters.particleHypothesis().mass()));
-        m_onSurfaceMomentum.push_back(onSurfaceMom);
+            onSurfP * std::sin(onSurfaceTruthParameters[Acts::eBoundTheta]) *
+                std::cos(onSurfaceTruthParameters[Acts::eBoundPhi]),
+            onSurfP * std::sin(onSurfaceTruthParameters[Acts::eBoundTheta]) *
+                std::sin(onSurfaceTruthParameters[Acts::eBoundPhi]),
+            onSurfP * std::cos(onSurfaceTruthParameters[Acts::eBoundTheta]),
+            std::hypot(onSurfP, particleMass));
+        m_onSurfaceMomentumTruth.push_back(onSurfaceMom);
         currentTrackId =
             std::make_tuple(sig->trackId, sig->parentTrackId, sig->runId);
       }
@@ -424,14 +487,14 @@ ProcessCode RootSimTrackWriter::write(const AlgorithmContext& ctx) {
 
       // With respect to truth
       Acts::SquareMatrix2 predictedCovTruth =
-          measurementCov + state.effectiveProjector() *
-                               state.predictedCovariance() *
-                               state.effectiveProjector().transpose();
+          state.effectiveProjector() * state.predictedCovariance() *
+          state.effectiveProjector().transpose();
 
       // With respect to measurement
-      Acts::SquareMatrix2 predictedCov = state.effectiveProjector() *
-                                         state.predictedCovariance() *
-                                         state.effectiveProjector().transpose();
+      Acts::SquareMatrix2 predictedCov =
+          state.effectiveProjector() * state.predictedCovariance() *
+              state.effectiveProjector().transpose() -
+          measurementCov;
 
       // Extract diagonals
       Acts::Vector2 predictedDiagTruth =
@@ -586,7 +649,14 @@ ProcessCode RootSimTrackWriter::write(const AlgorithmContext& ctx) {
           }
         });
     if (std::get<0>(refTrackId->first) == -1) {
+      m_boundTrackParametersTruth = TVectorD(Acts::eBoundSize);
+      m_boundTrackParametersTruth *= 0;
+
+      m_boundTrackCovTruth = TMatrixD(Acts::eBoundSize, Acts::eBoundSize);
+      m_boundTrackCovTruth *= 0;
+
       m_ipMomentumTruth.SetPxPyPzE(0, 0, 0, 0);
+
       m_vertexTruth.SetXYZ(0, 0, 0);
 
       m_trueTrackSize = 0;
@@ -605,16 +675,40 @@ ProcessCode RootSimTrackWriter::write(const AlgorithmContext& ctx) {
             return (id == refTrackId->first);
           });
 
-      const auto& trueIpPars = pivotHit->ipParameters;
-      m_ipMomentumTruth.SetPxPyPzE(
-          trueIpPars.momentum().x(), trueIpPars.momentum().y(),
-          trueIpPars.momentum().z(),
-          std::hypot(trueIpPars.absoluteMomentum(),
-                     trueIpPars.particleHypothesis().mass()));
+      const auto& ipParametersTruth = pivotHit->ipParameters;
 
-      m_vertexTruth.SetXYZ(trueIpPars.position(ctx.geoContext).x(),
-                           trueIpPars.position(ctx.geoContext).y(),
-                           trueIpPars.position(ctx.geoContext).z());
+      // Truth IP momentum
+      const auto& ipMomentumTruth = ipParametersTruth.momentum();
+      double particleMass = ipParametersTruth.particleHypothesis().mass();
+      m_ipMomentumTruth.SetPxPyPzE(
+          ipMomentumTruth.x(), ipMomentumTruth.y(), ipMomentumTruth.z(),
+          std::hypot(ipMomentumTruth.norm(), particleMass));
+
+      // Truth vertex
+      const auto& ipPositionTruth = ipParametersTruth.position(ctx.geoContext);
+      m_vertexTruth = TVector3(ipPositionTruth.x(), ipPositionTruth.y(),
+                               ipPositionTruth.z());
+
+      // Truth bound track parameters
+      Acts::BoundVector boundTrackParametersTruth =
+          ipParametersTruth.parameters();
+
+      TArrayD boundTrackParsTruthData(Acts::eBoundSize);
+      for (std::size_t i = 0; i < Acts::eBoundSize; i++) {
+        boundTrackParsTruthData[i] = boundTrackParametersTruth(i);
+      }
+      m_boundTrackParametersTruth.Use(0, Acts::eBoundSize,
+                                      boundTrackParsTruthData.GetArray());
+
+      // Truth bound errors
+      Acts::BoundMatrix boundTrackCovTruth =
+          ipParametersTruth.covariance().value();
+      TArrayD boundTrackCovTruthData(Acts::eBoundSize * Acts::eBoundSize);
+      for (std::size_t i = 0; i < Acts::eBoundSize * Acts::eBoundSize; i++) {
+        boundTrackCovTruthData[i] = boundTrackCovTruth(i);
+      }
+      m_boundTrackCovTruth.Use(Acts::eBoundSize, Acts::eBoundSize,
+                               boundTrackCovTruthData.GetArray());
 
       // Compute matching degree
       m_trueTrackSize = std::ranges::count(trueTrackIds, refTrackId->first);
