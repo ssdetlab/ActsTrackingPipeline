@@ -13,6 +13,9 @@
 #include "TChain.h"
 #include "TrackingPipeline/Infrastructure/AlgorithmContext.hpp"
 #include "TrackingPipeline/Io/RootUtility.hpp"
+#include "TrackingPipeline/Infrastructure/ReaderRegistry.hpp"
+
+#include <toml.hpp>
 
 RootMaterialTrackReader::RootMaterialTrackReader(const Config& config,
                                                  Acts::Logging::Level level)
@@ -186,4 +189,31 @@ ProcessCode RootMaterialTrackReader::read(const AlgorithmContext& context) {
 
   // Return success flag
   return ProcessCode::SUCCESS;
+}
+
+namespace {
+  struct RootMaterialTrackReaderRegistrar {
+    RootMaterialTrackReaderRegistrar() {
+      using namespace TrackingPipeline;
+
+      ReaderRegistry::instance().registerBuilder(
+          "RootMaterialTrackReader",
+          [](const toml::value& section,
+             const SurfaceMap& /*surfaceMap*/,
+             Acts::Logging::Level logLevel) -> ReaderPtr {
+
+            RootMaterialTrackReader::Config cfg;
+
+            // Fill config from TOML section
+            cfg.fileList = toml::find<std::vector<std::string>>(section, "fileList");
+            cfg.treeName = toml::find<std::string>(section, "material-tracks");
+            cfg.outputMaterialTracks =
+                toml::find<std::string>(section, "material-tracks");
+            cfg.readCachedSurfaceInformation =
+                toml::find_or<bool>(section, "readCachedSurfaceInformation", false);
+
+            return std::make_shared<RootMaterialTrackReader>(cfg, logLevel);
+          });
+    }
+  } _RootMaterialTrackReaderRegistrar;
 }
