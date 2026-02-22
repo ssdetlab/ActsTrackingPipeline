@@ -87,6 +87,11 @@ RootTrackWriter::RootTrackWriter(const Config& config,
   m_tree->Branch("chi2Smoothed", &m_chi2Smoothed, bufSize, splitLvl);
   m_tree->Branch("ndf", &m_ndf, bufSize, splitLvl);
 
+  // Chi2 per degree of freedom
+  m_tree->Branch("chi2PerDoFPredicted", &m_chi2PerDoFPredicted, bufSize, splitLvl); //////////////
+  m_tree->Branch("chi2PerDoFFiltered",  &m_chi2PerDoFFiltered,  bufSize, splitLvl); //////////////
+  m_tree->Branch("chi2PerDoFSmoothed",  &m_chi2PerDoFSmoothed,  bufSize, splitLvl); //////////////
+
   // Track ID
   m_tree->Branch("trackId", &m_trackId, bufSize, splitLvl);
 
@@ -419,6 +424,17 @@ ProcessCode RootTrackWriter::write(const AlgorithmContext& ctx) {
         m_chi2Smoothed += smoothedPull.dot(smoothedPull);
       }
     }
+    ///////////////////////////////////////////////////////////////////////////
+    if (m_ndf > 0) {
+      m_chi2PerDoFPredicted = m_chi2Predicted / static_cast<double>(m_ndf);
+      m_chi2PerDoFFiltered  = m_chi2Filtered  / static_cast<double>(m_ndf);
+      m_chi2PerDoFSmoothed  = m_chi2Smoothed  / static_cast<double>(m_ndf);
+    } else {
+      m_chi2PerDoFPredicted = 0.0;
+      m_chi2PerDoFFiltered  = 0.0;
+      m_chi2PerDoFSmoothed  = 0.0;
+    }
+    ///////////////////////////////////////////////////////////////////////////
 
     // Fill the tree
     m_tree->Fill();

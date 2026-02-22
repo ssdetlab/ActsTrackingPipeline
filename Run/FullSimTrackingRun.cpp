@@ -1,3 +1,5 @@
+#include "TrackingPipeline/Run/FullSimTrackingRun.hpp"
+
 #include "Acts/Definitions/Algebra.hpp"
 #include "Acts/EventData/VectorMultiTrajectory.hpp"
 #include "Acts/EventData/VectorTrackContainer.hpp"
@@ -13,11 +15,16 @@
 #include <cmath>
 #include <filesystem>
 #include <iostream>
+#include <limits>
+#include <map>
 #include <memory>
 #include <string>
+#include <toml.hpp>
+#include <vector>
 
 #include <unistd.h>
 
+#include "TrackingPipeline/Alignment/AlignmentContext.hpp"
 #include "TrackingPipeline/Alignment/detail/AlignmentStoreBuilders.hpp"
 #include "TrackingPipeline/Geometry/E320Geometry.hpp"
 #include "TrackingPipeline/Geometry/E320GeometryConstraints.hpp"
@@ -30,10 +37,15 @@
 #include "TrackingPipeline/TrackFinding/E320SeedingAlgorithm.hpp"
 #include "TrackingPipeline/TrackFinding/HoughTransformSeeder.hpp"
 #include "TrackingPipeline/TrackFitting/KFTrackFittingAlgorithm.hpp"
+#include "TrackingPipeline/EventData/SimpleSourceLink.hpp"
+#include "TrackingPipeline/Io/RootMeasurementWriter.hpp"
+
+using namespace Acts::UnitLiterals;
+namespace ag = E320Geometry;
 
 // Propagator short-hands
 using ActionList = Acts::ActionList<>;
-using AbortList = Acts::AbortList<Acts::EndOfWorldReached>;
+using AbortList  = Acts::AbortList<Acts::EndOfWorldReached>;
 
 using Propagator = Acts::Propagator<Acts::EigenStepper<>,
                                     Acts::Experimental::DetectorNavigator>;
@@ -41,104 +53,245 @@ using PropagatorOptions =
     typename Propagator::template Options<ActionList, AbortList>;
 
 // KF short-hands
-using RecoTrajectory = KFTrackFittingAlgorithm::Trajectory;
+using RecoTrajectory     = KFTrackFittingAlgorithm::Trajectory;
 using RecoTrackContainer = KFTrackFittingAlgorithm::TrackContainer;
-using KF = Acts::KalmanFitter<Propagator, RecoTrajectory>;
-
-using namespace Acts::UnitLiterals;
-
-namespace ag = E320Geometry;
+using KF                 = Acts::KalmanFitter<Propagator, RecoTrajectory>;
 
 std::unique_ptr<const ag::GeometryOptions> ag::GeometryOptions::m_instance =
     nullptr;
 
-int main(int argc, char* argv[]) {
-  int id = std::stoi(argv[1]);
-  std::string dataPath = std::string(argv[2]);
+namespace TrackingPipeline {
 
-  const auto& goInst = *ag::GeometryOptions::instance();
+FullSimTrackingRunConfig parseFullSimTrackingRunConfig(const std::string& path) {
+  auto root = toml::parse(path);
+  FullSimTrackingRunConfig cfg;
+  cfg.root = root;
 
-  // Set the log level
-  Acts::Logging::Level logLevel = Acts::Logging::FATAL;
+  // [MAIN]
+  if (root.contains("MAIN")) {
+    const auto& mainTbl = toml::find(root, "MAIN");
+    cfg.main.logLevel =
+        toml::find_or<std::string>(mainTbl, "log_level", "INFO");
+    cfg.main.outputDir =
+        toml::find_or<std::string>(mainTbl, "output_dir", std::string{});
+  }
 
-  // Dummy context and options
-  Acts::GeometryContext gctx;
+  // [SEQUENCER]
+  if (root.contains("SEQUENCER")) {
+    const auto& seqTbl = toml::find(root, "SEQUENCER");
+    cfg.sequencer.numThreads =
+        toml::find_or<std::size_t>(seqTbl, "num_threads", 1u);
+    cfg.sequencer.skip =
+        toml::find_or<std::size_t>(seqTbl, "skip", 0u);
+    cfg.sequencer.trackFpes =
+        toml::find_or<bool>(seqTbl, "track_fpes", false);
+  }
+
+  // [READER]
+  {
+    const auto& inTbl = toml::find(root, "READER");
+    cfg.reader.clustersDir =
+        toml::find<std::string>(inTbl, "clusters_dir");
+    cfg.reader.treeName =
+        toml::find_or<std::string>(inTbl, "tree_name", "clusters");
+    cfg.reader.minGeoId =
+        toml::find_or<int>(inTbl, "min_geo_id", 10);
+    cfg.reader.maxGeoId =
+        toml::find_or<int>(inTbl, "max_geo_id", 18);
+    cfg.reader.surfaceLocalToGlobal =
+        toml::find_or<bool>(inTbl, "surface_local_to_global", true);
+    cfg.reader.outputSourceLinks =
+        toml::find_or<std::string>(inTbl, "outputSourceLinks", "Measurements");
+    cfg.reader.outputSimClusters =
+        toml::find_or<std::string>(inTbl, "outputSimClusters", "SimClusters");
+  }
+
+  // [ALIGNMENT]
+  if (root.contains("ALIGNMENT")) {
+    const auto& aTbl = toml::find(root, "ALIGNMENT");
+    cfg.alignment.useFile =
+        toml::find_or<bool>(aTbl, "use_file", false);
+    cfg.alignment.filePath =
+        toml::find_or<std::string>(aTbl, "file_path", std::string{});
+    cfg.alignment.treeName =
+        toml::find_or<std::string>(aTbl, "tree_name", "alignment-parameters");
+  }
+
+  // [SEEDING]
+  if (root.contains("SEEDING")) {
+    const auto& sTbl = toml::find(root, "SEEDING");
+    cfg.seeding.inputSourceLinks =
+        toml::find_or<std::string>(sTbl, "input_source_links", "Measurements");
+    cfg.seeding.outputSeeds =
+        toml::find_or<std::string>(sTbl, "output_seeds", "Seeds");
+    cfg.seeding.minLayers =
+        toml::find_or<int>(sTbl, "minLayers", 5);
+    cfg.seeding.maxLayers =
+        toml::find_or<int>(sTbl, "maxLayers", 5);
+    cfg.seeding.beamlineTilt =
+        toml::find_or<double>(sTbl, "beamlineTilt", 0.0);
+
+    double loc0_mm        = toml::find_or<double>(sTbl, "loc0_mm", 10.0);
+    double loc1_mm        = toml::find_or<double>(sTbl, "loc1_mm", 10.0);
+    double phi_deg        = toml::find_or<double>(sTbl, "phi_deg", 10.0);
+    double theta_deg      = toml::find_or<double>(sTbl, "theta_deg", 10.0);
+    double qoverp_GeVinv  = toml::find_or<double>(sTbl, "q_over_p_GeVinv", 1.0);
+    double time_ns        = toml::find_or<double>(sTbl, "time_ns", 25.0);
+    // Convert to Acts units:
+    cfg.seeding.originStdDevLoc0   = loc0_mm   * 1_mm;
+    cfg.seeding.originStdDevLoc1   = loc1_mm   * 1_mm;
+    cfg.seeding.originStdDevPhi    = phi_deg   * 1_degree;
+    cfg.seeding.originStdDevTheta  = theta_deg * 1_degree;
+    cfg.seeding.originStdDevQOverP = qoverp_GeVinv / 1_GeV;
+    cfg.seeding.originStdDevTime   = time_ns   * 1_ns;
+
+    cfg.seeding.X0  = toml::find_or<double>(sTbl, "X0", 21.82);
+    cfg.seeding.rho = toml::find_or<double>(sTbl, "rho", 2.329);
+    cfg.seeding.x   = toml::find_or<double>(sTbl, "x", 25e-4);
+    cfg.seeding.P   = toml::find_or<double>(sTbl, "P", 2500.);
+    cfg.seeding.z   = toml::find_or<double>(sTbl, "z", 1.);
+
+    cfg.seeding.nCellsThetaShort =
+        toml::find_or<int>(sTbl, "n_cells_theta_short", 500);
+    cfg.seeding.nCellsRhoShort =
+        toml::find_or<int>(sTbl, "n_cells_rho_short", 4000);
+    cfg.seeding.nCellsThetaLong =
+        toml::find_or<int>(sTbl, "n_cells_theta_long", 500);
+    cfg.seeding.nCellsRhoLong =
+        toml::find_or<int>(sTbl, "n_cells_rho_long", 4000);
+    cfg.seeding.nGLSIterations =
+        toml::find_or<int>(sTbl, "n_gls_iterations", 2);
+    cfg.seeding.minXCount =
+        toml::find_or<int>(sTbl, "min_x_count", 3);
+    cfg.seeding.minSeedSize =
+        toml::find_or<int>(sTbl, "min_seed_size", 5);
+    cfg.seeding.maxSeedSize =
+        toml::find_or<int>(sTbl, "max_seed_size", 100);
+    cfg.seeding.maxChi2 =
+        toml::find_or<double>(sTbl, "max_chi2", 1e16);
+  }
+
+  // [TRACK_FITTING]
+  if (root.contains("TRACK_FITTING")) {
+    const auto& fTbl = toml::find(root, "TRACK_FITTING");
+    cfg.fitting.maxSteps =
+        toml::find_or<std::size_t>(fTbl, "max_steps", 100000u);
+    cfg.fitting.resolvePassive =
+        toml::find_or<bool>(fTbl, "resolve_passive", false);
+    cfg.fitting.resolveMaterial =
+        toml::find_or<bool>(fTbl, "resolve_material", true);
+    cfg.fitting.resolveSensitive =
+        toml::find_or<bool>(fTbl, "resolve_sensitive", true);
+    cfg.fitting.inputCandidates =
+        toml::find_or<std::string>(fTbl, "input_candidates", "Seeds");
+    cfg.fitting.outputTracks =
+        toml::find_or<std::string>(fTbl, "output_tracks", "Tracks");
+  }
+
+  // [MEASUREMENT_WRITER]
+  if (root.contains("MEASUREMENT_WRITER")) {
+    const auto& mTbl = toml::find(root, "MEASUREMENT_WRITER");
+    cfg.measurementWriter.enable =
+        toml::find_or<bool>(mTbl, "enable", false);
+    cfg.measurementWriter.input =
+        toml::find_or<std::string>(mTbl, "inputMeasurements", "Measurements");
+    cfg.measurementWriter.treeName =
+        toml::find_or<std::string>(mTbl, "treeName", "measurements");
+    cfg.measurementWriter.outputFile =
+        toml::find_or<std::string>(mTbl, "output_file", "measurements.root");
+  }
+
+  // [SEED_WRITER]
+  if (root.contains("SEED_WRITER")) {
+    const auto& sWTbl = toml::find(root, "SEED_WRITER");
+    cfg.seedWriter.enable =
+        toml::find_or<bool>(sWTbl, "enable", false);
+    cfg.seedWriter.inputSeeds =
+        toml::find_or<std::string>(sWTbl, "inputSeeds", "Seeds");
+    cfg.seedWriter.inputTruthClusters =
+        toml::find_or<std::string>(sWTbl, "inputTruthClusters", "SimClusters");
+    cfg.seedWriter.treeName =
+        toml::find_or<std::string>(sWTbl, "treeName", "seeds");
+    cfg.seedWriter.outputFile =
+        toml::find_or<std::string>(sWTbl, "output_file", "seeds-0.root");
+  }
+
+  // [TRACK_WRITER]
+  if (root.contains("TRACK_WRITER")) {
+    const auto& tWTbl = toml::find(root, "TRACK_WRITER");
+    cfg.trackWriter.enable =
+        toml::find_or<bool>(tWTbl, "enable", true);
+    cfg.trackWriter.inputTracks =
+        toml::find_or<std::string>(tWTbl, "inputTracks", "Tracks");
+    cfg.trackWriter.inputSimClusters =
+        toml::find_or<std::string>(tWTbl, "inputSimClusters", "SimClusters");
+    cfg.trackWriter.treeName =
+        toml::find_or<std::string>(tWTbl, "treeName", "fitted-tracks");
+    cfg.trackWriter.outputFile =
+        toml::find_or<std::string>(tWTbl, "output_file", "fitted-tracks-0.root");
+  }
+
+  return cfg;
+}
+
+Acts::Logging::Level getLogLevel(const std::string& levelStr) {
+  if (levelStr == "VERBOSE") return Acts::Logging::VERBOSE;
+  if (levelStr == "DEBUG")   return Acts::Logging::DEBUG;
+  if (levelStr == "INFO")    return Acts::Logging::INFO;
+  if (levelStr == "WARNING") return Acts::Logging::WARNING;
+  if (levelStr == "ERROR")   return Acts::Logging::ERROR;
+  if (levelStr == "FATAL")   return Acts::Logging::FATAL;
+  return Acts::Logging::INFO;
+}
+
+int runFullSimTracking(const std::string& configPath) {
+  FullSimTrackingRunConfig cfg;
+  try {
+    cfg = parseFullSimTrackingRunConfig(configPath);
+  } catch (const std::exception& e) {
+    std::cerr << "Error parsing FullSimTrackingRun config: " << e.what() << "\n";
+    return 1;
+  }
+
+  Acts::Logging::Level logLevel = getLogLevel(cfg.main.logLevel);
+  const auto& goInst            = *ag::GeometryOptions::instance();
+
+  // Contexts
+  Acts::GeometryContext      gctx;
   Acts::MagneticFieldContext mctx;
-  Acts::CalibrationContext cctx;
+  Acts::CalibrationContext   cctx;
 
-  // --------------------------------------------------------------
-  // Detector setup
-
+  // Detector
   auto detector = E320Geometry::buildDetector(gctx);
 
+  // Surface map for reader
   std::map<Acts::GeometryIdentifier, const Acts::Surface*> surfaceMap;
   for (const auto& vol : detector->volumes()) {
-    std::cout << "------------------------------------------\n";
-    std::cout << vol->name() << "\n";
-    std::cout << vol->extent(gctx);
-    std::cout << "Surfaces:\n";
     for (const auto& surf : vol->surfaces()) {
-      std::cout << surf->geometryId() << "\n";
-      std::cout << surf->center(gctx) << "\n";
-      std::cout << surf->polyhedronRepresentation(gctx, 1000).extent() << "\n";
       if (surf->geometryId().sensitive()) {
         surfaceMap[surf->geometryId()] = surf;
       }
     }
   }
 
-  auto aStore = detail::makeAlignmentStore(gctx, detector.get());
+  // Alignment store: from file or built
+  std::shared_ptr<AlignmentContext::AlignmentStore> aStore;
+  if (cfg.alignment.useFile && !cfg.alignment.filePath.empty()) {
+    AlignmentParametersProvider::Config alignmentProviderCfg;
+    alignmentProviderCfg.filePath = cfg.alignment.filePath;
+    alignmentProviderCfg.treeName = cfg.alignment.treeName;
+    AlignmentParametersProvider alignmentProvider(alignmentProviderCfg);
+    aStore = alignmentProvider.getAlignmentStore();
+  } else {
+    aStore = detail::makeAlignmentStore(gctx, detector.get());
+  }
 
-  // AlignmentParametersProvider::Config alignmentProviderCfg;
-  // alignmentProviderCfg.filePath =
-  //     "/home/romanurmanov/work/E320/E320Prototype/E320Prototype_analysis/sim/"
-  //     "alignment/global/aligned/"
-  //     "alignment-parameters.root";
-  // alignmentProviderCfg.treeName = "alignment-parameters";
-  // AlignmentParametersProvider alignmentProvider(alignmentProviderCfg);
-  // auto aStore = alignmentProvider.getAlignmentStore();
+  AlignmentContext alignCtx(aStore);
+  gctx = Acts::GeometryContext{alignCtx};
 
-  // AlignmentContext alignCtx(aStore);
-  // Acts::GeometryContext testCtx{alignCtx};
-  // for (auto& v : detector->volumes()) {
-  //   for (auto& s : v->surfaces()) {
-  //     if (s->geometryId().sensitive()) {
-  //       std::cout << "-----------------------------------\n";
-  //       std::cout << "SURFACE " << s->geometryId() << "\n";
-  //       std::cout << "CENTER " << s->center(testCtx).transpose() << " -- "
-  //                 << s->center(Acts::GeometryContext()).transpose() << "\n";
-  //       std::cout << "NORMAL "
-  //                 << s->normal(testCtx, s->center(testCtx),
-  //                              Acts::Vector3::UnitY())
-  //                        .transpose()
-  //                 << " -- "
-  //                 << s->normal(testCtx, s->center(Acts::GeometryContext()),
-  //                              Acts::Vector3::UnitY())
-  //                        .transpose()
-  //                 << "\n";
-  //       std::cout << "ROTATION \n"
-  //                 << s->transform(testCtx).rotation() << " -- \n"
-  //                 << "\n"
-  //                 << s->transform(Acts::GeometryContext()).rotation() << "\n";
-
-  //       std::cout << "EXTENT "
-  //                 << s->polyhedronRepresentation(testCtx, 1000).extent()
-  //                 << "\n -- \n"
-  //                 << s->polyhedronRepresentation(Acts::GeometryContext(),
-  //                 1000)
-  //                        .extent()
-  //                 << "\n";
-  //     }
-  //   }
-  // }
-  // gctx = Acts::GeometryContext{alignCtx};
-
-  // --------------------------------------------------------------
-  // The magnetic field setup
-
+  // Magnetic field
   auto field = E320Geometry::buildMagField(gctx);
 
-  // --------------------------------------------------------------
   // Reference surfaces
   double halfX = std::numeric_limits<double>::max();
   double halfY = std::numeric_limits<double>::max();
@@ -170,11 +323,6 @@ int main(int argc, char* argv[]) {
 
   Acts::Transform3 trackingRefSurfTransform = Acts::Transform3::Identity();
   trackingRefSurfTransform.translation() =
-      // Acts::Vector3(0, 0, 0);
-      // Acts::Vector3(goInst.bpm3CenterPrimary, 0, 0);
-      // Acts::Vector3(goInst.ipTcDistance + 2 * goInst.tcHalfPrimary + 0.1_mm,
-      // 0,
-      //               0);
       Acts::Vector3(
           goInst.dipoleCenterPrimary + goInst.dipoleHalfPrimary + 0.01_mm, 0,
           0);
@@ -194,110 +342,98 @@ int main(int argc, char* argv[]) {
   // Event reading
   SimpleSourceLink::SurfaceAccessor surfaceAccessor{detector.get()};
 
-  // Setup the sequencer
   Sequencer::Config seqCfg;
-  // seqCfg.events = 2e5;
-  // seqCfg.skip = 1;
-  seqCfg.numThreads = 1;
-  seqCfg.trackFpes = false;
-  seqCfg.logLevel = logLevel;
+  seqCfg.numThreads = cfg.sequencer.numThreads;
+  seqCfg.skip       = cfg.sequencer.skip;
+  seqCfg.trackFpes  = cfg.sequencer.trackFpes;
+  seqCfg.logLevel   = logLevel;
   Sequencer sequencer(seqCfg);
 
   sequencer.addContextDecorator(
       std::make_shared<GeometryContextDecorator>(aStore));
 
-  // Add the sim data reader
+  // Sim data reader
   RootSimClusterReader::Config readerCfg;
-  readerCfg.outputSourceLinks = "Measurements";
-  readerCfg.outputSimClusters = "SimClusters";
-  readerCfg.treeName = "clusters";
-  readerCfg.minGeoId = 10;
-  readerCfg.maxGeoId = 18;
-  readerCfg.surfaceLocalToGlobal = true;
-  readerCfg.surfaceMap = surfaceMap;
-  readerCfg.filePaths = {dataPath};
+  readerCfg.outputSourceLinks    = cfg.reader.outputSourceLinks;
+  readerCfg.outputSimClusters    = cfg.reader.outputSimClusters;
+  readerCfg.treeName             = cfg.reader.treeName;
+  readerCfg.minGeoId             = cfg.reader.minGeoId;
+  readerCfg.maxGeoId             = cfg.reader.maxGeoId;
+  readerCfg.surfaceLocalToGlobal = cfg.reader.surfaceLocalToGlobal;
+  readerCfg.surfaceMap           = surfaceMap;
 
-  // std::string pathToDir =
-  //     "/home/romanurmanov/work/E320/E320Prototype/"
-  //     "E320Prototype_dataInRootFormat/sim/alignment/local";
+  for (const auto& entry :
+       std::filesystem::directory_iterator(cfg.reader.clustersDir)) {
+    if (!entry.is_regular_file() || entry.path().extension() != ".root") {
+      continue;
+    }
+    readerCfg.filePaths.push_back(entry.path().string());
+  }
 
-  // // Get the paths to the files in the directory
-  // for (const auto& entry : std::filesystem::directory_iterator(pathToDir)) {
-  //   if (!entry.is_regular_file() || entry.path().extension() != ".root") {
-  //     continue;
-  //   }
-  //   std::string pathToFile = entry.path();
-  //   readerCfg.filePaths.push_back(pathToFile);
-  // }
-
-  // Add the reader to the sequencer
   sequencer.addReader(
       std::make_shared<RootSimClusterReader>(readerCfg, logLevel));
 
   // --------------------------------------------------------------
   // HT seeding setup
+  double X0  = cfg.seeding.X0;
+  double rho = cfg.seeding.rho;
+  double x   = cfg.seeding.x;
+  double P   = cfg.seeding.P;
+  double z   = cfg.seeding.z;
 
-  double X0 = 21.82;   // [g / cm2]
-  double rho = 2.329;  // [g / cm3]
-  double x = 25e-4;    // [cm]
-  double P = 2500;     // [MeV]
-  double z = 1;
-
-  double t = rho * x;  // [g / cm2]
+  double t        = rho * x;  // [g / cm2]
   double thetaRms = 13.6 / P * z * std::sqrt(t / X0) *
                     (1 + 0.038 * std::log(t * z * z / (X0)));
 
   HoughTransformSeeder::Config htSeederCfg;
   htSeederCfg.boundBoxHalfPrimary = goInst.tcHalfPrimary;
-  htSeederCfg.boundBoxHalfLong = goInst.tcHalfLong;
-  htSeederCfg.boundBoxHalfShort = goInst.tcHalfShort;
+  htSeederCfg.boundBoxHalfLong    = goInst.tcHalfLong;
+  htSeederCfg.boundBoxHalfShort   = goInst.tcHalfShort;
 
-  htSeederCfg.nCellsThetaShort = 500;
-  htSeederCfg.nCellsRhoShort = 4000;
-
-  htSeederCfg.nCellsThetaLong = 500;
-  htSeederCfg.nCellsRhoLong = 4000;
-
-  htSeederCfg.nGLSIterations = 2;
+  htSeederCfg.nCellsThetaShort = cfg.seeding.nCellsThetaShort;
+  htSeederCfg.nCellsRhoShort   = cfg.seeding.nCellsRhoShort;
+  htSeederCfg.nCellsThetaLong  = cfg.seeding.nCellsThetaLong;
+  htSeederCfg.nCellsRhoLong    = cfg.seeding.nCellsRhoLong;
+  htSeederCfg.nGLSIterations   = cfg.seeding.nGLSIterations;
 
   htSeederCfg.primaryIdx = goInst.primaryIdx;
-  htSeederCfg.longIdx = goInst.longIdx;
-  htSeederCfg.shortIdx = goInst.shortIdx;
+  htSeederCfg.longIdx    = goInst.longIdx;
+  htSeederCfg.shortIdx   = goInst.shortIdx;
 
   HoughTransformSeeder::Options htSeederOpt;
   htSeederOpt.boundBoxCenterPrimary = goInst.tcCenterPrimary;
-  htSeederOpt.boundBoxCenterLong = goInst.tcCenterLong;
-  htSeederOpt.boundBoxCenterShort = goInst.tcCenterShort;
+  htSeederOpt.boundBoxCenterLong    = goInst.tcCenterLong;
+  htSeederOpt.boundBoxCenterShort   = goInst.tcCenterShort;
 
   htSeederOpt.firstLayerId = goInst.tcParameters.front().geoId;
-  htSeederOpt.lastLayerId = goInst.tcParameters.back().geoId;
-  htSeederOpt.nLayers = goInst.tcParameters.size();
+  htSeederOpt.lastLayerId  = goInst.tcParameters.back().geoId;
+  htSeederOpt.nLayers      = goInst.tcParameters.size();
 
-  htSeederOpt.minXCount = 3;
-  htSeederOpt.minSeedSize = 5;
-  htSeederOpt.maxSeedSize = 100;
+  htSeederOpt.minXCount   = cfg.seeding.minXCount;
+  htSeederOpt.minSeedSize = cfg.seeding.minSeedSize;
+  htSeederOpt.maxSeedSize = cfg.seeding.maxSeedSize;
 
   htSeederOpt.primaryInterchipDistance = goInst.interChipDistance;
-  htSeederOpt.thetaRms = thetaRms;
-  htSeederOpt.maxChi2 = 1e16;
+  htSeederOpt.thetaRms                 = thetaRms;
+  htSeederOpt.maxChi2                  = cfg.seeding.maxChi2;
 
   E320SeedingAlgorithm::Config seedingAlgoCfg;
   seedingAlgoCfg.htSeeder = std::make_shared<HoughTransformSeeder>(htSeederCfg);
-  seedingAlgoCfg.htOptions = htSeederOpt;
-  seedingAlgoCfg.inputSourceLinks = "Measurements";
-  seedingAlgoCfg.outputSeeds = "Seeds";
-  seedingAlgoCfg.minLayers = 5;
-  seedingAlgoCfg.maxLayers = 5;
-  seedingAlgoCfg.beamlineTilt = 0;
+  seedingAlgoCfg.htOptions        = htSeederOpt;
+  seedingAlgoCfg.inputSourceLinks = cfg.seeding.inputSourceLinks;
+  seedingAlgoCfg.outputSeeds      = cfg.seeding.outputSeeds;
+  seedingAlgoCfg.minLayers        = cfg.seeding.minLayers;
+  seedingAlgoCfg.maxLayers        = cfg.seeding.maxLayers;
+  seedingAlgoCfg.beamlineTilt     = cfg.seeding.beamlineTilt;
   seedingAlgoCfg.referenceSurface = seedingRefSurface.get();
 
   Acts::BoundVector trackOriginStdDevPrior;
-  trackOriginStdDevPrior[Acts::eBoundLoc0] = 10_mm;
-  trackOriginStdDevPrior[Acts::eBoundLoc1] = 10_mm;
-  trackOriginStdDevPrior[Acts::eBoundTime] = 25_ns;
-  trackOriginStdDevPrior[Acts::eBoundPhi] = 10_degree;
-  trackOriginStdDevPrior[Acts::eBoundTheta] = 10_degree;
-  trackOriginStdDevPrior[Acts::eBoundQOverP] = 1 / 1_GeV;
+  trackOriginStdDevPrior[Acts::eBoundLoc0]   = cfg.seeding.originStdDevLoc0;
+  trackOriginStdDevPrior[Acts::eBoundLoc1]   = cfg.seeding.originStdDevLoc1;
+  trackOriginStdDevPrior[Acts::eBoundTime]   = cfg.seeding.originStdDevTime;
+  trackOriginStdDevPrior[Acts::eBoundPhi]    = cfg.seeding.originStdDevPhi;
+  trackOriginStdDevPrior[Acts::eBoundTheta]  = cfg.seeding.originStdDevTheta;
+  trackOriginStdDevPrior[Acts::eBoundQOverP] = cfg.seeding.originStdDevQOverP;
   seedingAlgoCfg.originCov =
       trackOriginStdDevPrior.cwiseProduct(trackOriginStdDevPrior).asDiagonal();
 
@@ -306,43 +442,35 @@ int main(int argc, char* argv[]) {
 
   // --------------------------------------------------------------
   // Track fitting
-
-  Acts::GainMatrixUpdater kfUpdater;
+  Acts::GainMatrixUpdater  kfUpdater;
   Acts::GainMatrixSmoother kfSmoother;
 
-  // Initialize track fitter options
   Acts::KalmanFitterExtensions<RecoTrajectory> extensions;
-  // Add calibrator
   extensions.calibrator.connect<&simpleSourceLinkCalibrator<RecoTrajectory>>();
-  // Add the updater
   extensions.updater
       .connect<&Acts::GainMatrixUpdater::operator()<RecoTrajectory>>(
           &kfUpdater);
-  // Add the smoother
   extensions.smoother
       .connect<&Acts::GainMatrixSmoother::operator()<RecoTrajectory>>(
           &kfSmoother);
-  // Add the surface accessor
   extensions.surfaceAccessor
       .connect<&SimpleSourceLink::SurfaceAccessor::operator()>(
           &surfaceAccessor);
 
   auto propOptions = PropagatorOptions(gctx, mctx);
-
-  propOptions.maxSteps = 1e5;
+  propOptions.maxSteps = cfg.fitting.maxSteps;
 
   auto options =
       Acts::KalmanFitterOptions(gctx, mctx, cctx, extensions, propOptions);
-
   options.referenceSurface = trackingRefSurface.get();
 
-  Acts::Experimental::DetectorNavigator::Config cfg;
-  cfg.detector = detector.get();
-  cfg.resolvePassive = false;
-  cfg.resolveMaterial = true;
-  cfg.resolveSensitive = true;
+  Acts::Experimental::DetectorNavigator::Config navCfg;
+  navCfg.detector         = detector.get();
+  navCfg.resolvePassive   = cfg.fitting.resolvePassive;
+  navCfg.resolveMaterial  = cfg.fitting.resolveMaterial;
+  navCfg.resolveSensitive = cfg.fitting.resolveSensitive;
   Acts::Experimental::DetectorNavigator kfNavigator(
-      cfg, Acts::getDefaultLogger("DetectorNavigator", logLevel));
+      navCfg, Acts::getDefaultLogger("DetectorNavigator", logLevel));
 
   Acts::EigenStepper<> kfStepper(std::move(field));
   auto kfPropagator =
@@ -352,47 +480,77 @@ int main(int argc, char* argv[]) {
   const auto fitter = KF(
       kfPropagator, Acts::getDefaultLogger("DetectorKalmanFilter", logLevel));
 
-  // Add the track fitting algorithm to the sequencer
-  KFTrackFittingAlgorithm::Config fitterCfg{.inputTrackCandidates = "Seeds",
-                                            .outputTracks = "Tracks",
-                                            .fitter = fitter,
-                                            .kfOptions = options};
+  KFTrackFittingAlgorithm::Config fitterCfg{
+      .inputTrackCandidates = cfg.fitting.inputCandidates,
+      .outputTracks         = cfg.fitting.outputTracks,
+      .fitter               = fitter,
+      .kfOptions            = options};
 
   sequencer.addAlgorithm(
       std::make_shared<KFTrackFittingAlgorithm>(fitterCfg, logLevel));
 
   // --------------------------------------------------------------
-  // Event write out
+  // Writers
+  std::filesystem::path outDir(cfg.main.outputDir);
+  try {
+    std::filesystem::create_directories(outDir);
+  } catch (const std::exception& e) {
+    std::cerr << "Error creating output directory '" << outDir.string()
+              << "': " << e.what() << "\n";
+    return 1;
+  }
+
+  // Optional measurement writer (usually off for sim)
+  if (cfg.measurementWriter.enable) {
+    auto measurementWriterCfg = RootMeasurementWriter::Config();
+    measurementWriterCfg.inputMeasurements = cfg.measurementWriter.input;
+    measurementWriterCfg.treeName          = cfg.measurementWriter.treeName;
+    measurementWriterCfg.filePath =
+        (outDir / cfg.measurementWriter.outputFile).string();
+    sequencer.addWriter(
+        std::make_shared<RootMeasurementWriter>(measurementWriterCfg, logLevel));
+  }
 
   // Seed writer
-  auto seedWriterCfg = RootSimSeedWriter::Config();
-  seedWriterCfg.inputSeeds = "Seeds";
-  seedWriterCfg.inputTruthClusters = "SimClusters";
-  seedWriterCfg.treeName = "seeds";
-  seedWriterCfg.filePath =
-      "/home/romanurmanov/work/E320/E320Prototype/E320Prototype_analysis/sim/"
-      "seeds-" +
-      std::to_string(id) + ".root";
+  if (cfg.seedWriter.enable) {
+    auto seedWriterCfg = RootSimSeedWriter::Config();
+    seedWriterCfg.inputSeeds         = cfg.seedWriter.inputSeeds;
+    seedWriterCfg.inputTruthClusters = cfg.seedWriter.inputTruthClusters;
+    seedWriterCfg.treeName           = cfg.seedWriter.treeName;
+    seedWriterCfg.filePath           =
+        (outDir / cfg.seedWriter.outputFile).string();
 
-  // sequencer.addWriter(
-  //     std::make_shared<RootSimSeedWriter>(seedWriterCfg, logLevel));
+    sequencer.addWriter(
+        std::make_shared<RootSimSeedWriter>(seedWriterCfg, logLevel));
+  }
 
-  // Fitted track writer
-  auto trackWriterCfg = RootSimTrackWriter::Config();
-  trackWriterCfg.surfaceAccessor
-      .connect<&SimpleSourceLink::SurfaceAccessor::operator()>(
-          &surfaceAccessor);
-  trackWriterCfg.referenceSurface = trackingRefSurface.get();
-  trackWriterCfg.inputTracks = "Tracks";
-  trackWriterCfg.inputSimClusters = "SimClusters";
-  trackWriterCfg.treeName = "fitted-tracks";
-  trackWriterCfg.filePath =
-      "/home/romanurmanov/work/E320/E320Prototype/E320Prototype_analysis/sim/"
-      "fitted-tracks-" +
-      std::to_string(id) + ".root";
+  // Track writer
+  if (cfg.trackWriter.enable) {
+    auto trackWriterCfg = RootSimTrackWriter::Config();
+    trackWriterCfg.surfaceAccessor
+        .connect<&SimpleSourceLink::SurfaceAccessor::operator()>(
+            &surfaceAccessor);
+    trackWriterCfg.referenceSurface = trackingRefSurface.get();
+    trackWriterCfg.inputTracks      = cfg.trackWriter.inputTracks;
+    trackWriterCfg.inputSimClusters = cfg.trackWriter.inputSimClusters;
+    trackWriterCfg.treeName         = cfg.trackWriter.treeName;
+    trackWriterCfg.filePath         =
+        (outDir / cfg.trackWriter.outputFile).string();
 
-  sequencer.addWriter(
-      std::make_shared<RootSimTrackWriter>(trackWriterCfg, logLevel));
+    sequencer.addWriter(
+        std::make_shared<RootSimTrackWriter>(trackWriterCfg, logLevel));
+  }
 
   return sequencer.run();
+}
+
+} // namespace TrackingPipeline
+
+int main(int argc, char* argv[]) {
+  if (argc < 2) {
+    std::cerr << "Usage: " << argv[0] << " <FullSimTrackingRun.conf>\n";
+    return 1;
+  }
+  std::string confPath = argv[1];
+  return TrackingPipeline::runFullSimTracking(confPath);
 }

@@ -115,6 +115,11 @@ class RootTrackWriter : public IWriter {
   double m_chi2Filtered;
   double m_chi2Smoothed;
 
+  /// Chi2 per degree of freedom /////////////
+  double m_chi2PerDoFPredicted;
+  double m_chi2PerDoFFiltered;
+  double m_chi2PerDoFSmoothed;
+
   /// Number of degrees of freedom
   /// of the track
   std::size_t m_ndf;

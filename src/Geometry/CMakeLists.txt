@@ -3,5 +3,6 @@ target_sources(
     PRIVATE
     E320Geometry.cpp
     detail/GeometryConstructionUtils.cpp
+    E320GeometryConstraints.cpp
 )
     

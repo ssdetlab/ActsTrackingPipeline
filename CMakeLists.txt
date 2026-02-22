@@ -96,6 +96,8 @@ find_package(
     REQUIRED
 )
 
+find_package(toml11 REQUIRED)
+
 # source files will be added later
 add_library(
     TrackingPipelineCore SHARED "")
@@ -120,6 +122,7 @@ target_link_libraries(
     ActsPluginFpeMonitoring
     ActsAlignment
     eudaq_preprocessor::detector_event
+    toml11::toml11
 )
 
 target_include_directories(

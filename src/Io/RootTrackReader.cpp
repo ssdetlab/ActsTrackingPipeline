@@ -196,18 +196,18 @@ ProcessCode RootTrackReader::read(const AlgorithmContext& ctx) {
   for (auto entry = std::get<1>(*it); entry < std::get<2>(*it); entry++) {
     m_chain->GetEntry(entry);
 
-    if (m_chi2Smoothed < m_cfg.minChi2 || m_chi2Smoothed > m_cfg.maxChi2) {
-      continue;
-    }
-    if (m_vertexEst->Y() < -20_mm || m_vertexEst->Y() > 30_mm) {
-      continue;
-    }
-    if (m_vertexEst->Z() < -40_mm || m_vertexEst->Z() > 40_mm) {
-      continue;
-    }
-    if (m_ipMomentumEst->P() < 1.5_GeV || m_ipMomentumEst->P() > 3_GeV) {
-      continue;
-    }
+    // if (m_chi2Smoothed < m_cfg.minChi2 || m_chi2Smoothed > m_cfg.maxChi2) {
+    //   continue;
+    // }
+    // if (m_vertexEst->Y() < -20_mm || m_vertexEst->Y() > 30_mm) {
+    //   continue;
+    // }
+    // if (m_vertexEst->Z() < -40_mm || m_vertexEst->Z() > 40_mm) {
+    //   continue;
+    // }
+    // if (m_ipMomentumEst->P() < 1.5_GeV || m_ipMomentumEst->P() > 3_GeV) {
+    //   continue;
+    // }
 
     Acts::BoundMatrix ipCovGuess;
     Acts::BoundMatrix ipCovEst;
