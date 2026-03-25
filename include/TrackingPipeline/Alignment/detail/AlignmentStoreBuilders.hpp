@@ -7,15 +7,15 @@
 
 #include <unistd.h>
 
-#include "TrackingPipeline/Alignment/AlignmentContext.hpp"
+#include "TrackingPipeline/Alignment/AlignmentStore.hpp"
 
 namespace detail {
 
-std::shared_ptr<AlignmentContext::AlignmentStore> makeAlignmentStore(
+std::shared_ptr<AlignmentStore> makeAlignmentStore(
     const Acts::GeometryContext& gctx,
     const Acts::Experimental::Detector* detector);
 
-std::shared_ptr<AlignmentContext::AlignmentStore> makeAlignmentStore(
+std::shared_ptr<AlignmentStore> makeAlignmentStore(
     const Acts::GeometryContext& gctx,
     const Acts::Experimental::Detector* detector,
     const Acts::Vector3& globalShift,
@@ -23,7 +23,7 @@ std::shared_ptr<AlignmentContext::AlignmentStore> makeAlignmentStore(
     const Acts::Vector3& globalAngles,
     const std::unordered_map<int, Acts::Vector3>& localAngles);
 
-std::shared_ptr<AlignmentContext::AlignmentStore> makeAlignmentStore(
+std::shared_ptr<AlignmentStore> makeAlignmentStore(
     const Acts::GeometryContext& gctx,
     const Acts::Experimental::Detector* detector,
     const Acts::Vector3& globalShiftMean,

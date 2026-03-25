@@ -21,7 +21,7 @@ Acts::Vector3 computeDetectorCOM(
   Acts::Vector3 com = Acts::Vector3::Zero();
   for (const auto& geoId : geoIds) {
     const auto* surf = detector->findSurface(geoId);
-    com += surf->center(gctx) - com;
+    com += surf->center(gctx);
   }
   com /= geoIds.size();
   return com;
@@ -44,19 +44,19 @@ computeDetectorLeverArms(const Acts::GeometryContext& gctx,
 
 namespace detail {
 
-std::shared_ptr<AlignmentContext::AlignmentStore> makeAlignmentStore(
+std::shared_ptr<AlignmentStore> makeAlignmentStore(
     const Acts::GeometryContext& gctx,
     const Acts::Experimental::Detector* detector) {
-  auto aStore = std::make_shared<AlignmentContext::AlignmentStore>();
+  auto aStore = std::make_shared<AlignmentStore>();
   for (const auto& vol : detector->volumes()) {
     for (const auto& surf : vol->surfaces()) {
-      aStore->emplace(surf->geometryId(), surf->transform(gctx));
+      aStore->store.emplace(surf->geometryId(), surf->transform(gctx));
     }
   }
   return aStore;
 }
 
-std::shared_ptr<AlignmentContext::AlignmentStore> makeAlignmentStore(
+std::shared_ptr<AlignmentStore> makeAlignmentStore(
     const Acts::GeometryContext& gctx,
     const Acts::Experimental::Detector* detector,
     const Acts::Vector3& globalShift,
@@ -78,7 +78,7 @@ std::shared_ptr<AlignmentContext::AlignmentStore> makeAlignmentStore(
   std::unordered_map<Acts::GeometryIdentifier, Acts::Vector3> leverArms =
       computeDetectorLeverArms(gctx, storeIds, detector);
 
-  auto aStore = std::make_shared<AlignmentContext::AlignmentStore>();
+  auto aStore = std::make_shared<AlignmentStore>();
   for (const auto& geoId : storeIds) {
     const auto* surf = detector->findSurface(geoId);
     int id = geoId.sensitive();
@@ -112,12 +112,12 @@ std::shared_ptr<AlignmentContext::AlignmentStore> makeAlignmentStore(
         rigidRotation * nominalRotation * localRotation;
     transform.rotate(rotation);
 
-    aStore->emplace(geoId, transform);
+    aStore->store.emplace(geoId, transform);
   }
   return aStore;
 }
 
-std::shared_ptr<AlignmentContext::AlignmentStore> makeAlignmentStore(
+std::shared_ptr<AlignmentStore> makeAlignmentStore(
     const Acts::GeometryContext& gctx,
     const Acts::Experimental::Detector* detector,
     const Acts::Vector3& globalShiftMean,
@@ -154,7 +154,7 @@ std::shared_ptr<AlignmentContext::AlignmentStore> makeAlignmentStore(
 
   Acts::Vector3 globalShift = globalShiftMean + globalShiftStdErr * normal(rng);
 
-  auto aStore = std::make_shared<AlignmentContext::AlignmentStore>();
+  auto aStore = std::make_shared<AlignmentStore>();
   for (const auto& geoId : storeIds) {
     const auto* surf = detector->findSurface(geoId);
     int id = geoId.sensitive();
@@ -200,7 +200,7 @@ std::shared_ptr<AlignmentContext::AlignmentStore> makeAlignmentStore(
         rigidRotation * nominalRotation * localRotation;
     transform.rotate(rotation);
 
-    aStore->emplace(surf->geometryId(), transform);
+    aStore->store.emplace(surf->geometryId(), transform);
   }
   return aStore;
 }

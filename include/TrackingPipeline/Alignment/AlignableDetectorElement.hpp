@@ -28,8 +28,8 @@ class AlignableDetectorElement : public Acts::DetectorElementBase {
     }
     const auto& store = gctx.get<AlignmentContext&>().alignmentStore();
     const auto& geoId = m_surface->geometryId();
-    if (store.contains(geoId)) {
-      return store.at(geoId);
+    if (store.store.contains(geoId)) {
+      return store.store.at(geoId);
     } else {
       return nominalTransform();
     }

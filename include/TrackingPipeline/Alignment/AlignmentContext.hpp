@@ -1,17 +1,12 @@
 #pragma once
 
-#include "Acts/Definitions/Algebra.hpp"
-#include "Acts/Geometry/GeometryIdentifier.hpp"
-
 #include <memory>
 #include <stdexcept>
-#include <unordered_map>
+
+#include "TrackingPipeline/Alignment/AlignmentStore.hpp"
 
 class AlignmentContext {
  public:
-  using AlignmentStore =
-      std::unordered_map<Acts::GeometryIdentifier, Acts::Transform3>;
-
   /// Default constructor
   AlignmentContext() = delete;
 

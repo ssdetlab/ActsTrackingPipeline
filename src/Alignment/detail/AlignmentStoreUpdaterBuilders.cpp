@@ -35,7 +35,8 @@ ActsAlignment::AlignedTransformUpdater makeGlobalAlignmentUpdater(
         oldRotation;
     newTransform.rotate(newRotation);
 
-    alignCtx.alignmentStore()[element->surface().geometryId()] = newTransform;
+    alignCtx.alignmentStore().store[element->surface().geometryId()] =
+        newTransform;
 
     std::cout << "-----------------------------------\n";
     std::cout << "DELTA ANGLES " << deltaAngles.transpose() << "\n";
@@ -78,7 +79,8 @@ ActsAlignment::AlignedTransformUpdater makeLocalAlignmentUpdater(
             .toRotationMatrix();
     newTransform.rotate(newRotation);
 
-    alignCtx.alignmentStore()[element->surface().geometryId()] = newTransform;
+    alignCtx.alignmentStore().store[element->surface().geometryId()] =
+        newTransform;
 
     std::cout << "-----------------------------------\n";
     std::cout << "DELTA ANGLES " << deltaAngles.transpose() << "\n";
