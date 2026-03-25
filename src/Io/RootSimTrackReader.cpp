@@ -237,13 +237,24 @@ ProcessCode RootSimTrackReader::read(const AlgorithmContext& ctx) {
   Seeds seedsEst{};
   std::size_t eventId = std::get<0>(*it);
   std::size_t sslIdx = 0;
+  const Constraints& constraints = m_cfg.constraints;
   for (auto entry = std::get<1>(*it); entry < std::get<2>(*it); entry++) {
     m_chain->GetEntry(entry);
 
-    if (m_chi2Smoothed < m_cfg.minChi2 || m_chi2Smoothed > m_cfg.maxChi2) {
+    if (m_chi2Smoothed < constraints.minChi2 ||
+        m_chi2Smoothed > constraints.maxChi2) {
       continue;
     }
-    if (m_ipMomentumGuess->P() > 3) {
+    if (m_vertexEst->Y() < constraints.minVertexEstLong ||
+        m_vertexEst->Y() > constraints.maxVertexEstLong) {
+      continue;
+    }
+    if (m_vertexEst->Z() < constraints.minVertexEstShort ||
+        m_vertexEst->Z() > constraints.maxVertexEstShort) {
+      continue;
+    }
+    if (m_ipMomentumEst->P() < constraints.minAbsMomentumEst ||
+        m_ipMomentumEst->P() > constraints.maxAbsMomentumEst) {
       continue;
     }
 

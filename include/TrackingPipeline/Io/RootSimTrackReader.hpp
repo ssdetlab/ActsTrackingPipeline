@@ -19,6 +19,20 @@
 
 class RootSimTrackReader : public IReader {
  public:
+  struct Constraints {
+    double minChi2;
+    double maxChi2;
+
+    double minVertexEstLong;
+    double maxVertexEstLong;
+
+    double minVertexEstShort;
+    double maxVertexEstShort;
+
+    double minAbsMomentumEst;
+    double maxAbsMomentumEst;
+  };
+
   /// @brief The nested configuration struct
   struct Config {
     /// Output source links
@@ -33,9 +47,8 @@ class RootSimTrackReader : public IReader {
     std::vector<std::string> filePaths;
     /// Name of the input tree
     std::string treeName;
-    /// Chi2 cut
-    double minChi2;
-    double maxChi2;
+    /// Cuts
+    Constraints constraints;
     /// Merge into a single event flag
     bool mergeIntoOneEvent;
   };
