@@ -3,14 +3,18 @@
 #include "Acts/Definitions/Algebra.hpp"
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <functional>
 #include <tuple>
+#include <unordered_map>
 #include <vector>
 
 #include <Eigen/src/Core/Matrix.h>
+#include <TFile.h>
+#include <TTree.h>
 #include <omp.h>
 
 #include "TrackingPipeline/EventData/SimpleSourceLink.hpp"
@@ -115,31 +119,62 @@ double HoughTransformSeeder::globalChi2Fit(
 
 std::vector<std::pair<int, int>> HoughTransformSeeder::findLineSourceLinks(
     const std::span<SourceLinkRef> &sourceLinks, const Acts::Vector3 &pointBL,
-    const Acts::Vector3 &dirBL, const Acts::Vector3 &pointTR,
-    const Acts::Vector3 &dirTR, const Acts::Vector3 &shift) const {
+    const Acts::Vector3 &dirBL, const Acts::Vector3 &pointTL,
+    const Acts::Vector3 &dirTL, const Acts::Vector3 &pointBR,
+    const Acts::Vector3 &dirBR, const Acts::Vector3 &pointTR,
+    const Acts::Vector3 &dirTR, const Acts::Vector3 &shift) {
   std::size_t primaryIdx = m_cfg.primaryIdx;
   std::size_t longIdx = m_cfg.longIdx;
   std::size_t shortIdx = m_cfg.shortIdx;
 
   Acts::Vector3 normalPrimary = detail::indexToDirection(primaryIdx);
 
-  std::vector<std::pair<int, int>> seedSlIdxs;
-  for (std::size_t idx = 0; idx < sourceLinks.size(); idx++) {
-    const auto &ssl = sourceLinks[idx].get().get<SimpleSourceLink>();
-    Acts::Vector3 meas = ssl.parametersGlob() - shift;
-
+  std::unordered_map<Acts::GeometryIdentifier, std::array<Acts::Vector3, 4>>
+      geoRefPointMap;
+  for (const auto &[id, x] : m_geoPosMap) {
+    Acts::Vector3 meas(x, 0, 0);
     double ddBL =
         (meas - pointBL).dot(normalPrimary) / dirBL.dot(normalPrimary);
+    double ddTL =
+        (meas - pointTL).dot(normalPrimary) / dirTL.dot(normalPrimary);
+
+    double ddBR =
+        (meas - pointBR).dot(normalPrimary) / dirBR.dot(normalPrimary);
     double ddTR =
         (meas - pointTR).dot(normalPrimary) / dirTR.dot(normalPrimary);
 
     Acts::Vector3 refPointBL = pointBL + dirBL * ddBL;
+    Acts::Vector3 refPointTL = pointTL + dirTL * ddTL;
+
+    Acts::Vector3 refPointBR = pointBR + dirBR * ddBR;
     Acts::Vector3 refPointTR = pointTR + dirTR * ddTR;
 
-    if (meas(longIdx) < std::max(refPointBL(longIdx), refPointTR(longIdx)) &&
-        meas(longIdx) > std::min(refPointBL(longIdx), refPointTR(longIdx)) &&
-        meas(shortIdx) < std::max(refPointBL(shortIdx), refPointTR(shortIdx)) &&
-        meas(shortIdx) > std::min(refPointBL(shortIdx), refPointTR(shortIdx))) {
+    geoRefPointMap[id] = {refPointBL, refPointTL, refPointTR, refPointBR};
+  }
+
+  std::vector<std::pair<int, int>> seedSlIdxs;
+  for (std::size_t idx = 0; idx < sourceLinks.size(); idx++) {
+    const auto &ssl = sourceLinks[idx].get().get<SimpleSourceLink>();
+    Acts::Vector3 meas = ssl.parametersGlob() - shift;
+    const auto &id = ssl.geometryId();
+
+    const Acts::Vector3 &point0 = geoRefPointMap.at(id).at(0);
+    const Acts::Vector3 &point1 = geoRefPointMap.at(id).at(1);
+    const Acts::Vector3 &point2 = geoRefPointMap.at(id).at(2);
+    const Acts::Vector3 &point3 = geoRefPointMap.at(id).at(3);
+
+    double maxLong = std::max(
+        {point0(longIdx), point1(longIdx), point2(longIdx), point3(longIdx)});
+    double minLong = std::min(
+        {point0(longIdx), point1(longIdx), point2(longIdx), point3(longIdx)});
+
+    double maxShort = std::max({point0(shortIdx), point1(shortIdx),
+                                point2(shortIdx), point3(shortIdx)});
+    double minShort = std::min({point0(shortIdx), point1(shortIdx),
+                                point2(shortIdx), point3(shortIdx)});
+
+    if (meas(longIdx) < maxLong && meas(longIdx) > minLong &&
+        meas(shortIdx) < maxShort && meas(shortIdx) > minShort) {
       seedSlIdxs.push_back({idx, ssl.geometryId().sensitive()});
     }
   }
@@ -159,14 +194,15 @@ HoughTransformSeeder::HoughTransformSeeder(const Config &cfg) : m_cfg(cfg) {
                        m_cfg.boundBoxHalfPrimary * std::cos(maxThetaShort));
 
   m_deltaThetaLong = M_PI / m_cfg.nCellsThetaLong;
-  m_deltaRhoLong = m_maxRhoLong / m_cfg.nCellsRhoLong;
+  m_deltaRhoLong = 2 * m_maxRhoLong / m_cfg.nCellsRhoLong;
 
   m_deltaThetaShort = M_PI / m_cfg.nCellsThetaShort;
-  m_deltaRhoShort = m_maxRhoShort / m_cfg.nCellsRhoShort;
+  m_deltaRhoShort = 2 * m_maxRhoShort / m_cfg.nCellsRhoShort;
 }
 
 std::vector<HoughTransformSeeder::HTSeed> HoughTransformSeeder::findSeeds(
-    std::span<SourceLinkRef> sourceLinks, const Options &opt) const {
+    const Acts::GeometryContext &gctx, std::span<SourceLinkRef> sourceLinks,
+    const Options &opt) {
   std::vector<HoughTransformSeeder::HTSeed> seeds;
 
   std::size_t primaryIdx = m_cfg.primaryIdx;
@@ -178,151 +214,194 @@ std::vector<HoughTransformSeeder::HTSeed> HoughTransformSeeder::findSeeds(
   shift(longIdx) = opt.boundBoxCenterLong;
   shift(shortIdx) = opt.boundBoxCenterShort;
 
+  for (const auto &[id, surf] : opt.surfaceMap) {
+    m_geoPosMap.insert({id, (surf->center(gctx) - shift)(primaryIdx)});
+  }
+
   VotingMap votingMap;
   votingMap.reserve(sourceLinks.size());
   fillVotingMap(votingMap, sourceLinks, opt, shift);
 
-  for (std::size_t bIdx = 0; bIdx < votingMap.bucket_count(); ++bIdx) {
-    for (auto bIt = votingMap.begin(bIdx); bIt != votingMap.end(bIdx); ++bIt) {
-      const auto &[cell, count] = *bIt;
-      std::uint16_t lBound = 0;
-      std::uint16_t rBound = 0;
-      if (count < opt.minXCount) {
-        continue;
-      } else {
-        lBound = 2;
-        rBound = 2;
-      }
-      auto [nThetaLong, nRhoLong, nThetaShort, nRhoShort] = cell;
+  for (auto bIt = votingMap.begin(); bIt != votingMap.end(); ++bIt) {
+    const auto &[cell, count] = *bIt;
+    std::uint16_t lBound = 0;
+    std::uint16_t rBound = 0;
+    if (count < opt.minXCount) {
+      continue;
+    } else {
+      lBound = 2;
+      rBound = 2;
+    }
+    auto [nThetaLong, nRhoLong, nThetaShort, nRhoShort] = cell;
 
-      // --------------------------------------------------
-      double thetaLongBL =
-          m_deltaThetaLong * (nThetaLong - lBound + 1) - M_PI_2;
-      double rhoLongBL =
-          m_deltaRhoLong * (nRhoLong - lBound + 1) - m_maxRhoLong / 2.0;
+    // --------------------------------------------------
+    double thetaLongBL = m_deltaThetaLong * nThetaLong - M_PI_2;
+    double rhoLongBL = m_deltaRhoLong * nRhoLong - m_maxRhoLong;
 
-      double thetaShortBL =
-          m_deltaThetaShort * (nThetaShort - lBound + 1) - M_PI_2;
-      double rhoShortBL =
-          m_deltaRhoShort * (nRhoShort - lBound + 1) - m_maxRhoShort / 2.0;
+    double thetaShortBL = m_deltaThetaShort * nThetaShort - M_PI_2;
+    double rhoShortBL = m_deltaRhoShort * nRhoShort - m_maxRhoShort;
 
-      double aLongBL = -1.0 / std::tan(thetaLongBL);
-      double bLongBL = rhoLongBL / std::sin(thetaLongBL);
+    double aLongBL = -1.0 / std::tan(thetaLongBL);
+    double bLongBL = rhoLongBL / std::sin(thetaLongBL);
 
-      double aShortBL = -1.0 / std::tan(thetaShortBL);
-      double bShortBL = rhoShortBL / std::sin(thetaShortBL);
+    double aShortBL = -1.0 / std::tan(thetaShortBL);
+    double bShortBL = rhoShortBL / std::sin(thetaShortBL);
 
-      Acts::Vector3 dirBL;
-      dirBL(primaryIdx) = 1;
-      dirBL(longIdx) = aLongBL;
-      dirBL(shortIdx) = aShortBL;
-      dirBL.normalize();
+    Acts::Vector3 dirBL;
+    dirBL(primaryIdx) = 1;
+    dirBL(longIdx) = aLongBL;
+    dirBL(shortIdx) = aShortBL;
+    dirBL.normalize();
 
-      Acts::Vector3 pointBL;
-      pointBL(primaryIdx) = 0;
-      pointBL(longIdx) = bLongBL;
-      pointBL(shortIdx) = bShortBL;
+    Acts::Vector3 pointBL;
+    pointBL(primaryIdx) = 0;
+    pointBL(longIdx) = bLongBL;
+    pointBL(shortIdx) = bShortBL;
 
-      // --------------------------------------------------
-      double thetaLongTR = m_deltaThetaLong * (nThetaLong + rBound) - M_PI_2;
-      double rhoLongTR =
-          m_deltaRhoLong * (nRhoLong + rBound) - m_maxRhoLong / 2.0;
+    // --------------------------------------------------
+    double thetaLongTL = m_deltaThetaLong * nThetaLong - M_PI_2;
+    double rhoLongTL = m_deltaRhoLong * (nRhoLong + 1) - m_maxRhoLong;
 
-      double thetaShortTR = m_deltaThetaShort * (nThetaShort + rBound) - M_PI_2;
-      double rhoShortTR =
-          m_deltaRhoShort * (nRhoShort + rBound) - m_maxRhoShort / 2.0;
+    double thetaShortTL = m_deltaThetaShort * nThetaShort - M_PI_2;
+    double rhoShortTL = m_deltaRhoShort * (nRhoShort + 1) - m_maxRhoShort;
 
-      double aLongTR = -1.0 / std::tan(thetaLongTR);
-      double bLongTR = rhoLongTR / std::sin(thetaLongTR);
+    double aLongTL = -1.0 / std::tan(thetaLongTL);
+    double bLongTL = rhoLongTL / std::sin(thetaLongTL);
 
-      double aShortTR = -1.0 / std::tan(thetaShortTR);
-      double bShortTR = rhoShortTR / std::sin(thetaShortTR);
+    double aShortTL = -1.0 / std::tan(thetaShortTL);
+    double bShortTL = rhoShortTL / std::sin(thetaShortTL);
 
-      Acts::Vector3 dirTR;
-      dirTR(primaryIdx) = 1;
-      dirTR(longIdx) = aLongTR;
-      dirTR(shortIdx) = aShortTR;
-      dirTR.normalize();
+    Acts::Vector3 dirTL;
+    dirTL(primaryIdx) = 1;
+    dirTL(longIdx) = aLongTL;
+    dirTL(shortIdx) = aShortTL;
+    dirTL.normalize();
 
-      Acts::Vector3 pointTR;
-      pointTR(primaryIdx) = 0;
-      pointTR(longIdx) = bLongTR;
-      pointTR(shortIdx) = bShortTR;
+    Acts::Vector3 pointTL;
+    pointTL(primaryIdx) = 0;
+    pointTL(longIdx) = bLongTL;
+    pointTL(shortIdx) = bShortTL;
 
-      std::vector<std::pair<int, int>> seedSlIdxs = findLineSourceLinks(
-          sourceLinks, pointBL, dirBL, pointTR, dirTR, shift);
-      if (seedSlIdxs.empty()) {
-        continue;
-      }
-      std::size_t slIdxsSize = seedSlIdxs.size();
+    // --------------------------------------------------
+    double thetaLongBR = m_deltaThetaLong * (nThetaLong + 1) - M_PI_2;
+    double rhoLongBR = m_deltaRhoLong * nRhoLong - m_maxRhoLong;
 
-      double thetaLong = m_deltaThetaLong * (nThetaLong + 0.5) - M_PI_2;
-      double rhoLong = m_deltaRhoLong * (nRhoLong + 0.5) - m_maxRhoLong / 2.0;
+    double thetaShortBR = m_deltaThetaShort * (nThetaShort + 1) - M_PI_2;
+    double rhoShortBR = m_deltaRhoShort * nRhoShort - m_maxRhoShort;
 
-      double thetaShort = m_deltaThetaShort * (nThetaShort + 0.5) - M_PI_2;
-      double rhoShort =
-          m_deltaRhoShort * (nRhoShort + 0.5) - m_maxRhoShort / 2.0;
+    double aLongBR = -1.0 / std::tan(thetaLongBR);
+    double bLongBR = rhoLongBR / std::sin(thetaLongBR);
 
-      double aLong = -1.0 / std::tan(thetaLong);
-      double bLong = rhoLong / std::sin(thetaLong);
+    double aShortBR = -1.0 / std::tan(thetaShortBR);
+    double bShortBR = rhoShortBR / std::sin(thetaShortBR);
 
-      double aShort = -1.0 / std::tan(thetaShort);
-      double bShort = rhoShort / std::sin(thetaShort);
+    Acts::Vector3 dirBR;
+    dirBR(primaryIdx) = 1;
+    dirBR(longIdx) = aLongBR;
+    dirBR(shortIdx) = aShortBR;
+    dirBR.normalize();
 
-      Acts::Vector3 dir;
-      dir(primaryIdx) = 1;
-      dir(longIdx) = aLong;
-      dir(shortIdx) = aShort;
-      dir.normalize();
+    Acts::Vector3 pointBR;
+    pointBR(primaryIdx) = 0;
+    pointBR(longIdx) = bLongBR;
+    pointBR(shortIdx) = bShortBR;
 
-      Acts::Vector3 point;
-      point(primaryIdx) = 0;
-      point(longIdx) = bLong;
-      point(primaryIdx) = bShort;
+    // --------------------------------------------------
+    double thetaLongTR = m_deltaThetaLong * (nThetaLong + 1) - M_PI_2;
+    double rhoLongTR = m_deltaRhoLong * (nRhoLong + 1) - m_maxRhoLong;
 
-      std::sort(
-          seedSlIdxs.begin(), seedSlIdxs.end(),
-          [](const auto &a, const auto &b) { return a.second < b.second; });
-      auto rootEndIt = std::find_if(
-          seedSlIdxs.begin(), seedSlIdxs.end(),
-          [&opt](const auto &a) { return (a.second != opt.firstLayerId); });
+    double thetaShortTR = m_deltaThetaShort * (nThetaShort + 1) - M_PI_2;
+    double rhoShortTR = m_deltaRhoShort * (nRhoShort + 1) - m_maxRhoShort;
 
-      // double rc = 0;
-      double chi2 = 0;
-      for (auto it = seedSlIdxs.begin(); it != rootEndIt; it++) {
-        std::vector<int> trackContainer;
-        trackContainer.reserve(opt.minSeedSize);
+    double aLongTR = -1.0 / std::tan(thetaLongTR);
+    double bLongTR = rhoLongTR / std::sin(thetaLongTR);
 
-        std::vector<std::vector<int>> splitSeedSlIdxs;
-        IdxTree idxTree(seedSlIdxs, it, rootEndIt);
-        constructTracks(idxTree.m_root, trackContainer, splitSeedSlIdxs);
-        for (const auto &seed : splitSeedSlIdxs) {
-          if (seed.size() < opt.minSeedSize || seed.size() > opt.maxSeedSize) {
-            continue;
-          }
-          std::vector<Acts::SourceLink> seedSourceLinks;
-          std::vector<SourceLinkRef> seedSourceLinksRefs;
-          seedSourceLinks.reserve(slIdxsSize);
-          seedSourceLinksRefs.reserve(slIdxsSize);
+    double aShortTR = -1.0 / std::tan(thetaShortTR);
+    double bShortTR = rhoShortTR / std::sin(thetaShortTR);
 
-          Acts::Vector3 newDir = dir;
-          Acts::Vector3 newPoint = point;
-          Acts::ActsSquareMatrix<6> newCov;
+    Acts::Vector3 dirTR;
+    dirTR(primaryIdx) = 1;
+    dirTR(longIdx) = aLongTR;
+    dirTR(shortIdx) = aShortTR;
+    dirTR.normalize();
 
-          for (auto idx : seed) {
-            seedSourceLinksRefs.push_back(std::cref(sourceLinks[idx]));
-            seedSourceLinks.push_back(sourceLinks[idx]);
-          }
-          for (std::size_t l = 0; l < m_cfg.nGLSIterations; l++) {
-            chi2 = globalChi2Fit(seedSourceLinksRefs, newPoint, newDir, newCov,
-                                 opt);
-          }
-          if (chi2 > opt.maxChi2) {
-            continue;
-          }
-          seeds.emplace_back(std::move(newPoint), std::move(newDir),
-                             std::move(newCov), std::move(seedSourceLinks));
+    Acts::Vector3 pointTR;
+    pointTR(primaryIdx) = 0;
+    pointTR(longIdx) = bLongTR;
+    pointTR(shortIdx) = bShortTR;
+
+    std::vector<std::pair<int, int>> seedSlIdxs =
+        findLineSourceLinks(sourceLinks, pointBL, dirBL, pointTL, dirTL,
+                            pointBR, dirBR, pointTR, dirTR, shift);
+    if (seedSlIdxs.empty()) {
+      continue;
+    }
+    std::size_t slIdxsSize = seedSlIdxs.size();
+
+    double thetaLong = m_deltaThetaLong * (nThetaLong + 0.5) - M_PI_2;
+    double rhoLong = m_deltaRhoLong * (nRhoLong + 0.5) - m_maxRhoLong;
+
+    double thetaShort = m_deltaThetaShort * (nThetaShort + 0.5) - M_PI_2;
+    double rhoShort = m_deltaRhoShort * (nRhoShort + 0.5) - m_maxRhoShort;
+
+    double aLong = -1.0 / std::tan(thetaLong);
+    double bLong = rhoLong / std::sin(thetaLong);
+
+    double aShort = -1.0 / std::tan(thetaShort);
+    double bShort = rhoShort / std::sin(thetaShort);
+
+    Acts::Vector3 dir;
+    dir(primaryIdx) = 1;
+    dir(longIdx) = aLong;
+    dir(shortIdx) = aShort;
+    dir.normalize();
+
+    Acts::Vector3 point;
+    point(primaryIdx) = 0;
+    point(longIdx) = bLong;
+    point(primaryIdx) = bShort;
+
+    std::sort(seedSlIdxs.begin(), seedSlIdxs.end(),
+              [](const auto &a, const auto &b) { return a.second < b.second; });
+    auto rootEndIt = std::find_if(
+        seedSlIdxs.begin(), seedSlIdxs.end(),
+        [&opt](const auto &a) { return (a.second != opt.firstLayerId); });
+
+    double chi2 = 0;
+    for (auto it = seedSlIdxs.begin(); it != rootEndIt; it++) {
+      std::vector<int> trackContainer;
+      trackContainer.reserve(opt.minSeedSize);
+
+      std::vector<std::vector<int>> splitSeedSlIdxs;
+      IdxTree idxTree(seedSlIdxs, it, rootEndIt);
+      constructTracks(idxTree.m_root, trackContainer, splitSeedSlIdxs);
+      for (const auto &seed : splitSeedSlIdxs) {
+        if (seed.size() < opt.minSeedSize || seed.size() > opt.maxSeedSize) {
+          continue;
         }
+        std::vector<Acts::SourceLink> seedSourceLinks;
+        std::vector<SourceLinkRef> seedSourceLinksRefs;
+        seedSourceLinks.reserve(slIdxsSize);
+        seedSourceLinksRefs.reserve(slIdxsSize);
+
+        Acts::Vector3 newDir = dir;
+        Acts::Vector3 newPoint = point;
+        Acts::ActsSquareMatrix<6> newCov;
+
+        for (auto idx : seed) {
+          seedSourceLinksRefs.push_back(std::cref(sourceLinks[idx]));
+          seedSourceLinks.push_back(sourceLinks[idx]);
+        }
+        for (std::size_t l = 0; l < m_cfg.nGLSIterations; l++) {
+          chi2 =
+              globalChi2Fit(seedSourceLinksRefs, newPoint, newDir, newCov, opt);
+        }
+        if (chi2 > opt.maxChi2) {
+          continue;
+        }
+        seeds.emplace_back(std::move(newPoint), std::move(newDir),
+                           std::move(newCov), std::move(seedSourceLinks), chi2,
+                           count);
       }
     }
   }
@@ -332,7 +411,7 @@ std::vector<HoughTransformSeeder::HTSeed> HoughTransformSeeder::findSeeds(
 void HoughTransformSeeder::fillVotingMap(VotingMap &votingMap,
                                          std::span<SourceLinkRef> sourceLinks,
                                          const Options &opt,
-                                         const Acts::Vector3 &shift) const {
+                                         const Acts::Vector3 &shift) {
   std::unordered_map<int, std::vector<SourceLinkRef>> clusters;
   std::vector<int> geoIds;
   clusters.reserve(sourceLinks.size());
@@ -368,7 +447,7 @@ void HoughTransformSeeder::fillVotingMap(VotingMap &votingMap,
           Acts::Vector3 slPoint =
               sClusters[m].get().get<SimpleSourceLink>().parametersGlob() -
               shift;
-          double diffPrimary = slPoint.x() - flPrimary;
+          double diffPrimary = slPoint(primaryIdx) - flPrimary;
 
           double thetaLong =
               std::atan(diffPrimary / (flLong - slPoint(longIdx)));
@@ -383,11 +462,11 @@ void HoughTransformSeeder::fillVotingMap(VotingMap &votingMap,
           std::uint16_t cellThetaLong =
               std::ceil((thetaLong + M_PI_2) / m_deltaThetaLong) - 1;
           std::uint16_t cellRhoLong =
-              std::ceil((rhoLong + m_maxRhoLong / 2.0) / m_deltaRhoLong) - 1;
+              std::ceil((rhoLong + m_maxRhoLong) / m_deltaRhoLong) - 1;
           std::uint16_t cellThetaShort =
               std::ceil((thetaShort + M_PI_2) / m_deltaThetaShort) - 1;
           std::uint16_t cellRhoShort =
-              std::ceil((rhoShort + m_maxRhoShort / 2.0) / m_deltaRhoShort) - 1;
+              std::ceil((rhoShort + m_maxRhoShort) / m_deltaRhoShort) - 1;
 
           votingMap[{cellThetaLong, cellRhoLong, cellThetaShort,
                      cellRhoShort}]++;

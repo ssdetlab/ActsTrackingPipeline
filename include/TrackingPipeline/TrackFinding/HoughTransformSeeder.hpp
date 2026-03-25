@@ -2,8 +2,11 @@
 
 #include "Acts/Definitions/Algebra.hpp"
 #include "Acts/EventData/SourceLink.hpp"
+#include <Acts/Geometry/GeometryContext.hpp>
+#include <Acts/Geometry/GeometryIdentifier.hpp>
 
 #include <cstddef>
+#include <map>
 #include <span>
 #include <unordered_map>
 #include <vector>
@@ -118,6 +121,8 @@ class HoughTransformSeeder {
     int lastLayerId;
     int nLayers;
 
+    std::map<Acts::GeometryIdentifier, const Acts::Surface*> surfaceMap;
+
     int minXCount;
     std::size_t minSeedSize;
     std::size_t maxSeedSize;
@@ -132,23 +137,28 @@ class HoughTransformSeeder {
     Acts::Vector3 lineDir;
     Acts::ActsSquareMatrix<6> cov;
     std::vector<Acts::SourceLink> sourceLinks;
+    double chi2;
+    int count;
   };
 
   HoughTransformSeeder(const Config& cfg);
 
-  std::vector<HTSeed> findSeeds(std::span<SourceLinkRef> sourceLinks,
-                                const Options& opt) const;
+  std::vector<HTSeed> findSeeds(const Acts::GeometryContext& gctx,
+                                std::span<SourceLinkRef> sourceLinks,
+                                const Options& opt);
 
  private:
   Config m_cfg;
 
   void fillVotingMap(VotingMap& votingMap, std::span<SourceLinkRef> points,
-                     const Options& opt, const Acts::Vector3& shift) const;
+                     const Options& opt, const Acts::Vector3& shift);
 
   std::vector<std::pair<int, int>> findLineSourceLinks(
       const std::span<SourceLinkRef>& sourceLinks, const Acts::Vector3& pointBL,
-      const Acts::Vector3& dirBL, const Acts::Vector3& pointTR,
-      const Acts::Vector3& dirTR, const Acts::Vector3& shift) const;
+      const Acts::Vector3& dirBL, const Acts::Vector3& pointTL,
+      const Acts::Vector3& dirTL, const Acts::Vector3& pointBR,
+      const Acts::Vector3& dirBR, const Acts::Vector3& pointTR,
+      const Acts::Vector3& dirTR, const Acts::Vector3& shift);
 
   std::vector<std::pair<int, int>> findLineSourceLinks(
       const std::span<SourceLinkRef>& sourceLinks, const Acts::Vector3& point,
@@ -171,4 +181,6 @@ class HoughTransformSeeder {
 
   double m_maxRhoLong;
   double m_maxRhoShort;
+
+  std::unordered_map<Acts::GeometryIdentifier, double> m_geoPosMap;
 };
