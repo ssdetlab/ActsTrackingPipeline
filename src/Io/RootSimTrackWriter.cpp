@@ -3,11 +3,11 @@
 #include "Acts/Definitions/Algebra.hpp"
 #include <Acts/Definitions/TrackParametrization.hpp>
 #include <Acts/EventData/TransformationHelpers.hpp>
+#include <Acts/TrackFitting/detail/KalmanGlobalCovariance.hpp>
 
 #include <algorithm>
 #include <ranges>
-
-#include <TVectorDfwd.h>
+#include <stdexcept>
 
 #include "TrackingPipeline/EventData/SimpleSourceLink.hpp"
 
@@ -645,11 +645,20 @@ ProcessCode RootSimTrackWriter::write(const AlgorithmContext& ctx) {
           }
         });
     if (std::get<0>(refTrackId->first) == -1) {
-      m_boundTrackParametersTruth = TVectorD(Acts::eBoundSize);
-      m_boundTrackParametersTruth *= 0;
+      TArrayD boundTrackParsTruthData(Acts::eBoundSize);
+      for (std::size_t i = 0; i < Acts::eBoundSize; i++) {
+        boundTrackParsTruthData[i] = 0;
+      }
+      m_boundTrackParametersTruth.Use(0, Acts::eBoundSize,
+                                      boundTrackParsTruthData.GetArray());
 
-      m_boundTrackCovTruth = TMatrixD(Acts::eBoundSize, Acts::eBoundSize);
-      m_boundTrackCovTruth *= 0;
+      // KF predicted bound errors
+      TArrayD boundTrackCovTruthData(Acts::eBoundSize * Acts::eBoundSize);
+      for (std::size_t i = 0; i < Acts::eBoundSize * Acts::eBoundSize; i++) {
+        boundTrackCovTruthData[i] = 0;
+      }
+      m_boundTrackCovTruth.Use(Acts::eBoundSize, Acts::eBoundSize,
+                               boundTrackCovTruthData.GetArray());
 
       m_ipMomentumTruth.SetPxPyPzE(0, 0, 0, 0);
 
