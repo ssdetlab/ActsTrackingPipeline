@@ -85,6 +85,7 @@ class RootTrackWriter : public IWriter {
 
   /// Covariances of the track hits
   std::vector<TMatrixD> m_trackHitCovs;
+  std::vector<TMatrixD> m_trackHitCovsInf;
 
   /// Geometry ids of the track hits
   std::vector<std::size_t> m_geometryIds;

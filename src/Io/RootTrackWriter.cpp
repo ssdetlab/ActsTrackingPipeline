@@ -27,7 +27,8 @@ RootTrackWriter::RootTrackWriter(const Config& config,
   m_tree->Branch("trackHitsLocal", &m_trackHitsLocal, bufSize, splitLvl);
 
   // Covariances of the track hits
-  m_tree->Branch("trackHitsCovs", &m_trackHitCovs, bufSize, splitLvl);
+  m_tree->Branch("trackHitCovs", &m_trackHitCovs, bufSize, splitLvl);
+  m_tree->Branch("trackHitCovsInf", &m_trackHitCovsInf, bufSize, splitLvl);
 
   // Geometry ids of the track hits
   m_tree->Branch("geometryIds", &m_geometryIds, bufSize, splitLvl);
@@ -130,6 +131,9 @@ ProcessCode RootTrackWriter::write(const AlgorithmContext& ctx) {
     // Covariances of the track hits
     m_trackHitCovs.clear();
     m_trackHitCovs.reserve(nStates);
+
+    m_trackHitCovsInf.clear();
+    m_trackHitCovsInf.reserve(nStates);
 
     // Track hits gometry identifiers
     m_geometryIds.clear();
@@ -284,6 +288,14 @@ ProcessCode RootTrackWriter::write(const AlgorithmContext& ctx) {
       }
       trackHitCov.Use(2, 2, trackHitCovData.GetArray());
       m_trackHitCovs.push_back(trackHitCov);
+
+      TArrayD trackHitCovDataInf(4);
+      TMatrixD trackHitCovInf(2, 2);
+      for (std::size_t i = 0; i < 4; i++) {
+        trackHitCovDataInf[i] = ssl.covarianceInf()(i);
+      }
+      trackHitCovInf.Use(2, 2, trackHitCovDataInf.GetArray());
+      m_trackHitCovsInf.push_back(trackHitCovInf);
 
       // ---------------------------------------------
       // Track hit info

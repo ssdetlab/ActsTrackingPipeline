@@ -19,6 +19,20 @@
 
 class RootTrackReader : public IReader {
  public:
+  struct Constraints {
+    double minChi2;
+    double maxChi2;
+
+    double minVertexEstLong;
+    double maxVertexEstLong;
+
+    double minVertexEstShort;
+    double maxVertexEstShort;
+
+    double minAbsMomentumEst;
+    double maxAbsMomentumEst;
+  };
+
   /// @brief The nested configuration struct
   struct Config {
     /// Output source links
@@ -31,9 +45,8 @@ class RootTrackReader : public IReader {
     std::vector<std::string> filePaths;
     /// Name of the input tree
     std::string treeName;
-    /// Chi2 cut
-    double minChi2;
-    double maxChi2;
+    /// Cuts
+    Constraints constraints;
     /// Merge into a single event flag
     bool mergeIntoOneEvent;
   };
@@ -95,6 +108,7 @@ class RootTrackReader : public IReader {
 
   /// Covariances of the track hits
   std::vector<TMatrixD>* m_trackHitCovs = nullptr;
+  std::vector<TMatrixD>* m_trackHitCovsInf = nullptr;
 
   /// Geometry ids of the track hits
   std::vector<std::size_t>* m_geometryIds = nullptr;

@@ -40,7 +40,8 @@ RootTrackReader::RootTrackReader(const Config& config,
   m_chain->SetBranchAddress("trackHitsLocal", &m_trackHitsLocal);
 
   // Covariances of the track hits
-  m_chain->SetBranchAddress("trackHitsCovs", &m_trackHitCovs);
+  m_chain->SetBranchAddress("trackHitCovs", &m_trackHitCovs);
+  m_chain->SetBranchAddress("trackHitCovsInf", &m_trackHitCovsInf);
 
   // Geometry ids of the track hits
   m_chain->SetBranchAddress("geometryIds", &m_geometryIds);
@@ -193,19 +194,24 @@ ProcessCode RootTrackReader::read(const AlgorithmContext& ctx) {
   Seeds seedsEst{};
   std::size_t eventId = std::get<0>(*it);
   std::size_t sslIdx = 0;
+  const Constraints& constraints = m_cfg.constraints;
   for (auto entry = std::get<1>(*it); entry < std::get<2>(*it); entry++) {
     m_chain->GetEntry(entry);
 
-    if (m_chi2Smoothed < m_cfg.minChi2 || m_chi2Smoothed > m_cfg.maxChi2) {
+    if (m_chi2Smoothed < constraints.minChi2 ||
+        m_chi2Smoothed > constraints.maxChi2) {
       continue;
     }
-    if (m_vertexEst->Y() < -20_mm || m_vertexEst->Y() > 30_mm) {
+    if (m_vertexEst->Y() < constraints.minVertexEstLong ||
+        m_vertexEst->Y() > constraints.maxVertexEstLong) {
       continue;
     }
-    if (m_vertexEst->Z() < -40_mm || m_vertexEst->Z() > 40_mm) {
+    if (m_vertexEst->Z() < constraints.minVertexEstShort ||
+        m_vertexEst->Z() > constraints.maxVertexEstShort) {
       continue;
     }
-    if (m_ipMomentumEst->P() < 1.5_GeV || m_ipMomentumEst->P() > 3_GeV) {
+    if (m_ipMomentumEst->P() < constraints.minAbsMomentumEst ||
+        m_ipMomentumEst->P() > constraints.maxAbsMomentumEst) {
       continue;
     }
 
@@ -255,6 +261,13 @@ ProcessCode RootTrackReader::read(const AlgorithmContext& ctx) {
       geoId.setSensitive(m_geometryIds->at(i));
       SimpleSourceLink obsSourceLink(trackHitLocal, trackHitGlobal, trackHitCov,
                                      geoId, eventId, sslIdx);
+
+      Acts::SquareMatrix2 trackHitCovInf;
+      trackHitCovInf << m_trackHitCovsInf->at(i)(0, 0),
+          m_trackHitCovsInf->at(i)(0, 1), m_trackHitCovsInf->at(i)(1, 0),
+          m_trackHitCovsInf->at(i)(1, 1);
+      obsSourceLink.setCovarianceInf(trackHitCovInf);
+
       sourceLinks.push_back(Acts::SourceLink{obsSourceLink});
       trackSourceLinks.push_back(Acts::SourceLink{obsSourceLink});
 
