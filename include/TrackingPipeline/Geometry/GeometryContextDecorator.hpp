@@ -5,13 +5,14 @@
 #include <string>
 
 #include "TrackingPipeline/Alignment/AlignmentContext.hpp"
+#include "TrackingPipeline/Alignment/AlignmentStore.hpp"
 #include "TrackingPipeline/Infrastructure/IContextDecorator.hpp"
 #include "TrackingPipeline/Infrastructure/ProcessCode.hpp"
 
 class GeometryContextDecorator : public IContextDecorator {
  public:
   GeometryContextDecorator(
-      const std::shared_ptr<AlignmentContext::AlignmentStore>& alignmentStore)
+      const std::shared_ptr<AlignmentStore>& alignmentStore)
       : m_alignmentStore(alignmentStore) {}
 
   ProcessCode decorate(AlgorithmContext& context) override {
@@ -23,7 +24,7 @@ class GeometryContextDecorator : public IContextDecorator {
   const std::string& name() const override { return m_name; };
 
  private:
-  std::shared_ptr<AlignmentContext::AlignmentStore> m_alignmentStore = nullptr;
+  std::shared_ptr<AlignmentStore> m_alignmentStore = nullptr;
 
   std::string m_name = "GeometryContextDecorator";
 };
