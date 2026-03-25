@@ -2,6 +2,7 @@
 
 #include "Acts/Material/MaterialInteraction.hpp"
 #include "Acts/Utilities/Logger.hpp"
+#include <Acts/Definitions/Algebra.hpp>
 
 #include <cstddef>
 #include <cstdint>
@@ -28,14 +29,15 @@ class RootMaterialTrackReader : public IReader {
   /// @brief The nested configuration struct
   struct Config {
     /// material collection to read
-    std::string outputMaterialTracks = "material-tracks";
+    std::string outputMaterialTracks;
     /// name of the output tree
-    std::string treeName = "material-tracks";
+    std::string treeName;
     /// List of input files
     std::vector<std::string> fileList;
-
-    // Read surface information for the root file
-    bool readCachedSurfaceInformation = false;
+    /// Transform to Acts coordinate system
+    Acts::Transform3 toWorldTransform;
+    /// Read surface information for the root file
+    bool readCachedSurfaceInformation;
   };
 
   /// Constructor

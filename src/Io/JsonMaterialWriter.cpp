@@ -19,7 +19,7 @@ void JsonMaterialWriter::writeMaterial(
   // Evoke the converter
   auto jOut = m_converter->materialMapsToJson(detMaterial);
   // And write the file(s)
-  std::string fileName = m_cfg.fileName + ".json";
+  std::string fileName = m_cfg.filePath;
   ACTS_VERBOSE("Writing to file: " << fileName);
   std::ofstream ofj(fileName);
   ofj << std::setw(4) << jOut << std::endl;

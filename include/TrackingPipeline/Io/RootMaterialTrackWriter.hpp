@@ -38,25 +38,25 @@ class RootMaterialTrackWriter : public IWriter {
  public:
   struct Config {
     /// material collection to write
-    std::string inputMaterialTracks = "material-tracks";
+    std::string inputMaterialTracks;
     /// path of the output file
-    std::string filePath = "";
+    std::string filePath;
     /// file access mode
-    std::string fileMode = "RECREATE";
+    std::string fileMode;
     /// name of the output tree
-    std::string treeName = "material-tracks";
+    std::string treeName;
 
     /// Re-calculate total values from individual steps (for cross-checks)
-    bool recalculateTotals = false;
+    bool recalculateTotals;
     /// Write aut pre and post step (for G4), otherwise central step position
-    bool prePostStep = false;
+    bool prePostStep;
     /// Write the surface to which the material step correpond
-    bool storeSurface = false;
+    bool storeSurface;
     /// Write the volume to which the material step correpond
-    bool storeVolume = false;
+    bool storeVolume;
     /// Collapse consecutive interactions of a single surface into a single
     /// interaction
-    bool collapseInteractions = false;
+    bool collapseInteractions;
   };
 
   /// Constructor with

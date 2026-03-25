@@ -1,5 +1,6 @@
 #include "Acts/Material/IntersectionMaterialAssigner.hpp"
 #include "Acts/Material/MaterialValidater.hpp"
+#include "Acts/Plugins/Json/JsonMaterialDecorator.hpp"
 #include "Acts/Utilities/Logger.hpp"
 
 #include <memory>
@@ -11,7 +12,14 @@
 #include "TrackingPipeline/Io/RootMaterialTrackWriter.hpp"
 #include "TrackingPipeline/Material/MaterialValidation.hpp"
 
+namespace ag = E320Geometry;
+
+std::unique_ptr<const ag::GeometryOptions> ag::GeometryOptions::m_instance =
+    nullptr;
+
 int main() {
+  const auto& goInst = *ag::GeometryOptions::instance();
+
   // Set the log level
   Acts::Logging::Level logLevel = Acts::Logging::INFO;
 
@@ -19,47 +27,49 @@ int main() {
   Acts::GeometryContext gctx;
   Acts::MagneticFieldContext mctx;
   Acts::CalibrationContext cctx;
-  E320Geometry::GeometryOptions gOpt;
 
   // --------------------------------------------------------------
   // Detector setup
 
-  // Set the path to the gdml file
-  // and the names of the volumes to be converted
-  std::string gdmlPath =
-      "/home/romanurmanov/lab/LUXE/acts_tracking/E320Prototype/"
-      "E320Prototype_gdmls/"
-      "ett_geometry_f566a577.gdml";
-  std::vector<std::string> names{"OPPPSensitive", "DetChamberWindow"};
+  // Material decorator
+  Acts::MaterialMapJsonConverter::Config jsonMaterialConverterCfg;
+  jsonMaterialConverterCfg.context = gctx;
+  jsonMaterialConverterCfg.processSensitives = true;
+  jsonMaterialConverterCfg.processApproaches = true;
+  jsonMaterialConverterCfg.processRepresenting = true;
+  jsonMaterialConverterCfg.processBoundaries = true;
+  jsonMaterialConverterCfg.processVolumes = true;
+  jsonMaterialConverterCfg.processDenseVolumes = false;
+  jsonMaterialConverterCfg.processNonMaterial = false;
 
-  // Veto PDC window material mapping
-  // to preserve homogeneous material
-  // from Geant4
-  Acts::GeometryIdentifier pdcWindowId;
-  pdcWindowId.setApproach(1);
-  std::vector<Acts::GeometryIdentifier> materialVeto{pdcWindowId};
+  auto materialDecorator = std::make_shared<Acts::JsonMaterialDecorator>(
+      jsonMaterialConverterCfg,
+      "/home/romanurmanov/work/E320/E320Prototype/E320Prototype_material/"
+      "Uniform_DirectZ_Tracker_PDCWindow_256x128_1e6/material.json",
+      logLevel);
 
-  std::string materialPath =
-      "/home/romanurmanov/lab/LUXE/acts_tracking/E320Prototype/"
-      "E320Prototype_material/"
-      "Uniform_DirectZ_TrackerOnly_256x128_1M/material.json";
+  auto detector = E320Geometry::buildDetector(gctx, materialDecorator);
 
-  auto trackerBP = E320Geometry::makeBlueprintE320(gdmlPath, names, gOpt);
-  auto detector = E320Geometry::buildE320Detector(
-      std::move(trackerBP), gctx, gOpt, materialPath, materialVeto);
-
-  for (auto& vol : detector->rootVolumes()) {
-    std::cout << "Volume: " << vol->name() << " = " << vol->surfaces().size()
-              << std::endl;
-    for (auto& surf : vol->surfaces()) {
-      std::cout << "Surface: (" << surf->center(gctx).transpose() << ") = ("
-                << surf->normal(gctx, surf->center(gctx),
-                                Acts::Vector3(0, 1, 0))
-                       .transpose()
-                << ")" << surf->geometryId() << std::endl;
-      std::cout << "Surface material: " << surf->surfaceMaterial() << std::endl;
+  std::map<Acts::GeometryIdentifier, const Acts::Surface*> surfaceMap;
+  for (const auto& vol : detector->volumes()) {
+    std::cout << "------------------------------------------\n";
+    std::cout << vol->name() << "\n";
+    std::cout << vol->extent(gctx);
+    std::cout << "Surfaces:\n";
+    for (const auto& surf : vol->surfaces()) {
+      std::cout << surf->geometryId() << "\n";
+      std::cout << surf->center(gctx) << "\n";
+      std::cout << surf->polyhedronRepresentation(gctx, 1000).extent() << "\n";
+      if (surf->geometryId().sensitive()) {
+        surfaceMap[surf->geometryId()] = surf;
+      }
     }
   }
+
+  // --------------------------------------------------------------
+  // The magnetic field setup
+
+  auto field = E320Geometry::buildMagField(gctx);
 
   // --------------------------------------------------------------
   // Material validation setup
@@ -71,13 +81,31 @@ int main() {
   Sequencer sequencer(seqCfg);
 
   // Add the material track reader
-  auto materialTrackReaderCfg = RootMaterialTrackReader::Config{
-      "materialTracks",
-      "material-tracks",
-      {"/home/romanurmanov/lab/LUXE/acts_tracking/E320Prototype/"
-       "E320Prototype_material/"
-       "Uniform_DirectZ_TrackerOnly_256x128_1M/"
-       "geant4_material_tracks_validation.root"}};
+  Acts::Transform3 toWorldTransform = Acts::Transform3::Identity();
+
+  Acts::RotationMatrix3 toWorldRotationX =
+      Acts::AngleAxis3(goInst.toWorldAngleX, Acts::Vector3::UnitX())
+          .toRotationMatrix();
+  Acts::RotationMatrix3 toWorldRotationY =
+      Acts::AngleAxis3(M_PI_2, Acts::Vector3::UnitY()).toRotationMatrix();
+  Acts::RotationMatrix3 toWorldRotationZ =
+      Acts::AngleAxis3(0, Acts::Vector3::UnitZ()).toRotationMatrix();
+
+  toWorldTransform.translate(Acts::Vector3::Zero());
+
+  toWorldTransform.rotate(toWorldRotationX);
+  toWorldTransform.rotate(toWorldRotationY);
+  toWorldTransform.rotate(toWorldRotationZ);
+
+  RootMaterialTrackReader::Config materialTrackReaderCfg;
+  materialTrackReaderCfg.outputMaterialTracks = "material-tracks";
+  materialTrackReaderCfg.treeName = "material-tracks";
+  materialTrackReaderCfg.fileList = {
+      "/home/romanurmanov/work/E320/E320Prototype/E320Prototype_material/"
+      "Uniform_DirectZ_Tracker_PDCWindow_256x128_1e6/"
+      "geant4-material-tracks-validation.root"};
+  materialTrackReaderCfg.toWorldTransform = toWorldTransform;
+  materialTrackReaderCfg.readCachedSurfaceInformation = false;
 
   auto materialTrackReader = std::make_shared<RootMaterialTrackReader>(
       materialTrackReaderCfg, logLevel);
@@ -85,11 +113,20 @@ int main() {
   sequencer.addReader(materialTrackReader);
 
   // Assignment setup : Intersection assigner
-  auto materialAssingerCfg = Acts::IntersectionMaterialAssigner::Config();
+  Acts::IntersectionMaterialAssigner::Config materialAssingerCfg;
   std::vector<const Acts::Surface*> surfaces;
   for (auto& vol : detector->rootVolumes()) {
     for (auto& surf : vol->surfaces()) {
+      if (surf->geometryId().sensitive() >= 40) {
+        continue;
+      }
       surfaces.push_back(surf);
+      std::cout << "MATERIAL Surface: (" << surf->center(gctx).transpose()
+                << ") = ("
+                << surf->normal(gctx, surf->center(gctx),
+                                Acts::Vector3(0, 1, 0))
+                       .transpose()
+                << ")" << std::endl;
     }
   }
 
@@ -99,29 +136,40 @@ int main() {
       Acts::getDefaultLogger("IntersectionMaterialAssigner", logLevel));
 
   // Validater setup
-  auto matValidaterCfg = Acts::MaterialValidater::Config();
+  Acts::MaterialValidater::Config matValidaterCfg;
   matValidaterCfg.materialAssigner = materialAssinger;
+
   auto matValidater = std::make_shared<Acts::MaterialValidater>(
       matValidaterCfg, Acts::getDefaultLogger("MaterialValidater", logLevel));
 
   // Validation Algorithm
-  auto matValidationCfg = MaterialValidation::Config();
+  MaterialValidation::Config matValidationCfg;
   matValidationCfg.materialValidater = matValidater;
-  matValidationCfg.inputMaterialTracks = "materialTracks";
-  matValidationCfg.outputMaterialTracks = "recordedMaterialTracks";
+  matValidationCfg.inputMaterialTracks = "material-tracks";
+  matValidationCfg.outputMaterialTracks = "recorded-material-tracks";
   auto materialValidation =
       std::make_shared<MaterialValidation>(matValidationCfg, logLevel);
   sequencer.addAlgorithm(materialValidation);
 
-  // Add the mapped material tracks writer
-  auto mappedMaterialTrackWriterCfg = RootMaterialTrackWriter::Config{
-      "recordedMaterialTracks", "recorded-material-tracks.root", "RECREATE",
-      "recorded-material-tracks"};
+  // Add the recorded material tracks writer
+  RootMaterialTrackWriter::Config recordedMaterialTrackWriterCfg;
+  recordedMaterialTrackWriterCfg.inputMaterialTracks =
+      "recorded-material-tracks";
+  recordedMaterialTrackWriterCfg.filePath =
+      "/home/romanurmanov/work/E320/E320Prototype/E320Prototype_material/"
+      "recorded-material-tracks.root";
+  recordedMaterialTrackWriterCfg.fileMode = "RECREATE";
+  recordedMaterialTrackWriterCfg.treeName = "recorded-material-tracks";
+  recordedMaterialTrackWriterCfg.recalculateTotals = false;
+  recordedMaterialTrackWriterCfg.prePostStep = false;
+  recordedMaterialTrackWriterCfg.storeSurface = true;
+  recordedMaterialTrackWriterCfg.storeVolume = false;
+  recordedMaterialTrackWriterCfg.collapseInteractions = false;
 
-  auto mappedMaterialTrackWriter = std::make_shared<RootMaterialTrackWriter>(
-      mappedMaterialTrackWriterCfg, logLevel);
+  auto recordedMaterialTrackWriter = std::make_shared<RootMaterialTrackWriter>(
+      recordedMaterialTrackWriterCfg, logLevel);
 
-  sequencer.addWriter(mappedMaterialTrackWriter);
+  sequencer.addWriter(recordedMaterialTrackWriter);
 
   // --------------------------------------------------------------
   // Run all configured algorithms and return the appropriate status.

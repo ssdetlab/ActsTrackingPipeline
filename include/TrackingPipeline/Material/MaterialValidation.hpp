@@ -17,11 +17,11 @@ class MaterialValidation : public IAlgorithm {
   /// of the MaterialMapping algorithm
   struct Config {
     // Input file with validation tracks
-    std::string inputMaterialTracks = "inputMaterialTracks";
+    std::string inputMaterialTracks;
     // The validater
-    std::shared_ptr<Acts::MaterialValidater> materialValidater = nullptr;
+    std::shared_ptr<Acts::MaterialValidater> materialValidater;
     /// Output collection name
-    std::string outputMaterialTracks = "material_tracks";
+    std::string outputMaterialTracks;
   };
 
   /// Constructor

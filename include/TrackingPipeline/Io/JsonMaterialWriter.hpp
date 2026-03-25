@@ -38,7 +38,7 @@ class JsonMaterialWriter : public IMaterialWriter {
     /// The config class of the converter
     Acts::MaterialMapJsonConverter::Config converterCfg;
     /// Output file name
-    std::string fileName = "material";
+    std::string filePath;
   };
 
   /// Constructor

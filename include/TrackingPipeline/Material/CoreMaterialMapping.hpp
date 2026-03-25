@@ -26,19 +26,17 @@ class CoreMaterialMapping : public IAlgorithm {
   /// of the MaterialMapping algorithm
   struct Config {
     /// Input collection
-    std::string inputMaterialTracks = "material_tracks";
-
+    std::string inputMaterialTracks;
     /// The actually mapped material tracks
-    std::string mappedMaterialTracks = "mapped_material_tracks";
-
+    std::string mappedMaterialTracks;
     /// The unmapped part of the material tracks
-    std::string unmappedMaterialTracks = "unmapped_material_tracks";
-
+    std::string unmappedMaterialTracks;
     /// The ACTS material mapper from the core component
-    std::shared_ptr<Acts::MaterialMapper> materialMapper = nullptr;
-
+    std::shared_ptr<Acts::MaterialMapper> materialMapper;
+    /// Material mapping options
+    Acts::MaterialMapper::Options materialMapperOptions;
     /// The writer of the material
-    std::vector<std::shared_ptr<IMaterialWriter>> materiaMaplWriters{};
+    std::vector<std::shared_ptr<IMaterialWriter>> materiaMaplWriters;
   };
 
   /// Constructor

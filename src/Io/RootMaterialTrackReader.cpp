@@ -107,6 +107,8 @@ ProcessCode RootMaterialTrackReader::read(const AlgorithmContext& context) {
   // The collection to be written
   std::unordered_map<std::size_t, Acts::RecordedMaterialTrack> mtrackCollection;
 
+  Acts::Transform3 transform = m_cfg.toWorldTransform.inverse();
+
   // Loop over the entries for this event
   for (std::size_t ib = 0; ib < m_batchSize; ++ib) {
     // Read the correct entry: startEntry + ib
@@ -118,8 +120,10 @@ ProcessCode RootMaterialTrackReader::read(const AlgorithmContext& context) {
 
     Acts::RecordedMaterialTrack rmTrack;
     // Fill the position and momentum
-    rmTrack.first.first = Acts::Vector3(m_v_x, m_v_y, m_v_z);
-    rmTrack.first.second = Acts::Vector3(m_v_px, m_v_py, m_v_pz);
+    rmTrack.first.first =
+        m_cfg.toWorldTransform * Acts::Vector3(m_v_x, m_v_y, m_v_z);
+    rmTrack.first.second =
+        m_cfg.toWorldTransform * Acts::Vector3(m_v_px, m_v_py, m_v_pz);
 
     ACTS_VERBOSE("Track vertex:  " << rmTrack.first.first);
     ACTS_VERBOSE("Track momentum:" << rmTrack.first.second);
@@ -149,10 +153,12 @@ ProcessCode RootMaterialTrackReader::read(const AlgorithmContext& context) {
       /// Fill the position & the material
       Acts::MaterialInteraction mInteraction;
       mInteraction.position =
+          m_cfg.toWorldTransform *
           Acts::Vector3((*m_step_x)[is], (*m_step_y)[is], (*m_step_z)[is]);
       ACTS_VERBOSE("POSITION : " << (*m_step_x)[is] << ", " << (*m_step_y)[is]
                                  << ", " << (*m_step_z)[is]);
       mInteraction.direction =
+          m_cfg.toWorldTransform *
           Acts::Vector3((*m_step_dx)[is], (*m_step_dy)[is], (*m_step_dz)[is]);
       ACTS_VERBOSE("DIRECTION: " << (*m_step_dx)[is] << ", " << (*m_step_dy)[is]
                                  << ", " << (*m_step_dz)[is]);
@@ -170,6 +176,7 @@ ProcessCode RootMaterialTrackReader::read(const AlgorithmContext& context) {
         // mapping to be speed up
         mInteraction.intersectionID = Acts::GeometryIdentifier((*m_sur_id)[is]);
         mInteraction.intersection =
+            m_cfg.toWorldTransform *
             Acts::Vector3((*m_sur_x)[is], (*m_sur_y)[is], (*m_sur_z)[is]);
         mInteraction.pathCorrection = (*m_sur_pathCorrection)[is];
       } else {
