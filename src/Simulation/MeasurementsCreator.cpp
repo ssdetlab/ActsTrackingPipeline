@@ -113,11 +113,10 @@ std::tuple<std::vector<Acts::SourceLink>, SimClusters> MeasurementsCreator::gen(
     Acts::Vector3 trueGlobalPos = boundPars.referenceSurface().localToGlobal(
         ctx.geoContext, trueLocalPos, Acts::Vector3::UnitX());
 
-    Acts::Vector2 digLocalPos =
+    auto [digLocalPos, digCov] =
         m_cfg.hitDigitizer->genCluster(rng, geoId, trueLocalPos);
     Acts::Vector3 digGlobalPos = boundPars.referenceSurface().localToGlobal(
         ctx.geoContext, digLocalPos, Acts::Vector3::UnitX());
-    Acts::SquareMatrix2 digCov = m_cfg.hitDigitizer->getCovariance(geoId);
 
     // Truth information
     SimHit sm{

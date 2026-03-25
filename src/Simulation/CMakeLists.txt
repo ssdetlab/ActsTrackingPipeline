@@ -11,4 +11,6 @@ target_sources(
     StationaryMomentumGenerator.cpp
     IdealDigitizer.cpp
     SimpleDigitizer.cpp
+    SurfaceRangedDigitizer.cpp
+    ClusterSizeBasedDigitizer.cpp
   )
