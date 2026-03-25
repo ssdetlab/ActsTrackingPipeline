@@ -1,6 +1,5 @@
 #include "TrackingPipeline/Alignment/AlignmentAlgorithm.hpp"
 
-#include "Acts/Definitions/Algebra.hpp"
 #include "Acts/Detector/Detector.hpp"
 #include "Acts/EventData/SourceLink.hpp"
 #include "Acts/EventData/TrackParameters.hpp"
@@ -12,12 +11,14 @@
 #include "Acts/Utilities/Logger.hpp"
 #include "ActsAlignment/Kernel/Alignment.hpp"
 
+#include <cmath>
 #include <cstddef>
 #include <memory>
 #include <stdexcept>
 #include <utility>
 #include <vector>
 
+#include "TrackingPipeline/EventData/SimpleSourceLink.hpp"
 #include "TrackingPipeline/Infrastructure/ProcessCode.hpp"
 
 namespace {
@@ -108,49 +109,51 @@ ProcessCode AlignmentAlgorithm::execute(const AlgorithmContext& ctx) const {
     sourceLinks.insert(sourceLinks.end(), m_cfg.constraints.begin(),
                        m_cfg.constraints.end());
     sourceLinkTrackContainer.push_back(sourceLinks);
-
-    if (m_cfg.propDirection == PropagationDirection::forward) {
-      const auto& candidateIpPars = candidate.ipParameters;
-      auto ipPars = Acts::CurvilinearTrackParameters(
-          candidateIpPars.fourPosition(ctx.geoContext),
-          candidateIpPars.direction(),
-          candidateIpPars.charge() / candidateIpPars.absoluteMomentum(),
-          m_cfg.originCov, candidateIpPars.particleHypothesis());
-      trackParametersContainer.push_back(ipPars);
-    } else {
-      const auto& candidateIpPars = candidate.ipParameters;
-      auto ipPars = Acts::CurvilinearTrackParameters(
-          candidateIpPars.fourPosition(ctx.geoContext),
-          -candidateIpPars.direction(),
-          -candidateIpPars.charge() / candidateIpPars.absoluteMomentum(),
-          m_cfg.originCov, candidateIpPars.particleHypothesis());
-      trackParametersContainer.push_back(ipPars);
-    }
+    trackParametersContainer.push_back(candidate.ipParameters);
   }
-
-  // Prepare the output for alignment parameters
-  AlignmentParameters alignedParameters;
 
   // Set the alignment options
   ActsAlignment::AlignmentOptions<TrackFitterOptions> alignOptions(
       m_cfg.kfOptions, m_cfg.alignedTransformUpdater, m_cfg.alignedDetElements,
       m_cfg.chi2ONdfCutOff, m_cfg.deltaChi2ONdfCutOff, m_cfg.maxNumIterations,
-      m_cfg.alignmentMask, m_cfg.alignmentMode);
+      m_cfg.alignmentMask, m_cfg.alignmentMode, m_cfg.maxSingularValueTol,
+      m_cfg.singularValueGapTol, m_cfg.rigidAngleScale);
 
   ACTS_DEBUG("Invoke track-based alignment with " << numTracksUsed
                                                   << " input tracks");
-  auto result = (*m_cfg.align)(sourceLinkTrackContainer,
-                               trackParametersContainer, alignOptions);
-  if (result.ok()) {
-    const auto& alignOutput = result.value();
-    alignedParameters = alignOutput.alignedParameters;
-    ACTS_VERBOSE(
-        "Alignment finished with deltaChi2 = " << result.value().deltaChi2);
-  } else {
-    ACTS_WARNING("Alignment failed with " << result.error());
+  ActsAlignment::AlignmentResult alignmentResult;
+  std::size_t nIt =
+      (m_cfg.annealingScheduler == nullptr) ? 1 : m_cfg.nAnnealingIt;
+  for (std::size_t i = 0; i < nIt; i++) {
+    double alpha = (m_cfg.annealingScheduler == nullptr)
+                       ? 1
+                       : m_cfg.annealingScheduler->getAnnealingFactor(i);
+    for (auto& sourceLinks : sourceLinkTrackContainer) {
+      for (auto& sl : sourceLinks) {
+        sl.get<SimpleSourceLink>().setCovarianceAnnealingFactor(alpha);
+      }
+    }
+
+    ACTS_VERBOSE("Staring alignment iteration " << i << ": annealing factor "
+                                                << alpha);
+    auto result = (*m_cfg.align)(sourceLinkTrackContainer,
+                                 trackParametersContainer, alignOptions);
+    ACTS_VERBOSE("Alignment iteration "
+                 << i << ": annealing factor " << alpha
+                 << ", deltaChi2 = " << result.value().deltaChi2);
+    if (i == nIt - 1) {
+      if (result.ok()) {
+        ACTS_VERBOSE(
+            "Alignment finished with deltaChi2 = " << result.value().deltaChi2);
+      } else {
+        ACTS_WARNING("Alignment failed with " << result.error());
+      }
+      alignmentResult = std::move(result.value());
+    }
   }
 
+  m_outputAlignmentParameters(ctx, std::move(alignmentResult));
+
   // Add alignment parameters to event store
-  m_outputAlignmentParameters(ctx, std::move(alignedParameters));
   return ProcessCode::SUCCESS;
 }

@@ -10,9 +10,11 @@
 #include "ActsAlignment/Kernel/Alignment.hpp"
 #include "ActsAlignment/Kernel/AlignmentMask.hpp"
 
+#include <cstddef>
 #include <memory>
 #include <vector>
 
+#include "TrackingPipeline/Alignment/IAnnealingScheduler.hpp"
 #include "TrackingPipeline/EventData/DataContainers.hpp"
 #include "TrackingPipeline/Infrastructure/DataHandle.hpp"
 #include "TrackingPipeline/Infrastructure/IAlgorithm.hpp"
@@ -29,8 +31,6 @@ class AlignmentTransformUpdater {
 class AlignmentAlgorithm final : public IAlgorithm {
  public:
   using AlignmentResult = Acts::Result<ActsAlignment::AlignmentResult>;
-  using AlignmentParameters =
-      std::unordered_map<Acts::DetectorElementBase*, Acts::Transform3>;
   using TrackFitterOptions =
       Acts::KalmanFitterOptions<Acts::VectorMultiTrajectory>;
 
@@ -53,8 +53,6 @@ class AlignmentAlgorithm final : public IAlgorithm {
   static std::shared_ptr<AlignmentFunction> makeAlignmentFunction(
       const std::shared_ptr<const Acts::Experimental::Detector>& detector,
       const std::shared_ptr<const Acts::MagneticFieldProvider>& magneticField);
-
-  enum struct PropagationDirection : int { forward = 0, backward = 1 };
 
   struct Config {
     /// Input track candidates
@@ -79,12 +77,20 @@ class AlignmentAlgorithm final : public IAlgorithm {
     ActsAlignment::AlignmentMask alignmentMask;
     /// Alignment mode
     ActsAlignment::AlignmentMode alignmentMode;
+    /// Tolerance realtive to the max singular value
+    double maxSingularValueTol;
+    /// Tolerance realtive to the singular value gap
+    double singularValueGapTol;
+    /// Scaling of the rigid rotational dofs
+    double rigidAngleScale;
     /// Initial track state covariance prior
     Acts::BoundMatrix originCov;
     /// Constraints vector
     std::vector<Acts::SourceLink> constraints;
-    /// Propagation direction
-    PropagationDirection propDirection;
+    /// Number of annealing iterations
+    std::size_t nAnnealingIt;
+    /// Anneling factor scheduler
+    std::shared_ptr<IAnnealingScheduler> annealingScheduler;
   };
 
   /// Constructor of the alignment algorithm
@@ -104,6 +110,6 @@ class AlignmentAlgorithm final : public IAlgorithm {
 
   ReadDataHandle<Seeds> m_inputTrackCandidates{this, "InputTrackCandidates"};
 
-  WriteDataHandle<AlignmentParameters> m_outputAlignmentParameters{
+  WriteDataHandle<ActsAlignment::AlignmentResult> m_outputAlignmentParameters{
       this, "OutputAlignmentParameters"};
 };
