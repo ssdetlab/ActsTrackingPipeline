@@ -13,11 +13,10 @@
 #include <cstddef>
 #include <filesystem>
 #include <iostream>
+#include <limits>
 #include <memory>
-#include <stdexcept>
 #include <unordered_map>
 
-#include <Eigen/src/Core/ArithmeticSequence.h>
 #include <nlohmann/json.hpp>
 #include <unistd.h>
 
@@ -28,16 +27,15 @@
 #include "TrackingPipeline/EventData/ExtendedSourceLink.hpp"
 #include "TrackingPipeline/EventData/MixedSourceLinkCalibrator.hpp"
 #include "TrackingPipeline/EventData/MixedSourceLinkSurfaceAccessor.hpp"
-#include "TrackingPipeline/EventData/SimpleSourceLink.hpp"
 #include "TrackingPipeline/Geometry/E320Geometry.hpp"
 #include "TrackingPipeline/Geometry/E320GeometryConstraints.hpp"
 #include "TrackingPipeline/Geometry/GeometryContextDecorator.hpp"
 #include "TrackingPipeline/Infrastructure/Sequencer.hpp"
 #include "TrackingPipeline/Io/AlignmentParametersProvider.hpp"
 #include "TrackingPipeline/Io/AlignmentParametersWriter.hpp"
-#include "TrackingPipeline/Io/RootSimSeedWriter.hpp"
-#include "TrackingPipeline/Io/RootSimTrackReader.hpp"
-#include "TrackingPipeline/Io/RootSimTrackWriter.hpp"
+#include "TrackingPipeline/Io/RootSeedWriter.hpp"
+#include "TrackingPipeline/Io/RootTrackReader.hpp"
+#include "TrackingPipeline/Io/RootTrackWriter.hpp"
 #include "TrackingPipeline/TrackFitting/KFTrackFittingAlgorithm.hpp"
 
 // Propagator short-hands
@@ -75,53 +73,34 @@ int main() {
   // --------------------------------------------------------------
   // Detector setup
 
-  auto detector = E320Geometry::buildDetector(gctx);
+  auto detector = E320Geometry::buildDetector(gctx, nullptr);
 
-  // AlignmentParametersProvider::Config alignmentProviderCfg;
-  // alignmentProviderCfg.filePath =
-  //     "/home/romanurmanov/work/E320/E320Prototype/E320Prototype_analysis/sim/"
-  //     "alignment/global/aligned/"
-  //     "alignment-parameters.root";
-  // alignmentProviderCfg.treeName = "alignment-parameters";
-  // AlignmentParametersProvider alignmentProvider(alignmentProviderCfg);
-  // auto aStore = alignmentProvider.getAlignmentStore();
-
-  // AlignmentContext alignCtx(aStore);
-  // Acts::GeometryContext testCtx{alignCtx};
-  // for (auto& v : detector->volumes()) {
-  //   for (auto& s : v->surfaces()) {
-  //     if (s->geometryId().sensitive()) {
-  //       std::cout << "-----------------------------------\n";
-  //       std::cout << "SURFACE " << s->geometryId() << "\n";
-  //       std::cout << "CENTER " << s->center(testCtx).transpose() << " -- "
-  //                 << s->center(Acts::GeometryContext()).transpose() << "\n";
-  //       std::cout << "NORMAL "
-  //                 << s->normal(testCtx, s->center(testCtx),
-  //                              Acts::Vector3::UnitY())
-  //                        .transpose()
-  //                 << " -- "
-  //                 << s->normal(testCtx, s->center(Acts::GeometryContext()),
-  //                              Acts::Vector3::UnitY())
-  //                        .transpose()
-  //                 << "\n";
-  //       std::cout << "ROTATION \n"
-  //                 << s->transform(testCtx).rotation() << " -- \n"
-  //                 << "\n"
-  //                 << s->transform(Acts::GeometryContext()).rotation() << "\n";
-
-  //       std::cout << "EXTENT "
-  //                 << s->polyhedronRepresentation(testCtx, 1000).extent()
-  //                 << "\n -- \n"
-  //                 << s->polyhedronRepresentation(Acts::GeometryContext(),
-  //                 1000)
-  //                        .extent()
-  //                 << "\n";
-  //     }
-  //   }
-  // }
-  // gctx = Acts::GeometryContext{alignCtx};
+  std::map<Acts::GeometryIdentifier, const Acts::Surface*> surfaceMap;
+  for (const auto& vol : detector->volumes()) {
+    std::cout << "------------------------------------------\n";
+    std::cout << vol->name() << "\n";
+    std::cout << vol->extent(gctx);
+    std::cout << "Surfaces:\n";
+    for (const auto& surf : vol->surfaces()) {
+      std::cout << surf->geometryId() << "\n";
+      std::cout << surf->polyhedronRepresentation(gctx, 1000).extent() << "\n";
+      if (surf->geometryId().sensitive()) {
+        surfaceMap[surf->geometryId()] = surf;
+      }
+    }
+  }
 
   auto aStore = detail::makeAlignmentStore(gctx, detector.get());
+
+  AlignmentParametersProvider::Config alignmentProviderCfg;
+  alignmentProviderCfg.filePath =
+      "/home/romanurmanov/work/E320/E320Prototype/E320Prototype_analysis/data/"
+      "alignment/local_noam_cuts_clean/it_2/aligned/"
+      "alignment-parameters.root";
+  alignmentProviderCfg.treeName = "alignment-parameters";
+  AlignmentParametersProvider alignmentProvider(alignmentProviderCfg);
+
+  aStore = alignmentProvider.getAlignmentStore();
   AlignmentContext alignCtx(aStore);
   Acts::GeometryContext testCtx{alignCtx};
   for (auto& v : detector->volumes()) {
@@ -161,56 +140,6 @@ int main() {
   auto field = E320Geometry::buildMagField(gctx);
 
   // --------------------------------------------------------------
-  // Event reading
-  SimpleSourceLink::SurfaceAccessor simpleSurfaceAccessor{detector.get()};
-  ExtendedSourceLink::SurfaceAccessor extendedSurfaceAccessor{detector.get()};
-
-  MixedSourceLinkSurfaceAccessor surfaceAccessor;
-  surfaceAccessor.connect<&SimpleSourceLink::SurfaceAccessor::operator(),
-                          SimpleSourceLink>(&simpleSurfaceAccessor);
-  surfaceAccessor.connect<&ExtendedSourceLink::SurfaceAccessor::operator(),
-                          ExtendedSourceLink>(&extendedSurfaceAccessor);
-
-  // Setup the sequencer
-  Sequencer::Config seqCfg;
-  // seqCfg.events = 1e1;
-  seqCfg.numThreads = 1;
-  seqCfg.skip = 0;
-  seqCfg.trackFpes = false;
-  Sequencer sequencer(seqCfg);
-
-  sequencer.addContextDecorator(
-      std::make_shared<GeometryContextDecorator>(aStore));
-
-  // Add the sim data reader
-  RootSimTrackReader::Config readerCfg;
-  readerCfg.treeName = "fitted-tracks";
-  readerCfg.outputMeasurements = "SimMeasurements";
-  readerCfg.outputSimClusters = "SimClusters";
-  readerCfg.outputSeedsGuess = "SeedsGuess";
-  readerCfg.outputSeedsEst = "SeedsEst";
-  readerCfg.minChi2 = 0;
-  readerCfg.maxChi2 = 1e4;
-  readerCfg.mergeIntoOneEvent = true;
-
-  std::string pathToDir =
-      "/home/romanurmanov/work/E320/E320Prototype/E320Prototype_analysis/sim/"
-      "alignment/global/misaligned/fitted_tracks";
-
-  // Get the paths to the files in the directory
-  for (const auto& entry : std::filesystem::directory_iterator(pathToDir)) {
-    if (!entry.is_regular_file() || entry.path().extension() != ".root") {
-      continue;
-    }
-    std::string pathToFile = entry.path();
-    readerCfg.filePaths.push_back(pathToFile);
-  }
-
-  // Add the reader to the sequencer
-  sequencer.addReader(
-      std::make_shared<RootSimTrackReader>(readerCfg, logLevel));
-
-  // --------------------------------------------------------------
   // Reference surface for sampling the track
   double halfX = std::numeric_limits<double>::max();
   double halfY = std::numeric_limits<double>::max();
@@ -226,7 +155,8 @@ int main() {
           .toRotationMatrix();
 
   Acts::Transform3 refSurfaceTransform = Acts::Transform3::Identity();
-  refSurfaceTransform.translate(Acts::Vector3(0, 0, 0));
+  refSurfaceTransform.translation() =
+      Acts::Vector3(goInst.beWindowCenterPrimary - 0.1_mm, 0, 0);
   refSurfaceTransform.rotate(refSurfToWorldRotationX);
   refSurfaceTransform.rotate(refSurfToWorldRotationY);
   refSurfaceTransform.rotate(refSurfToWorldRotationZ);
@@ -238,6 +168,64 @@ int main() {
   Acts::GeometryIdentifier geoId;
   geoId.setExtra(1);
   refSurface->assignGeometryId(std::move(geoId));
+
+  // --------------------------------------------------------------
+  // Event reading
+  SimpleSourceLink::SurfaceAccessor simpleSurfaceAccessor{detector.get()};
+  ExtendedSourceLink::SurfaceAccessor extendedSurfaceAccessor{detector.get()};
+
+  MixedSourceLinkSurfaceAccessor surfaceAccessor;
+  surfaceAccessor.connect<&SimpleSourceLink::SurfaceAccessor::operator(),
+                          SimpleSourceLink>(&simpleSurfaceAccessor);
+  surfaceAccessor.connect<&ExtendedSourceLink::SurfaceAccessor::operator(),
+                          ExtendedSourceLink>(&extendedSurfaceAccessor);
+
+  // Setup the sequencer
+  Sequencer::Config seqCfg;
+  seqCfg.numThreads = 1;
+  seqCfg.skip = 0;
+  seqCfg.trackFpes = false;
+  Sequencer sequencer(seqCfg);
+
+  sequencer.addContextDecorator(
+      std::make_shared<GeometryContextDecorator>(aStore));
+
+  // Add the sim data reader
+  RootTrackReader::Constraints readerConstraints;
+  readerConstraints.minChi2 = 0;
+  readerConstraints.maxChi2 = 1e6;
+  readerConstraints.minVertexEstLong = -50;
+  readerConstraints.maxVertexEstLong = -20;
+
+  readerConstraints.minVertexEstShort = -10;
+  readerConstraints.maxVertexEstShort = 10;
+
+  readerConstraints.minAbsMomentumEst = 1.5_GeV;
+  readerConstraints.maxAbsMomentumEst = 10_GeV;
+
+  RootTrackReader::Config readerCfg;
+  readerCfg.treeName = "fitted-tracks";
+  readerCfg.outputMeasurements = "SimMeasurements";
+  readerCfg.outputSeedsGuess = "SeedsGuess";
+  readerCfg.outputSeedsEst = "SeedsEst";
+  readerCfg.constraints = readerConstraints;
+  readerCfg.mergeIntoOneEvent = true;
+
+  std::string pathToDir =
+      "/home/romanurmanov/work/E320/E320Prototype/E320Prototype_analysis/data/"
+      "alignment/global_bpms/filtered";
+
+  // Get the paths to the files in the directory
+  for (const auto& entry : std::filesystem::directory_iterator(pathToDir)) {
+    if (!entry.is_regular_file() || entry.path().extension() != ".root") {
+      continue;
+    }
+    std::string pathToFile = entry.path();
+    readerCfg.filePaths.push_back(pathToFile);
+  }
+
+  // Add the reader to the sequencer
+  sequencer.addReader(std::make_shared<RootTrackReader>(readerCfg, logLevel));
 
   // --------------------------------------------------------------
   // Alignment
@@ -261,7 +249,7 @@ int main() {
     loc(3) = M_PI_2;
     loc(4) = 1.0 / 2.5_GeV;
     Acts::ActsVector<ExtendedSourceLink::localSubspaceSize> stdDev = {
-        10_mm, 10_mm, 10_rad, 10_rad, 1 / 0.1_GeV};
+        10_mm, 10_mm, 1_rad, 1_rad, 1 / 0.1_GeV};
     Acts::ActsSquareMatrix<ExtendedSourceLink::localSubspaceSize> cov =
         stdDev.cwiseProduct(stdDev).asDiagonal();
     alignmentConstraints.emplace_back(
@@ -312,26 +300,25 @@ int main() {
   trackOriginStdDevPrior[Acts::eBoundTime] = 25_ns;
   trackOriginStdDevPrior[Acts::eBoundPhi] = 10_rad;
   trackOriginStdDevPrior[Acts::eBoundTheta] = 10_rad;
-  trackOriginStdDevPrior[Acts::eBoundQOverP] = 1 / 0.01_GeV;
+  trackOriginStdDevPrior[Acts::eBoundQOverP] = 1 / 0.001_GeV;
   Acts::BoundMatrix trackOriginCov =
       trackOriginStdDevPrior.cwiseProduct(trackOriginStdDevPrior).asDiagonal();
 
   AlignmentAlgorithm::Config alignmentCfg{
-      .inputTrackCandidates = "SeedsEst",
+      .inputTrackCandidates = "SeedsGuess",
       .outputAlignmentParameters = "AlignmentParameters",
       .align = AlignmentAlgorithm::makeAlignmentFunction(detector, field),
       .alignedTransformUpdater = detail::makeGlobalAlignmentUpdater(alignCtx),
       .kfOptions = alignmentKFOptions,
       .chi2ONdfCutOff = 1e-16,
       .deltaChi2ONdfCutOff = {10, 1e-5},
-      .maxNumIterations = 200,
+      .maxNumIterations = 100,
       .alignmentMask = (ActsAlignment::AlignmentMask::Center1 |
                         ActsAlignment::AlignmentMask::Center2 |
                         ActsAlignment::AlignmentMask::Rotation2),
       .alignmentMode = ActsAlignment::AlignmentMode::global,
       .originCov = trackOriginCov,
-      .constraints = alignmentConstraints,
-      .propDirection = AlignmentAlgorithm::PropagationDirection::backward};
+      .constraints = {}};
 
   for (auto& det : detector->detectorElements()) {
     const auto& surface = det->surface();
@@ -352,7 +339,9 @@ int main() {
   // Initialize track fitter options
   Acts::KalmanFitterExtensions<RecoTrajectory> extensions;
   // Add calibrator
-  extensions.calibrator.connect<&simpleSourceLinkCalibrator<RecoTrajectory>>();
+  extensions.calibrator
+      .connect<&MixedSourceLinkCalibrator<RecoTrajectory>::operator()>(
+          &mixedSourceLinkCalibrator);
   // Add the updater
   extensions.updater
       .connect<&Acts::GainMatrixUpdater::operator()<RecoTrajectory>>(
@@ -369,8 +358,9 @@ int main() {
 
   propOptions.maxSteps = 1e5;
 
-  auto kfOptions = Acts::KalmanFitterOptions(gctx, mctx, cctx, extensions,
-                                             propOptions, refSurface.get());
+  auto options =
+      Acts::KalmanFitterOptions(gctx, mctx, cctx, extensions, propOptions);
+  options.referenceSurface = refSurface.get();
 
   Acts::Experimental::DetectorNavigator::Config cfg;
   cfg.detector = detector.get();
@@ -393,7 +383,7 @@ int main() {
       .inputTrackCandidates = "SeedsGuess",
       .outputTracks = "Tracks",
       .fitter = fitter,
-      .kfOptions = kfOptions};
+      .kfOptions = options};
 
   sequencer.addAlgorithm(
       std::make_shared<KFTrackFittingAlgorithm>(fitterCfg, logLevel));
@@ -402,38 +392,37 @@ int main() {
   // Event write out
 
   // Seed writer
-  RootSimSeedWriter::Config seedWriterCfg;
-  seedWriterCfg.inputSeeds = "SeedsEst";
+  RootSeedWriter::Config seedWriterCfg;
+  seedWriterCfg.inputSeeds = "SeedsGuess";
   seedWriterCfg.inputTruthClusters = "SimClusters";
   seedWriterCfg.treeName = "seeds";
   seedWriterCfg.filePath =
-      "/home/romanurmanov/work/E320/E320Prototype/E320Prototype_analysis/sim/"
+      "/home/romanurmanov/work/E320/E320Prototype/E320Prototype_analysis/data/"
       "seeds.root";
 
   sequencer.addWriter(
-      std::make_shared<RootSimSeedWriter>(seedWriterCfg, logLevel));
+      std::make_shared<RootSeedWriter>(seedWriterCfg, logLevel));
 
   // Fitted track writer
-  RootSimTrackWriter::Config trackWriterCfg;
+  RootTrackWriter::Config trackWriterCfg;
   trackWriterCfg.surfaceAccessor
       .connect<&MixedSourceLinkSurfaceAccessor::operator()>(&surfaceAccessor);
   trackWriterCfg.referenceSurface = refSurface.get();
   trackWriterCfg.inputTracks = "Tracks";
-  trackWriterCfg.inputSimClusters = "SimClusters";
   trackWriterCfg.treeName = "fitted-tracks";
   trackWriterCfg.filePath =
-      "/home/romanurmanov/work/E320/E320Prototype/E320Prototype_analysis/sim/"
+      "/home/romanurmanov/work/E320/E320Prototype/E320Prototype_analysis/data/"
       "fitted-tracks.root";
 
   sequencer.addWriter(
-      std::make_shared<RootSimTrackWriter>(trackWriterCfg, logLevel));
+      std::make_shared<RootTrackWriter>(trackWriterCfg, logLevel));
 
   // Alignment parameters writer
   AlignmentParametersWriter::Config alignmentWriterCfg;
   alignmentWriterCfg.treeName = "alignment-parameters";
   alignmentWriterCfg.inputAlignmentResults = "AlignmentParameters";
   alignmentWriterCfg.filePath =
-      "/home/romanurmanov/work/E320/E320Prototype/E320Prototype_analysis/sim/"
+      "/home/romanurmanov/work/E320/E320Prototype/E320Prototype_analysis/data/"
       "alignment-parameters.root";
 
   sequencer.addWriter(std::make_shared<AlignmentParametersWriter>(
@@ -448,12 +437,17 @@ int main() {
         std::cout << "SURFACE " << s->geometryId() << "\n";
         std::cout << "CENTER " << s->center(gctx).transpose() << " -- "
                   << s->center(Acts::GeometryContext()).transpose() << "\n";
+        std::cout << "DELTA "
+                  << (s->center(gctx) - s->center(Acts::GeometryContext()))
+                             .transpose() *
+                         1e3
+                  << "\n";
+
         std::cout << "NORMAL "
                   << s->normal(gctx, s->center(gctx), Acts::Vector3::UnitY())
                          .transpose()
                   << " -- "
-                  << s->normal(Acts::GeometryContext(),
-                               s->center(Acts::GeometryContext()),
+                  << s->normal(gctx, s->center(Acts::GeometryContext()),
                                Acts::Vector3::UnitY())
                          .transpose()
                   << "\n";

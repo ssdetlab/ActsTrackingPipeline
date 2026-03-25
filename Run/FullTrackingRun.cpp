@@ -2,7 +2,10 @@
 #include "Acts/EventData/VectorMultiTrajectory.hpp"
 #include "Acts/EventData/VectorTrackContainer.hpp"
 #include "Acts/Geometry/GeometryIdentifier.hpp"
+#include "Acts/Geometry/GeometryContext.hpp"
 #include "Acts/Navigation/DetectorNavigator.hpp"
+#include "Acts/Plugins/Json/JsonMaterialDecorator.hpp"
+#include "Acts/Plugins/Json/MaterialMapJsonConverter.hpp"
 #include "Acts/Propagator/EigenStepper.hpp"
 #include "Acts/Surfaces/PlaneSurface.hpp"
 #include "Acts/Surfaces/RectangleBounds.hpp"
@@ -13,10 +16,12 @@
 #include <cmath>
 #include <filesystem>
 #include <iostream>
+#include <limits>
 #include <memory>
 
 #include <unistd.h>
 
+#include "TrackingPipeline/Alignment/detail/AlignmentStoreBuilders.hpp"
 #include "TrackingPipeline/Geometry/E320Geometry.hpp"
 #include "TrackingPipeline/Geometry/E320GeometryConstraints.hpp"
 #include "TrackingPipeline/Geometry/GeometryContextDecorator.hpp"
@@ -65,7 +70,24 @@ int main() {
   // --------------------------------------------------------------
   // Detector setup
 
-  auto detector = E320Geometry::buildDetector(gctx);
+  // Material decorator
+  Acts::MaterialMapJsonConverter::Config jsonMaterialConverterCfg;
+  jsonMaterialConverterCfg.context = gctx;
+  jsonMaterialConverterCfg.processSensitives = true;
+  jsonMaterialConverterCfg.processApproaches = true;
+  jsonMaterialConverterCfg.processRepresenting = true;
+  jsonMaterialConverterCfg.processBoundaries = true;
+  jsonMaterialConverterCfg.processVolumes = true;
+  jsonMaterialConverterCfg.processDenseVolumes = false;
+  jsonMaterialConverterCfg.processNonMaterial = false;
+
+  auto materialDecorator = std::make_shared<Acts::JsonMaterialDecorator>(
+      jsonMaterialConverterCfg,
+      "/home/romanurmanov/work/E320/E320Prototype/E320Prototype_material/"
+      "Uniform_DirectZ_Tracker_PDCWindow_256x128_1e6/material.json",
+      logLevel);
+
+  auto detector = E320Geometry::buildDetector(gctx, materialDecorator);
 
   std::map<Acts::GeometryIdentifier, const Acts::Surface*> surfaceMap;
   for (const auto& vol : detector->volumes()) {
@@ -83,14 +105,17 @@ int main() {
     }
   }
 
+  auto aStore = detail::makeAlignmentStore(gctx, detector.get());
+
   AlignmentParametersProvider::Config alignmentProviderCfg;
   alignmentProviderCfg.filePath =
       "/home/romanurmanov/work/E320/E320Prototype/E320Prototype_analysis/data/"
-      "alignment/global/aligned/"
+      "alignment/local_run502_503/local_solid_material_uniform_errors/"
+      "bkg_features_isolation/sig/aligned/"
       "alignment-parameters.root";
   alignmentProviderCfg.treeName = "alignment-parameters";
   AlignmentParametersProvider alignmentProvider(alignmentProviderCfg);
-  auto aStore = alignmentProvider.getAlignmentStore();
+  aStore = alignmentProvider.getAlignmentStore();
 
   AlignmentContext alignCtx(aStore);
   Acts::GeometryContext testCtx{alignCtx};
@@ -101,6 +126,12 @@ int main() {
         std::cout << "SURFACE " << s->geometryId() << "\n";
         std::cout << "CENTER " << s->center(testCtx).transpose() << " -- "
                   << s->center(Acts::GeometryContext()).transpose() << "\n";
+        std::cout << "DELTA "
+                  << (s->center(testCtx) - s->center(Acts::GeometryContext()))
+                             .transpose() *
+                         1e3
+                  << "\n";
+
         std::cout << "NORMAL "
                   << s->normal(testCtx, s->center(testCtx),
                                Acts::Vector3::UnitY())
@@ -125,6 +156,7 @@ int main() {
     }
   }
   gctx = Acts::GeometryContext{alignCtx};
+  return 0;
 
   // --------------------------------------------------------------
   // The magnetic field setup
@@ -148,7 +180,9 @@ int main() {
 
   Acts::Transform3 seedingRefSurfTransform = Acts::Transform3::Identity();
   seedingRefSurfTransform.translation() =
-      Acts::Vector3(goInst.ipTcDistance - 0.3_mm, 0, 0);
+      Acts::Vector3(goInst.pdcWindowCenterPrimary - 0.1_mm, 0, 0);
+  // Acts::Vector3(goInst.ipTcDistance + 2 * goInst.tcHalfPrimary + 0.1_mm, 0,
+  //               0);
   seedingRefSurfTransform.rotate(refSurfToWorldRotationX);
   seedingRefSurfTransform.rotate(refSurfToWorldRotationY);
   seedingRefSurfTransform.rotate(refSurfToWorldRotationZ);
@@ -163,7 +197,7 @@ int main() {
 
   Acts::Transform3 trackingRefSurfTransform = Acts::Transform3::Identity();
   trackingRefSurfTransform.translation() =
-      // Acts::Vector3(0, 0, 0);
+      // Acts::Vector3(goInst.beWindowCenterPrimary, 0, 0);
       // Acts::Vector3(goInst.bpm3CenterPrimary, 0, 0);
       // Acts::Vector3(goInst.ipTcDistance + 2 * goInst.tcHalfPrimary + 0.1_mm,
       // 0,
@@ -191,8 +225,7 @@ int main() {
   // Setup the sequencer
   Sequencer::Config seqCfg;
   // seqCfg.events = 100;
-  seqCfg.skip = 0;
-  seqCfg.numThreads = 32;
+  seqCfg.numThreads = 1;
   seqCfg.trackFpes = false;
   seqCfg.logLevel = logLevel;
   Sequencer sequencer(seqCfg);
@@ -205,10 +238,13 @@ int main() {
   readerCfg.outputSourceLinks = "Measurements";
   readerCfg.treeName = "MyTree";
   readerCfg.eventKey = "event";
+  readerCfg.minGeoId = 10;
+  readerCfg.maxGeoId = 18;
   readerCfg.surfaceMap = surfaceMap;
   std::string pathToDir =
       "/home/romanurmanov/work/E320/E320Prototype/"
-      "E320Prototype_dataInRootFormat/E320Shift_Fev_2025/processed/data_Run502";
+      "E320Prototype_dataInRootFormat/E320Shift_Feb_2025/processed/"
+      "data_Run503";
 
   // Get the paths to the files in the directory
   for (const auto& entry : std::filesystem::directory_iterator(pathToDir)) {
@@ -241,11 +277,11 @@ int main() {
   htSeederCfg.boundBoxHalfLong = goInst.tcHalfLong;
   htSeederCfg.boundBoxHalfShort = goInst.tcHalfShort;
 
-  htSeederCfg.nCellsThetaShort = 500;
-  htSeederCfg.nCellsRhoShort = 4000;
+  htSeederCfg.nCellsThetaShort = 1700;
+  htSeederCfg.nCellsRhoShort = 1700;
 
-  htSeederCfg.nCellsThetaLong = 500;
-  htSeederCfg.nCellsRhoLong = 4000;
+  htSeederCfg.nCellsThetaLong = 1700;
+  htSeederCfg.nCellsRhoLong = 1700;
 
   htSeederCfg.nGLSIterations = 2;
 
@@ -261,8 +297,9 @@ int main() {
   htSeederOpt.firstLayerId = goInst.tcParameters.front().geoId;
   htSeederOpt.lastLayerId = goInst.tcParameters.back().geoId;
   htSeederOpt.nLayers = goInst.tcParameters.size();
+  htSeederOpt.surfaceMap = surfaceMap;
 
-  htSeederOpt.minXCount = 4;
+  htSeederOpt.minXCount = 5;
   htSeederOpt.minSeedSize = 5;
   htSeederOpt.maxSeedSize = 100;
 
@@ -277,18 +314,23 @@ int main() {
   seedingAlgoCfg.outputSeeds = "Seeds";
   seedingAlgoCfg.minLayers = 5;
   seedingAlgoCfg.maxLayers = 5;
-  seedingAlgoCfg.beamlineTilt = 0;
   seedingAlgoCfg.referenceSurface = seedingRefSurface.get();
 
   Acts::BoundVector trackOriginStdDevPrior;
-  trackOriginStdDevPrior[Acts::eBoundLoc0] = 10_mm;
-  trackOriginStdDevPrior[Acts::eBoundLoc1] = 10_mm;
+  trackOriginStdDevPrior[Acts::eBoundLoc0] = 100_mm;
+  trackOriginStdDevPrior[Acts::eBoundLoc1] = 100_mm;
   trackOriginStdDevPrior[Acts::eBoundPhi] = 10_degree;
   trackOriginStdDevPrior[Acts::eBoundTheta] = 10_degree;
-  trackOriginStdDevPrior[Acts::eBoundQOverP] = 1 / 100_GeV;
+  trackOriginStdDevPrior[Acts::eBoundQOverP] = 1 / 0.01_GeV;
   trackOriginStdDevPrior[Acts::eBoundTime] = 1_fs;
   seedingAlgoCfg.originCov =
       trackOriginStdDevPrior.cwiseProduct(trackOriginStdDevPrior).asDiagonal();
+
+  seedingAlgoCfg.bpmIds = {goInst.bpm1Parameters.geoId,
+                           goInst.bpm2Parameters.geoId,
+                           goInst.bpm3Parameters.geoId};
+  seedingAlgoCfg.propDirection =
+      E320SeedingAlgorithm::PropagationDirection::forward;
 
   sequencer.addAlgorithm(
       std::make_shared<E320SeedingAlgorithm>(seedingAlgoCfg, logLevel));
@@ -361,8 +403,9 @@ int main() {
       "/home/romanurmanov/work/E320/E320Prototype/E320Prototype_analysis/data/"
       "measurements.root";
 
-  sequencer.addWriter(
-      std::make_shared<RootMeasurementWriter>(measurementWriterCfg, logLevel));
+  // sequencer.addWriter(
+  //     std::make_shared<RootMeasurementWriter>(measurementWriterCfg,
+  //     logLevel));
 
   // Seed writer
   auto seedWriterCfg = RootSeedWriter::Config();
@@ -372,8 +415,8 @@ int main() {
       "/home/romanurmanov/work/E320/E320Prototype/E320Prototype_analysis/data/"
       "seeds.root";
 
-  sequencer.addWriter(
-      std::make_shared<RootSeedWriter>(seedWriterCfg, logLevel));
+  // sequencer.addWriter(
+  //     std::make_shared<RootSeedWriter>(seedWriterCfg, logLevel));
 
   // Fitted track writer
   auto trackWriterCfg = RootTrackWriter::Config();

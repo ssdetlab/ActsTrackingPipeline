@@ -21,11 +21,13 @@
 #include "TrackingPipeline/Infrastructure/Sequencer.hpp"
 #include "TrackingPipeline/Io/DummyReader.hpp"
 #include "TrackingPipeline/Io/RootSimClusterWriter.hpp"
+#include "TrackingPipeline/Simulation/ClusterSizeBasedDigitizer.hpp"
 #include "TrackingPipeline/Simulation/GaussianVertexGenerator.hpp"
 #include "TrackingPipeline/Simulation/MeasurementsCreator.hpp"
 #include "TrackingPipeline/Simulation/MeasurementsEmbeddingAlgorithm.hpp"
 #include "TrackingPipeline/Simulation/SimpleDigitizer.hpp"
 #include "TrackingPipeline/Simulation/SphericalMomentumGenerator.hpp"
+#include "TrackingPipeline/Simulation/SurfaceRangedDigitizer.hpp"
 #include "TrackingPipeline/Simulation/UniformBackgroundCreator.hpp"
 
 using ActionList = Acts::ActionList<>;
@@ -49,18 +51,16 @@ using TrackStateContainerBackend =
 
 using namespace Acts::UnitLiterals;
 
-namespace eg = E320Geometry;
+namespace ag = E320Geometry;
 
-std::unique_ptr<const eg::GeometryOptions> eg::GeometryOptions::m_instance =
+std::unique_ptr<const ag::GeometryOptions> ag::GeometryOptions::m_instance =
     nullptr;
 
-int main(int argc, char* argv[]) {
-  int id = std::stoi(argv[1]);
-
-  const auto& goInst = *eg::GeometryOptions::instance();
+int main() {
+  const auto& goInst = *ag::GeometryOptions::instance();
 
   // Set the log level
-  Acts::Logging::Level logLevel = Acts::Logging::FATAL;
+  Acts::Logging::Level logLevel = Acts::Logging::INFO;
 
   // Dummy context and options
   Acts::GeometryContext gctx;
@@ -71,7 +71,7 @@ int main(int argc, char* argv[]) {
   // --------------------------------------------------------------
   // Detector setup
 
-  auto detector = eg::buildDetector(gctx);
+  auto detector = ag::buildDetector(gctx, nullptr);
 
   for (const auto& vol : detector->volumes()) {
     std::cout << "------------------------------------------\n";
@@ -100,32 +100,32 @@ int main(int argc, char* argv[]) {
 
   std::unordered_map<int, Acts::Vector3> localShiftsMean{
       {10, Acts::Vector3(0_mm, 0_um, 0_um)},
+      {12, Acts::Vector3(0_mm, 35_um, -24_um)},
+      {14, Acts::Vector3(0_mm, -47_um, 48_um)},
+      {16, Acts::Vector3(0_mm, 52_um, -56_um)},
+      {18, Acts::Vector3(0_mm, -40_um, 32_um)}};
+  std::unordered_map<int, Acts::Vector3> localShiftsStdErr{
+      {10, Acts::Vector3(0_mm, 0_um, 0_um)},
       {12, Acts::Vector3(0_mm, 0_um, 0_um)},
       {14, Acts::Vector3(0_mm, 0_um, 0_um)},
       {16, Acts::Vector3(0_mm, 0_um, 0_um)},
       {18, Acts::Vector3(0_mm, 0_um, 0_um)}};
-  std::unordered_map<int, Acts::Vector3> localShiftsStdErr{
-      {10, Acts::Vector3(0_mm, 30_um, 30_um)},
-      {12, Acts::Vector3(0_mm, 30_um, 30_um)},
-      {14, Acts::Vector3(0_mm, 30_um, 30_um)},
-      {16, Acts::Vector3(0_mm, 30_um, 30_um)},
-      {18, Acts::Vector3(0_mm, 30_um, 30_um)}};
 
   Acts::Vector3 globalAnglesMean(0_rad, 0_rad, 0_rad);
   Acts::Vector3 globalAnglesStdErr(0_rad, 0_rad, 0_rad);
 
   std::unordered_map<int, Acts::Vector3> localAnglesMean{
       {10, Acts::Vector3(0_rad, 0_rad, 0_rad)},
+      {12, Acts::Vector3(0_rad, 0_rad, 1e-3_rad)},
+      {14, Acts::Vector3(0_rad, 0_rad, -2e-3_rad)},
+      {16, Acts::Vector3(0_rad, 0_rad, -1e-3_rad)},
+      {18, Acts::Vector3(0_rad, 0_rad, 2e-3_rad)}};
+  std::unordered_map<int, Acts::Vector3> localAnglesStdErr{
+      {10, Acts::Vector3(0_rad, 0_rad, 0_rad)},
       {12, Acts::Vector3(0_rad, 0_rad, 0_rad)},
       {14, Acts::Vector3(0_rad, 0_rad, 0_rad)},
       {16, Acts::Vector3(0_rad, 0_rad, 0_rad)},
       {18, Acts::Vector3(0_rad, 0_rad, 0_rad)}};
-  std::unordered_map<int, Acts::Vector3> localAnglesStdErr{
-      {10, Acts::Vector3(0_rad, 0_rad, 1e-3_rad)},
-      {12, Acts::Vector3(0_rad, 0_rad, 1e-3_rad)},
-      {14, Acts::Vector3(0_rad, 0_rad, 1e-3_rad)},
-      {16, Acts::Vector3(0_rad, 0_rad, 1e-3_rad)},
-      {18, Acts::Vector3(0_rad, 0_rad, 1e-3_rad)}};
 
   auto aStore = detail::makeAlignmentStore(
       gctx, detector.get(), globalShiftMean, globalAnglesStdErr,
@@ -169,7 +169,7 @@ int main(int argc, char* argv[]) {
   // --------------------------------------------------------------
   // The magnetic field setup
 
-  auto field = eg::buildMagField(gctx);
+  auto field = ag::buildMagField(gctx);
 
   // --------------------------------------------------------------
   // Reference surface
@@ -207,7 +207,7 @@ int main(int argc, char* argv[]) {
   // Setup the sequencer
   Sequencer::Config seqCfg;
   seqCfg.numThreads = 1;
-  seqCfg.skip = 100000 * id;
+  seqCfg.skip = 0;
   seqCfg.trackFpes = false;
   seqCfg.logLevel = logLevel;
   Sequencer sequencer(seqCfg);
@@ -220,7 +220,7 @@ int main(int argc, char* argv[]) {
   DummyReader::Config dummyReaderCfg;
   dummyReaderCfg.outputSourceLinks = "SimMeasurements";
   dummyReaderCfg.outputSimClusters = "SimClusters";
-  dummyReaderCfg.nEvents = (id + 1) * 100000;
+  dummyReaderCfg.nEvents = 1e0;
 
   sequencer.addReader(std::make_shared<DummyReader>(dummyReaderCfg));
 
@@ -242,9 +242,22 @@ int main(int argc, char* argv[]) {
                                    std::move(measCreatorNavigator));
 
   // Digitizer
-  SimpleDigitizer::Config digitizerCfg;
-  digitizerCfg.resolution = {5_um, 5_um};
-  auto digitizer = std::make_shared<SimpleDigitizer>(digitizerCfg);
+
+  // SurfaceRangedDigitizer::Config digitizerCfg;
+  // for (const auto& surf : detSurfaces) {
+  //   SurfaceRangedDigitizer::Resolution res =
+  //       (geoId.sensitive() < 40) ? std::make_pair(5_um, 5_um)
+  //                                : std::make_pair(100_um, 100_um);
+  //   digitizerCfg.resolutions.insert({surf->geometryId(), res});
+  // }
+  // auto digitizer = std::make_shared<SurfaceRangedDigitizer>(digitizerCfg);
+
+  ClusterSizeBasedDigitizer::Config digitizerCfg;
+  digitizerCfg.clSizeProbsStdDevs = {{1, {0.168115, 0.00333208, 0.00395262}},
+                                     {2, {0.284536, 0.00473498, 0.00444654}},
+                                     {3, {0.217946, 0.00431227, 0.00417356}},
+                                     {4, {0.329402, 0.00490848, 0.00509384}}};
+  auto digitizer = std::make_shared<ClusterSizeBasedDigitizer>(digitizerCfg);
 
   // Vertex generator
   GaussianVertexGenerator::Config vertexGenCfg;
@@ -254,8 +267,8 @@ int main(int argc, char* argv[]) {
 
   SphericalMomentumGenerator::Config momGenCfg;
   momGenCfg.pRange = {2.0_GeV, 3.0_GeV};
-  momGenCfg.phiRange = {-0.001, 0.001};
-  momGenCfg.thetaRange = {M_PI_2 - 0.003, M_PI_2 + 0.003};
+  momGenCfg.phiRange = {0.0, 0.0};
+  momGenCfg.thetaRange = {M_PI_2 + 0.0, M_PI_2 + 0.0};
 
   auto momGen = std::make_shared<SphericalMomentumGenerator>(momGenCfg);
 
@@ -276,7 +289,7 @@ int main(int argc, char* argv[]) {
     const auto& surface = det->surface();
     const auto& geoId = surface.geometryId();
     if (geoId.sensitive() && geoId.sensitive() >= 40) {
-      measCreatorConstraints.insert({geoId, {-3, 3, -3, 3}});
+      measCreatorConstraints.insert({geoId, {-30, 30, -30, 30}});
     }
   }
   measCreatorCfg.constraints = measCreatorConstraints;
@@ -292,7 +305,7 @@ int main(int argc, char* argv[]) {
   measCreatorAlgoCfg.measurementGenerator = measCreator;
   measCreatorAlgoCfg.randomNumberSvc =
       std::make_shared<RandomNumbers>(RandomNumbers::Config());
-  measCreatorAlgoCfg.nMeasurements = 1;
+  measCreatorAlgoCfg.nMeasurements = 20;
 
   sequencer.addAlgorithm(std::make_shared<MeasurementsEmbeddingAlgorithm>(
       measCreatorAlgoCfg, logLevel));
@@ -303,7 +316,7 @@ int main(int argc, char* argv[]) {
   // Background creator
   UniformBackgroundCreator::Config bkgCreatorCfg;
   bkgCreatorCfg.resolution = {5_um, 5_um};
-  bkgCreatorCfg.nMeasurements = 700;
+  bkgCreatorCfg.nMeasurements = 300;
   bkgCreatorCfg.surfaces = detSurfaces;
 
   auto bkgCreator = std::make_shared<UniformBackgroundCreator>(bkgCreatorCfg);
@@ -331,8 +344,7 @@ int main(int argc, char* argv[]) {
   clusterWriterCfgSig.filePath =
       "/home/romanurmanov/work/E320/E320Prototype/"
       "E320Prototype_dataInRootFormat/sim/"
-      "clusters-" +
-      std::to_string(id) + ".root";
+      "clusters.root";
 
   sequencer.addWriter(
       std::make_shared<RootSimClusterWriter>(clusterWriterCfgSig, logLevel));
