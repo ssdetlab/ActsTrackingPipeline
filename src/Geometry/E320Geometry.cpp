@@ -33,7 +33,8 @@ namespace E320Geometry {
 using go = GeometryOptions;
 
 std::shared_ptr<const Acts::Experimental::Detector> buildDetector(
-    const Acts::GeometryContext& gctx) {
+    const Acts::GeometryContext& gctx,
+    const std::shared_ptr<Acts::IMaterialDecorator>& materialDecorator) {
   const auto& goInst = *go::instance();
 
   std::vector<std::shared_ptr<Acts::Experimental::DetectorVolume>>
@@ -72,6 +73,10 @@ std::shared_ptr<const Acts::Experimental::Detector> buildDetector(
   Acts::MaterialSlab siliconSlab(silicon, goInst.pixelThickness);
   auto siSurfMaterial =
       std::make_shared<Acts::HomogeneousSurfaceMaterial>(siliconSlab);
+
+  Acts::MaterialSlab thinSlab(silicon, 1_um);
+  auto thinSurfMaterial =
+      std::make_shared<Acts::HomogeneousSurfaceMaterial>(thinSlab);
 
   Acts::Material alminium = Acts::Material::fromMolarDensity(
       8.897_cm, 25.81_cm, 26.9815385, 13, (2.699 / 26.9815385) * 1_mol / 1_cm3);
@@ -113,11 +118,15 @@ std::shared_ptr<const Acts::Experimental::Detector> buildDetector(
         for (const auto& parameters : pars) {
           auto surf = constructE320Surface(parameters, chipBounds);
 
-          surf->assignSurfaceMaterial(siSurfMaterial);
-
           Acts::GeometryIdentifier surfGeoId;
           surfGeoId.setSensitive(parameters.geoId);
           surf->assignGeometryId(surfGeoId);
+
+          if (materialDecorator != nullptr) {
+            materialDecorator->decorate(*surf);
+          } else {
+            surf->assignSurfaceMaterial(siSurfMaterial);
+          }
 
           detectorElements.push_back(std::make_shared<AlignableDetectorElement>(
               surf, surf->transform(gctx)));
@@ -152,11 +161,15 @@ std::shared_ptr<const Acts::Experimental::Detector> buildDetector(
   auto constructPDCWindow = [&](const SurfaceParameters& pars) {
     auto surf = constructE320Surface(pars, pdcWindowBounds);
 
-    surf->assignSurfaceMaterial(alSurfMaterial);
-
     Acts::GeometryIdentifier surfGeoId;
     surfGeoId.setPassive(pars.geoId);
     surf->assignGeometryId(surfGeoId);
+
+    if (materialDecorator != nullptr) {
+      materialDecorator->decorate(*surf);
+    } else {
+      surf->assignSurfaceMaterial(alSurfMaterial);
+    }
 
     constructE320Volume(goInst.chipVolumeHalfSpacing,
                         pars.toWorldTranslation[goInst.primaryIdx], "pdcVol",
@@ -174,8 +187,8 @@ std::shared_ptr<const Acts::Experimental::Detector> buildDetector(
   detectorElements.push_back(std::make_shared<AlignableDetectorElement>(
       beWindowSurface, beWindowSurface->transform(gctx)));
   beWindowSurface->assignDetectorElement(*detectorElements.back());
-  constructE320Volume(10_mm, 0, "ipVol", goInst.ipVolumeIdPrefactor,
-                      {beWindowSurface});
+  constructE320Volume(10_mm, goInst.beWindowCenterPrimary, "ipVol",
+                      goInst.ipVolumeIdPrefactor, {beWindowSurface});
 
   // Quad 1
   constructMagVolume(goInst.quad1HalfPrimary, goInst.quad1CenterPrimary,
@@ -184,14 +197,15 @@ std::shared_ptr<const Acts::Experimental::Detector> buildDetector(
   // BPM 1
   auto bpm1Surface =
       constructE320Surface(goInst.bpm1Parameters, beWindowBounds);
+  bpm1Surface->assignSurfaceMaterial(thinSurfMaterial);
   Acts::GeometryIdentifier bpm1GeoId;
   bpm1GeoId.setSensitive(goInst.bpm1Parameters.geoId);
   bpm1Surface->assignGeometryId(bpm1GeoId);
   detectorElements.push_back(std::make_shared<AlignableDetectorElement>(
       bpm1Surface, bpm1Surface->transform(gctx)));
   bpm1Surface->assignDetectorElement(*detectorElements.back());
-  constructE320Volume(10, goInst.bpm1CenterPrimary, "bpm1Vol", 1000,
-                      {bpm1Surface});
+  constructE320Volume(10, goInst.bpm1CenterPrimary, "bpm1Vol",
+                      goInst.bpm1Parameters.geoId, {bpm1Surface});
 
   // Quad 2
   constructMagVolume(goInst.quad2HalfPrimary, goInst.quad2CenterPrimary,
@@ -200,14 +214,15 @@ std::shared_ptr<const Acts::Experimental::Detector> buildDetector(
   // BPM 2
   auto bpm2Surface =
       constructE320Surface(goInst.bpm2Parameters, beWindowBounds);
+  bpm2Surface->assignSurfaceMaterial(thinSurfMaterial);
   Acts::GeometryIdentifier bpm2GeoId;
   bpm2GeoId.setSensitive(goInst.bpm2Parameters.geoId);
   bpm2Surface->assignGeometryId(bpm2GeoId);
   detectorElements.push_back(std::make_shared<AlignableDetectorElement>(
       bpm2Surface, bpm2Surface->transform(gctx)));
   bpm2Surface->assignDetectorElement(*detectorElements.back());
-  constructE320Volume(10, goInst.bpm2CenterPrimary, "bpm2Vol", 1001,
-                      {bpm2Surface});
+  constructE320Volume(10, goInst.bpm2CenterPrimary, "bpm2Vol",
+                      goInst.bpm2Parameters.geoId, {bpm2Surface});
 
   // Quad 3
   constructMagVolume(goInst.quad3HalfPrimary, goInst.quad3CenterPrimary,
@@ -216,14 +231,15 @@ std::shared_ptr<const Acts::Experimental::Detector> buildDetector(
   // BPM 3
   auto bpm3Surface =
       constructE320Surface(goInst.bpm3Parameters, beWindowBounds);
+  bpm3Surface->assignSurfaceMaterial(thinSurfMaterial);
   Acts::GeometryIdentifier bpm3GeoId;
   bpm3GeoId.setSensitive(goInst.bpm3Parameters.geoId);
   bpm3Surface->assignGeometryId(bpm3GeoId);
   detectorElements.push_back(std::make_shared<AlignableDetectorElement>(
       bpm3Surface, bpm3Surface->transform(gctx)));
   bpm3Surface->assignDetectorElement(*detectorElements.back());
-  constructE320Volume(10, goInst.bpm3CenterPrimary, "bpm3Vol", 1002,
-                      {bpm3Surface});
+  constructE320Volume(10, goInst.bpm3CenterPrimary, "bpm3Vol",
+                      goInst.bpm3Parameters.geoId, {bpm3Surface});
 
   // X-Corrector
   constructMagVolume(goInst.xCorrectorHalfPrimary,

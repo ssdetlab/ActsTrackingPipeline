@@ -2,14 +2,13 @@
 
 #include "Acts/Definitions/Algebra.hpp"
 #include "Acts/Definitions/Units.hpp"
+#include <Acts/Utilities/BinUtility.hpp>
 
 #include <cmath>
 #include <memory>
 
 #include "TrackingPipeline/Geometry/detail/BinningValueUtils.hpp"
 #include "TrackingPipeline/Geometry/detail/SurfaceParameters.hpp"
-
-/// TODO: cross-reference parameters with the paper
 
 namespace E320Geometry {
 
@@ -98,17 +97,20 @@ struct GeometryOptions {
   const double quad1HalfPrimary = 486.664_mm;
   const double quad1HalfLong = 32.33_mm;
   const double quad1HalfShort = 32.33_mm;
-  const double quad1Gradient = -0.7637_T / 1_m;
+  const double quad1Gradient = -0.7637_T / 1_m;  // Run 502
+  // const double quad1Gradient = -0.6659_T / 1_m; // Run 503
 
   const double quad2HalfPrimary = 486.664_mm;
   const double quad2HalfLong = 32.33_mm;
   const double quad2HalfShort = 32.33_mm;
-  const double quad2Gradient = 2.855_T / 1_m;
+  const double quad2Gradient = 2.855_T / 1_m;  // Run 502
+  // const double quad2Gradient = 2.986_T / 1_m; // Run 503
 
   const double quad3HalfPrimary = 486.664_mm;
   const double quad3HalfLong = 32.33_mm;
   const double quad3HalfShort = 32.33_mm;
-  const double quad3Gradient = -0.7637_T / 1_m;
+  const double quad3Gradient = -0.7637_T / 1_m;  // Run 502
+  // const double quad3Gradient = -0.6659_T / 1_m; // Run 503
 
   /// --------------------------------------------------------------
   /// Parameters of the x-corrector
@@ -117,10 +119,11 @@ struct GeometryOptions {
   const double xCorrectorHalfLong = 40_mm;
   const double xCorrectorHalfShort = 40_mm;
 
-  const double xCorrectorFieldStrength = 0.026107_T;
+  const double xCorrectorFieldStrength = 0.026107_T;  // Run 502
+  // const double xCorrectorFieldStrength = 0.0_T; // Run 503
 
   const double xCorrectorFieldPrimary = 0;
-  const double xCorrectorFieldLong = xCorrectorFieldStrength;
+  const double xCorrectorFieldLong = -xCorrectorFieldStrength;
   const double xCorrectorFieldShort = 0;
 
   /// --------------------------------------------------------------
@@ -143,6 +146,15 @@ struct GeometryOptions {
   const double pdcWindowHalfY = 25_mm;
 
   const double pdcWindowThickness = 0.51_mm;
+
+  /// Material binning
+  const Acts::BinUtility pdcWindowMaterialBinningX =
+      Acts::BinUtility(1, -pdcWindowHalfX, pdcWindowHalfX, Acts::closed,
+                       Acts::BinningValue::binX);
+
+  const Acts::BinUtility pdcWindowMaterialBinningY =
+      Acts::BinUtility(1, -pdcWindowHalfY, pdcWindowHalfY, Acts::closed,
+                       Acts::BinningValue::binY);
 
   /// --------------------------------------------------------------
   /// Parameters of the tracking chambers
@@ -168,11 +180,18 @@ struct GeometryOptions {
   const double tcHalfLong = chipHalfX;
   const double tcHalfShort = chipHalfY;
 
+  /// Material binning
+  const Acts::BinUtility chipMaterialBinningX = Acts::BinUtility(
+      256, -chipHalfX, chipHalfX, Acts::closed, Acts::BinningValue::binX);
+
+  const Acts::BinUtility chipMaterialBinningY = Acts::BinUtility(
+      128, chipHalfY, chipHalfY, Acts::closed, Acts::BinningValue::binY);
+
   /// --------------------------------------------------------------
   /// Be window placement
 
   // const double beWindowCenterPrimary = -842_mm;
-  const double beWindowCenterPrimary = 0.01_um;
+  const double beWindowCenterPrimary = 0_mm;
   const double beWindowCenterLong = 0_mm;
   const double beWindowCenterShort = 0_mm;
 
@@ -185,9 +204,9 @@ struct GeometryOptions {
   /// --------------------------------------------------------------
   /// BMP placement
 
-  const double bpm1CenterPrimary = 4160_mm + 500_mm;
-  const double bpm2CenterPrimary = 6390_mm + 500_mm;
-  const double bpm3CenterPrimary = 8610_mm + 500_mm;
+  const double bpm1CenterPrimary = 4944_mm;  // 3218
+  const double bpm2CenterPrimary = 7168_mm;  // 3265
+  const double bpm3CenterPrimary = 9393_mm;  // 3315
 
   const double bpmCenterLong = 0_mm;
   const double bpmCenterShort = 0_mm;
@@ -211,17 +230,20 @@ struct GeometryOptions {
   /// --------------------------------------------------------------
   /// Quads placement
 
-  const double quad1CenterPrimary = 4160_mm;
+  const double quad1CenterPrimary = 4157_mm;
   const double quad1CenterLong = 0_mm;
-  const double quad1CenterShort = 0_mm;
+  // const double quad1CenterShort = -3.5_mm;
+  const double quad1CenterShort = 0;
 
-  const double quad2CenterPrimary = 6390_mm;
+  const double quad2CenterPrimary = 6382_mm;
   const double quad2CenterLong = 0_mm;
-  const double quad2CenterShort = 0_mm;
+  // const double quad2CenterShort = -2.642_mm;
+  const double quad2CenterShort = 0;
 
-  const double quad3CenterPrimary = 8610_mm;
+  const double quad3CenterPrimary = 8606_mm;
   const double quad3CenterLong = 0_mm;
-  const double quad3CenterShort = 0_mm;
+  // const double quad3CenterShort = -3.546_mm;
+  const double quad3CenterShort = 0;
 
   /// --------------------------------------------------------------
   /// X-corrector placement
@@ -233,14 +255,14 @@ struct GeometryOptions {
   /// --------------------------------------------------------------
   /// Dipole placement
 
-  const double dipoleCenterPrimary = 13060.61_mm;
+  const double dipoleCenterPrimary = 13113_mm;
   const double dipoleCenterLong = 0_mm;
   const double dipoleCenterShort = 0_mm;
 
   /// --------------------------------------------------------------
   /// PDC window placement
 
-  const double pdcWindowCenterPrimary = 16549.745_mm;
+  const double pdcWindowCenterPrimary = 16545_mm;
   const double pdcWindowCenterLong = 118_mm;
   const double pdcWindowCenterShort = 0_mm;
 
