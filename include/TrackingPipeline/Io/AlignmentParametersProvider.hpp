@@ -6,7 +6,7 @@
 #include "TMatrixD.h"
 #include "TTree.h"
 #include "TVector3.h"
-#include "TrackingPipeline/Alignment/AlignmentContext.hpp"
+#include "TrackingPipeline/Alignment/AlignmentStore.hpp"
 
 class AlignmentParametersProvider {
  public:
@@ -24,7 +24,7 @@ class AlignmentParametersProvider {
   AlignmentParametersProvider(const Config& config);
 
   /// Write out data to the input stream
-  std::shared_ptr<AlignmentContext::AlignmentStore> getAlignmentStore();
+  std::shared_ptr<AlignmentStore> getAlignmentStore();
 
   /// Readonly access to the config
   const Config& config() const { return m_cfg; }
@@ -41,25 +41,20 @@ class AlignmentParametersProvider {
 
  protected:
   /// Alignment store
-  std::shared_ptr<AlignmentContext::AlignmentStore> m_store = nullptr;
+  std::shared_ptr<AlignmentStore> m_store = nullptr;
 
   /// Detector element geometry ID
-  int m_geoId;
+  std::vector<int>* m_geoId = nullptr;
 
   /// Detector element nominal transform
-  TVector3* m_nominalTranslation = nullptr;
-  TMatrixD* m_nominalRotation = nullptr;
+  std::vector<TVector3>* m_nominalTranslation = nullptr;
+  std::vector<TMatrixD>* m_nominalRotation = nullptr;
 
   /// Detector element new aligned transform
-  TVector3* m_newTranslation = nullptr;
-  TMatrixD* m_newRotation = nullptr;
+  std::vector<TVector3>* m_newTranslation = nullptr;
+  std::vector<TMatrixD>* m_newRotation = nullptr;
 
-  /// Difference between nominal and aligned
-  ///
-  /// Note: to apply to the nominal the order is as follows:
-  /// nominal.pretranslate(delta)
-  /// nominal.rotate(delta)
-  ///
-  TVector3* m_deltaTranslation = nullptr;
-  TMatrixD* m_deltaRotation = nullptr;
+  std::size_t m_alignmentDof;
+
+  TMatrixD* m_alignmentCov = nullptr;
 };

@@ -3,10 +3,9 @@
 #include "Acts/Definitions/Algebra.hpp"
 
 #include <cstddef>
+#include <iostream>
 #include <memory>
 #include <stdexcept>
-
-#include "TVector3.h"
 
 AlignmentParametersProvider::AlignmentParametersProvider(const Config& config)
     : m_cfg(config) {
@@ -20,9 +19,6 @@ AlignmentParametersProvider::AlignmentParametersProvider(const Config& config)
   m_file = new TFile(m_cfg.filePath.c_str(), "READ");
   m_tree = m_file->Get<TTree>(m_cfg.treeName.c_str());
 
-  int buf_size = 32000;
-  int split_lvl = 0;
-
   // Detector element geometry ID
   m_tree->SetBranchAddress("geometryId", &m_geoId);
 
@@ -34,24 +30,31 @@ AlignmentParametersProvider::AlignmentParametersProvider(const Config& config)
   m_tree->SetBranchAddress("newTranslation", &m_newTranslation);
   m_tree->SetBranchAddress("newRotation", &m_newRotation);
 
-  // Difference between nominal and aligned
-  m_tree->SetBranchAddress("deltaTranslation", &m_deltaTranslation);
-  m_tree->SetBranchAddress("deltaRotation", &m_deltaRotation);
+  // Number of alignment degrees of freedom
+  m_tree->SetBranchAddress("alignmentDof", &m_alignmentDof);
 
-  m_store = std::make_shared<AlignmentContext::AlignmentStore>();
-  for (std::size_t i = 0; i < m_tree->GetEntries(); i++) {
-    m_tree->GetEntry(i);
+  // Alignment parameters cov matrix
+  m_tree->SetBranchAddress("alignmentCov", &m_alignmentCov);
 
+  if (m_tree->GetEntries() != 1) {
+    throw std::runtime_error(
+        "Alignment tree is expected to have a single entry");
+  }
+
+  m_store = std::make_shared<AlignmentStore>();
+  m_tree->GetEntry(0);
+
+  for (std::size_t i = 0; i < m_geoId->size(); i++) {
     Acts::GeometryIdentifier geoId;
-    geoId.setSensitive(m_geoId);
+    geoId.setSensitive(m_geoId->at(i));
     if (!geoId.sensitive()) {
       continue;
     }
+    Acts::Vector3 translation(m_newTranslation->at(i).X(),
+                              m_newTranslation->at(i).Y(),
+                              m_newTranslation->at(i).Z());
 
-    Acts::Vector3 translation(m_newTranslation->X(), m_newTranslation->Y(),
-                              m_newTranslation->Z());
-
-    const auto& newRotation = *m_newRotation;
+    const auto& newRotation = m_newRotation->at(i);
     Acts::RotationMatrix3 rotation = Acts::RotationMatrix3::Identity();
     rotation << newRotation(0, 0), newRotation(1, 0), newRotation(2, 0),
         newRotation(0, 1), newRotation(1, 1), newRotation(2, 1),
@@ -61,11 +64,17 @@ AlignmentParametersProvider::AlignmentParametersProvider(const Config& config)
     transform.translate(translation);
     transform.rotate(rotation);
 
-    m_store->emplace(geoId, transform);
+    m_store->store.emplace(geoId, transform);
+  }
+  m_store->covariance = Acts::ActsDynamicMatrix(m_alignmentDof, m_alignmentDof);
+  for (std::size_t i = 0; i < m_alignmentDof; i++) {
+    for (std::size_t j = 0; j < m_alignmentDof; j++) {
+      m_store->covariance(i, j) = (*m_alignmentCov)(i, j);
+    }
   }
 }
 
-std::shared_ptr<AlignmentContext::AlignmentStore>
+std::shared_ptr<AlignmentStore>
 AlignmentParametersProvider::getAlignmentStore() {
   return m_store;
 }

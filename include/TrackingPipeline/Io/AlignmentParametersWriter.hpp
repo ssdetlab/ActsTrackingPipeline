@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Acts/Geometry/DetectorElementBase.hpp"
+#include "ActsAlignment/Kernel/Alignment.hpp"
 
 #include "TFile.h"
 #include "TMatrixD.h"
@@ -13,9 +13,6 @@
 
 class AlignmentParametersWriter : public IWriter {
  public:
-  using AlignmentParameters =
-      std::unordered_map<Acts::DetectorElementBase *, Acts::Transform3>;
-
   /// @brief The nested configuration struct
   struct Config {
     /// Input alignment results
@@ -53,7 +50,7 @@ class AlignmentParametersWriter : public IWriter {
   /// The config class
   Config m_cfg;
 
-  ReadDataHandle<AlignmentParameters> m_alignmentResults{
+  ReadDataHandle<ActsAlignment::AlignmentResult> m_alignmentResults{
       this, "InputAlignmentResults"};
 
   std::unique_ptr<const Acts::Logger> m_logger;
@@ -66,24 +63,19 @@ class AlignmentParametersWriter : public IWriter {
 
  protected:
   /// Detector element geometry ID
-  int m_geoId;
+  std::vector<int> m_geoId;
 
   /// Detector element nominal transform
-  TVector3 m_nominalTranslation;
-  TMatrixD m_nominalRotation = TMatrixD(3, 3);
+  std::vector<TVector3> m_nominalTranslation;
+  std::vector<TMatrixD> m_nominalRotation;
 
   /// Detector element new aligned transform
-  TVector3 m_newTranslation;
-  TMatrixD m_newRotation = TMatrixD(3, 3);
+  std::vector<TVector3> m_newTranslation;
+  std::vector<TMatrixD> m_newRotation;
 
-  /// Difference between nominal and aligned
-  ///
-  /// Note: to apply to the nominal the order is as follows:
-  /// nominal.pretranslate(delta)
-  /// nominal.rotate(delta)
-  ///
-  TVector3 m_deltaTranslation;
-  TMatrixD m_deltaRotation = TMatrixD(3, 3);
+  std::size_t m_alignmentDof;
+
+  TMatrixD m_alignmentCov;
 
   /// Mutex to protect the tree filling
   std::mutex m_mutex;

@@ -1,9 +1,12 @@
 #include "TrackingPipeline/Io/AlignmentParametersWriter.hpp"
 
+#include "Acts/Definitions/Algebra.hpp"
 #include "Acts/Surfaces/Surface.hpp"
-#include <Acts/Utilities/Logger.hpp>
+#include "Acts/Utilities/Logger.hpp"
 
-#include <TVector3.h>
+#include <cstddef>
+
+#include "TVector3.h"
 
 AlignmentParametersWriter::AlignmentParametersWriter(const Config& config,
                                                      Acts::Logging::Level level)
@@ -18,24 +21,26 @@ AlignmentParametersWriter::AlignmentParametersWriter(const Config& config,
   m_file = new TFile(m_cfg.filePath.c_str(), "RECREATE");
   m_tree = new TTree(m_cfg.treeName.c_str(), m_cfg.treeName.c_str());
 
-  int buf_size = 32000;
-  int split_lvl = 0;
+  int bufSize = 32000;
+  int splitLvl = 0;
 
   // Detector element geometry ID
-  m_tree->Branch("geometryId", &m_geoId, buf_size, split_lvl);
+  m_tree->Branch("geometryId", &m_geoId, bufSize, splitLvl);
 
   // Detector element nominal transform
-  m_tree->Branch("nominalTranslation", &m_nominalTranslation, buf_size,
-                 split_lvl);
-  m_tree->Branch("nominalRotation", &m_nominalRotation, buf_size, split_lvl);
+  m_tree->Branch("nominalTranslation", &m_nominalTranslation, bufSize,
+                 splitLvl);
+  m_tree->Branch("nominalRotation", &m_nominalRotation, bufSize, splitLvl);
 
   // Detector element new aligned transform
-  m_tree->Branch("newTranslation", &m_newTranslation, buf_size, split_lvl);
-  m_tree->Branch("newRotation", &m_newRotation, buf_size, split_lvl);
+  m_tree->Branch("newTranslation", &m_newTranslation, bufSize, splitLvl);
+  m_tree->Branch("newRotation", &m_newRotation, bufSize, splitLvl);
 
-  // Difference between nominal and aligned
-  m_tree->Branch("deltaTranslation", &m_deltaTranslation, buf_size, split_lvl);
-  m_tree->Branch("deltaRotation", &m_deltaRotation, buf_size, split_lvl);
+  // Number of alignment degrees of freedom
+  m_tree->Branch("alignmentDof", &m_alignmentDof, bufSize, splitLvl);
+
+  // Alignment parameters cov matrix
+  m_tree->Branch("alignmentCov", &m_alignmentCov, bufSize, splitLvl);
 
   //------------------------------------------------------------------
   // Initialize the data handles
@@ -51,60 +56,58 @@ ProcessCode AlignmentParametersWriter::finalize() {
 ProcessCode AlignmentParametersWriter::write(const AlgorithmContext& ctx) {
   auto inputParameters = m_alignmentResults(ctx);
 
-  ACTS_DEBUG("Received " << inputParameters.size() << " alignment results");
+  ACTS_DEBUG("Received " << inputParameters.alignedParameters.size()
+                         << " alignment results");
   std::lock_guard<std::mutex> lock(m_mutex);
 
   Acts::GeometryContext defGctx;
-  for (const auto& [detElement, transform] : inputParameters) {
-    m_geoId = detElement->surface().geometryId().sensitive();
+  for (const auto& [detElement, transform] :
+       inputParameters.alignedParameters) {
+    m_geoId.push_back(detElement->surface().geometryId().sensitive());
 
-    ACTS_DEBUG("Surface " << m_geoId);
-    Acts::Vector3 nominalTrans = detElement->transform(defGctx).translation();
-    Acts::RotationMatrix3 nominalRotMat =
+    Acts::Vector3 nominalTranslation =
+        detElement->transform(defGctx).translation();
+    Acts::RotationMatrix3 nominalRotation =
         detElement->transform(defGctx).rotation();
 
-    ACTS_DEBUG("Nominal translation " << nominalTrans.transpose());
-    ACTS_DEBUG("Nominal rotation\n" << nominalRotMat);
-
-    ACTS_DEBUG("Aligned translation " << transform.translation().transpose());
-    ACTS_DEBUG("Aligned rotation\n" << transform.rotation());
-
-    Acts::Vector3 deltaTrans = transform.translation() - nominalTrans;
-    Acts::RotationMatrix3 deltaRotMat =
-        nominalRotMat.inverse() * transform.rotation();
-
-    ACTS_DEBUG("Delta translation " << deltaTrans.transpose());
-    ACTS_DEBUG("Delta rotation\n" << deltaRotMat);
-
     // Store nominal
-    m_nominalTranslation.SetXYZ(nominalTrans.x(), nominalTrans.y(),
-                                nominalTrans.z());
-    TArrayD nominalData(9);
+    m_nominalTranslation.push_back(TVector3(nominalTranslation.x(),
+                                            nominalTranslation.y(),
+                                            nominalTranslation.z()));
+
+    TMatrixD nominalRot;
+    TArrayD nominalRotationData(9);
     for (std::size_t i = 0; i < 9; i++) {
-      nominalData[i] = nominalRotMat(i);
+      nominalRotationData[i] = nominalRotation(i);
     }
-    m_nominalRotation.Use(3, 3, nominalData.GetArray());
+    nominalRot.Use(3, 3, nominalRotationData.GetArray());
+    m_nominalRotation.push_back(nominalRot);
 
     // Store new
-    m_newTranslation.SetXYZ(transform.translation().x(),
-                            transform.translation().y(),
-                            transform.translation().z());
+    Acts::Vector3 newTranslation = transform.translation();
+    Acts::RotationMatrix3 newRotation = transform.rotation();
+    m_newTranslation.push_back(
+        TVector3(newTranslation.x(), newTranslation.y(), newTranslation.z()));
+
+    TMatrixD newRot;
     TArrayD newData(9);
     for (std::size_t i = 0; i < 9; i++) {
-      newData[i] = transform.rotation()(i);
+      newData[i] = newRotation(i);
     }
-    m_newRotation.Use(3, 3, newData.GetArray());
-
-    // Store delta
-    m_deltaTranslation.SetXYZ(deltaTrans.x(), deltaTrans.y(), deltaTrans.z());
-    TArrayD deltaData(9);
-    for (std::size_t i = 0; i < 9; i++) {
-      deltaData[i] = deltaRotMat(i);
-    }
-    m_deltaRotation.Use(3, 3, deltaData.GetArray());
-
-    m_tree->Fill();
+    newRot.Use(3, 3, newData.GetArray());
+    m_newRotation.push_back(newRot);
   }
+
+  m_alignmentDof = inputParameters.alignmentDof;
+  const auto& alignmentCov = inputParameters.alignmentCovariance;
+  TArrayD alignmentCovData(m_alignmentDof * m_alignmentDof);
+  for (std::size_t i = 0; i < m_alignmentDof * m_alignmentDof; i++) {
+    alignmentCovData[i] = alignmentCov(i);
+  }
+  m_alignmentCov.Use(m_alignmentDof, m_alignmentDof,
+                     alignmentCovData.GetArray());
+
+  m_tree->Fill();
 
   // Return success flag
   return ProcessCode::SUCCESS;
