@@ -12,13 +12,11 @@
 #include "TrackingPipeline/Io/RootMaterialTrackWriter.hpp"
 #include "TrackingPipeline/Material/MaterialValidation.hpp"
 
-namespace ag = E320Geometry;
-
-std::unique_ptr<const ag::GeometryOptions> ag::GeometryOptions::m_instance =
+std::unique_ptr<const E320::GeometryOptions> E320::GeometryOptions::m_instance =
     nullptr;
 
 int main() {
-  const auto& goInst = *ag::GeometryOptions::instance();
+  const auto& goInst = *E320::GeometryOptions::instance();
 
   // Set the log level
   Acts::Logging::Level logLevel = Acts::Logging::INFO;
@@ -48,7 +46,7 @@ int main() {
       "Uniform_DirectZ_Tracker_PDCWindow_256x128_1e6/material.json",
       logLevel);
 
-  auto detector = E320Geometry::buildDetector(gctx, materialDecorator);
+  auto detector = E320::buildDetector(gctx, materialDecorator);
 
   std::map<Acts::GeometryIdentifier, const Acts::Surface*> surfaceMap;
   for (const auto& vol : detector->volumes()) {
@@ -69,7 +67,7 @@ int main() {
   // --------------------------------------------------------------
   // The magnetic field setup
 
-  auto field = E320Geometry::buildMagField(gctx);
+  auto field = E320::buildMagField(gctx);
 
   // --------------------------------------------------------------
   // Material validation setup

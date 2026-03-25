@@ -3,9 +3,9 @@
 #include "Acts/Detector/Detector.hpp"
 #include "Acts/Geometry/GeometryContext.hpp"
 #include "Acts/MagneticField/MagneticFieldProvider.hpp"
-#include <Acts/Material/IMaterialDecorator.hpp>
+#include "Acts/Material/IMaterialDecorator.hpp"
 
-namespace E320Geometry {
+namespace E320 {
 
 std::shared_ptr<const Acts::Experimental::Detector> buildDetector(
     const Acts::GeometryContext& gctx,

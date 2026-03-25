@@ -12,19 +12,19 @@
 class GeometryContextDecorator : public IContextDecorator {
  public:
   GeometryContextDecorator(
-      const std::shared_ptr<AlignmentStore>& alignmentStore)
-      : m_alignmentStore(alignmentStore) {}
+      const std::shared_ptr<AlignmentStore>& alignmentStorePtr)
+      : m_alignmentStorePtr(alignmentStorePtr) {}
 
   ProcessCode decorate(AlgorithmContext& context) override {
     context.geoContext =
-        Acts::GeometryContext{AlignmentContext(m_alignmentStore)};
+        Acts::GeometryContext{AlignmentContext(m_alignmentStorePtr)};
     return ProcessCode::SUCCESS;
   }
 
   const std::string& name() const override { return m_name; };
 
  private:
-  std::shared_ptr<AlignmentStore> m_alignmentStore = nullptr;
+  std::shared_ptr<AlignmentStore> m_alignmentStorePtr = nullptr;
 
   std::string m_name = "GeometryContextDecorator";
 };

@@ -5,12 +5,13 @@
 #include <Acts/Utilities/BinUtility.hpp>
 
 #include <cmath>
+#include <cstddef>
 #include <memory>
 
 #include "TrackingPipeline/Geometry/detail/BinningValueUtils.hpp"
 #include "TrackingPipeline/Geometry/detail/SurfaceParameters.hpp"
 
-namespace E320Geometry {
+namespace E320 {
 
 using namespace Acts::UnitLiterals;
 
@@ -94,18 +95,21 @@ struct GeometryOptions {
   /// --------------------------------------------------------------
   /// Parameters of the quads
 
+  const std::size_t quad1Id = 1;
   const double quad1HalfPrimary = 486.664_mm;
   const double quad1HalfLong = 32.33_mm;
   const double quad1HalfShort = 32.33_mm;
   const double quad1Gradient = -0.7637_T / 1_m;  // Run 502
   // const double quad1Gradient = -0.6659_T / 1_m; // Run 503
 
+  const std::size_t quad2Id = 2;
   const double quad2HalfPrimary = 486.664_mm;
   const double quad2HalfLong = 32.33_mm;
   const double quad2HalfShort = 32.33_mm;
   const double quad2Gradient = 2.855_T / 1_m;  // Run 502
   // const double quad2Gradient = 2.986_T / 1_m; // Run 503
 
+  const std::size_t quad3Id = 3;
   const double quad3HalfPrimary = 486.664_mm;
   const double quad3HalfLong = 32.33_mm;
   const double quad3HalfShort = 32.33_mm;
@@ -115,6 +119,7 @@ struct GeometryOptions {
   /// --------------------------------------------------------------
   /// Parameters of the x-corrector
 
+  const std::size_t xCorrectorId = 4;
   const double xCorrectorHalfPrimary = 116.84_mm;
   const double xCorrectorHalfLong = 40_mm;
   const double xCorrectorHalfShort = 40_mm;
@@ -129,6 +134,7 @@ struct GeometryOptions {
   /// --------------------------------------------------------------
   /// Parameters of the dipole
 
+  const std::size_t dipoleId = 5;
   const double dipoleHalfPrimary = 457.2_mm;
   const double dipoleHalfLong = 50.927_mm;
   const double dipoleHalfShort = 22.352_mm;
@@ -322,4 +328,4 @@ struct GeometryOptions {
   static std::unique_ptr<const GeometryOptions> m_instance;
 };
 
-}  // namespace E320Geometry
+}  // namespace E320

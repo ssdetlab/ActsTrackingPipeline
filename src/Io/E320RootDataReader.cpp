@@ -8,10 +8,8 @@
 #include "TrackingPipeline/EventData/SimpleSourceLink.hpp"
 #include "TrackingPipeline/Infrastructure/ProcessCode.hpp"
 
-namespace ag = E320Geometry;
-
-E320Io::E320RootDataReader::E320RootDataReader(const Config& config,
-                                               Acts::Logging::Level level)
+E320::E320RootDataReader::E320RootDataReader(const Config& config,
+                                             Acts::Logging::Level level)
     : IReader(),
       m_cfg(config),
       m_logger(Acts::getDefaultLogger(name(), level)) {
@@ -70,27 +68,27 @@ E320Io::E320RootDataReader::E320RootDataReader(const Config& config,
                              << availableEvents().second);
 }
 
-std::pair<std::size_t, std::size_t>
-E320Io::E320RootDataReader::availableEvents() const {
+std::pair<std::size_t, std::size_t> E320::E320RootDataReader::availableEvents()
+    const {
   return {std::get<0>(m_eventMap.front()), std::get<0>(m_eventMap.back()) + 1};
 }
 
-ProcessCode E320Io::E320RootDataReader::read(const AlgorithmContext& context) {
+ProcessCode E320::E320RootDataReader::read(const AlgorithmContext& ctx) {
   auto it = std::ranges::find_if(m_eventMap, [&](const auto& a) {
-    return std::get<0>(a) == context.eventNumber;
+    return std::get<0>(a) == ctx.eventNumber;
   });
 
   if (it == m_eventMap.end()) {
     // explicitly warn if it happens for the first or last event as that might
     // indicate a human error
-    if ((context.eventNumber == availableEvents().first) &&
-        (context.eventNumber == availableEvents().second - 1)) {
-      ACTS_WARNING("Reading empty event: " << context.eventNumber);
+    if ((ctx.eventNumber == availableEvents().first) &&
+        (ctx.eventNumber == availableEvents().second - 1)) {
+      ACTS_WARNING("Reading empty event: " << ctx.eventNumber);
     } else {
-      ACTS_DEBUG("Reading empty event: " << context.eventNumber);
+      ACTS_DEBUG("Reading empty event: " << ctx.eventNumber);
     }
 
-    m_outputSourceLinks(context, {});
+    m_outputSourceLinks(ctx, {});
 
     // Return success flag
     return ProcessCode::SUCCESS;
@@ -99,11 +97,17 @@ ProcessCode E320Io::E320RootDataReader::read(const AlgorithmContext& context) {
   // lock the mutex
   std::lock_guard<std::mutex> lock(m_read_mutex);
 
-  const auto& goInst = *ag::GeometryOptions::instance();
+  const auto& goInst = *E320::GeometryOptions::instance();
 
   ACTS_DEBUG("Reading event: " << std::get<0>(*it)
                                << " stored in entries: " << std::get<1>(*it)
                                << " - " << std::get<2>(*it));
+
+  std::unordered_map<int, std::pair<double, double>> clStdDevs = {
+      {1, {0.00395262, 0.00333208}},
+      {2, {0.00444654, 0.00473498}},
+      {3, {0.00417356, 0.00431227}},
+      {4, {0.00509384, 0.00490848}}};
 
   // Create the measurements
   std::vector<Acts::SourceLink> sourceLinks{};
@@ -114,33 +118,94 @@ ProcessCode E320Io::E320RootDataReader::read(const AlgorithmContext& context) {
 
     for (const auto& staveEv : m_detEvent->st_ev_buffer) {
       for (const auto& chipEv : staveEv.ch_ev_buffer) {
-        // Apply the Geometry ID convention
-        geoId.setSensitive(m_geoIdMap.at(chipEv.chip_id));
+        int sensitiveId = m_geoIdMap.at(chipEv.chip_id);
+        if (sensitiveId < m_cfg.minGeoId || sensitiveId > m_cfg.maxGeoId) {
+          continue;
+        }
 
+        // Apply the Geometry ID convention
+        geoId.setSensitive(sensitiveId);
+
+        if (chipEv.hits.size() > 1000) {
+          continue;
+        }
         for (const auto& [hitX, hitY, sizeX, sizeY, size] : chipEv.hits) {
           Acts::Vector2 hitLoc{
               (hitX + 0.5) * goInst.pixelHalfX * 2 - goInst.chipHalfX,
               -(hitY + 0.5) * goInst.pixelHalfY * 2 + goInst.chipHalfY};
 
           Acts::Vector3 hitGlob = m_cfg.surfaceMap.at(geoId)->localToGlobal(
-              context.geoContext, hitLoc, Acts::Vector3::UnitX());
+              ctx.geoContext, hitLoc, Acts::Vector3::UnitX());
 
           // Estimate error from the cluster size
-          Acts::Vector2 stdDev(2 * goInst.pixelHalfX / std::sqrt(12 * size),
-                               2 * goInst.pixelHalfY / std::sqrt(12 * size));
+          Acts::Vector2 stdDev(clStdDevs.at(size).first,
+                               clStdDevs.at(size).second);
+          // Acts::Vector2 stdDev(2 * goInst.pixelHalfX / std::sqrt(12 * size),
+          //                      2 * goInst.pixelHalfY / std::sqrt(12 * size));
           Acts::SquareMatrix2 cov = stdDev.cwiseProduct(stdDev).asDiagonal();
 
           // Fill the measurement
           SimpleSourceLink ssl(hitLoc, hitGlob, cov, geoId, eventId,
                                sourceLinks.size());
+
+          Acts::Vector2 stdDevInf(2 * goInst.pixelHalfX * sizeX,
+                                  2 * goInst.pixelHalfY * sizeY);
+          Acts::SquareMatrix2 covInf =
+              stdDevInf.cwiseProduct(stdDevInf).asDiagonal();
+          ssl.setCovarianceInf(covInf);
+
           sourceLinks.push_back(Acts::SourceLink(ssl));
         }
       }
     }
+    for (const auto& bpmEv : m_detEvent->bpm_ev_buffer) {
+      int sensitiveId = m_geoIdMap.at(bpmEv.id);
+      if (sensitiveId < m_cfg.minGeoId || sensitiveId > m_cfg.maxGeoId) {
+        continue;
+      }
+
+      geoId.setSensitive(sensitiveId);
+
+      double quadCenterX;
+      double quadCenterY;
+      switch (bpmEv.id) {
+        case 3218:
+          quadCenterX = goInst.quad1CenterShort;
+          quadCenterY = goInst.quad1CenterLong;
+          break;
+        case 3265:
+          quadCenterX = goInst.quad2CenterShort;
+          quadCenterY = goInst.quad2CenterLong;
+          break;
+        case 3315:
+          quadCenterX = goInst.quad3CenterShort;
+          quadCenterY = goInst.quad3CenterLong;
+          break;
+        default:
+          throw std::runtime_error("Unknown BPM ID");
+      }
+
+      Acts::Vector2 hitLoc{bpmEv.meanX + quadCenterX,
+                           -(bpmEv.meanY + quadCenterY)};
+      Acts::Vector3 hitGlob = m_cfg.surfaceMap.at(geoId)->localToGlobal(
+          ctx.geoContext, hitLoc, Acts::Vector3::UnitX());
+
+      // Estimate error from the cluster size
+      Acts::Vector2 stdDev(bpmEv.stdDevX, bpmEv.stdDevY);
+      Acts::SquareMatrix2 cov = stdDev.cwiseProduct(stdDev).asDiagonal();
+
+      // Fill the measurement
+      SimpleSourceLink ssl(hitLoc, hitGlob, cov, geoId, eventId,
+                           sourceLinks.size());
+      Acts::SquareMatrix2 covInf = cov;
+      ssl.setCovarianceInf(covInf);
+
+      sourceLinks.push_back(Acts::SourceLink(ssl));
+    }
   }
 
   ACTS_DEBUG("Sending " << sourceLinks.size() << " measurements");
-  m_outputSourceLinks(context, std::move(sourceLinks));
+  m_outputSourceLinks(ctx, std::move(sourceLinks));
 
   // Return success flag
   return ProcessCode::SUCCESS;

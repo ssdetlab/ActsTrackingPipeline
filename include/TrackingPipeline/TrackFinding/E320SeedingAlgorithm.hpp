@@ -1,8 +1,8 @@
 #pragma once
 
+#include "Acts/Definitions/Algebra.hpp"
+#include "Acts/Definitions/TrackParametrization.hpp"
 #include "Acts/EventData/SourceLink.hpp"
-#include <Acts/Definitions/Algebra.hpp>
-#include <Acts/Definitions/TrackParametrization.hpp>
 
 #include <cstddef>
 
@@ -13,6 +13,8 @@
 
 class E320SeedingAlgorithm : public IAlgorithm {
  public:
+  enum struct PropagationDirection : int { forward = 0, backward = 1 };
+
   /// @brief The nested configuration struct
   struct Config {
     /// HT seeder
@@ -31,8 +33,10 @@ class E320SeedingAlgorithm : public IAlgorithm {
     std::size_t minLayers;
     /// Higher cutoff on the number of layers in a seed
     std::size_t maxLayers;
-    /// Beamline tilt
-    double beamlineTilt;
+    /// BPM ids
+    std::vector<int> bpmIds;
+    /// Forward or backward propagation parameters
+    PropagationDirection propDirection;
   };
 
   /// @brief Constructor
@@ -47,6 +51,11 @@ class E320SeedingAlgorithm : public IAlgorithm {
  private:
   /// Configuration
   Config m_cfg;
+
+  Acts::BoundMatrix transportCovToReference(
+      const Acts::GeometryContext& gctx, const Acts::Vector3& refSurfacePoint,
+      const Acts::Vector3& point, const Acts::Vector3& dir,
+      const Acts::ActsSquareMatrix<6>& cov) const;
 
   double m_dipoleLength;
   double m_dipoleFieldStrength;

@@ -11,7 +11,6 @@
 #include "Acts/Surfaces/PlaneSurface.hpp"
 #include "Acts/Surfaces/RectangleBounds.hpp"
 #include "Acts/Surfaces/Surface.hpp"
-#include <Acts/Definitions/Algebra.hpp>
 
 #include <algorithm>
 #include <cstddef>
@@ -25,10 +24,10 @@
 #include "TrackingPipeline/Geometry/E320GeometryConstraints.hpp"
 #include "TrackingPipeline/Geometry/detail/GeometryConstructionUtils.hpp"
 #include "TrackingPipeline/MagneticField/CompositeMagField.hpp"
-#include "TrackingPipeline/MagneticField/ConstantBoundedField.hpp"
+#include "TrackingPipeline/MagneticField/ConstantMagField.hpp"
 #include "TrackingPipeline/MagneticField/IdealQuadrupoleMagField.hpp"
 
-namespace E320Geometry {
+namespace E320 {
 
 using go = GeometryOptions;
 
@@ -339,44 +338,44 @@ std::shared_ptr<Acts::MagneticFieldProvider> buildMagField(
   quad1Center[goInst.longIdx] = goInst.quad1CenterLong;
   quad1Center[goInst.shortIdx] = goInst.quad1CenterShort;
   auto quad1Field = std::make_shared<IdealQuadrupoleMagField>(
-      goInst.quad1Gradient, quad1Center, quadRotation);
+      goInst.quad1Id, goInst.quad1Gradient, quad1Center, quadRotation);
 
   Acts::Vector3 quad2Center;
   quad2Center[goInst.primaryIdx] = goInst.quad2CenterPrimary;
   quad2Center[goInst.longIdx] = goInst.quad2CenterLong;
   quad2Center[goInst.shortIdx] = goInst.quad2CenterShort;
   auto quad2Field = std::make_shared<IdealQuadrupoleMagField>(
-      goInst.quad2Gradient, quad2Center, quadRotation);
+      goInst.quad2Id, goInst.quad2Gradient, quad2Center, quadRotation);
 
   Acts::Vector3 quad3Center;
   quad3Center[goInst.primaryIdx] = goInst.quad3CenterPrimary;
   quad3Center[goInst.longIdx] = goInst.quad3CenterLong;
   quad3Center[goInst.shortIdx] = goInst.quad3CenterShort;
   auto quad3Field = std::make_shared<IdealQuadrupoleMagField>(
-      goInst.quad3Gradient, quad3Center, quadRotation);
+      goInst.quad3Id, goInst.quad3Gradient, quad3Center, quadRotation);
 
   Acts::Vector3 xCorrectorB;
   xCorrectorB[goInst.primaryIdx] = goInst.xCorrectorFieldPrimary;
   xCorrectorB[goInst.longIdx] = goInst.xCorrectorFieldLong;
   xCorrectorB[goInst.shortIdx] = goInst.xCorrectorFieldShort;
   auto xCorrectorField =
-      std::make_shared<ConstantBoundedField>(xCorrectorB, xCorrectorExtent);
+      std::make_shared<ConstantMagField>(goInst.xCorrectorId, xCorrectorB);
 
   Acts::Vector3 dipoleB;
   dipoleB[goInst.primaryIdx] = goInst.dipoleFieldPrimary;
   dipoleB[goInst.longIdx] = goInst.dipoleFieldLong;
   dipoleB[goInst.shortIdx] = goInst.dipoleFieldShort;
   auto dipoleField =
-      std::make_shared<ConstantBoundedField>(dipoleB, dipoleExtent);
+      std::make_shared<ConstantMagField>(goInst.dipoleId, dipoleB);
 
   CompositeMagField::FieldComponents fieldComponents = {
-      {quad1Extent, quad1Field},
-      {quad2Extent, quad2Field},
-      {quad3Extent, quad3Field},
-      {xCorrectorExtent, xCorrectorField},
-      {dipoleExtent, dipoleField}};
+      {goInst.quad1Id, quad1Extent, quad1Field},
+      {goInst.quad2Id, quad2Extent, quad2Field},
+      {goInst.quad3Id, quad3Extent, quad3Field},
+      {goInst.xCorrectorId, xCorrectorExtent, xCorrectorField},
+      {goInst.dipoleId, dipoleExtent, dipoleField}};
 
   return std::make_shared<CompositeMagField>(fieldComponents);
 }
 
-}  // namespace E320Geometry
+}  // namespace E320

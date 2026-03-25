@@ -17,7 +17,7 @@
 #include "TrackingPipeline/Infrastructure/IReader.hpp"
 #include "TrackingPipeline/Infrastructure/ProcessCode.hpp"
 
-namespace E320Io {
+namespace E320 {
 
 /// @brief ROOT file reader designed for the EUDAQ2 format
 ///
@@ -36,6 +36,9 @@ class E320RootDataReader : public IReader {
     std::string treeName;
     /// The keys we have in the ROOT file
     std::string eventKey;
+    /// Geometry ID scope
+    int minGeoId;
+    int maxGeoId;
     /// Surface map for high-precision local to global conversion
     std::map<Acts::GeometryIdentifier, const Acts::Surface*> surfaceMap;
   };
@@ -80,20 +83,21 @@ class E320RootDataReader : public IReader {
   std::vector<std::tuple<uint32_t, std::size_t, std::size_t>> m_eventMap;
 
   std::unordered_map<std::uint8_t, std::size_t> m_geoIdMap{
-      {0, 18}, {2, 16}, {4, 14}, {6, 12}, {8, 10}};
+      {0, 18}, {2, 16},    {4, 14},    {6, 12},
+      {8, 10}, {3218, 41}, {3265, 42}, {3315, 43}};
 
   /// The input tree name
   // TChain* m_chain = nullptr;
   TTree* m_chain = nullptr;
   TFile* m_file = nullptr;
 
-  E320Geometry::GeometryOptions m_gOpt;
+  E320::GeometryOptions m_gOpt;
 
  protected:
   /// Detector event handle
-  DetectorEvent* m_detEvent = nullptr;
+  E320Io::DetectorEvent* m_detEvent = nullptr;
   /// Event number handle
   ULong64_t m_eventId;
 };
 
-}  // namespace E320Io
+}  // namespace E320

@@ -9,6 +9,7 @@
 #include <Acts/Surfaces/PlaneSurface.hpp>
 #include <Acts/Surfaces/RectangleBounds.hpp>
 
+#include <cstddef>
 #include <memory>
 #include <string>
 #include <vector>
@@ -21,6 +22,10 @@
 #include "TrackingPipeline/Infrastructure/Sequencer.hpp"
 #include "TrackingPipeline/Io/DummyReader.hpp"
 #include "TrackingPipeline/Io/RootSimClusterWriter.hpp"
+#include "TrackingPipeline/MagneticField/ConstantMagField.hpp"
+#include "TrackingPipeline/MagneticField/IdealQuadrupoleMagField.hpp"
+#include "TrackingPipeline/MagneticField/MagneticFieldContextDecorator.hpp"
+#include "TrackingPipeline/MagneticField/MagneticFieldStore.hpp"
 #include "TrackingPipeline/Simulation/ClusterSizeBasedDigitizer.hpp"
 #include "TrackingPipeline/Simulation/GaussianVertexGenerator.hpp"
 #include "TrackingPipeline/Simulation/MeasurementsCreator.hpp"
@@ -51,27 +56,25 @@ using TrackStateContainerBackend =
 
 using namespace Acts::UnitLiterals;
 
-namespace ag = E320Geometry;
-
-std::unique_ptr<const ag::GeometryOptions> ag::GeometryOptions::m_instance =
+std::unique_ptr<const E320::GeometryOptions> E320::GeometryOptions::m_instance =
     nullptr;
 
 int main() {
-  const auto& goInst = *ag::GeometryOptions::instance();
+  const auto& goInst = *E320::GeometryOptions::instance();
 
   // Set the log level
-  Acts::Logging::Level logLevel = Acts::Logging::INFO;
+  Acts::Logging::Level logLevel = Acts::Logging::VERBOSE;
 
   // Dummy context and options
   Acts::GeometryContext gctx;
   Acts::MagneticFieldContext mctx;
   Acts::CalibrationContext cctx;
-  E320Geometry::GeometryOptions gOpt;
+  E320::GeometryOptions gOpt;
 
   // --------------------------------------------------------------
   // Detector setup
 
-  auto detector = ag::buildDetector(gctx, nullptr);
+  auto detector = E320::buildDetector(gctx, nullptr);
 
   for (const auto& vol : detector->volumes()) {
     std::cout << "------------------------------------------\n";
@@ -169,7 +172,30 @@ int main() {
   // --------------------------------------------------------------
   // The magnetic field setup
 
-  auto field = ag::buildMagField(gctx);
+  auto mStore = std::make_shared<MagneticFieldStore>();
+
+  mStore->store = {
+      {goInst.quad1Id,
+       Acts::MagneticFieldProvider::Cache(
+           std::in_place_type<IdealQuadrupoleMagField::Cache>, 0)},
+      {goInst.quad2Id,
+       Acts::MagneticFieldProvider::Cache(
+           std::in_place_type<IdealQuadrupoleMagField::Cache>, 0)},
+      {goInst.quad3Id,
+       Acts::MagneticFieldProvider::Cache(
+           std::in_place_type<IdealQuadrupoleMagField::Cache>, 0)},
+      {goInst.xCorrectorId, Acts::MagneticFieldProvider::Cache(
+                                std::in_place_type<ConstantMagField::Cache>,
+                                Acts::Vector3(0, 1e-6, 0))},
+      {goInst.dipoleId, Acts::MagneticFieldProvider::Cache(
+                            std::in_place_type<ConstantMagField::Cache>,
+                            Acts::Vector3(0, 0, 1e-6))}};
+  mctx = Acts::MagneticFieldContext{mStore};
+
+  std::unordered_map<std::size_t, std::shared_ptr<MagneticFieldStore>>
+      mStoreMap = {{0, mStore}};
+
+  auto field = E320::buildMagField(gctx);
 
   // --------------------------------------------------------------
   // Reference surface
@@ -214,6 +240,8 @@ int main() {
 
   sequencer.addContextDecorator(
       std::make_shared<GeometryContextDecorator>(aStore));
+  sequencer.addContextDecorator(
+      std::make_shared<MagneticFieldContextDecorator>(mStoreMap));
 
   // --------------------------------------------------------------
   // Add dummy reader
@@ -305,7 +333,7 @@ int main() {
   measCreatorAlgoCfg.measurementGenerator = measCreator;
   measCreatorAlgoCfg.randomNumberSvc =
       std::make_shared<RandomNumbers>(RandomNumbers::Config());
-  measCreatorAlgoCfg.nMeasurements = 20;
+  measCreatorAlgoCfg.nMeasurements = 1;
 
   sequencer.addAlgorithm(std::make_shared<MeasurementsEmbeddingAlgorithm>(
       measCreatorAlgoCfg, logLevel));
