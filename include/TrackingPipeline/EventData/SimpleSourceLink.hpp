@@ -16,9 +16,6 @@
 
 /// @brief A minimal source link implementation
 /// that is easy to convert to the Measurement
-///
-/// @note Stores the geometry identifier,
-/// local hit coordinates, and the covariance
 class SimpleSourceLink {
  public:
   static constexpr std::size_t localSubspaceSize = 2;
@@ -78,9 +75,6 @@ class SimpleSourceLink {
   Acts::SquareMatrix2 covariance() const {
     return m_covarianceAnnealingFactor * m_covariance;
   }
-  Acts::SquareMatrix2 covarianceInf() const {
-    return m_covarianceAnnealingFactor * m_covarianceInf;
-  }
 
   void setIndex(int idx) { m_index = idx; }
 
@@ -92,10 +86,6 @@ class SimpleSourceLink {
 
   void setCovariance(const Acts::SquareMatrix2& cov) { m_covariance = cov; }
 
-  void setCovarianceInf(const Acts::SquareMatrix2& covInf) {
-    m_covarianceInf = covInf;
-  }
-
  private:
   /// Geometry identifier
   Acts::GeometryIdentifier m_geometryId;
@@ -106,6 +96,7 @@ class SimpleSourceLink {
   /// Index for enumeration within event
   int m_index = 0u;
 
+  /// Anneling factor of the covariance matrix
   double m_covarianceAnnealingFactor = 1;
 
   /// Indices of the local coordinates
@@ -120,7 +111,6 @@ class SimpleSourceLink {
 
   /// Covariance matrix
   Acts::ActsSquareMatrix<localSubspaceSize> m_covariance;
-  Acts::ActsSquareMatrix<localSubspaceSize> m_covarianceInf;
 };
 
 template <typename trajectory_t>
@@ -153,37 +143,4 @@ void simpleSourceLinkCalibrator(
     typename trajectory_t::TrackStateProxy trackState) {
   simpleSourceLinkCalibratorReturn<trajectory_t>(gctx, cctx, sourceLink,
                                                  trackState);
-}
-
-template <typename trajectory_t>
-void simpleSourceLinkCalibratorReturnInf(
-    const Acts::GeometryContext& /*gctx*/,
-    const Acts::CalibrationContext& /*cctx*/,
-    const Acts::SourceLink& sourceLink,
-    typename trajectory_t::TrackStateProxy trackState) {
-  const auto& sl = sourceLink.template get<SimpleSourceLink>();
-
-  trackState.setUncalibratedSourceLink(sourceLink);
-
-  trackState.allocateCalibrated(SimpleSourceLink::localSubspaceSize);
-  trackState.template calibrated<SimpleSourceLink::localSubspaceSize>() =
-      sl.parametersLoc();
-  trackState
-      .template calibratedCovariance<SimpleSourceLink::localSubspaceSize>() =
-      sl.covarianceInf();
-  const auto& indices = sl.indices();
-  trackState.setProjector(
-      Acts::detail::FixedSizeSubspace<Acts::BoundIndices::eBoundSize,
-                                      SimpleSourceLink::localSubspaceSize>(
-          std::array{indices[0], indices[1]})
-          .projector<double>());
-}
-
-template <typename trajectory_t>
-void simpleSourceLinkCalibratorInf(
-    const Acts::GeometryContext& gctx, const Acts::CalibrationContext& cctx,
-    const Acts::SourceLink& sourceLink,
-    typename trajectory_t::TrackStateProxy trackState) {
-  simpleSourceLinkCalibratorReturnInf<trajectory_t>(gctx, cctx, sourceLink,
-                                                    trackState);
 }
