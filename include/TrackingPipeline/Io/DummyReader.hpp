@@ -22,7 +22,7 @@ class DummyReader : public IReader {
   };
 
   /// @brief Constructor
-  DummyReader(const Config& config) : IReader(), m_cfg(config) {
+  explicit DummyReader(const Config& config) : IReader(), m_cfg(config) {
     m_outputSourceLinks.initialize(m_cfg.outputSourceLinks);
     m_outputSimClusters.initialize(m_cfg.outputSimClusters);
   }

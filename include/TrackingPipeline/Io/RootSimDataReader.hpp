@@ -54,7 +54,7 @@ class RootSimDataReader : public IReader {
   RootSimDataReader(const Config& config, Acts::Logging::Level level);
 
   /// Reader name() method
-  virtual std::string name() const override { return "RootSimDataReader"; }
+  std::string name() const override { return "RootSimDataReader"; }
 
   /// Return the available events range.
   std::pair<std::size_t, std::size_t> availableEvents() const final;

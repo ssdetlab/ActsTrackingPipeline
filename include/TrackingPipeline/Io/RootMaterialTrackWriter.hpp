@@ -62,8 +62,7 @@ class RootMaterialTrackWriter : public IWriter {
   /// Constructor with
   /// @param config configuration struct
   /// @param level logging level
-  RootMaterialTrackWriter(const Config& config,
-                          Acts::Logging::Level level = Acts::Logging::INFO);
+  RootMaterialTrackWriter(const Config& config, Acts::Logging::Level level);
 
   /// Virtual destructor
   ~RootMaterialTrackWriter() override;
