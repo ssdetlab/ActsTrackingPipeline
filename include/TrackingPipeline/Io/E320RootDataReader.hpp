@@ -52,13 +52,13 @@ class E320RootDataReader : public IReader {
   E320RootDataReader(const Config& config, Acts::Logging::Level level);
 
   /// Reader name() method
-  virtual std::string name() const override { return "E320RootDataReader"; }
+  std::string name() const override { return "E320RootDataReader"; }
 
   /// Return the available events range.
   std::pair<std::size_t, std::size_t> availableEvents() const final;
 
   /// Read out data from the input stream
-  ProcessCode read(const AlgorithmContext& context) override;
+  ProcessCode read(const AlgorithmContext& ctx) override;
 
   /// Readonly access to the config
   const Config& config() const { return m_cfg; }
@@ -87,9 +87,9 @@ class E320RootDataReader : public IReader {
       {8, 10}, {3218, 41}, {3265, 42}, {3315, 43}};
 
   /// The input tree name
-  // TChain* m_chain = nullptr;
-  TTree* m_chain = nullptr;
+  TTree* m_tree = nullptr;
   TFile* m_file = nullptr;
+  TChain* m_chainOwner = nullptr;
 
   E320::GeometryOptions m_gOpt;
 
@@ -97,7 +97,7 @@ class E320RootDataReader : public IReader {
   /// Detector event handle
   E320Io::DetectorEvent* m_detEvent = nullptr;
   /// Event number handle
-  ULong64_t m_eventId;
+  ULong64_t m_eventId = 0;
 };
 
 }  // namespace E320

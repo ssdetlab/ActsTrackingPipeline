@@ -8,7 +8,8 @@
 #include <vector>
 
 #include "TChain.h"
-
+#include "TFile.h"
+#include "TTree.h"
 #include "TrackingPipeline/Io/ITrackParamsReader.hpp"
 
 class RootTrackParamsReader final : public ITrackParamsReader {
@@ -33,7 +34,7 @@ class RootTrackParamsReader final : public ITrackParamsReader {
     Acts::Transform3 transform;
   };
 
-  RootTrackParamsReader(const Config& config);
+  explicit RootTrackParamsReader(const Config& config);
 
   std::vector<Acts::CurvilinearTrackParameters> read() override;
 
@@ -43,9 +44,11 @@ class RootTrackParamsReader final : public ITrackParamsReader {
  private:
   Config m_cfg;
 
-  TChain* m_chain = nullptr;
+  TFile* m_file = nullptr;
+  TTree* m_tree = nullptr;
+  TChain* m_chainOwner = nullptr;
 
-  TrackParams m_params;
+  TrackParams m_params{};
 
   std::mutex m_readMutex;
 };

@@ -97,9 +97,9 @@ class RootTrackReader : public IReader {
   std::vector<std::tuple<std::size_t, std::size_t, std::size_t>> m_eventMap;
 
   /// The input tree name
-  // TChain* m_chain = nullptr;
-  TTree* m_chain = nullptr;
   TFile* m_file = nullptr;
+  TTree* m_tree = nullptr;
+  TChain* m_chainOwner = nullptr;
 
  protected:
   /// Measurement hits
@@ -135,25 +135,25 @@ class RootTrackReader : public IReader {
   /// Chi2 of the track
   /// with respect ot the
   /// measurement
-  double m_chi2Predicted;
-  double m_chi2Filtered;
-  double m_chi2Smoothed;
+  double m_chi2Predicted = 0;
+  double m_chi2Filtered = 0;
+  double m_chi2Smoothed = 0;
 
   /// Number of degrees of freedom
   /// of the track
-  std::size_t m_ndf;
+  std::size_t m_ndf = 0;
 
   /// TrackId
-  std::size_t m_trackId;
+  std::size_t m_trackId = 0;
 
   /// EventId
-  std::size_t m_eventId;
+  std::size_t m_eventId = 0;
 
   /// PDG ID
-  int m_pdgId;
+  int m_pdgId = 0;
 
   /// Charge
-  int m_charge;
+  int m_charge = 0;
 
   /// Guessed bound track parameters
   TVectorD* m_boundTrackParametersGuess = nullptr;

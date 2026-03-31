@@ -28,109 +28,109 @@ RootTrackReader::RootTrackReader(const Config& config,
     throw std::invalid_argument("Missing tree name");
   }
 
-  // m_chain = new TChain(m_cfg.treeName.c_str());
-  m_file = new TFile(m_cfg.filePaths.at(0).c_str());
-  m_chain = m_file->Get<TTree>(m_cfg.treeName.c_str());
+  if (m_cfg.filePaths.size() == 1) {
+    m_file = new TFile(m_cfg.filePaths.at(0).c_str());
+    m_tree = m_file->Get<TTree>(m_cfg.treeName.c_str());
+  } else {
+    m_chainOwner = new TChain(m_cfg.treeName.c_str());
+    // Add the files to the chain
+    for (const auto& path : m_cfg.filePaths) {
+      m_chainOwner->Add(path.c_str());
+    }
+    m_tree = dynamic_cast<TTree*>(m_chainOwner);
+  }
 
   //------------------------------------------------------------------
   // Tree branches
 
   // Measurement hits
-  m_chain->SetBranchAddress("trackHitsGlobal", &m_trackHitsGlobal);
-  m_chain->SetBranchAddress("trackHitsLocal", &m_trackHitsLocal);
+  m_tree->SetBranchAddress("trackHitsGlobal", &m_trackHitsGlobal);
+  m_tree->SetBranchAddress("trackHitsLocal", &m_trackHitsLocal);
 
   // Covariances of the track hits
-  m_chain->SetBranchAddress("trackHitCovs", &m_trackHitCovs);
-  m_chain->SetBranchAddress("trackHitCovsInf", &m_trackHitCovsInf);
+  m_tree->SetBranchAddress("trackHitCovs", &m_trackHitCovs);
 
   // Geometry ids of the track hits
-  m_chain->SetBranchAddress("geometryIds", &m_geometryIds);
+  m_tree->SetBranchAddress("geometryIds", &m_geometryIds);
 
   // KF predicted track hits
-  m_chain->SetBranchAddress("predictedTrackHitsGlobal",
-                            &m_predictedTrackHitsGlobal);
-  m_chain->SetBranchAddress("filteredTrackHitsGlobal",
-                            &m_filteredTrackHitsGlobal);
-  m_chain->SetBranchAddress("smoothedTrackHitsGlobal",
-                            &m_smoothedTrackHitsGlobal);
+  m_tree->SetBranchAddress("predictedTrackHitsGlobal",
+                           &m_predictedTrackHitsGlobal);
+  m_tree->SetBranchAddress("filteredTrackHitsGlobal",
+                           &m_filteredTrackHitsGlobal);
+  m_tree->SetBranchAddress("smoothedTrackHitsGlobal",
+                           &m_smoothedTrackHitsGlobal);
 
-  m_chain->SetBranchAddress("predictedTrackHitsLocal",
-                            &m_predictedTrackHitsLocal);
-  m_chain->SetBranchAddress("filteredTrackHitsLocal",
-                            &m_filteredTrackHitsLocal);
-  m_chain->SetBranchAddress("smoothedTrackHitsLocal",
-                            &m_smoothedTrackHitsLocal);
+  m_tree->SetBranchAddress("predictedTrackHitsLocal",
+                           &m_predictedTrackHitsLocal);
+  m_tree->SetBranchAddress("filteredTrackHitsLocal", &m_filteredTrackHitsLocal);
+  m_tree->SetBranchAddress("smoothedTrackHitsLocal", &m_smoothedTrackHitsLocal);
 
   // KF residuals with respect to the measurements
-  m_chain->SetBranchAddress("predictedResiduals", &m_predictedResiduals);
-  m_chain->SetBranchAddress("filteredResiduals", &m_filteredResiduals);
-  m_chain->SetBranchAddress("smoothedResiduals", &m_smoothedResiduals);
+  m_tree->SetBranchAddress("predictedResiduals", &m_predictedResiduals);
+  m_tree->SetBranchAddress("filteredResiduals", &m_filteredResiduals);
+  m_tree->SetBranchAddress("smoothedResiduals", &m_smoothedResiduals);
 
   // KF pulls with respect to the measurements
-  m_chain->SetBranchAddress("predictedPulls", &m_predictedPulls);
-  m_chain->SetBranchAddress("filteredPulls", &m_filteredPulls);
-  m_chain->SetBranchAddress("smoothedPulls", &m_smoothedPulls);
+  m_tree->SetBranchAddress("predictedPulls", &m_predictedPulls);
+  m_tree->SetBranchAddress("filteredPulls", &m_filteredPulls);
+  m_tree->SetBranchAddress("smoothedPulls", &m_smoothedPulls);
 
   /// Guessed bound track parameters
-  m_chain->SetBranchAddress("boundTrackParametersGuess",
-                            &m_boundTrackParametersGuess);
-  m_chain->SetBranchAddress("boundTrackCovGuess", &m_boundTrackCovGuess);
+  m_tree->SetBranchAddress("boundTrackParametersGuess",
+                           &m_boundTrackParametersGuess);
+  m_tree->SetBranchAddress("boundTrackCovGuess", &m_boundTrackCovGuess);
 
   /// KF predicted bound track parameters
-  m_chain->SetBranchAddress("boundTrackParametersEst",
-                            &m_boundTrackParametersEst);
-  m_chain->SetBranchAddress("boundTrackCovEst", &m_boundTrackCovEst);
+  m_tree->SetBranchAddress("boundTrackParametersEst",
+                           &m_boundTrackParametersEst);
+  m_tree->SetBranchAddress("boundTrackCovEst", &m_boundTrackCovEst);
 
   /// Initial guess of the momentum at the IP
-  m_chain->SetBranchAddress("ipMomentumGuess", &m_ipMomentumGuess);
+  m_tree->SetBranchAddress("ipMomentumGuess", &m_ipMomentumGuess);
 
   /// Initial guess of the vertex at the IP
-  m_chain->SetBranchAddress("vertexGuess", &m_vertexGuess);
+  m_tree->SetBranchAddress("vertexGuess", &m_vertexGuess);
 
   /// KF predicted momentum at the IP
-  m_chain->SetBranchAddress("ipMomentumEst", &m_ipMomentumEst);
+  m_tree->SetBranchAddress("ipMomentumEst", &m_ipMomentumEst);
 
   /// KF predicted vertex at the IP
-  m_chain->SetBranchAddress("vertexEst", &m_vertexEst);
+  m_tree->SetBranchAddress("vertexEst", &m_vertexEst);
 
   // Chi2 and ndf of the fitted track
-  m_chain->SetBranchAddress("chi2Predicted", &m_chi2Predicted);
-  m_chain->SetBranchAddress("chi2Filtered", &m_chi2Filtered);
-  m_chain->SetBranchAddress("chi2Smoothed", &m_chi2Smoothed);
-  m_chain->SetBranchAddress("ndf", &m_ndf);
+  m_tree->SetBranchAddress("chi2Predicted", &m_chi2Predicted);
+  m_tree->SetBranchAddress("chi2Filtered", &m_chi2Filtered);
+  m_tree->SetBranchAddress("chi2Smoothed", &m_chi2Smoothed);
+  m_tree->SetBranchAddress("ndf", &m_ndf);
 
   // Track ID
-  m_chain->SetBranchAddress("trackId", &m_trackId);
+  m_tree->SetBranchAddress("trackId", &m_trackId);
 
   // Event ID
-  m_chain->SetBranchAddress("eventId", &m_eventId);
+  m_tree->SetBranchAddress("eventId", &m_eventId);
 
   // PDG ID
-  m_chain->SetBranchAddress("pdgId", &m_pdgId);
+  m_tree->SetBranchAddress("pdgId", &m_pdgId);
 
   // Charge
-  m_chain->SetBranchAddress("charge", &m_charge);
-
-  // Add the files to the chain
-  // for (const auto& path : m_cfg.filePaths) {
-  //   m_chain->Add(path.c_str());
-  // }
+  m_tree->SetBranchAddress("charge", &m_charge);
 
   // Disable all branches and only enable event-id for a first scan of the
   // file
-  m_chain->SetBranchStatus("*", false);
-  if (!m_chain->GetBranch("eventId")) {
+  m_tree->SetBranchStatus("*", false);
+  if (m_tree->GetBranch("eventId") == nullptr) {
     throw std::invalid_argument("Missing eventId SetbranchAddress");
   }
-  m_chain->SetBranchStatus("eventId", true);
-  auto nEntries = static_cast<std::size_t>(m_chain->GetEntries());
+  m_tree->SetBranchStatus("eventId", true);
+  auto nEntries = static_cast<std::size_t>(m_tree->GetEntries());
 
   // Go through all entries and store the position of the events
-  m_chain->GetEntry(0);
+  m_tree->GetEntry(0);
   m_eventMap.emplace_back(m_eventId, 0, 0);
   if (!m_cfg.mergeIntoOneEvent) {
     for (std::size_t i = 0; i < nEntries; ++i) {
-      m_chain->GetEntry(i);
+      m_tree->GetEntry(i);
       if (m_eventId != std::get<0>(m_eventMap.back())) {
         std::get<2>(m_eventMap.back()) = i;
         m_eventMap.emplace_back(m_eventId, i, i);
@@ -146,7 +146,7 @@ RootTrackReader::RootTrackReader(const Config& config,
   std::get<2>(m_eventMap.back()) = nEntries;
 
   // Re-Enable all branches
-  m_chain->SetBranchStatus("*", true);
+  m_tree->SetBranchStatus("*", true);
   ACTS_DEBUG("Event range: " << availableEvents().first << " - "
                              << availableEvents().second);
 
@@ -196,7 +196,7 @@ ProcessCode RootTrackReader::read(const AlgorithmContext& ctx) {
   std::size_t sslIdx = 0;
   const Constraints& constraints = m_cfg.constraints;
   for (auto entry = std::get<1>(*it); entry < std::get<2>(*it); entry++) {
-    m_chain->GetEntry(entry);
+    m_tree->GetEntry(entry);
 
     if (m_chi2Smoothed < constraints.minChi2 ||
         m_chi2Smoothed > constraints.maxChi2) {
@@ -261,12 +261,6 @@ ProcessCode RootTrackReader::read(const AlgorithmContext& ctx) {
       geoId.setSensitive(m_geometryIds->at(i));
       SimpleSourceLink obsSourceLink(trackHitLocal, trackHitGlobal, trackHitCov,
                                      geoId, eventId, sslIdx);
-
-      Acts::SquareMatrix2 trackHitCovInf;
-      trackHitCovInf << m_trackHitCovsInf->at(i)(0, 0),
-          m_trackHitCovsInf->at(i)(0, 1), m_trackHitCovsInf->at(i)(1, 0),
-          m_trackHitCovsInf->at(i)(1, 1);
-      obsSourceLink.setCovarianceInf(trackHitCovInf);
 
       sourceLinks.push_back(Acts::SourceLink{obsSourceLink});
       trackSourceLinks.push_back(Acts::SourceLink{obsSourceLink});

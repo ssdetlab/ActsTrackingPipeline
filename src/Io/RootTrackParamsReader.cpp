@@ -12,29 +12,36 @@
 
 RootTrackParamsReader::RootTrackParamsReader(const Config& config)
     : m_cfg(config) {
-  m_chain = new TChain(m_cfg.treeName.c_str());
-  for (const auto& path : m_cfg.filePaths) {
-    m_chain->Add(path.c_str());
+  if (m_cfg.filePaths.size() == 1) {
+    m_file = new TFile(m_cfg.filePaths.at(0).c_str());
+    m_tree = m_file->Get<TTree>(m_cfg.treeName.c_str());
+  } else {
+    m_chainOwner = new TChain(m_cfg.treeName.c_str());
+    // Add the files to the chain
+    for (const auto& path : m_cfg.filePaths) {
+      m_chainOwner->Add(path.c_str());
+    }
+    m_tree = dynamic_cast<TTree*>(m_chainOwner);
   }
 
-  m_chain->SetBranchAddress("positionX", &m_params.positionX);
-  m_chain->SetBranchAddress("positionY", &m_params.positionY);
-  m_chain->SetBranchAddress("positionZ", &m_params.positionZ);
+  m_tree->SetBranchAddress("positionX", &m_params.positionX);
+  m_tree->SetBranchAddress("positionY", &m_params.positionY);
+  m_tree->SetBranchAddress("positionZ", &m_params.positionZ);
 
-  m_chain->SetBranchAddress("phi", &m_params.phi);
-  m_chain->SetBranchAddress("theta", &m_params.theta);
+  m_tree->SetBranchAddress("phi", &m_params.phi);
+  m_tree->SetBranchAddress("theta", &m_params.theta);
 
-  m_chain->SetBranchAddress("qOverP", &m_params.qOverP);
-  m_chain->SetBranchAddress("pdgId", &m_params.pdgId);
+  m_tree->SetBranchAddress("qOverP", &m_params.qOverP);
+  m_tree->SetBranchAddress("pdgId", &m_params.pdgId);
 }
 
 std::vector<Acts::CurvilinearTrackParameters> RootTrackParamsReader::read() {
   std::scoped_lock lock{m_readMutex};
 
   std::vector<Acts::CurvilinearTrackParameters> trackParams;
-  trackParams.reserve(m_chain->GetEntries());
-  for (std::size_t i = 0; i < m_chain->GetEntries(); i++) {
-    m_chain->GetEntry(i);
+  trackParams.reserve(m_tree->GetEntries());
+  for (std::size_t i = 0; i < m_tree->GetEntries(); i++) {
+    m_tree->GetEntry(i);
 
     Acts::Vector4 position(m_params.positionX, m_params.positionY,
                            m_params.positionZ, 0);
