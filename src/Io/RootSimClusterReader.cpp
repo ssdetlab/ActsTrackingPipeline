@@ -6,10 +6,10 @@
 #include <Acts/EventData/TrackParameters.hpp>
 #include <Acts/Utilities/Logger.hpp>
 
+#include <cmath>
+#include <cstddef>
 #include <stdexcept>
 #include <vector>
-
-#include <TFile.h>
 
 #include "TrackingPipeline/EventData/DataContainers.hpp"
 #include "TrackingPipeline/EventData/SimpleSourceLink.hpp"
@@ -29,9 +29,17 @@ RootSimClusterReader::RootSimClusterReader(const Config& config,
     throw std::invalid_argument("Missing tree name");
   }
 
-  // m_chain = new TChain(m_cfg.treeName.c_str());
-  m_file = new TFile(m_cfg.filePaths.at(0).c_str());
-  m_chain = m_file->Get<TTree>(m_cfg.treeName.c_str());
+  if (m_cfg.filePaths.size() == 1) {
+    m_file = new TFile(m_cfg.filePaths.at(0).c_str());
+    m_tree = m_file->Get<TTree>(m_cfg.treeName.c_str());
+  } else {
+    m_chainOwner = new TChain(m_cfg.treeName.c_str());
+    // Add the files to the chain
+    for (const auto& path : m_cfg.filePaths) {
+      m_chainOwner->Add(path.c_str());
+    }
+    m_tree = dynamic_cast<TTree*>(m_chainOwner);
+  }
 
   //------------------------------------------------------------------
   // Tree branches
@@ -39,58 +47,53 @@ RootSimClusterReader::RootSimClusterReader(const Config& config,
   int splitLvl = 0;
 
   // Cluster parameters
-  m_chain->SetBranchAddress("geoCenterGlobal", &m_geoCenterGlobal);
-  m_chain->SetBranchAddress("geoCenterLocal", &m_geoCenterLocal);
-  m_chain->SetBranchAddress("clusterCov", &m_clusterCov);
-  m_chain->SetBranchAddress("geoId", &m_geoId);
+  m_tree->SetBranchAddress("geoCenterGlobal", &m_geoCenterGlobal);
+  m_tree->SetBranchAddress("geoCenterLocal", &m_geoCenterLocal);
+  m_tree->SetBranchAddress("clusterCov", &m_clusterCov);
+  m_tree->SetBranchAddress("geoId", &m_geoId);
 
   // Measurement hits
-  m_chain->SetBranchAddress("trackHitsGlobal", &m_trackHitsGlobal);
-  m_chain->SetBranchAddress("trackHitsLocal", &m_trackHitsLocal);
-  m_chain->SetBranchAddress("eventId", &m_eventId);
-  m_chain->SetBranchAddress("charge", &m_charge);
-  m_chain->SetBranchAddress("pdgId", &m_pdgId);
+  m_tree->SetBranchAddress("trackHitsGlobal", &m_trackHitsGlobal);
+  m_tree->SetBranchAddress("trackHitsLocal", &m_trackHitsLocal);
+  m_tree->SetBranchAddress("eventId", &m_eventId);
+  m_tree->SetBranchAddress("charge", &m_charge);
+  m_tree->SetBranchAddress("pdgId", &m_pdgId);
 
   // Bound origin parameters
-  m_chain->SetBranchAddress("boundTrackParameters", &m_boundTrackParameters);
-  m_chain->SetBranchAddress("boundTrackCov", &m_boundTrackCov);
+  m_tree->SetBranchAddress("boundTrackParameters", &m_boundTrackParameters);
+  m_tree->SetBranchAddress("boundTrackCov", &m_boundTrackCov);
 
   // Origin momentum
-  m_chain->SetBranchAddress("originMomentum", &m_originMomentum);
+  m_tree->SetBranchAddress("originMomentum", &m_originMomentum);
 
   // Origin vertex
-  m_chain->SetBranchAddress("vertex", &m_vertex);
+  m_tree->SetBranchAddress("vertex", &m_vertex);
 
   // Momentum at clusters
-  m_chain->SetBranchAddress("onSurfaceMomentum", &m_onSurfaceMomentum);
+  m_tree->SetBranchAddress("onSurfaceMomentum", &m_onSurfaceMomentum);
 
   // Track ID
-  m_chain->SetBranchAddress("trackId", &m_trackId);
-  m_chain->SetBranchAddress("parentTrackId", &m_parentTrackId);
-  m_chain->SetBranchAddress("runId", &m_runId);
+  m_tree->SetBranchAddress("trackId", &m_trackId);
+  m_tree->SetBranchAddress("parentTrackId", &m_parentTrackId);
+  m_tree->SetBranchAddress("runId", &m_runId);
 
   // Misc
-  m_chain->SetBranchAddress("isSignal", &m_isSignal);
-
-  // // Add the files to the chain
-  // for (const auto& path : m_cfg.filePaths) {
-  //   m_chain->Add(path.c_str());
-  // }
+  m_tree->SetBranchAddress("isSignal", &m_isSignal);
 
   // Disable all branches and only enable event-id for a first scan of the
   // file
-  m_chain->SetBranchStatus("*", false);
-  if (!m_chain->GetBranch("eventId")) {
+  m_tree->SetBranchStatus("*", false);
+  if (m_tree->GetBranch("eventId") == nullptr) {
     throw std::invalid_argument("Missing eventId branch");
   }
-  m_chain->SetBranchStatus("eventId", true);
-  auto nEntries = static_cast<std::size_t>(m_chain->GetEntries());
+  m_tree->SetBranchStatus("eventId", true);
+  auto nEntries = static_cast<std::size_t>(m_tree->GetEntries());
 
   // Go through all entries and store the position of the events
-  m_chain->GetEntry(0);
+  m_tree->GetEntry(0);
   m_eventMap.emplace_back(m_eventId, 0, 0);
   for (std::size_t i = 0; i < nEntries; ++i) {
-    m_chain->GetEntry(i);
+    m_tree->GetEntry(i);
     if (m_eventId != std::get<0>(m_eventMap.back())) {
       std::get<2>(m_eventMap.back()) = i;
       m_eventMap.emplace_back(m_eventId, i, i);
@@ -105,7 +108,7 @@ RootSimClusterReader::RootSimClusterReader(const Config& config,
   std::get<2>(m_eventMap.back()) = nEntries;
 
   // Re-Enable all branches
-  m_chain->SetBranchStatus("*", true);
+  m_tree->SetBranchStatus("*", true);
   ACTS_DEBUG("Event range: " << availableEvents().first << " - "
                              << availableEvents().second);
 
@@ -154,7 +157,7 @@ ProcessCode RootSimClusterReader::read(const AlgorithmContext& ctx) {
   std::size_t eventId = std::get<0>(*it);
   std::size_t sslIdx = 0;
   for (auto entry = std::get<1>(*it); entry < std::get<2>(*it); entry++) {
-    m_chain->GetEntry(entry);
+    m_tree->GetEntry(entry);
 
     if (m_geoId < m_cfg.minGeoId || m_geoId > m_cfg.maxGeoId) {
       continue;
@@ -178,6 +181,22 @@ ProcessCode RootSimClusterReader::read(const AlgorithmContext& ctx) {
     Acts::SquareMatrix2 clusterCov;
     clusterCov << (*m_clusterCov)(0, 0), (*m_clusterCov)(0, 1),
         (*m_clusterCov)(1, 0), (*m_clusterCov)(1, 1);
+
+    // // -----------------------------------------
+    // std::size_t clSize;
+    // if (std::sqrt(clusterCov(0, 0)) == 0.00333208) {
+    //   clSize = 1;
+    // } else if (std::sqrt(clusterCov(0, 0)) == 0.00473498) {
+    //   clSize = 2;
+    // } else if (std::sqrt(clusterCov(0, 0)) == 0.00431227) {
+    //   clSize = 4;
+    // } else if (std::sqrt(clusterCov(0, 0)) == 0.00490848) {
+    //   clSize = 4;
+    // }
+    // Acts::Vector2 stdDev(2 * 14.62_um / std::sqrt(12 * clSize),
+    //                      2 * 13.44_um / std::sqrt(12 * clSize));
+    // clusterCov = stdDev.cwiseProduct(stdDev).asDiagonal();
+    // // -----------------------------------------
 
     SimpleSourceLink obsSourceLink(geoCenterLocal, geoCenterGlobal, clusterCov,
                                    geoId, eventId, sslIdx);

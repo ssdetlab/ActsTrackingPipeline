@@ -4,6 +4,7 @@
 #include "Acts/Utilities/Logger.hpp"
 
 #include "TChain.h"
+#include "TFile.h"
 #include "TLorentzVector.h"
 #include "TMatrixD.h"
 #include "TVector3.h"
@@ -77,19 +78,19 @@ class RootSimClusterReader : public IReader {
   std::vector<std::tuple<std::size_t, std::size_t, std::size_t>> m_eventMap;
 
   /// The input tree name
-  // TChain* m_chain = nullptr;
-  TTree* m_chain = nullptr;
+  TTree* m_tree = nullptr;
   TFile* m_file = nullptr;
+  TChain* m_chainOwner = nullptr;
 
  protected:
   TVector2* m_geoCenterLocal = nullptr;
   TVector3* m_geoCenterGlobal = nullptr;
   TMatrixD* m_clusterCov = nullptr;
 
-  std::size_t m_geoId;
-  std::size_t m_eventId;
+  std::size_t m_geoId = 0;
+  std::size_t m_eventId = 0;
 
-  int m_isSignal;
+  int m_isSignal = 0;
 
   /// Measurement hits
   std::vector<TVector2>* m_trackHitsLocal = nullptr;
