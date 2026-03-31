@@ -12,7 +12,7 @@ class LinearAnnealingScheduler : public IAnnealingScheduler {
     std::size_t nIt;
   };
 
-  LinearAnnealingScheduler(const Config& config);
+  explicit LinearAnnealingScheduler(const Config& cfg);
 
   double getAnnealingFactor(std::size_t it) const override;
 

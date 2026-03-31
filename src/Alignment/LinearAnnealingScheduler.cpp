@@ -1,4 +1,4 @@
-#include "TrackingPipeline/Alignment/LinerAnnealingScheduler.hpp"
+#include "TrackingPipeline/Alignment/LinearAnnealingScheduler.hpp"
 
 LinearAnnealingScheduler::LinearAnnealingScheduler(const Config& cfg)
     : m_cfg(cfg) {
