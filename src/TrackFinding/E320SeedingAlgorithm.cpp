@@ -140,9 +140,9 @@ ProcessCode E320SeedingAlgorithm::execute(const AlgorithmContext& ctx) const {
 
     // Estimate the abs momentum variance
     Acts::BoundMatrix originCov = m_cfg.originCov;
-    // originCov(Acts::eBoundQOverP, Acts::eBoundQOverP) =
-    //     transportCovToReference(ctx.geoContext, vertex3, point, dir, cov)(
-    //         Acts::eBoundQOverP, Acts::eBoundQOverP);
+    originCov(Acts::eBoundQOverP, Acts::eBoundQOverP) =
+        transportCovToReference(ctx.geoContext, vertex3, point, dir, cov)(
+            Acts::eBoundQOverP, Acts::eBoundQOverP);
 
     std::vector<Acts::SourceLink> sourceLinks = sl;
     sourceLinks.insert(sourceLinks.end(), bpmSourceLinks.begin(),
@@ -151,13 +151,13 @@ ProcessCode E320SeedingAlgorithm::execute(const AlgorithmContext& ctx) const {
     if (m_cfg.propDirection == PropagationDirection::forward) {
       outSeeds.emplace_back(sourceLinks,
                             Acts::CurvilinearTrackParameters(
-                                vertex, dir, -1_e / absMom, originCov,
+                                vertex, dir, 1_e / absMom, originCov,
                                 Acts::ParticleHypothesis::electron()),
                             i);
     } else if (m_cfg.propDirection == PropagationDirection::backward) {
       outSeeds.emplace_back(sourceLinks,
                             Acts::CurvilinearTrackParameters(
-                                vertex, -dir, 1_e / absMom, originCov,
+                                vertex, -dir, -1_e / absMom, originCov,
                                 Acts::ParticleHypothesis::electron()),
                             i);
     }
