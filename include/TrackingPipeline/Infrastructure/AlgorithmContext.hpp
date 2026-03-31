@@ -5,8 +5,6 @@
 #include "Acts/Plugins/FpeMonitoring/FpeMonitor.hpp"
 #include "Acts/Utilities/CalibrationContext.hpp"
 
-#include <memory>
-
 class WhiteBoard;
 
 /// Aggregated information to run one algorithm over one event.
