@@ -21,7 +21,7 @@ class AlignmentParametersProvider {
   /// @brief Constructor
   ///
   /// @param config The Configuration struct
-  AlignmentParametersProvider(const Config& config);
+  explicit AlignmentParametersProvider(const Config& config);
 
   /// Write out data to the input stream
   std::shared_ptr<AlignmentStore> getAlignmentStore();
