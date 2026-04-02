@@ -4,6 +4,8 @@
 #include <functional>
 #include <utility>
 
+namespace detail {
+
 struct PairHash {
   std::size_t operator()(const std::pair<int, int> &t) const noexcept {
     return std::hash<long long>()((static_cast<long long>(t.first) << 32) ^
@@ -15,3 +17,5 @@ struct PairHash {
                                   static_cast<long long>(t.second));
   }
 };
+
+}  // namespace detail
