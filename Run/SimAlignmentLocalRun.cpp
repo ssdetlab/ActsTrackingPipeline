@@ -21,10 +21,10 @@
 #include "TrackingPipeline/Alignment/AlignmentAlgorithm.hpp"
 #include "TrackingPipeline/Alignment/AlignmentContext.hpp"
 #include "TrackingPipeline/Alignment/LinearAnnealingScheduler.hpp"
-#include "TrackingPipeline/Alignment/LocalALignmentParametersSolverSVD.hpp"
 #include "TrackingPipeline/Alignment/LocalAlignmentParametersSolverConstraints.hpp"
+#include "TrackingPipeline/Alignment/LocalAlignmentParametersSolverSVD.hpp"
+#include "TrackingPipeline/Alignment/LocalAlignmentTransformUpdater.hpp"
 #include "TrackingPipeline/Alignment/detail/AlignmentStoreBuilders.hpp"
-#include "TrackingPipeline/Alignment/detail/AlignmentStoreUpdaterBuilders.hpp"
 #include "TrackingPipeline/EventData/ExtendedSourceLink.hpp"
 #include "TrackingPipeline/EventData/MixedSourceLinkCalibrator.hpp"
 #include "TrackingPipeline/EventData/MixedSourceLinkSurfaceAccessor.hpp"
@@ -264,18 +264,23 @@ int main() {
 
   // Alignment parameters solver
 
-  // LocalAlignmentParametersSolverConstraints::Config alignmentSolverCfg{};
-  // alignmentSolverCfg.alignmentMask = alignmentMask;
-  // LocalAlignmentParametersSolverConstraints
-  // alignmentSolver(alignmentSolverCfg,
-  //                                                           logLevel);
-
-  LocalAlignmentParametersSolverSVD::Config alignmentSolverCfg{};
+  LocalAlignmentParametersSolverConstraints::Config alignmentSolverCfg{};
   alignmentSolverCfg.alignmentMask = alignmentMask;
-  alignmentSolverCfg.maxSingularValueTol = 1e-4;
-  alignmentSolverCfg.singularValueGapTol = 9e-1;
-  LocalAlignmentParametersSolverSVD alignmentSolver(alignmentSolverCfg,
-                                                    logLevel);
+  LocalAlignmentParametersSolverConstraints alignmentSolver(alignmentSolverCfg,
+                                                            logLevel);
+
+  // LocalAlignmentParametersSolverSVD::Config alignmentSolverCfg{};
+  // alignmentSolverCfg.alignmentMask = alignmentMask;
+  // alignmentSolverCfg.maxSingularValueTol = 1e-4;
+  // alignmentSolverCfg.singularValueGapTol = 9e-1;
+  // LocalAlignmentParametersSolverSVD alignmentSolver(alignmentSolverCfg,
+  //                                                   logLevel);
+
+  // Alignment transform updater
+  LocalAlignmentTransformUpdater::Config alignmentUpdaterCfg{};
+  alignmentUpdaterCfg.alignmentStore = aStore;
+  LocalAlignmentTransformUpdater alignmentUpdater(alignmentUpdaterCfg,
+                                                  logLevel);
 
   // Number of refitting iterations
   std::size_t nRefittingIt = 1;
@@ -308,7 +313,6 @@ int main() {
       .inputTrackCandidates = "SeedsEst",
       .outputAlignmentParameters = "AlignmentParameters",
       .align = AlignmentAlgorithm::makeAlignmentFunction(detector, field),
-      .alignmentTransformUpdater = detail::makeLocalAlignmentUpdater(alignCtx),
 
       .outputSeeds = "SeedsGuessCorrected",
       .referenceSurface = seedingRefSurface.get(),
@@ -324,8 +328,12 @@ int main() {
       .annealingScheduler = annealingScheduler};
 
   alignmentCfg.alignmentParametersSolver.connect<
-      &LocalAlignmentParametersSolverSVD::calculateAlignmentParameters>(
+      &LocalAlignmentParametersSolverConstraints::calculateAlignmentParameters>(
       &alignmentSolver);
+
+  alignmentCfg.alignmentTransformUpdater
+      .connect<&LocalAlignmentTransformUpdater::updateAlignmentParameters>(
+          &alignmentUpdater);
 
   alignmentCfg.surfaceAccessor
       .connect<&SimpleSourceLink::SurfaceAccessor::operator()>(

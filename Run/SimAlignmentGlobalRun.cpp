@@ -22,9 +22,9 @@
 #include "TrackingPipeline/Alignment/AlignmentAlgorithm.hpp"
 #include "TrackingPipeline/Alignment/AlignmentContext.hpp"
 #include "TrackingPipeline/Alignment/GlobalAlignmentParametersSolver.hpp"
+#include "TrackingPipeline/Alignment/GlobalAlignmentTransformUpdater.hpp"
 #include "TrackingPipeline/Alignment/LinearAnnealingScheduler.hpp"
 #include "TrackingPipeline/Alignment/detail/AlignmentStoreBuilders.hpp"
-#include "TrackingPipeline/Alignment/detail/AlignmentStoreUpdaterBuilders.hpp"
 #include "TrackingPipeline/EventData/ExtendedSourceLink.hpp"
 #include "TrackingPipeline/EventData/MixedSourceLinkCalibrator.hpp"
 #include "TrackingPipeline/EventData/MixedSourceLinkSurfaceAccessor.hpp"
@@ -302,6 +302,12 @@ int main() {
   alignmentSolverCfg.alignmentMask = alignmentMask;
   GlobalAlignmentParametersSolver alignmentSolver(alignmentSolverCfg, logLevel);
 
+  // Alignment transform updater
+  GlobalAlignmentTransformUpdater::Config alignmentUpdaterCfg{};
+  alignmentUpdaterCfg.alignmentStore = aStore;
+  GlobalAlignmentTransformUpdater alignmentUpdater(alignmentUpdaterCfg,
+                                                   logLevel);
+
   // Number of refitting iterations
   std::size_t nRefittingIt = 1;
 
@@ -333,7 +339,6 @@ int main() {
       .inputTrackCandidates = "SeedsGuess",
       .outputAlignmentParameters = "AlignmentParameters",
       .align = AlignmentAlgorithm::makeAlignmentFunction(detector, field),
-      .alignmentTransformUpdater = detail::makeGlobalAlignmentUpdater(alignCtx),
 
       .outputSeeds = "SeedsGuessCorrected",
       .referenceSurface = seedingRefSurface.get(),
@@ -351,6 +356,10 @@ int main() {
   alignmentCfg.alignmentParametersSolver
       .connect<&GlobalAlignmentParametersSolver::calculateAlignmentParameters>(
           &alignmentSolver);
+
+  alignmentCfg.alignmentTransformUpdater
+      .connect<&GlobalAlignmentTransformUpdater::updateAlignmentParameters>(
+          &alignmentUpdater);
 
   alignmentCfg.surfaceAccessor
       .connect<&SimpleSourceLink::SurfaceAccessor::operator()>(

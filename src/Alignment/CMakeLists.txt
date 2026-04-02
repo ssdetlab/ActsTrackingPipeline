@@ -6,7 +6,8 @@ target_sources(
     LocalAlignmentParametersSolverConstraints.cpp
     LocalAlignmentParametersSolverSVD.cpp
     GlobalAlignmentParametersSolver.cpp
+    LocalAlignmentTransformUpdater.cpp
+    GlobalAlignmentTransformUpdater.cpp
     detail/AlignmentStoreBuilders.cpp
-    detail/AlignmentStoreUpdaterBuilders.cpp
 )
     
