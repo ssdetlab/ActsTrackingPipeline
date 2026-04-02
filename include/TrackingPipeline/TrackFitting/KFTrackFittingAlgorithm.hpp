@@ -33,12 +33,10 @@ class KFTrackFittingAlgorithm : public IAlgorithm {
   };
 
   /// @brief Constructor
-  KFTrackFittingAlgorithm(Config config, Acts::Logging::Level level)
-      : IAlgorithm("TrackFittingAlgorithm", level), m_cfg(std::move(config)) {
-    m_inputTrackCandidates.initialize(m_cfg.inputTrackCandidates);
-    m_outputTracks.initialize(m_cfg.outputTracks);
-  }
-  ~KFTrackFittingAlgorithm() = default;
+  KFTrackFittingAlgorithm(const Config& config, Acts::Logging::Level level);
+
+  /// @brief Destructor
+  ~KFTrackFittingAlgorithm() override = default;
 
   /// @brief The execute method
   ProcessCode execute(const AlgorithmContext& ctx) const override;

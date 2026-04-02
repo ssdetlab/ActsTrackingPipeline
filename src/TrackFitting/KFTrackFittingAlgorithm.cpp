@@ -3,6 +3,13 @@
 #include "Acts/EventData/TrackParameters.hpp"
 #include "Acts/Utilities/Logger.hpp"
 
+KFTrackFittingAlgorithm::KFTrackFittingAlgorithm(const Config& config,
+                                                 Acts::Logging::Level level)
+    : IAlgorithm("TrackFittingAlgorithm", level), m_cfg(config) {
+  m_inputTrackCandidates.initialize(m_cfg.inputTrackCandidates);
+  m_outputTracks.initialize(m_cfg.outputTracks);
+}
+
 ProcessCode KFTrackFittingAlgorithm::execute(
     const AlgorithmContext& ctx) const {
   // Get the input seeds
