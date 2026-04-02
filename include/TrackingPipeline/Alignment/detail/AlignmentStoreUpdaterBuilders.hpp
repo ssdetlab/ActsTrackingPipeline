@@ -6,10 +6,10 @@
 
 namespace detail {
 
-ActsAlignment::AlignedTransformUpdater makeGlobalAlignmentUpdater(
+ActsAlignment::AlignmentTransformUpdater makeGlobalAlignmentUpdater(
     AlignmentContext& alignCtx);
 
-ActsAlignment::AlignedTransformUpdater makeLocalAlignmentUpdater(
+ActsAlignment::AlignmentTransformUpdater makeLocalAlignmentUpdater(
     AlignmentContext& alignCtx);
 
 }  // namespace detail

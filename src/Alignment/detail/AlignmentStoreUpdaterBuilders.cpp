@@ -10,7 +10,7 @@
 
 namespace detail {
 
-ActsAlignment::AlignedTransformUpdater makeGlobalAlignmentUpdater(
+ActsAlignment::AlignmentTransformUpdater makeGlobalAlignmentUpdater(
     AlignmentContext& alignCtx) {
   return [&alignCtx](Acts::DetectorElementBase* element,
                      const Acts::GeometryContext& gctx,
@@ -54,7 +54,7 @@ ActsAlignment::AlignedTransformUpdater makeGlobalAlignmentUpdater(
   };
 };
 
-ActsAlignment::AlignedTransformUpdater makeLocalAlignmentUpdater(
+ActsAlignment::AlignmentTransformUpdater makeLocalAlignmentUpdater(
     AlignmentContext& alignCtx) {
   return [&alignCtx](Acts::DetectorElementBase* element,
                      const Acts::GeometryContext& gctx,
