@@ -21,8 +21,7 @@ class IAlgorithm : public SequenceElement {
   ///
   /// @name The algorithm name
   /// @level The logging level for this algorithm
-  IAlgorithm(std::string name,
-             Acts::Logging::Level level = Acts::Logging::INFO);
+  IAlgorithm(const std::string& name, Acts::Logging::Level level);
 
   /// The algorithm name.
   std::string name() const override;
