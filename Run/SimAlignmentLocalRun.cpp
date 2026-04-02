@@ -20,7 +20,9 @@
 
 #include "TrackingPipeline/Alignment/AlignmentAlgorithm.hpp"
 #include "TrackingPipeline/Alignment/AlignmentContext.hpp"
-#include "TrackingPipeline/Alignment/LinerAnnealingScheduler.hpp"
+#include "TrackingPipeline/Alignment/LinearAnnealingScheduler.hpp"
+#include "TrackingPipeline/Alignment/LocalALignmentParametersSolverSVD.hpp"
+#include "TrackingPipeline/Alignment/LocalAlignmentParametersSolverConstraints.hpp"
 #include "TrackingPipeline/Alignment/detail/AlignmentStoreBuilders.hpp"
 #include "TrackingPipeline/Alignment/detail/AlignmentStoreUpdaterBuilders.hpp"
 #include "TrackingPipeline/EventData/ExtendedSourceLink.hpp"
@@ -31,7 +33,6 @@
 #include "TrackingPipeline/Geometry/E320GeometryConstraints.hpp"
 #include "TrackingPipeline/Geometry/GeometryContextDecorator.hpp"
 #include "TrackingPipeline/Infrastructure/Sequencer.hpp"
-#include "TrackingPipeline/Io/AlignmentParametersProvider.hpp"
 #include "TrackingPipeline/Io/AlignmentParametersWriter.hpp"
 #include "TrackingPipeline/Io/RootSimSeedWriter.hpp"
 #include "TrackingPipeline/Io/RootSimTrackReader.hpp"
@@ -75,20 +76,11 @@ int main() {
 
   auto aStore = detail::makeAlignmentStore(gctx, detector.get());
 
-  // AlignmentParametersProvider::Config alignmentProviderCfg;
-  // alignmentProviderCfg.filePath =
-  //     "/home/romanurmanov/work/E320/E320Prototype/E320Prototype_analysis/sim/"
-  //     "alignment/local/it3/"
-  //     "alignment-parameters.root";
-  // alignmentProviderCfg.treeName = "alignment-parameters";
-  // AlignmentParametersProvider alignmentProvider(alignmentProviderCfg);
-  // aStore = alignmentProvider.getAlignmentStore();
-
   AlignmentContext alignCtx(aStore);
   Acts::GeometryContext testCtx{alignCtx};
   for (auto& v : detector->volumes()) {
     for (auto& s : v->surfaces()) {
-      if (s->geometryId().sensitive()) {
+      if (s->geometryId().sensitive() != 0u) {
         std::cout << "-----------------------------------\n";
         std::cout << "SURFACE " << s->geometryId() << "\n";
         std::cout << "CENTER " << s->center(testCtx).transpose() << " -- "
@@ -145,9 +137,9 @@ int main() {
       std::make_shared<GeometryContextDecorator>(aStore));
 
   // Add the sim data reader
-  RootSimTrackReader::Constraints readerConstraints;
+  RootSimTrackReader::Constraints readerConstraints{};
   readerConstraints.minChi2 = 0;
-  readerConstraints.maxChi2 = 200;
+  readerConstraints.maxChi2 = 1e9;
   readerConstraints.minVertexEstLong = -1e10;
   readerConstraints.maxVertexEstLong = 1e10;
 
@@ -211,7 +203,7 @@ int main() {
 
   Acts::GeometryIdentifier geoId;
   geoId.setExtra(1);
-  refSurface->assignGeometryId(std::move(geoId));
+  refSurface->assignGeometryId(geoId);
 
   // --------------------------------------------------------------
   // Alignment
@@ -264,41 +256,85 @@ int main() {
   Acts::BoundMatrix trackOriginCov =
       trackOriginStdDevPrior.cwiseProduct(trackOriginStdDevPrior).asDiagonal();
 
+  // Alignment mask
+  ActsAlignment::AlignmentMask alignmentMask =
+      (ActsAlignment::AlignmentMask::Center1 |
+       ActsAlignment::AlignmentMask::Center2 |
+       ActsAlignment::AlignmentMask::Rotation2);
+
+  // Alignment parameters solver
+
+  // LocalAlignmentParametersSolverConstraints::Config alignmentSolverCfg{};
+  // alignmentSolverCfg.alignmentMask = alignmentMask;
+  // LocalAlignmentParametersSolverConstraints
+  // alignmentSolver(alignmentSolverCfg,
+  //                                                           logLevel);
+
+  LocalAlignmentParametersSolverSVD::Config alignmentSolverCfg{};
+  alignmentSolverCfg.alignmentMask = alignmentMask;
+  alignmentSolverCfg.maxSingularValueTol = 1e-4;
+  alignmentSolverCfg.singularValueGapTol = 9e-1;
+  LocalAlignmentParametersSolverSVD alignmentSolver(alignmentSolverCfg,
+                                                    logLevel);
+
+  // Number of refitting iterations
+  std::size_t nRefittingIt = 1;
+
   // Annealing scheduler
-  std::size_t nAnnealingIt = 5;
-  LinearAnnealingScheduler::Config annealingSchedulerCfg;
-  annealingSchedulerCfg.alphaStart = 1e3;
+  LinearAnnealingScheduler::Config annealingSchedulerCfg{};
+  annealingSchedulerCfg.alphaStart = 1e0;
   annealingSchedulerCfg.alphaEnd = 1e0;
-  annealingSchedulerCfg.nIt = nAnnealingIt;
+  annealingSchedulerCfg.nIt = nRefittingIt;
 
   auto annealingScheduler =
       std::make_shared<LinearAnnealingScheduler>(annealingSchedulerCfg);
+
+  Acts::Transform3 seedingRefSurfTransform = Acts::Transform3::Identity();
+  seedingRefSurfTransform.translation() =
+      Acts::Vector3(goInst.ipTcDistance - 0.3_mm, 0, 0);
+  seedingRefSurfTransform.rotate(refSurfToWorldRotationX);
+  seedingRefSurfTransform.rotate(refSurfToWorldRotationY);
+  seedingRefSurfTransform.rotate(refSurfToWorldRotationZ);
+
+  auto seedingRefSurface = Acts::Surface::makeShared<Acts::PlaneSurface>(
+      seedingRefSurfTransform,
+      std::make_shared<Acts::RectangleBounds>(halfX, halfY));
+
+  Acts::GeometryIdentifier seedingRefSurfaceGeoId;
+  seedingRefSurfaceGeoId.setExtra(1);
+  seedingRefSurface->assignGeometryId(seedingRefSurfaceGeoId);
 
   AlignmentAlgorithm::Config alignmentCfg{
       .inputTrackCandidates = "SeedsEst",
       .outputAlignmentParameters = "AlignmentParameters",
       .align = AlignmentAlgorithm::makeAlignmentFunction(detector, field),
-      .alignedTransformUpdater = detail::makeLocalAlignmentUpdater(alignCtx),
+      .alignmentTransformUpdater = detail::makeLocalAlignmentUpdater(alignCtx),
+
+      .outputSeeds = "SeedsGuessCorrected",
+      .referenceSurface = seedingRefSurface.get(),
+
       .kfOptions = alignmentKFOptions,
       .chi2ONdfCutOff = 1e-16,
       .deltaChi2ONdfCutOff = {10, 1e-5},
-      .maxNumIterations = 200,
-      .alignmentMask = (ActsAlignment::AlignmentMask::Center1 |
-                        ActsAlignment::AlignmentMask::Center2 |
-                        ActsAlignment::AlignmentMask::Rotation2),
-      .alignmentMode = ActsAlignment::AlignmentMode::local,
-      .maxSingularValueTol = 5e-3,
-      .singularValueGapTol = 5e-1,
-      .rigidAngleScale = 1e0,
+      .maxAlignmentFitNumIt = 200,
+      .alignmentMask = alignmentMask,
       .originCov = trackOriginCov,
       .constraints = {},
-      .nAnnealingIt = nAnnealingIt,
+      .nRefittingIt = nRefittingIt,
       .annealingScheduler = annealingScheduler};
+
+  alignmentCfg.alignmentParametersSolver.connect<
+      &LocalAlignmentParametersSolverSVD::calculateAlignmentParameters>(
+      &alignmentSolver);
+
+  alignmentCfg.surfaceAccessor
+      .connect<&SimpleSourceLink::SurfaceAccessor::operator()>(
+          &simpleSurfaceAccessor);
 
   for (auto& det : detector->detectorElements()) {
     const auto& surface = det->surface();
     const auto& geoId = surface.geometryId().sensitive();
-    if (geoId && surface.geometryId().sensitive() > 10 &&
+    if (geoId != 0u && surface.geometryId().sensitive() > 10 &&
         surface.geometryId().sensitive() < 40) {
       alignmentCfg.alignedDetElements.push_back(det.get());
     }
@@ -405,7 +441,7 @@ int main() {
 
   for (auto& v : detector->volumes()) {
     for (auto& s : v->surfaces()) {
-      if (s->geometryId().sensitive()) {
+      if (s->geometryId().sensitive() != 0u) {
         std::cout << "-----------------------------------\n";
         std::cout << "SURFACE " << s->geometryId() << "\n";
         std::cout << "CENTER " << s->center(gctx).transpose() << " -- "
