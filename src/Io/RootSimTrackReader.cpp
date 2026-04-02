@@ -156,7 +156,7 @@ RootSimTrackReader::RootSimTrackReader(const Config& config,
   // Disable all branches and only enable event-id for a first scan of the
   // file
   m_tree->SetBranchStatus("*", false);
-  if (m_tree->GetBranch("eventId") != nullptr) {
+  if (m_tree->GetBranch("eventId") == nullptr) {
     throw std::invalid_argument("Missing eventId SetbranchAddress");
   }
   m_tree->SetBranchStatus("eventId", true);
