@@ -11,7 +11,6 @@ target_sources(
     RootMaterialTrackWriter.cpp
     RootTrackLookupValidationWriter.cpp
     RootTrackParamsReader.cpp
-    RootSimDataReader.cpp
     RootMeasurementWriter.cpp
     RootSeedWriter.cpp
     RootTrackCandidateWriter.cpp
