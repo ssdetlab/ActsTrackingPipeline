@@ -2,8 +2,8 @@
 
 #include "Acts/Definitions/Algebra.hpp"
 #include "Acts/EventData/SourceLink.hpp"
-#include <Acts/Geometry/GeometryContext.hpp>
-#include <Acts/Geometry/GeometryIdentifier.hpp>
+#include "Acts/Geometry/GeometryContext.hpp"
+#include "Acts/Geometry/GeometryIdentifier.hpp"
 
 #include <cstddef>
 #include <map>
@@ -11,10 +11,13 @@
 #include <unordered_map>
 #include <vector>
 
+#include "TrackingPipeline/Utilities/TupleHash.hpp"
+
 struct IdxTree {
   struct Node {
     Node() = delete;
-    Node(std::pair<int, int> data) : m_idx(data.first), m_geoId(data.second) {};
+    explicit Node(const std::pair<int, int>& data)
+        : m_idx(data.first), m_geoId(data.second) {};
 
     int m_idx;
     int m_geoId;
@@ -76,21 +79,11 @@ struct IdxTree {
   std::shared_ptr<Node> m_root;
 };
 
-struct TupleHash {
-  std::size_t operator()(
-      const std::tuple<std::uint16_t, std::uint16_t, std::uint16_t,
-                       std::uint16_t>& t) const noexcept {
-    return std::hash<long long>()(
-        ((long long)std::get<0>(t) << 48) ^ ((long long)std::get<1>(t) << 32) ^
-        ((long long)std::get<2>(t) << 16) ^ (long long)std::get<3>(t));
-  }
-};
-
 class HoughTransformSeeder {
  public:
   using Cell =
       std::tuple<std::uint16_t, std::uint16_t, std::uint16_t, std::uint16_t>;
-  using VotingMap = std::unordered_map<Cell, std::uint8_t, TupleHash>;
+  using VotingMap = std::unordered_map<Cell, std::uint8_t, detail::TupleHash>;
 
   using SourceLinkRef = std::reference_wrapper<const Acts::SourceLink>;
 
@@ -105,7 +98,7 @@ class HoughTransformSeeder {
     std::size_t nCellsThetaLong;
     std::size_t nCellsRhoLong;
 
-    std::size_t nGLSIterations;
+    std::size_t nGX2Iterations;
 
     std::size_t primaryIdx;
     std::size_t longIdx;
@@ -119,7 +112,6 @@ class HoughTransformSeeder {
 
     int firstLayerId;
     int lastLayerId;
-    int nLayers;
 
     std::map<Acts::GeometryIdentifier, const Acts::Surface*> surfaceMap;
 
@@ -141,7 +133,7 @@ class HoughTransformSeeder {
     int count;
   };
 
-  HoughTransformSeeder(const Config& cfg);
+  explicit HoughTransformSeeder(const Config& cfg);
 
   std::vector<HTSeed> findSeeds(const Acts::GeometryContext& gctx,
                                 std::span<SourceLinkRef> sourceLinks,
@@ -150,7 +142,7 @@ class HoughTransformSeeder {
  private:
   Config m_cfg;
 
-  void fillVotingMap(VotingMap& votingMap, std::span<SourceLinkRef> points,
+  void fillVotingMap(VotingMap& votingMap, std::span<SourceLinkRef> sourceLinks,
                      const Options& opt, const Acts::Vector3& shift);
 
   std::vector<std::pair<int, int>> findLineSourceLinks(

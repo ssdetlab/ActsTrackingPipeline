@@ -20,6 +20,8 @@
 #include "TrackingPipeline/EventData/SimpleSourceLink.hpp"
 #include "TrackingPipeline/Geometry/detail/BinningValueUtils.hpp"
 
+namespace {
+
 void constructTracks(const std::shared_ptr<IdxTree::Node> &root,
                      std::vector<int> &track,
                      std::vector<std::vector<int>> &tracks) {
@@ -34,6 +36,8 @@ void constructTracks(const std::shared_ptr<IdxTree::Node> &root,
   }
   track.pop_back();
 }
+
+}  // namespace
 
 Eigen::MatrixXd HoughTransformSeeder::constructCov(
     const std::vector<SourceLinkRef> &sourceLinks, const Acts::Vector3 &dir,
@@ -392,7 +396,7 @@ std::vector<HoughTransformSeeder::HTSeed> HoughTransformSeeder::findSeeds(
           seedSourceLinksRefs.push_back(std::cref(sourceLinks[idx]));
           seedSourceLinks.push_back(sourceLinks[idx]);
         }
-        for (std::size_t l = 0; l < m_cfg.nGLSIterations; l++) {
+        for (std::size_t l = 0; l < m_cfg.nGX2Iterations; l++) {
           chi2 =
               globalChi2Fit(seedSourceLinksRefs, newPoint, newDir, newCov, opt);
         }
