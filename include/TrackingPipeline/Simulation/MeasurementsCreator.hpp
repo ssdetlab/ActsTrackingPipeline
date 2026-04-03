@@ -5,6 +5,7 @@
 #include "Acts/Navigation/DetectorNavigator.hpp"
 #include "Acts/Propagator/EigenStepper.hpp"
 
+#include <cstddef>
 #include <memory>
 #include <vector>
 
@@ -61,12 +62,13 @@ class MeasurementsCreator : public IMeasurementGenerator {
   };
 
   /// @brief Constructor
-  MeasurementsCreator(const Propagator propagator, const Config& config);
+  MeasurementsCreator(const Propagator& propagator, const Config& cfg);
 
   /// @brief Propagate track and create measurements
-  std::tuple<std::vector<Acts::SourceLink>, SimClusters> gen(
-      const AlgorithmContext& ctx, RandomEngine& rng,
-      std::size_t id) const override;
+  std::size_t gen(const AlgorithmContext& ctx, RandomEngine& rng,
+                  std::size_t id, std::vector<Acts::SourceLink>& sourceLinks,
+                  SimClusters& simClusters,
+                  std::vector<std::size_t>& sourceLinksIndices) const override;
 
   /// @brief Readonly access to the config parameters
   const Config& config() const { return m_cfg; }

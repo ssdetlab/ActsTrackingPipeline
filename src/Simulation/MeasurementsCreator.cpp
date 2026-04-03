@@ -12,13 +12,12 @@
 #include <cstdlib>
 #include <iostream>
 #include <stdexcept>
-#include <utility>
 #include <vector>
 
 #include "TrackingPipeline/Infrastructure/RandomNumbers.hpp"
 #include "TrackingPipeline/Simulation/MeasurementsCreatorAction.hpp"
 
-MeasurementsCreator::MeasurementsCreator(const Propagator propagator,
+MeasurementsCreator::MeasurementsCreator(const Propagator& propagator,
                                          const Config& cfg)
     : m_cfg(cfg), m_propagator(propagator) {
   m_freeIpCov = Acts::FreeMatrix::Zero();
@@ -32,8 +31,10 @@ MeasurementsCreator::MeasurementsCreator(const Propagator propagator,
       m_cfg.momentumGenerator->getCovariance();
 };
 
-std::tuple<std::vector<Acts::SourceLink>, SimClusters> MeasurementsCreator::gen(
-    const AlgorithmContext& ctx, RandomEngine& rng, std::size_t id) const {
+std::size_t MeasurementsCreator::gen(
+    const AlgorithmContext& ctx, RandomEngine& rng, std::size_t id,
+    std::vector<Acts::SourceLink>& sourceLinks, SimClusters& simClusters,
+    std::vector<std::size_t>& sourceLinksIndices) const {
   using Actions = Acts::ActionList<MeasurementsCreatorAction>;
   using Aborters = Acts::AbortList<Acts::EndOfWorldReached>;
   using PropagatorOptions =
@@ -45,8 +46,6 @@ std::tuple<std::vector<Acts::SourceLink>, SimClusters> MeasurementsCreator::gen(
   auto& creator = options.actionList.template get<MeasurementsCreatorAction>();
   options.maxSteps = m_cfg.maxSteps;
   creator.sourceId = id;
-
-  int index = static_cast<int>(id);
 
   Acts::Vector3 spatial = m_cfg.vertexGenerator->genVertex(rng);
   Acts::Vector4 mPos4 = {spatial.x(), spatial.y(), spatial.z(), 0};
@@ -67,9 +66,7 @@ std::tuple<std::vector<Acts::SourceLink>, SimClusters> MeasurementsCreator::gen(
 
   MeasurementsCreatorAction::result_type resultParameters;
   try {
-    auto result =
-        m_propagator.propagate(std::move(trackParameters), std::move(options))
-            .value();
+    auto result = m_propagator.propagate(trackParameters, options).value();
 
     resultParameters =
         result.template get<MeasurementsCreatorAction::result_type>();
@@ -78,12 +75,12 @@ std::tuple<std::vector<Acts::SourceLink>, SimClusters> MeasurementsCreator::gen(
   }
 
   int trackId = (m_cfg.isSignal) ? 1 : -1;
+  std::size_t currentSize = sourceLinksIndices.size();
   std::size_t resSize = resultParameters.size();
 
-  SimClusters simClusters;
-  simClusters.reserve(resSize);
-  std::vector<Acts::SourceLink> sourceLinks;
-  sourceLinks.reserve(resSize);
+  simClusters.reserve(currentSize + resSize);
+  sourceLinks.reserve(currentSize + resSize);
+  sourceLinksIndices.reserve(currentSize + resSize);
 
   for (std::size_t i = 0; i < resSize; i++) {
     const Acts::BoundTrackParameters& boundPars = resultParameters.at(i);
@@ -99,14 +96,6 @@ std::tuple<std::vector<Acts::SourceLink>, SimClusters> MeasurementsCreator::gen(
       }
     }
 
-    // Sometimes scattering makes particles
-    // to be stuck in the same surface
-    for (int j = simClusters.size() - 1; j >= 0; j--) {
-      if (simClusters.at(j).sourceLink.geometryId() == geoId) {
-        continue;
-      }
-    }
-
     // Digitize hits
     Acts::Vector2 trueLocalPos{boundVec[Acts::eBoundLoc0],
                                boundVec[Acts::eBoundLoc1]};
@@ -119,22 +108,23 @@ std::tuple<std::vector<Acts::SourceLink>, SimClusters> MeasurementsCreator::gen(
         ctx.geoContext, digLocalPos, Acts::Vector3::UnitX());
 
     // Truth information
-    SimHit sm{
+    SimHit sh{
         boundVec, trueGlobalPos,        trackParameters,
         trackId,  static_cast<int>(id), static_cast<int>(ctx.eventNumber)};
 
     // Observable information
-    SimpleSourceLink simpleSl(digLocalPos, digGlobalPos, digCov, geoId,
-                              ctx.eventNumber, index + i);
-    sourceLinks.push_back(Acts::SourceLink(simpleSl));
+    SimpleSourceLink ssl(digLocalPos, digGlobalPos, digCov, geoId,
+                         ctx.eventNumber, sourceLinks.size());
+    sourceLinksIndices.push_back(sourceLinks.size());
+    sourceLinks.push_back(Acts::SourceLink(ssl));
 
     SimCluster cl{
-        simpleSl,
-        {sm},
+        ssl,
+        {sh},
         m_cfg.isSignal,
     };
     simClusters.push_back(cl);
   }
 
-  return {std::move(sourceLinks), std::move(simClusters)};
+  return resSize;
 };

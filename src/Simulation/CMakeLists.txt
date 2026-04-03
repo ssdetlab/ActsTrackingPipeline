@@ -3,6 +3,7 @@ target_sources(
     PRIVATE
     MeasurementsEmbeddingAlgorithm.cpp
     MeasurementsCreator.cpp
+    UniformBackgroundCreator.cpp
     StationaryVertexGenerator.cpp
     GaussianVertexGenerator.cpp
     UniformVertexGenerator.cpp

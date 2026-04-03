@@ -21,10 +21,14 @@ class MeasurementsEmbeddingAlgorithm : public IAlgorithm {
     std::string inputSourceLinks;
     /// Input sim clusters
     std::string inputSimClusters;
+    /// Input source links indices
+    std::string inputSourceLinkIndices;
     /// Output source links
     std::string outputSourceLinks;
     /// Output sim clusters
     std::string outputSimClusters;
+    /// Output source links indices
+    std::string outputSourceLinkIndices;
     /// Number of measurements
     std::size_t nMeasurements;
   };
@@ -47,8 +51,14 @@ class MeasurementsEmbeddingAlgorithm : public IAlgorithm {
 
   ReadDataHandle<SimClusters> m_inputSimClusters{this, "InputSimClusters"};
 
+  ReadDataHandle<std::vector<std::size_t>> m_inputSourceLinksIndices{
+      this, "InputSourceLinkIndices"};
+
   WriteDataHandle<std::vector<Acts::SourceLink>> m_outputSourceLinks{
       this, "OutputSourceLinks"};
 
   WriteDataHandle<SimClusters> m_outputSimClusters{this, "OutputSimClusters"};
+
+  WriteDataHandle<std::vector<std::size_t>> m_outputSourceLinkIndices{
+      this, "OutputSourceLinkIndices"};
 };

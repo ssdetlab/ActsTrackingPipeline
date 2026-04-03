@@ -2,12 +2,14 @@
 
 #include "Acts/Utilities/Logger.hpp"
 
+#include <cstddef>
+
 #include "TFile.h"
 #include "TLorentzVector.h"
 #include "TMatrixD.h"
-#include "TVectorD.h"
 #include "TTree.h"
 #include "TVector3.h"
+#include "TVectorD.h"
 #include "TrackingPipeline/EventData/DataContainers.hpp"
 #include "TrackingPipeline/Infrastructure/AlgorithmContext.hpp"
 #include "TrackingPipeline/Infrastructure/DataHandle.hpp"
@@ -18,21 +20,15 @@ using namespace Acts::UnitLiterals;
 
 using TrackID = std::tuple<int, int, int>;
 
-/// @brief Writer to store fitted track data in
-/// ROOT file
-///
-/// Writer that accepts fitted track data from KF
-/// derives the basic performance metrics, such as
-/// chi2 and residuals, and stores them in a ROOT file.
-///
-/// @note Assumes that the tracks are simulated and
-/// the truth information is available
+/// @brief Writer to store sim cluster data
 class RootSimClusterWriter : public IWriter {
  public:
   /// @brief The nested configuration struct
   struct Config {
     /// Truth cluster data
     std::string inputClusters;
+    /// Truth cluster indices data
+    std::string inputClusterIndices;
     /// Name of the input tree
     std::string treeName;
     /// The names of the input files
@@ -68,6 +64,9 @@ class RootSimClusterWriter : public IWriter {
 
   ReadDataHandle<SimClusters> m_inputClusters{this, "InputClusters"};
 
+  ReadDataHandle<std::vector<std::size_t>> m_inputClusterIndices{
+      this, "InputClusterIndices"};
+
   std::unique_ptr<const Acts::Logger> m_logger;
 
   /// The output file
@@ -82,10 +81,10 @@ class RootSimClusterWriter : public IWriter {
   TVector2 m_geoCenterLocal;
   TMatrixD m_clusterCov = TMatrixD(2, 2);
 
-  std::size_t m_geoId;
-  std::size_t m_eventId;
+  std::size_t m_geoId = 0;
+  std::size_t m_eventId = 0;
 
-  int m_isSignal;
+  int m_isSignal = 0;
 
   /// Measurement hits
   std::vector<TVector3> m_trackHitsGlobal;

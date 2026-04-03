@@ -17,6 +17,8 @@ class DummyReader : public IReader {
     std::string outputSourceLinks;
     /// Output sim clusters
     std::string outputSimClusters;
+    /// Output source links indices
+    std::string outputSourceLinkIndices;
     /// Number of events
     std::size_t nEvents;
   };
@@ -25,20 +27,23 @@ class DummyReader : public IReader {
   explicit DummyReader(const Config& config) : IReader(), m_cfg(config) {
     m_outputSourceLinks.initialize(m_cfg.outputSourceLinks);
     m_outputSimClusters.initialize(m_cfg.outputSimClusters);
+    m_outputSourceLinkIndices.initialize(m_cfg.outputSourceLinkIndices);
   }
 
   /// @brief The execute method
   ProcessCode read(const AlgorithmContext& ctx) override {
     std::vector<Acts::SourceLink> sourceLinks{};
+    std::vector<std::size_t> sourceLinksIndices{};
     SimClusters clusters{};
 
     m_outputSourceLinks(ctx, std::move(sourceLinks));
     m_outputSimClusters(ctx, std::move(clusters));
+    m_outputSourceLinkIndices(ctx, std::move(sourceLinksIndices));
 
     return ProcessCode::SUCCESS;
   }
 
-  /// @brief Provide range of available events or [0, SIZE_MAX) if undefined.
+  /// @brief Provide range of available events
   std::pair<std::size_t, std::size_t> availableEvents() const override {
     return {0, m_cfg.nEvents};
   }
@@ -56,4 +61,7 @@ class DummyReader : public IReader {
       this, "OutputSourceLinks"};
 
   WriteDataHandle<SimClusters> m_outputSimClusters{this, "OutputSimClusters"};
+
+  WriteDataHandle<std::vector<std::size_t>> m_outputSourceLinkIndices{
+      this, "OutputSourceLinkIndices"};
 };
