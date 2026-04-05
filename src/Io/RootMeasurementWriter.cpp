@@ -4,6 +4,7 @@
 #include "Acts/EventData/SourceLink.hpp"
 #include <Acts/Utilities/Logger.hpp>
 
+#include <cstddef>
 #include <stdexcept>
 #include <vector>
 
@@ -36,11 +37,12 @@ RootMeasurementWriter::RootMeasurementWriter(const Config& config,
 
   //------------------------------------------------------------------
   // Initialize the data handles
-  m_inputMeasurements.initialize(m_cfg.inputMeasurements);
+  m_inputSourceLinks.initialize(m_cfg.inputSourceLinks);
+  m_inputSourceLinkIndices.initialize(m_cfg.inputSourceLinkIndices);
 }
 
 ProcessCode RootMeasurementWriter::finalize() {
-  if (m_file) {
+  if (m_file != nullptr) {
     m_file->Write();
     m_file->Close();
   }
@@ -48,14 +50,18 @@ ProcessCode RootMeasurementWriter::finalize() {
 }
 
 ProcessCode RootMeasurementWriter::write(const AlgorithmContext& ctx) {
-  auto inputMeasurements = m_inputMeasurements(ctx);
+  const auto& inputSourceLinks = m_inputSourceLinks(ctx);
+  const auto& inputSourceLinkIndices = m_inputSourceLinkIndices(ctx);
 
-  ACTS_DEBUG("Received " << inputMeasurements.size() << " measurements");
+  ACTS_DEBUG("Received " << inputSourceLinks.size() << " source links");
+  ACTS_DEBUG("Received " << inputSourceLinkIndices.size()
+                         << " source link indices");
 
   std::lock_guard<std::mutex> lock(m_mutex);
 
-  for (const auto& meas : inputMeasurements) {
-    const auto& ssl = meas.get<SimpleSourceLink>();
+  for (std::size_t i = 0; i < inputSourceLinkIndices.size(); i++) {
+    std::size_t idx = inputSourceLinkIndices.at(i);
+    const auto& ssl = inputSourceLinks.at(idx).get<SimpleSourceLink>();
 
     Acts::Vector2 geoCenterLocal = ssl.parametersLoc();
     Acts::Vector3 geoCenterGlobal = ssl.parametersGlob();

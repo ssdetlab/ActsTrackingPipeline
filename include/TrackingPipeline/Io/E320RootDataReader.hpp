@@ -4,6 +4,7 @@
 #include "Acts/Utilities/Logger.hpp"
 
 #include <cstddef>
+#include <unordered_map>
 
 #include <RtypesCore.h>
 
@@ -20,16 +21,18 @@
 namespace E320 {
 
 /// @brief ROOT file reader designed for the EUDAQ2 format
-///
-/// @note The events are assumed to be ordered
 class E320RootDataReader : public IReader {
  public:
   using Hit = std::pair<std::size_t, std::size_t>;
 
   /// @brief The nested configuration struct
   struct Config {
-    /// Collection with the measurement data
+    /// Collection with the detector measurement data
     std::string outputSourceLinks;
+    /// Collection with the detector measurement data indices
+    std::string outputDetSourceLinkIndices;
+    /// Collection with the BPM measurement data indices
+    std::string outputBpmSourceLinkIndices;
     /// The names of the input files
     std::vector<std::string> filePaths;
     /// Name of the input tree
@@ -40,31 +43,30 @@ class E320RootDataReader : public IReader {
     int minGeoId;
     int maxGeoId;
     /// Surface map for high-precision local to global conversion
-    std::map<Acts::GeometryIdentifier, const Acts::Surface*> surfaceMap;
+    std::unordered_map<Acts::GeometryIdentifier, const Acts::Surface*>
+        surfaceMap;
   };
 
   E320RootDataReader(const E320RootDataReader&) = delete;
   E320RootDataReader(const E320RootDataReader&&) = delete;
 
-  /// Constructor
-  /// @param config The Configuration struct
-  /// @param level The log level
+  /// @brief constructor
   E320RootDataReader(const Config& config, Acts::Logging::Level level);
 
-  /// Reader name() method
+  /// @brief get reader name
   std::string name() const override { return "E320RootDataReader"; }
 
-  /// Return the available events range.
+  /// @brief return the available events range.
   std::pair<std::size_t, std::size_t> availableEvents() const final;
 
-  /// Read out data from the input stream
+  /// @brief read out data from the input stream
   ProcessCode read(const AlgorithmContext& ctx) override;
 
-  /// Readonly access to the config
+  /// @brief readonly access to the config
   const Config& config() const { return m_cfg; }
 
  private:
-  /// Private access to the logging instance
+  /// @brief private access to the logging instance
   const Acts::Logger& logger() const { return *m_logger; }
 
   /// The config class
@@ -72,7 +74,13 @@ class E320RootDataReader : public IReader {
 
   /// WriteDataHandle for the observable data
   WriteDataHandle<std::vector<Acts::SourceLink>> m_outputSourceLinks{
-      this, "OutputData"};
+      this, "OutputSourceLinks"};
+
+  WriteDataHandle<std::vector<std::size_t>> m_outputDetSourceLinksIndices{
+      this, "OutputDetSourceLinksIndices"};
+
+  WriteDataHandle<std::vector<std::size_t>> m_outputBpmSourceLinksIndices{
+      this, "OutputBpmSourceLinksIndices"};
 
   std::unique_ptr<const Acts::Logger> m_logger;
 

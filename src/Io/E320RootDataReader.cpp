@@ -1,6 +1,7 @@
 #include "TrackingPipeline/Io/E320RootDataReader.hpp"
 
 #include "Acts/Definitions/Algebra.hpp"
+#include "Acts/EventData/SourceLink.hpp"
 
 #include <cstddef>
 #include <stdexcept>
@@ -33,6 +34,8 @@ E320::E320RootDataReader::E320RootDataReader(const Config& config,
   }
 
   m_outputSourceLinks.initialize(m_cfg.outputSourceLinks);
+  m_outputDetSourceLinksIndices.initialize(m_cfg.outputDetSourceLinkIndices);
+  m_outputBpmSourceLinksIndices.initialize(m_cfg.outputBpmSourceLinkIndices);
 
   // Set the branches
   m_tree->SetBranchAddress("eventId", &m_eventId);
@@ -83,7 +86,7 @@ ProcessCode E320::E320RootDataReader::read(const AlgorithmContext& ctx) {
   });
 
   if (it == m_eventMap.end()) {
-    // explicitly warn if it happens for the first or last event as that might
+    // Explicitly warn if it happens for the first or last event as that might
     // indicate a human error
     if ((ctx.eventNumber == availableEvents().first) &&
         (ctx.eventNumber == availableEvents().second - 1)) {
@@ -93,12 +96,14 @@ ProcessCode E320::E320RootDataReader::read(const AlgorithmContext& ctx) {
     }
 
     m_outputSourceLinks(ctx, {});
+    m_outputDetSourceLinksIndices(ctx, {});
+    m_outputBpmSourceLinksIndices(ctx, {});
 
     // Return success flag
     return ProcessCode::SUCCESS;
   }
 
-  // lock the mutex
+  // Lock the mutex
   std::lock_guard<std::mutex> lock(m_read_mutex);
 
   const auto& goInst = *E320::GeometryOptions::instance();
@@ -109,6 +114,9 @@ ProcessCode E320::E320RootDataReader::read(const AlgorithmContext& ctx) {
 
   // Create the measurements
   std::vector<Acts::SourceLink> sourceLinks{};
+  std::vector<std::size_t> detSourceLinksIndices{};
+  std::vector<std::size_t> bpmSourceLinksIndices{};
+
   std::size_t eventId = std::get<0>(*it);
   Acts::GeometryIdentifier geoId;
   for (auto entry = std::get<1>(*it); entry < std::get<2>(*it); entry++) {
@@ -140,6 +148,7 @@ ProcessCode E320::E320RootDataReader::read(const AlgorithmContext& ctx) {
           // Fill the measurement
           SimpleSourceLink ssl(hitLoc, hitGlob, cov, geoId, eventId,
                                sourceLinks.size());
+          detSourceLinksIndices.push_back(sourceLinks.size());
           sourceLinks.push_back(Acts::SourceLink(ssl));
         }
       }
@@ -149,7 +158,6 @@ ProcessCode E320::E320RootDataReader::read(const AlgorithmContext& ctx) {
       if (sensitiveId < m_cfg.minGeoId || sensitiveId > m_cfg.maxGeoId) {
         continue;
       }
-
       geoId.setSensitive(sensitiveId);
 
       double quadCenterX = 0;
@@ -176,20 +184,26 @@ ProcessCode E320::E320RootDataReader::read(const AlgorithmContext& ctx) {
       Acts::Vector3 hitGlob = m_cfg.surfaceMap.at(geoId)->localToGlobal(
           ctx.geoContext, hitLoc, Acts::Vector3::UnitX());
 
-      // Estimate error from the cluster size
+      // Estimate error
       Acts::Vector2 stdDev(bpmEv.stdDevY, bpmEv.stdDevX);
       Acts::SquareMatrix2 cov = stdDev.cwiseProduct(stdDev).asDiagonal();
 
       // Fill the measurement
       SimpleSourceLink ssl(hitLoc, hitGlob, cov, geoId, eventId,
                            sourceLinks.size());
-
+      bpmSourceLinksIndices.push_back(sourceLinks.size());
       sourceLinks.push_back(Acts::SourceLink(ssl));
     }
   }
 
-  ACTS_DEBUG("Sending " << sourceLinks.size() << " measurements");
+  ACTS_DEBUG("Sending " << sourceLinks.size() << " source links");
+  ACTS_DEBUG("Sending " << detSourceLinksIndices.size()
+                        << " det source link indices");
+  ACTS_DEBUG("Sending " << bpmSourceLinksIndices.size()
+                        << " bpm source link indices");
   m_outputSourceLinks(ctx, std::move(sourceLinks));
+  m_outputDetSourceLinksIndices(ctx, std::move(detSourceLinksIndices));
+  m_outputBpmSourceLinksIndices(ctx, std::move(bpmSourceLinksIndices));
 
   // Return success flag
   return ProcessCode::SUCCESS;

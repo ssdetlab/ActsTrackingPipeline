@@ -1,9 +1,11 @@
 #pragma once
 
 #include "Acts/EventData/SourceLink.hpp"
+#include "Acts/EventData/TrackParameters.hpp"
 #include "Acts/Utilities/Logger.hpp"
 
 #include <cstddef>
+#include <vector>
 
 #include "TFile.h"
 #include "TLorentzVector.h"
@@ -19,43 +21,40 @@
 
 using namespace Acts::UnitLiterals;
 
-/// @brief Writer to store fitted track data in
-/// ROOT file
-///
-/// Writer that accepts fitted track data from KF
-/// derives the basic performance metrics, such as
-/// chi2 and residuals, and stores them in a ROOT file.
+/// @brief writer storing fitted sim tracks in a ROOT file
 class RootTrackWriter : public IWriter {
  public:
-  /// @brief The nested configuration struct
+  /// @brief nested configuration struct
   struct Config {
     /// Surface accessor
     Acts::SourceLinkSurfaceAccessor surfaceAccessor;
     /// Reference surface
     const Acts::Surface *referenceSurface;
-    /// Fitted track collection
+    /// Input track container
+    std::string inputTrackContainer;
+    /// Input track index containers
     std::string inputTracks;
-    /// Name of the input tree
+    /// Input track container
+    std::string inputTrackParametersGuesses;
+    /// Output tree name
     std::string treeName;
-    /// The names of the input files
+    /// Output file path
     std::string filePath;
   };
 
   RootTrackWriter(const RootTrackWriter &) = delete;
   RootTrackWriter(const RootTrackWriter &&) = delete;
 
-  /// @brief Constructor
-  ///
-  /// @param config The Configuration struct
+  /// @brief constructor
   RootTrackWriter(const Config &config, Acts::Logging::Level level);
 
-  /// @brief Finalize method
+  /// @brief finalize method
   ProcessCode finalize() override;
 
-  /// Writer name() method
+  /// @brief get writer name
   std::string name() const override { return "RootFittedTrackWriter"; }
 
-  /// Write out data to the input stream
+  /// @brief write out data to the file
   ProcessCode write(const AlgorithmContext &ctx) override;
 
   /// Readonly access to the config
@@ -68,7 +67,13 @@ class RootTrackWriter : public IWriter {
   /// The config class
   Config m_cfg;
 
-  ReadDataHandle<Tracks> m_inputTracks{this, "Tracks"};
+  ReadDataHandle<KFFitterTrackContainer> m_inputTrackContainer{
+      this, "InputTrackContainer"};
+
+  ReadDataHandle<IndexTracks> m_inputTracks{this, "InputTracks"};
+
+  ReadDataHandle<std::vector<Acts::CurvilinearTrackParameters>>
+      m_inputTrackParametersGuesses{this, "InputTrackParametersGuesses"};
 
   std::unique_ptr<const Acts::Logger> m_logger;
 
@@ -140,13 +145,13 @@ class RootTrackWriter : public IWriter {
   TMatrixD m_boundTrackCovEst;
 
   /// Initial guess of the momentum at the IP
-  TLorentzVector m_ipMomentumGuess;
+  TLorentzVector m_originMomentumGuess;
 
   /// Initial guess of the vertex at the IP
   TVector3 m_vertexGuess;
 
   /// KF predicted momentum at the IP
-  TLorentzVector m_ipMomentumEst;
+  TLorentzVector m_originMomentumEst;
 
   /// KF predicted vertex at the IP
   TVector3 m_vertexEst;
@@ -154,4 +159,3 @@ class RootTrackWriter : public IWriter {
   /// Mutex to protect the tree filling
   std::mutex m_mutex;
 };
-;

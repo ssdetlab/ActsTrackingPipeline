@@ -99,22 +99,22 @@ struct GeometryOptions {
   const double quad1HalfPrimary = 486.664_mm;
   const double quad1HalfLong = 32.33_mm;
   const double quad1HalfShort = 32.33_mm;
-  // const double quad1Gradient = -0.7637_T / 1_m;  // Run 502
-  const double quad1Gradient = -0.6659_T / 1_m;  // Run 503
+  const double quad1Gradient = -0.7637_T / 1_m;  // Run 502
+  // const double quad1Gradient = -0.6659_T / 1_m;  // Run 503
 
   const std::size_t quad2Id = 2;
   const double quad2HalfPrimary = 486.664_mm;
   const double quad2HalfLong = 32.33_mm;
   const double quad2HalfShort = 32.33_mm;
-  // const double quad2Gradient = 2.855_T / 1_m;  // Run 502
-  const double quad2Gradient = 2.986_T / 1_m;  // Run 503
+  const double quad2Gradient = 2.855_T / 1_m;  // Run 502
+  // const double quad2Gradient = 2.986_T / 1_m;  // Run 503
 
   const std::size_t quad3Id = 3;
   const double quad3HalfPrimary = 486.664_mm;
   const double quad3HalfLong = 32.33_mm;
   const double quad3HalfShort = 32.33_mm;
-  // const double quad3Gradient = -0.7637_T / 1_m;  // Run 502
-  const double quad3Gradient = -0.6659_T / 1_m;  // Run 503
+  const double quad3Gradient = -0.7637_T / 1_m;  // Run 502
+  // const double quad3Gradient = -0.6659_T / 1_m;  // Run 503
 
   /// --------------------------------------------------------------
   /// Parameters of the x-corrector

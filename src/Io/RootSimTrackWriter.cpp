@@ -1,9 +1,8 @@
 #include "TrackingPipeline/Io/RootSimTrackWriter.hpp"
 
 #include "Acts/Definitions/Algebra.hpp"
-#include <Acts/Definitions/TrackParametrization.hpp>
-#include <Acts/EventData/TransformationHelpers.hpp>
-#include <Acts/TrackFitting/detail/KalmanGlobalCovariance.hpp>
+#include "Acts/Definitions/TrackParametrization.hpp"
+#include "Acts/EventData/TransformationHelpers.hpp"
 
 #include <algorithm>
 #include <cstddef>
@@ -300,25 +299,26 @@ ProcessCode RootSimTrackWriter::write(const AlgorithmContext& ctx) {
     // ----------------------------------------------
     // Guess track parameters
 
-    const auto& ipParametersGuess =
+    const auto& originParametersGuess =
         inputTrackParametersGuesses.at(trackIndices.originParametersGuessIndex);
 
     // Guessed IP momentum
-    const auto& originMomentumGuess = ipParametersGuess.momentum();
-    double particleMass = ipParametersGuess.particleHypothesis().mass();
+    const auto& originMomentumGuess = originParametersGuess.momentum();
+    double particleMass = originParametersGuess.particleHypothesis().mass();
     m_originMomentumGuess.SetPxPyPzE(
         originMomentumGuess.x(), originMomentumGuess.y(),
         originMomentumGuess.z(),
         std::hypot(originMomentumGuess.norm(), particleMass));
 
     // Guessed vertex
-    const auto& ipPositionGuess = ipParametersGuess.position(ctx.geoContext);
+    const auto& ipPositionGuess =
+        originParametersGuess.position(ctx.geoContext);
     m_vertexGuess =
         TVector3(ipPositionGuess.x(), ipPositionGuess.y(), ipPositionGuess.z());
 
     // Guessed bound track parameters
     Acts::BoundVector boundTrackParametersGuess =
-        ipParametersGuess.parameters();
+        originParametersGuess.parameters();
 
     TArrayD boundTrackParsGuessData(Acts::eBoundSize);
     for (std::size_t i = 0; i < Acts::eBoundSize; i++) {
@@ -329,7 +329,7 @@ ProcessCode RootSimTrackWriter::write(const AlgorithmContext& ctx) {
 
     // Guessed bound errors
     Acts::BoundMatrix boundTrackCovGuess =
-        ipParametersGuess.covariance().value();
+        originParametersGuess.covariance().value();
     TArrayD boundTrackCovGuessData(Acts::eBoundSize * Acts::eBoundSize);
     for (std::size_t i = 0; i < Acts::eBoundSize * Acts::eBoundSize; i++) {
       boundTrackCovGuessData[i] = boundTrackCovGuess(i);
@@ -371,10 +371,10 @@ ProcessCode RootSimTrackWriter::write(const AlgorithmContext& ctx) {
                            boundTrackCovEstData.GetArray());
 
     // Get PDG id
-    m_pdgId = ipParametersGuess.particleHypothesis().absolutePdg();
+    m_pdgId = originParametersGuess.particleHypothesis().absolutePdg();
 
     // Get charge
-    m_charge = ipParametersGuess.charge();
+    m_charge = originParametersGuess.charge();
 
     // Get DoFs
     m_ndf = track.nDoF();

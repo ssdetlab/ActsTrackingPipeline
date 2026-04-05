@@ -1,11 +1,13 @@
 #include "TrackingPipeline/Io/RootSeedWriter.hpp"
 
-#include "Acts/Geometry/GeometryIdentifier.hpp"
 #include "Acts/Utilities/Logger.hpp"
+#include <Acts/Definitions/Algebra.hpp>
+#include <Acts/Geometry/GeometryIdentifier.hpp>
 
-#include <ranges>
+#include <cstddef>
 #include <vector>
 
+#include "TLorentzVector.h"
 #include "TrackingPipeline/EventData/DataContainers.hpp"
 #include "TrackingPipeline/EventData/SimpleSourceLink.hpp"
 #include "TrackingPipeline/Infrastructure/ProcessCode.hpp"
@@ -24,30 +26,31 @@ RootSeedWriter::RootSeedWriter(const Config& config, Acts::Logging::Level level)
 
   //------------------------------------------------------------------
   // Tree branches
-  int buf_size = 32000;
-  int split_lvl = 0;
+  int bufSize = 32000;
+  int splitLvl = 0;
 
   // Measurements
-  m_tree->Branch("measurementsGlob", &m_seedMeasurementsGlob, buf_size,
-                 split_lvl);
-  m_tree->Branch("measurementsLoc", &m_seedMeasurementsLoc, buf_size,
-                 split_lvl);
-  m_tree->Branch("geoIds", &m_geoIds, buf_size, split_lvl);
+  m_tree->Branch("measurementsGlob", &m_seedMeasurementsGlob, bufSize,
+                 splitLvl);
+  m_tree->Branch("measurementsLoc", &m_seedMeasurementsLoc, bufSize, splitLvl);
+  m_tree->Branch("geoIds", &m_geoIds, bufSize, splitLvl);
 
   // Seed properties
-  m_tree->Branch("eventId", &m_eventId, buf_size, split_lvl);
-  m_tree->Branch("size", &m_size, buf_size, split_lvl);
-  m_tree->Branch("ipMomentumEst", &m_ipMomentumEst, buf_size, split_lvl);
-  m_tree->Branch("vertexEst", &m_vertexEst, buf_size, split_lvl);
-  m_tree->Branch("trackId", &m_trackId, buf_size, split_lvl);
+  m_tree->Branch("eventId", &m_eventId, bufSize, splitLvl);
+  m_tree->Branch("size", &m_size, bufSize, splitLvl);
+  m_tree->Branch("originMomentumEst", &m_originMomentumEst, bufSize, splitLvl);
+  m_tree->Branch("vertexEst", &m_vertexEst, bufSize, splitLvl);
+  m_tree->Branch("trackId", &m_trackId, bufSize, splitLvl);
 
   //------------------------------------------------------------------
   // Initialize the data handles
-  m_seeds.initialize(m_cfg.inputSeeds);
+  m_inputSeeds.initialize(m_cfg.inputSeeds);
+  m_inputTrackParameters.initialize(m_cfg.inputTrackParameters);
+  m_inputSourceLinks.initialize(m_cfg.inputSourceLinks);
 }
 
 ProcessCode RootSeedWriter::finalize() {
-  if (m_file) {
+  if (m_file != nullptr) {
     m_file->Write();
     m_file->Close();
   }
@@ -55,10 +58,12 @@ ProcessCode RootSeedWriter::finalize() {
 }
 
 ProcessCode RootSeedWriter::write(const AlgorithmContext& ctx) {
-  const auto& inputSeeds = m_seeds(ctx);
+  const auto& inputSeeds = m_inputSeeds(ctx);
+  const auto& inputTrackParameters = m_inputTrackParameters(ctx);
+  const auto& inputSourceLinks = m_inputSourceLinks(ctx);
 
   if (inputSeeds.empty()) {
-    ACTS_DEBUG("Received empty seed vector. Continuing");
+    ACTS_DEBUG("Received empty seed vector. Skipping");
     return ProcessCode::SUCCESS;
   }
 
@@ -67,37 +72,36 @@ ProcessCode RootSeedWriter::write(const AlgorithmContext& ctx) {
   m_eventId = ctx.eventNumber;
 
   for (const auto& seed : inputSeeds) {
-    const auto& sourceLinks =
-        seed.sourceLinks | std::views::transform([](const auto& sl) {
-          return sl.template get<SimpleSourceLink>();
-        });
-    if (sourceLinks.empty()) {
-      continue;
-    }
+    const auto& sourceLinkIndices = seed.sourceLinkIndices;
+    m_size = sourceLinkIndices.size();
 
     m_seedMeasurementsGlob.clear();
     m_seedMeasurementsLoc.clear();
     m_geoIds.clear();
 
-    m_seedMeasurementsGlob.reserve(sourceLinks.size());
-    m_seedMeasurementsLoc.reserve(sourceLinks.size());
-    m_geoIds.reserve(sourceLinks.size());
-    for (const auto& sl : sourceLinks) {
-      m_seedMeasurementsGlob.emplace_back(sl.parametersGlob().x(),
-                                          sl.parametersGlob().y(),
-                                          sl.parametersGlob().z());
-      m_seedMeasurementsLoc.emplace_back(sl.parametersLoc().x(),
-                                         sl.parametersLoc().y());
-      m_geoIds.push_back(sl.geometryId().sensitive());
-    }
-    m_ipMomentumEst.SetPxPyPzE(
-        seed.ipParameters.momentum().x(), seed.ipParameters.momentum().y(),
-        seed.ipParameters.momentum().z(), seed.ipParameters.absoluteMomentum());
-    m_vertexEst.SetXYZ(seed.ipParameters.position().x(),
-                       seed.ipParameters.position().y(),
-                       seed.ipParameters.position().z());
+    m_seedMeasurementsGlob.reserve(m_size);
+    m_seedMeasurementsLoc.reserve(m_size);
+    m_geoIds.reserve(m_size);
+    for (std::size_t idx : sourceLinkIndices) {
+      const auto& ssl = inputSourceLinks.at(idx).get<SimpleSourceLink>();
 
-    m_size = sourceLinks.size();
+      const Acts::Vector3& parsGlob = ssl.parametersGlob();
+      m_seedMeasurementsGlob.emplace_back(parsGlob.x(), parsGlob.y(),
+                                          parsGlob.z());
+
+      const Acts::Vector2& parsLoc = ssl.parametersLoc();
+      m_seedMeasurementsLoc.emplace_back(parsLoc.x(), parsLoc.y());
+      m_geoIds.push_back(ssl.geometryId().sensitive());
+    }
+
+    const auto& originParameters =
+        inputTrackParameters.at(seed.originParametersIndex);
+    m_originMomentumEst.SetPxPyPzE(
+        originParameters.momentum().x(), originParameters.momentum().y(),
+        originParameters.momentum().z(), originParameters.absoluteMomentum());
+    m_vertexEst.SetXYZ(originParameters.position().x(),
+                       originParameters.position().y(),
+                       originParameters.position().z());
 
     m_tree->Fill();
   }

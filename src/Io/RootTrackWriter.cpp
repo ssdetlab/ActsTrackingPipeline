@@ -1,6 +1,11 @@
 #include "TrackingPipeline/Io/RootTrackWriter.hpp"
 
 #include "Acts/Definitions/Algebra.hpp"
+#include "Acts/Definitions/TrackParametrization.hpp"
+#include "Acts/EventData/TransformationHelpers.hpp"
+
+#include <cstddef>
+#include <stdexcept>
 
 #include "TrackingPipeline/EventData/SimpleSourceLink.hpp"
 
@@ -27,7 +32,7 @@ RootTrackWriter::RootTrackWriter(const Config& config,
   m_tree->Branch("trackHitsLocal", &m_trackHitsLocal, bufSize, splitLvl);
 
   // Covariances of the track hits
-  m_tree->Branch("trackHitCovs", &m_trackHitCovs, bufSize, splitLvl);
+  m_tree->Branch("trackHitsCovs", &m_trackHitCovs, bufSize, splitLvl);
 
   // Geometry ids of the track hits
   m_tree->Branch("geometryIds", &m_geometryIds, bufSize, splitLvl);
@@ -70,13 +75,14 @@ RootTrackWriter::RootTrackWriter(const Config& config,
   m_tree->Branch("boundTrackCovEst", &m_boundTrackCovEst, bufSize, splitLvl);
 
   /// Initial guess of the momentum at the IP
-  m_tree->Branch("ipMomentumGuess", &m_ipMomentumGuess, bufSize, splitLvl);
+  m_tree->Branch("originMomentumGuess", &m_originMomentumGuess, bufSize,
+                 splitLvl);
 
   /// Initial guess of the vertex at the IP
   m_tree->Branch("vertexGuess", &m_vertexGuess, bufSize, splitLvl);
 
   /// KF predicted momentum at the IP
-  m_tree->Branch("ipMomentumEst", &m_ipMomentumEst, bufSize, splitLvl);
+  m_tree->Branch("originMomentumEst", &m_originMomentumEst, bufSize, splitLvl);
 
   /// KF predicted vertex at the IP
   m_tree->Branch("vertexEst", &m_vertexEst, bufSize, splitLvl);
@@ -101,7 +107,9 @@ RootTrackWriter::RootTrackWriter(const Config& config,
 
   //------------------------------------------------------------------
   // Initialize the data handles
+  m_inputTrackContainer.initialize(m_cfg.inputTrackContainer);
   m_inputTracks.initialize(m_cfg.inputTracks);
+  m_inputTrackParametersGuesses.initialize(m_cfg.inputTrackParametersGuesses);
 }
 
 ProcessCode RootTrackWriter::finalize() {
@@ -113,18 +121,22 @@ ProcessCode RootTrackWriter::finalize() {
 }
 
 ProcessCode RootTrackWriter::write(const AlgorithmContext& ctx) {
+  const auto& inputTrackContainer = m_inputTrackContainer(ctx);
   const auto& inputTracks = m_inputTracks(ctx);
+  const auto& inputTrackParametersGuesses = m_inputTrackParametersGuesses(ctx);
 
   std::lock_guard<std::mutex> lock(m_mutex);
 
   m_eventId = ctx.eventNumber;
 
   // Iterate over the fitted tracks
-  for (std::size_t tid = 0; tid < inputTracks.tracks.size(); tid++) {
-    // Get the track object and the track id
-    const auto& track = inputTracks.tracks.getTrack(tid);
+  for (std::size_t idx = 0; idx < inputTracks.size(); idx++) {
+    // Get track indices
+    const auto& trackIndices = inputTracks.at(idx);
 
-    m_trackId = inputTracks.trackIds.at(tid);
+    // Get the track object and the track id
+    const auto& track = inputTrackContainer.getTrack(trackIndices.trackIndex);
+
     std::size_t nStates = track.nTrackStates();
 
     // Covariances of the track hits
@@ -184,23 +196,26 @@ ProcessCode RootTrackWriter::write(const AlgorithmContext& ctx) {
     // ----------------------------------------------
     // Guess track parameters
 
-    const auto& ipParametersGuess = inputTracks.ipParametersGuesses.at(tid);
+    const auto& originParametersGuess =
+        inputTrackParametersGuesses.at(trackIndices.originParametersGuessIndex);
 
     // Guessed IP momentum
-    const auto& ipMomentumGuess = ipParametersGuess.momentum();
-    double particleMass = ipParametersGuess.particleHypothesis().mass();
-    m_ipMomentumGuess.SetPxPyPzE(
-        ipMomentumGuess.x(), ipMomentumGuess.y(), ipMomentumGuess.z(),
-        std::hypot(ipMomentumGuess.norm(), particleMass));
+    const auto& originMomentumGuess = originParametersGuess.momentum();
+    double particleMass = originParametersGuess.particleHypothesis().mass();
+    m_originMomentumGuess.SetPxPyPzE(
+        originMomentumGuess.x(), originMomentumGuess.y(),
+        originMomentumGuess.z(),
+        std::hypot(originMomentumGuess.norm(), particleMass));
 
     // Guessed vertex
-    const auto& ipPositionGuess = ipParametersGuess.position(ctx.geoContext);
+    const auto& ipPositionGuess =
+        originParametersGuess.position(ctx.geoContext);
     m_vertexGuess =
         TVector3(ipPositionGuess.x(), ipPositionGuess.y(), ipPositionGuess.z());
 
     // Guessed bound track parameters
     Acts::BoundVector boundTrackParametersGuess =
-        ipParametersGuess.parameters();
+        originParametersGuess.parameters();
 
     TArrayD boundTrackParsGuessData(Acts::eBoundSize);
     for (std::size_t i = 0; i < Acts::eBoundSize; i++) {
@@ -211,7 +226,7 @@ ProcessCode RootTrackWriter::write(const AlgorithmContext& ctx) {
 
     // Guessed bound errors
     Acts::BoundMatrix boundTrackCovGuess =
-        ipParametersGuess.covariance().value();
+        originParametersGuess.covariance().value();
     TArrayD boundTrackCovGuessData(Acts::eBoundSize * Acts::eBoundSize);
     for (std::size_t i = 0; i < Acts::eBoundSize * Acts::eBoundSize; i++) {
       boundTrackCovGuessData[i] = boundTrackCovGuess(i);
@@ -223,15 +238,15 @@ ProcessCode RootTrackWriter::write(const AlgorithmContext& ctx) {
     // Estimated track parameters
 
     // Estimated IP momentum
-    Acts::Vector3 ipMomentumEst = track.momentum();
-    m_ipMomentumEst.SetPxPyPzE(ipMomentumEst.x(), ipMomentumEst.y(),
-                               ipMomentumEst.z(),
-                               std::hypot(ipMomentumEst.norm(), particleMass));
+    Acts::Vector3 originMomentumEst = track.momentum();
+    m_originMomentumEst.SetPxPyPzE(
+        originMomentumEst.x(), originMomentumEst.y(), originMomentumEst.z(),
+        std::hypot(originMomentumEst.norm(), particleMass));
 
     // KF predicted vertex position
     Acts::Vector3 vertexEst = m_cfg.referenceSurface->localToGlobal(
         ctx.geoContext, {track.loc0(), track.loc1()},
-        ipMomentumEst.normalized());
+        originMomentumEst.normalized());
     m_vertexEst = TVector3(vertexEst.x(), vertexEst.y(), vertexEst.z());
 
     // KF predicted bound track parameters
@@ -253,10 +268,10 @@ ProcessCode RootTrackWriter::write(const AlgorithmContext& ctx) {
                            boundTrackCovEstData.GetArray());
 
     // Get PDG id
-    m_pdgId = ipParametersGuess.particleHypothesis().absolutePdg();
+    m_pdgId = originParametersGuess.particleHypothesis().absolutePdg();
 
     // Get charge
-    m_charge = ipParametersGuess.charge();
+    m_charge = originParametersGuess.charge();
 
     // Get DoFs
     m_ndf = track.nDoF();
@@ -270,8 +285,6 @@ ProcessCode RootTrackWriter::write(const AlgorithmContext& ctx) {
       if (!state.hasProjector()) {
         continue;
       }
-
-      state.referenceSurface().geometryId();
 
       // Get the measurements source link
       auto ssl = state.getUncalibratedSourceLink().get<SimpleSourceLink>();
@@ -321,9 +334,10 @@ ProcessCode RootTrackWriter::write(const AlgorithmContext& ctx) {
       Acts::Vector2 predictedResidual = hit - predictedHit;
 
       // With respect to measurement
-      Acts::SquareMatrix2 predictedCov = state.effectiveProjector() *
-                                         state.predictedCovariance() *
-                                         state.effectiveProjector().transpose();
+      Acts::SquareMatrix2 predictedCov =
+          state.effectiveProjector() * state.predictedCovariance() *
+              state.effectiveProjector().transpose() -
+          measurementCov;
 
       // Extract diagonals
       Acts::Vector2 predictedDiag =

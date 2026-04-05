@@ -3,6 +3,8 @@
 #include "Acts/EventData/VectorTrackContainer.hpp"
 #include "Acts/Geometry/GeometryIdentifier.hpp"
 #include "Acts/Navigation/DetectorNavigator.hpp"
+#include "Acts/Plugins/Json/JsonMaterialDecorator.hpp"
+#include "Acts/Plugins/Json/MaterialMapJsonConverter.hpp"
 #include "Acts/Propagator/EigenStepper.hpp"
 #include "Acts/Surfaces/PlaneSurface.hpp"
 #include "Acts/Surfaces/RectangleBounds.hpp"
@@ -66,7 +68,24 @@ int main() {
   // --------------------------------------------------------------
   // Detector setup
 
-  auto detector = E320::buildDetector(gctx, nullptr);
+  // Material decorator
+  Acts::MaterialMapJsonConverter::Config jsonMaterialConverterCfg;
+  jsonMaterialConverterCfg.context = gctx;
+  jsonMaterialConverterCfg.processSensitives = true;
+  jsonMaterialConverterCfg.processApproaches = true;
+  jsonMaterialConverterCfg.processRepresenting = true;
+  jsonMaterialConverterCfg.processBoundaries = true;
+  jsonMaterialConverterCfg.processVolumes = true;
+  jsonMaterialConverterCfg.processDenseVolumes = false;
+  jsonMaterialConverterCfg.processNonMaterial = false;
+
+  auto materialDecorator = std::make_shared<Acts::JsonMaterialDecorator>(
+      jsonMaterialConverterCfg,
+      "/home/romanurmanov/work/E320/E320Prototype/E320Prototype_material/"
+      "Uniform_DirectZ_Tracker_PDCWindow_256x128_1e6/material.json",
+      logLevel);
+
+  auto detector = E320::buildDetector(gctx, materialDecorator);
 
   std::unordered_map<Acts::GeometryIdentifier, const Acts::Surface*> surfaceMap;
   std::unordered_map<Acts::GeometryIdentifier, const Acts::Surface*>
@@ -302,7 +321,7 @@ int main() {
   seedingAlgoCfg.htOptions = htSeederOpt;
   seedingAlgoCfg.inputSourceLinks = "SourceLinks";
   seedingAlgoCfg.inputDetSourceLinkIndices = "SourceLinkIndices";
-  seedingAlgoCfg.inputBpmSourceLinkIndices = "BpmSourceLinksIndices";
+  seedingAlgoCfg.inputBpmSourceLinkIndices = "";
   seedingAlgoCfg.outputSeeds = "Seeds";
   seedingAlgoCfg.outputTrackParameters = "TrackParameters";
   seedingAlgoCfg.gx2Fitter = gx2Fitter;

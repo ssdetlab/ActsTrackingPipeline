@@ -1,4 +1,8 @@
+
 #pragma once
+
+#include "Acts/EventData/SourceLink.hpp"
+#include <Acts/EventData/TrackParameters.hpp>
 
 #include <cstddef>
 
@@ -11,48 +15,56 @@
 #include "TrackingPipeline/Infrastructure/IWriter.hpp"
 #include "TrackingPipeline/Infrastructure/ProcessCode.hpp"
 
+/// @brief writer storing sim seeds in a ROOT file
 class RootSeedWriter : public IWriter {
  public:
-  /// @brief The nested configuration struct
+  /// @brief nested configuration struct
   struct Config {
-    /// Fitted track collection
+    /// Input seeds
     std::string inputSeeds;
-    /// Truth cluster data
-    std::string inputTruthClusters;
-    /// Name of the input tree
+    /// Input track parameters
+    std::string inputTrackParameters;
+    /// Input source link
+    std::string inputSourceLinks;
+    /// Outout tree name
     std::string treeName;
-    /// The names of the input files
+    /// Output file name
     std::string filePath;
   };
 
   RootSeedWriter(const RootSeedWriter &) = delete;
   RootSeedWriter(const RootSeedWriter &&) = delete;
 
-  /// @brief Constructor
-  ///
-  /// @param config The Configuration struct
+  /// @brief constructor
   RootSeedWriter(const Config &config, Acts::Logging::Level level);
 
-  /// @brief Finalize method
+  /// @brief finalize method
   ProcessCode finalize() override;
 
-  /// Writer name() method
+  /// @brief get the writer name
   std::string name() const override { return "RootSeedWriter"; }
 
-  /// Write out data to the input stream
+  /// @brief write out data to the file
   ProcessCode write(const AlgorithmContext &ctx) override;
 
   /// Readonly access to the config
   const Config &config() const { return m_cfg; }
 
- private:
-  /// Private access to the logging instance
+ protected:
+  /// @brief access to the logging instance
   const Acts::Logger &logger() const { return *m_logger; }
 
+ private:
   /// The config class
   Config m_cfg;
 
-  ReadDataHandle<Seeds> m_seeds{this, "InputSeeds"};
+  ReadDataHandle<IndexSeeds> m_inputSeeds{this, "InputSeeds"};
+
+  ReadDataHandle<std::vector<Acts::CurvilinearTrackParameters>>
+      m_inputTrackParameters{this, "InputTrackParameters"};
+
+  ReadDataHandle<std::vector<Acts::SourceLink>> m_inputSourceLinks{
+      this, "InputSourceLinks"};
 
   std::unique_ptr<const Acts::Logger> m_logger;
 
@@ -69,21 +81,20 @@ class RootSeedWriter : public IWriter {
   std::vector<int> m_geoIds;
 
   /// Event ID of the seed
-  std::size_t m_eventId;
+  std::size_t m_eventId = 0;
 
   /// Number of source links
   /// in a seed
-  std::size_t m_size;
+  std::size_t m_size = 0;
 
   /// Track ID of the seed
-  std::size_t m_trackId;
+  std::size_t m_trackId = 0;
 
   /// Estimated momentum, vertex at the IP
   /// associated with a pivot
-  TLorentzVector m_ipMomentumEst;
+  TLorentzVector m_originMomentumEst;
   TVector3 m_vertexEst;
 
   /// Mutex to protect the tree filling
   std::mutex m_mutex;
 };
-;

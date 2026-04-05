@@ -9,8 +9,6 @@
 #include <utility>
 #include <vector>
 
-#include <TH1.h>
-
 #include "TrackingPipeline/EventData/DataContainers.hpp"
 #include "TrackingPipeline/Geometry/E320GeometryConstraints.hpp"
 #include "TrackingPipeline/TrackFinding/HoughTransformSeeder.hpp"
@@ -41,7 +39,9 @@ E320SeedingAlgorithm::E320SeedingAlgorithm(const Config& config,
     : IAlgorithm("E320SeedingAlgorithm", level), m_cfg(config) {
   m_inputSourceLinks.initialize(m_cfg.inputSourceLinks);
   m_inputDetSourceLinkIndices.initialize(m_cfg.inputDetSourceLinkIndices);
-  // m_inputBpmSourceLinkIndices.initialize(m_cfg.inputBpmSourceLinkIndices);
+  if (!m_cfg.inputBpmSourceLinkIndices.empty()) {
+    m_inputBpmSourceLinkIndices.initialize(m_cfg.inputBpmSourceLinkIndices);
+  }
 
   m_outputSeeds.initialize(m_cfg.outputSeeds);
   m_outputTrackParameters.initialize(m_cfg.outputTrackParameters);

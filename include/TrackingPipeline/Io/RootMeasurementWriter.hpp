@@ -8,7 +8,6 @@
 #include <TMatrixDfwd.h>
 
 #include "TFile.h"
-#include "TLorentzVector.h"
 #include "TMatrixD.h"
 #include "TTree.h"
 #include "TVector3.h"
@@ -19,12 +18,12 @@
 
 class RootMeasurementWriter : public IWriter {
  public:
-  using HitData = std::tuple<TVector3, TVector3, TLorentzVector>;
-
-  /// @brief The nested configuration struct
+  /// @brief nested configuration struct
   struct Config {
-    /// Measurement data
-    std::string inputMeasurements;
+    /// Input source links
+    std::string inputSourceLinks;
+    /// Input source link indices
+    std::string inputSourceLinkIndices;
     /// Name of the output tree
     std::string treeName;
     /// The names of the output file
@@ -35,8 +34,6 @@ class RootMeasurementWriter : public IWriter {
   RootMeasurementWriter(const RootMeasurementWriter &&) = delete;
 
   /// @brief Constructor
-  ///
-  /// @param config The Configuration struct
   RootMeasurementWriter(const Config &config, Acts::Logging::Level level);
 
   /// @brief Finalize method
@@ -58,7 +55,10 @@ class RootMeasurementWriter : public IWriter {
   /// The config class
   Config m_cfg;
 
-  ReadDataHandle<std::vector<Acts::SourceLink>> m_inputMeasurements{
+  ReadDataHandle<std::vector<Acts::SourceLink>> m_inputSourceLinks{
+      this, "InputSourceLinks"};
+
+  ReadDataHandle<std::vector<std::size_t>> m_inputSourceLinkIndices{
       this, "inputMeasurements"};
 
   std::unique_ptr<const Acts::Logger> m_logger;
@@ -74,8 +74,8 @@ class RootMeasurementWriter : public IWriter {
   TVector2 m_geoCenterLocal;
   TMatrixD m_cov = TMatrixD(2, 2);
 
-  std::size_t m_geoId;
-  std::size_t m_eventId;
+  std::size_t m_geoId = 0;
+  std::size_t m_eventId = 0;
 
   /// Mutex to protect the tree filling
   std::mutex m_mutex;
