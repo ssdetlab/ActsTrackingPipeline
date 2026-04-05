@@ -6,6 +6,7 @@
 #include <Acts/TrackFitting/detail/KalmanGlobalCovariance.hpp>
 
 #include <algorithm>
+#include <cstddef>
 #include <ranges>
 #include <stdexcept>
 
@@ -106,19 +107,21 @@ RootSimTrackWriter::RootSimTrackWriter(const Config& config,
                  splitLvl);
 
   /// Initial guess of the momentum at the IP
-  m_tree->Branch("ipMomentumGuess", &m_ipMomentumGuess, bufSize, splitLvl);
+  m_tree->Branch("originMomentumGuess", &m_originMomentumGuess, bufSize,
+                 splitLvl);
 
   /// Initial guess of the vertex at the IP
   m_tree->Branch("vertexGuess", &m_vertexGuess, bufSize, splitLvl);
 
   /// KF predicted momentum at the IP
-  m_tree->Branch("ipMomentumEst", &m_ipMomentumEst, bufSize, splitLvl);
+  m_tree->Branch("originMomentumEst", &m_originMomentumEst, bufSize, splitLvl);
 
   /// KF predicted vertex at the IP
   m_tree->Branch("vertexEst", &m_vertexEst, bufSize, splitLvl);
 
   // True momentum at the IP
-  m_tree->Branch("ipMomentumTruth", &m_ipMomentumTruth, bufSize, splitLvl);
+  m_tree->Branch("originMomentumTruth", &m_originMomentumTruth, bufSize,
+                 splitLvl);
 
   // True vertex at the IP
   m_tree->Branch("vertexTruth", &m_vertexTruth, bufSize, splitLvl);
@@ -154,12 +157,14 @@ RootSimTrackWriter::RootSimTrackWriter(const Config& config,
 
   //------------------------------------------------------------------
   // Initialize the data handles
+  m_inputTrackContainer.initialize(m_cfg.inputTrackContainer);
   m_inputTracks.initialize(m_cfg.inputTracks);
+  m_inputTrackParametersGuesses.initialize(m_cfg.inputTrackParametersGuesses);
   m_inputSimClusters.initialize(m_cfg.inputSimClusters);
 }
 
 ProcessCode RootSimTrackWriter::finalize() {
-  if (m_file) {
+  if (m_file != nullptr) {
     m_file->Write();
     m_file->Close();
   }
@@ -167,13 +172,12 @@ ProcessCode RootSimTrackWriter::finalize() {
 }
 
 ProcessCode RootSimTrackWriter::write(const AlgorithmContext& ctx) {
+  const auto& inputTrackContainer = m_inputTrackContainer(ctx);
   const auto& inputTracks = m_inputTracks(ctx);
+  const auto& inputTrackParametersGuesses = m_inputTrackParametersGuesses(ctx);
   const auto& inputTruthClusters = m_inputSimClusters(ctx);
 
   std::lock_guard<std::mutex> lock(m_mutex);
-
-  // Collect true track statistics
-  std::map<TrackID, int> trueTracksSig;
 
   // Collect true track statistics
   auto trueTrackIds =
@@ -187,9 +191,12 @@ ProcessCode RootSimTrackWriter::write(const AlgorithmContext& ctx) {
   m_eventId = ctx.eventNumber;
 
   // Iterate over the fitted tracks
-  for (std::size_t tid = 0; tid < inputTracks.tracks.size(); tid++) {
+  for (std::size_t idx = 0; idx < inputTracks.size(); idx++) {
+    // Get track indices
+    const auto& trackIndices = inputTracks.at(idx);
+
     // Get the track object and the track id
-    const auto& track = inputTracks.tracks.getTrack(tid);
+    const auto& track = inputTrackContainer.getTrack(trackIndices.trackIndex);
 
     std::size_t nStates = track.nTrackStates();
 
@@ -293,14 +300,16 @@ ProcessCode RootSimTrackWriter::write(const AlgorithmContext& ctx) {
     // ----------------------------------------------
     // Guess track parameters
 
-    const auto& ipParametersGuess = inputTracks.ipParametersGuesses.at(tid);
+    const auto& ipParametersGuess =
+        inputTrackParametersGuesses.at(trackIndices.originParametersGuessIndex);
 
     // Guessed IP momentum
-    const auto& ipMomentumGuess = ipParametersGuess.momentum();
+    const auto& originMomentumGuess = ipParametersGuess.momentum();
     double particleMass = ipParametersGuess.particleHypothesis().mass();
-    m_ipMomentumGuess.SetPxPyPzE(
-        ipMomentumGuess.x(), ipMomentumGuess.y(), ipMomentumGuess.z(),
-        std::hypot(ipMomentumGuess.norm(), particleMass));
+    m_originMomentumGuess.SetPxPyPzE(
+        originMomentumGuess.x(), originMomentumGuess.y(),
+        originMomentumGuess.z(),
+        std::hypot(originMomentumGuess.norm(), particleMass));
 
     // Guessed vertex
     const auto& ipPositionGuess = ipParametersGuess.position(ctx.geoContext);
@@ -332,15 +341,15 @@ ProcessCode RootSimTrackWriter::write(const AlgorithmContext& ctx) {
     // Estimated track parameters
 
     // Estimated IP momentum
-    Acts::Vector3 ipMomentumEst = track.momentum();
-    m_ipMomentumEst.SetPxPyPzE(ipMomentumEst.x(), ipMomentumEst.y(),
-                               ipMomentumEst.z(),
-                               std::hypot(ipMomentumEst.norm(), particleMass));
+    Acts::Vector3 originMomentumEst = track.momentum();
+    m_originMomentumEst.SetPxPyPzE(
+        originMomentumEst.x(), originMomentumEst.y(), originMomentumEst.z(),
+        std::hypot(originMomentumEst.norm(), particleMass));
 
     // KF predicted vertex position
     Acts::Vector3 vertexEst = m_cfg.referenceSurface->localToGlobal(
         ctx.geoContext, {track.loc0(), track.loc1()},
-        ipMomentumEst.normalized());
+        originMomentumEst.normalized());
     m_vertexEst = TVector3(vertexEst.x(), vertexEst.y(), vertexEst.z());
 
     // KF predicted bound track parameters
@@ -394,7 +403,7 @@ ProcessCode RootSimTrackWriter::write(const AlgorithmContext& ctx) {
       m_trackHitCovs.push_back(trackHitCov);
 
       const auto& cluster = inputTruthClusters.at(ssl.index());
-      m_isSignal.push_back(cluster.isSignal);
+      m_isSignal.push_back(static_cast<int>(cluster.isSignal));
 
       // Get the true hit
       Acts::Vector2 trueHit;
@@ -660,7 +669,7 @@ ProcessCode RootSimTrackWriter::write(const AlgorithmContext& ctx) {
       m_boundTrackCovTruth.Use(Acts::eBoundSize, Acts::eBoundSize,
                                boundTrackCovTruthData.GetArray());
 
-      m_ipMomentumTruth.SetPxPyPzE(0, 0, 0, 0);
+      m_originMomentumTruth.SetPxPyPzE(0, 0, 0, 0);
 
       m_vertexTruth.SetXYZ(0, 0, 0);
 
@@ -683,11 +692,12 @@ ProcessCode RootSimTrackWriter::write(const AlgorithmContext& ctx) {
       const auto& ipParametersTruth = pivotHit->ipParameters;
 
       // Truth IP momentum
-      const auto& ipMomentumTruth = ipParametersTruth.momentum();
+      const auto& originMomentumTruth = ipParametersTruth.momentum();
       double particleMass = ipParametersTruth.particleHypothesis().mass();
-      m_ipMomentumTruth.SetPxPyPzE(
-          ipMomentumTruth.x(), ipMomentumTruth.y(), ipMomentumTruth.z(),
-          std::hypot(ipMomentumTruth.norm(), particleMass));
+      m_originMomentumTruth.SetPxPyPzE(
+          originMomentumTruth.x(), originMomentumTruth.y(),
+          originMomentumTruth.z(),
+          std::hypot(originMomentumTruth.norm(), particleMass));
 
       // Truth vertex
       const auto& ipPositionTruth = ipParametersTruth.position(ctx.geoContext);

@@ -6,78 +6,10 @@
 #include "Acts/Geometry/GeometryIdentifier.hpp"
 
 #include <cstddef>
-#include <map>
-#include <span>
 #include <unordered_map>
 #include <vector>
 
 #include "TrackingPipeline/Utilities/TupleHash.hpp"
-
-struct IdxTree {
-  struct Node {
-    Node() = delete;
-    explicit Node(const std::pair<int, int>& data)
-        : m_idx(data.first), m_geoId(data.second) {};
-
-    int m_idx;
-    int m_geoId;
-    std::vector<std::shared_ptr<Node>> children;
-  };
-
-  using IdxContainer = std::vector<std::pair<int, int>>;
-
-  IdxTree() = delete;
-
-  IdxTree(const IdxContainer& container, const IdxContainer::iterator& root,
-          const IdxContainer::iterator& rootEnd) {
-    m_root = std::make_shared<Node>(*root);
-    std::vector<std::shared_ptr<Node>> currentLayerNodes = {m_root};
-
-    int layerId = rootEnd->second;
-    IdxContainer layerIdxs;
-    layerIdxs.reserve(container.size() / 5);
-    for (auto it = rootEnd; it != container.end(); ++it) {
-      int id = it->second;
-      if (id == layerId) {
-        layerIdxs.push_back(*it);
-      } else {
-        layerId = id;
-
-        auto children = initNodes(layerIdxs);
-        for (auto& node : currentLayerNodes) {
-          addChildren(node, children);
-        }
-        currentLayerNodes = std::move(children);
-        layerIdxs.clear();
-        layerIdxs.push_back(*it);
-        layerIdxs.reserve(container.size() / 5);
-      }
-      if (it == container.end() - 1) {
-        auto children = initNodes(layerIdxs);
-        for (auto& node : currentLayerNodes) {
-          addChildren(node, children);
-        }
-      }
-    }
-  }
-
-  std::vector<std::shared_ptr<Node>> initNodes(const IdxContainer& idxs) const {
-    std::vector<std::shared_ptr<Node>> nodes;
-    for (const auto& sl : idxs) {
-      nodes.push_back(std::make_shared<Node>(sl));
-    }
-    return nodes;
-  }
-
-  std::vector<std::shared_ptr<Node>> addChildren(
-      std::shared_ptr<Node>& parent,
-      const std::vector<std::shared_ptr<Node>>& children) const {
-    parent->children = children;
-    return parent->children;
-  }
-
-  std::shared_ptr<Node> m_root;
-};
 
 class HoughTransformSeeder {
  public:
@@ -85,21 +17,7 @@ class HoughTransformSeeder {
       std::tuple<std::uint16_t, std::uint16_t, std::uint16_t, std::uint16_t>;
   using VotingMap = std::unordered_map<Cell, std::uint8_t, detail::TupleHash>;
 
-  using SourceLinkRef = std::reference_wrapper<const Acts::SourceLink>;
-
   struct Config {
-    double boundBoxHalfPrimary;
-    double boundBoxHalfLong;
-    double boundBoxHalfShort;
-
-    std::size_t nCellsThetaShort;
-    std::size_t nCellsRhoShort;
-
-    std::size_t nCellsThetaLong;
-    std::size_t nCellsRhoLong;
-
-    std::size_t nGX2Iterations;
-
     std::size_t primaryIdx;
     std::size_t longIdx;
     std::size_t shortIdx;
@@ -110,69 +28,54 @@ class HoughTransformSeeder {
     double boundBoxCenterLong;
     double boundBoxCenterShort;
 
-    int firstLayerId;
-    int lastLayerId;
+    double boundBoxHalfPrimary;
+    double boundBoxHalfLong;
+    double boundBoxHalfShort;
 
-    std::map<Acts::GeometryIdentifier, const Acts::Surface*> surfaceMap;
+    std::size_t nCellsThetaShort;
+    std::size_t nCellsRhoShort;
+
+    std::size_t nCellsThetaLong;
+    std::size_t nCellsRhoLong;
+
+    std::unordered_map<Acts::GeometryIdentifier, const Acts::Surface *>
+        surfaceMap;
 
     int minXCount;
-    std::size_t minSeedSize;
-    std::size_t maxSeedSize;
-
-    double primaryInterchipDistance;
-    double thetaRms;
-    double maxChi2;
   };
 
   struct HTSeed {
     Acts::Vector3 lineRefPoint;
     Acts::Vector3 lineDir;
-    Acts::ActsSquareMatrix<6> cov;
-    std::vector<Acts::SourceLink> sourceLinks;
-    double chi2;
-    int count;
+    std::vector<std::size_t> sourceLinkIdxs;
   };
 
-  explicit HoughTransformSeeder(const Config& cfg);
+  explicit HoughTransformSeeder(const Config &cfg);
 
-  std::vector<HTSeed> findSeeds(const Acts::GeometryContext& gctx,
-                                std::span<SourceLinkRef> sourceLinks,
-                                const Options& opt);
+  std::vector<HTSeed> findSeeds(
+      const Acts::GeometryContext &gctx,
+      const std::vector<Acts::SourceLink> &sourceLinks,
+      const std::vector<std::size_t> &sourceLinksIndices, const Options &opt);
 
  private:
   Config m_cfg;
 
-  void fillVotingMap(VotingMap& votingMap, std::span<SourceLinkRef> sourceLinks,
-                     const Options& opt, const Acts::Vector3& shift);
+  void fillVotingMap(VotingMap &votingMap,
+                     const std::vector<Acts::SourceLink> &sourceLinks,
+                     const std::vector<std::size_t> &sourceLinksIndices,
+                     const Options &opt, const Acts::Vector3 &shift,
+                     double deltaThetaShort, double deltaRhoShort,
+                     double deltaThetaLong, double deltaRhoLong,
+                     double maxRhoLong, double maxRhoShort);
 
-  std::vector<std::pair<int, int>> findLineSourceLinks(
-      const std::span<SourceLinkRef>& sourceLinks, const Acts::Vector3& pointBL,
-      const Acts::Vector3& dirBL, const Acts::Vector3& pointTL,
-      const Acts::Vector3& dirTL, const Acts::Vector3& pointBR,
-      const Acts::Vector3& dirBR, const Acts::Vector3& pointTR,
-      const Acts::Vector3& dirTR, const Acts::Vector3& shift);
-
-  std::vector<std::pair<int, int>> findLineSourceLinks(
-      const std::span<SourceLinkRef>& sourceLinks, const Acts::Vector3& point,
-      const Acts::Vector3& dir, double dist, const Acts::Vector3& shift) const;
-
-  Eigen::MatrixXd constructCov(const std::vector<SourceLinkRef>& sourceLinks,
-                               const Acts::Vector3& dir,
-                               const Options& opt) const;
-
-  double globalChi2Fit(const std::vector<SourceLinkRef>& sourceLinks,
-                       Acts::Vector3& pos, Acts::Vector3& dir,
-                       Acts::ActsSquareMatrix<6>& cov,
-                       const Options& opt) const;
-
-  double m_deltaThetaShort;
-  double m_deltaRhoShort;
-
-  double m_deltaThetaLong;
-  double m_deltaRhoLong;
-
-  double m_maxRhoLong;
-  double m_maxRhoShort;
+  std::vector<std::size_t> findLineSourceLinks(
+      const std::vector<Acts::SourceLink> &sourceLinks,
+      const std::vector<std::size_t> &sourceLinksIndices,
+      const Acts::Vector3 &pointBL, const Acts::Vector3 &dirBL,
+      const Acts::Vector3 &pointTL, const Acts::Vector3 &dirTL,
+      const Acts::Vector3 &pointBR, const Acts::Vector3 &dirBR,
+      const Acts::Vector3 &pointTR, const Acts::Vector3 &dirTR,
+      const Acts::Vector3 &shift);
 
   std::unordered_map<Acts::GeometryIdentifier, double> m_geoPosMap;
 };

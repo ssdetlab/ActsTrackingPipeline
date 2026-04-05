@@ -2,7 +2,7 @@
 
 #include "Acts/Definitions/Algebra.hpp"
 #include "Acts/Definitions/Units.hpp"
-#include <Acts/Utilities/BinUtility.hpp>
+#include "Acts/Utilities/BinUtility.hpp"
 
 #include <cmath>
 #include <cstddef>
@@ -99,22 +99,22 @@ struct GeometryOptions {
   const double quad1HalfPrimary = 486.664_mm;
   const double quad1HalfLong = 32.33_mm;
   const double quad1HalfShort = 32.33_mm;
-  const double quad1Gradient = -0.7637_T / 1_m;  // Run 502
-  // const double quad1Gradient = -0.6659_T / 1_m; // Run 503
+  // const double quad1Gradient = -0.7637_T / 1_m;  // Run 502
+  const double quad1Gradient = -0.6659_T / 1_m;  // Run 503
 
   const std::size_t quad2Id = 2;
   const double quad2HalfPrimary = 486.664_mm;
   const double quad2HalfLong = 32.33_mm;
   const double quad2HalfShort = 32.33_mm;
-  const double quad2Gradient = 2.855_T / 1_m;  // Run 502
-  // const double quad2Gradient = 2.986_T / 1_m; // Run 503
+  // const double quad2Gradient = 2.855_T / 1_m;  // Run 502
+  const double quad2Gradient = 2.986_T / 1_m;  // Run 503
 
   const std::size_t quad3Id = 3;
   const double quad3HalfPrimary = 486.664_mm;
   const double quad3HalfLong = 32.33_mm;
   const double quad3HalfShort = 32.33_mm;
-  const double quad3Gradient = -0.7637_T / 1_m;  // Run 502
-  // const double quad3Gradient = -0.6659_T / 1_m; // Run 503
+  // const double quad3Gradient = -0.7637_T / 1_m;  // Run 502
+  const double quad3Gradient = -0.6659_T / 1_m;  // Run 503
 
   /// --------------------------------------------------------------
   /// Parameters of the x-corrector
@@ -125,10 +125,10 @@ struct GeometryOptions {
   const double xCorrectorHalfShort = 40_mm;
 
   const double xCorrectorFieldStrength = 0.026107_T;  // Run 502
-  // const double xCorrectorFieldStrength = 0.0_T; // Run 503
+  // const double xCorrectorFieldStrength = 0.0_T;  // Run 503
 
   const double xCorrectorFieldPrimary = 0;
-  const double xCorrectorFieldLong = -xCorrectorFieldStrength;
+  const double xCorrectorFieldLong = xCorrectorFieldStrength;
   const double xCorrectorFieldShort = 0;
 
   /// --------------------------------------------------------------
@@ -139,7 +139,7 @@ struct GeometryOptions {
   const double dipoleHalfLong = 50.927_mm;
   const double dipoleHalfShort = 22.352_mm;
 
-  const double dipoleFieldStrength = 0.2192_T;
+  const double dipoleFieldStrength = -0.2192_T;
 
   const double dipoleFieldPrimary = 0;
   const double dipoleFieldLong = 0;
@@ -196,8 +196,8 @@ struct GeometryOptions {
   /// --------------------------------------------------------------
   /// Be window placement
 
-  // const double beWindowCenterPrimary = -842_mm;
-  const double beWindowCenterPrimary = 0_mm;
+  const double beWindowCenterPrimary = -842_mm;
+  // const double beWindowCenterPrimary = 0_mm;
   const double beWindowCenterLong = 0_mm;
   const double beWindowCenterShort = 0_mm;
 
@@ -237,19 +237,22 @@ struct GeometryOptions {
   /// Quads placement
 
   const double quad1CenterPrimary = 4157_mm;
-  const double quad1CenterLong = 0_mm;
-  // const double quad1CenterShort = -3.5_mm;
-  const double quad1CenterShort = 0;
+  const double quad1CenterLong = -0.055_mm;
+  // const double quad1CenterLong = 0_mm;
+  const double quad1CenterShort = -3.5_mm;
+  // const double quad1CenterShort = 0;
 
   const double quad2CenterPrimary = 6382_mm;
-  const double quad2CenterLong = 0_mm;
-  // const double quad2CenterShort = -2.642_mm;
-  const double quad2CenterShort = 0;
+  const double quad2CenterLong = -0.164_mm;
+  // const double quad2CenterLong = 0_mm;
+  const double quad2CenterShort = -2.642_mm;
+  // const double quad2CenterShort = 0;
 
   const double quad3CenterPrimary = 8606_mm;
-  const double quad3CenterLong = 0_mm;
-  // const double quad3CenterShort = -3.546_mm;
-  const double quad3CenterShort = 0;
+  const double quad3CenterLong = 0.042_mm;
+  // const double quad3CenterLong = 0_mm;
+  const double quad3CenterShort = -3.546_mm;
+  // const double quad3CenterShort = 0;
 
   /// --------------------------------------------------------------
   /// X-corrector placement
@@ -287,10 +290,11 @@ struct GeometryOptions {
   const double tcCenterShort = -0.61872_mm;
 
   const std::vector<SurfaceParameters> tcParameters{
-      SurfaceParameters({primaryBinValue, ipTcDistance + 0 * interChipDistance,
+      SurfaceParameters{{primaryBinValue, ipTcDistance + 0 * interChipDistance,
                          toWorldAngleX},
                         {longBinValue, tcCenterLong, toWorldAngleY},
-                        {shortBinValue, tcCenterShort, toWorldAngleZ}, 10),
+                        {shortBinValue, tcCenterShort, toWorldAngleZ},
+                        10},
       SurfaceParameters{{primaryBinValue, ipTcDistance + 1 * interChipDistance,
                          toWorldAngleX},
                         {longBinValue, tcCenterLong, toWorldAngleY},

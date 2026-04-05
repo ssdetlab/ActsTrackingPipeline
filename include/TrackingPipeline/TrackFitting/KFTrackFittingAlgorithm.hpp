@@ -1,8 +1,6 @@
 #pragma once
 
-#include "Acts/EventData/VectorTrackContainer.hpp"
-#include "Acts/Navigation/DetectorNavigator.hpp"
-#include "Acts/Propagator/EigenStepper.hpp"
+#include "Acts/EventData/TrackParameters.hpp"
 #include "Acts/TrackFitting/KalmanFitter.hpp"
 
 #include "TrackingPipeline/EventData/DataContainers.hpp"
@@ -11,25 +9,22 @@
 
 class KFTrackFittingAlgorithm : public IAlgorithm {
  public:
-  using ActionList = Acts::ActionList<>;
-  using AbortList = Acts::AbortList<Acts::EndOfWorldReached>;
-
-  using Propagator = Acts::Propagator<Acts::EigenStepper<>,
-                                      Acts::Experimental::DetectorNavigator>;
-
-  using TrackContainer = Acts::VectorTrackContainer;
-  using Trajectory = Acts::VectorMultiTrajectory;
-
   /// @brief The nested configuration struct
   struct Config {
-    /// The input collection
+    /// Input track candidates
     std::string inputTrackCandidates;
-    /// The output collection
+    /// Input track parameters
+    std::string inputTrackParameters;
+    /// Input source links
+    std::string inputSourceLinks;
+    /// Output track container
+    std::string outputTrackContainer;
+    /// Output track container
     std::string outputTracks;
     /// KF fitter
-    const Acts::KalmanFitter<Propagator, Trajectory>& fitter;
+    const Acts::KalmanFitter<KFFitterPropagator, KFFitterTrajectory>& fitter;
     /// KF options
-    Acts::KalmanFitterOptions<Trajectory> kfOptions;
+    KFFitterOptions kfOptions;
   };
 
   /// @brief Constructor
@@ -47,7 +42,17 @@ class KFTrackFittingAlgorithm : public IAlgorithm {
  private:
   Config m_cfg;
 
-  ReadDataHandle<Seeds> m_inputTrackCandidates{this, "inputTrackCandidates"};
+  ReadDataHandle<IndexSeeds> m_inputTrackCandidates{
+      this, "InputIndexTrackCandidates"};
 
-  WriteDataHandle<Tracks> m_outputTracks{this, "OutputTracks"};
+  ReadDataHandle<std::vector<Acts::CurvilinearTrackParameters>>
+      m_inputTrackParameters{this, "InputTrackParameters"};
+
+  ReadDataHandle<std::vector<Acts::SourceLink>> m_inputSourceLinks{
+      this, "InputSourceLinks"};
+
+  WriteDataHandle<KFFitterTrackContainer> m_outputTrackContainer{
+      this, "OutputTrackContainer"};
+
+  WriteDataHandle<IndexTracks> m_outputTracks{this, "OutputTracks"};
 };

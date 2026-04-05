@@ -115,6 +115,7 @@ RootSimClusterReader::RootSimClusterReader(const Config& config,
   // Initialize the data handles
   m_outputSourceLinks.initialize(m_cfg.outputSourceLinks);
   m_outputSimClusters.initialize(m_cfg.outputSimClusters);
+  m_outputSourceLinkIndices.initialize(m_cfg.outputSourceLinkIndices);
 }
 
 std::pair<std::size_t, std::size_t> RootSimClusterReader::availableEvents()
@@ -128,7 +129,7 @@ ProcessCode RootSimClusterReader::read(const AlgorithmContext& ctx) {
   });
 
   if (it == m_eventMap.end()) {
-    // explicitly warn if it happens for the first or last event as that might
+    // Explicitly warn if it happens for the first or last event as that might
     // indicate a human error
     if ((ctx.eventNumber == availableEvents().first) &&
         (ctx.eventNumber == availableEvents().second - 1)) {
@@ -139,6 +140,7 @@ ProcessCode RootSimClusterReader::read(const AlgorithmContext& ctx) {
 
     m_outputSourceLinks(ctx, {});
     m_outputSimClusters(ctx, {});
+    m_outputSourceLinkIndices(ctx, {});
 
     // Return success flag
     return ProcessCode::SUCCESS;
@@ -153,9 +155,9 @@ ProcessCode RootSimClusterReader::read(const AlgorithmContext& ctx) {
 
   // Create the measurements
   std::vector<Acts::SourceLink> sourceLinks{};
+  std::vector<std::size_t> sourceLinkIndices{};
   SimClusters simClusters{};
   std::size_t eventId = std::get<0>(*it);
-  std::size_t sslIdx = 0;
   for (auto entry = std::get<1>(*it); entry < std::get<2>(*it); entry++) {
     m_tree->GetEntry(entry);
 
@@ -182,25 +184,10 @@ ProcessCode RootSimClusterReader::read(const AlgorithmContext& ctx) {
     clusterCov << (*m_clusterCov)(0, 0), (*m_clusterCov)(0, 1),
         (*m_clusterCov)(1, 0), (*m_clusterCov)(1, 1);
 
-    // // -----------------------------------------
-    // std::size_t clSize;
-    // if (std::sqrt(clusterCov(0, 0)) == 0.00333208) {
-    //   clSize = 1;
-    // } else if (std::sqrt(clusterCov(0, 0)) == 0.00473498) {
-    //   clSize = 2;
-    // } else if (std::sqrt(clusterCov(0, 0)) == 0.00431227) {
-    //   clSize = 4;
-    // } else if (std::sqrt(clusterCov(0, 0)) == 0.00490848) {
-    //   clSize = 4;
-    // }
-    // Acts::Vector2 stdDev(2 * 14.62_um / std::sqrt(12 * clSize),
-    //                      2 * 13.44_um / std::sqrt(12 * clSize));
-    // clusterCov = stdDev.cwiseProduct(stdDev).asDiagonal();
-    // // -----------------------------------------
-
     SimpleSourceLink obsSourceLink(geoCenterLocal, geoCenterGlobal, clusterCov,
-                                   geoId, eventId, sslIdx);
-    sourceLinks.push_back(Acts::SourceLink{obsSourceLink});
+                                   geoId, eventId, sourceLinks.size());
+    sourceLinkIndices.push_back(sourceLinks.size());
+    sourceLinks.push_back(Acts::SourceLink(obsSourceLink));
 
     SimHits hits;
     hits.reserve(m_trackHitsLocal->size());
@@ -243,13 +230,14 @@ ProcessCode RootSimClusterReader::read(const AlgorithmContext& ctx) {
     }
     SimCluster cluster{obsSourceLink, hits, static_cast<bool>(m_isSignal)};
     simClusters.push_back(cluster);
-    sslIdx++;
   }
 
   ACTS_DEBUG("Read " << sourceLinks.size() << " source links");
   ACTS_DEBUG("Read " << simClusters.size() << " clusters");
+  ACTS_DEBUG("Read " << sourceLinkIndices.size() << " source link indices");
   m_outputSourceLinks(ctx, std::move(sourceLinks));
   m_outputSimClusters(ctx, std::move(simClusters));
+  m_outputSourceLinkIndices(ctx, std::move(sourceLinkIndices));
 
   // Return success flag
   return ProcessCode::SUCCESS;

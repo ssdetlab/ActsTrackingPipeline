@@ -2,8 +2,10 @@
 
 #include "Acts/EventData/SourceLink.hpp"
 #include "Acts/Utilities/Logger.hpp"
+#include <Acts/EventData/TrackParameters.hpp>
 
 #include <cstddef>
+#include <vector>
 
 #include "TFile.h"
 #include "TLorentzVector.h"
@@ -21,48 +23,42 @@ using namespace Acts::UnitLiterals;
 
 using TrackID = std::tuple<int, int, int>;
 
-/// @brief Writer to store fitted track data in
-/// ROOT file
-///
-/// Writer that accepts fitted track data from KF
-/// derives the basic performance metrics, such as
-/// chi2 and residuals, and stores them in a ROOT file.
-///
-/// @note Assumes that the tracks are simulated and
-/// the truth information is available
+/// @brief writer storing fitted sim tracks in a ROOT file
 class RootSimTrackWriter : public IWriter {
  public:
-  /// @brief The nested configuration struct
+  /// @brief nested configuration struct
   struct Config {
     /// Surface accessor
     Acts::SourceLinkSurfaceAccessor surfaceAccessor;
     /// Reference surface
     const Acts::Surface *referenceSurface;
-    /// Fitted track collection
+    /// Input track container
+    std::string inputTrackContainer;
+    /// Input track index containers
     std::string inputTracks;
-    /// Truth cluster data
+    /// Input track container
+    std::string inputTrackParametersGuesses;
+    /// Input sim clusters
     std::string inputSimClusters;
-    /// Name of the input tree
+    /// Output tree name
     std::string treeName;
-    /// The names of the input files
+    /// Output file path
     std::string filePath;
   };
 
   RootSimTrackWriter(const RootSimTrackWriter &) = delete;
   RootSimTrackWriter(const RootSimTrackWriter &&) = delete;
 
-  /// @brief Constructor
-  ///
-  /// @param config The Configuration struct
+  /// @brief constructor
   RootSimTrackWriter(const Config &config, Acts::Logging::Level level);
 
-  /// @brief Finalize method
+  /// @brief finalize method
   ProcessCode finalize() override;
 
-  /// Writer name() method
+  /// @brief get writer name
   std::string name() const override { return "RootFittedTrackWriter"; }
 
-  /// Write out data to the input stream
+  /// @brief write out data to the file
   ProcessCode write(const AlgorithmContext &ctx) override;
 
   /// Readonly access to the config
@@ -75,9 +71,15 @@ class RootSimTrackWriter : public IWriter {
   /// The config class
   Config m_cfg;
 
-  ReadDataHandle<Tracks> m_inputTracks{this, "Tracks"};
+  ReadDataHandle<KFFitterTrackContainer> m_inputTrackContainer{
+      this, "InputTrackContainer"};
 
-  ReadDataHandle<SimClusters> m_inputSimClusters{this, "TruthClusters"};
+  ReadDataHandle<IndexTracks> m_inputTracks{this, "InputTracks"};
+
+  ReadDataHandle<std::vector<Acts::CurvilinearTrackParameters>>
+      m_inputTrackParametersGuesses{this, "InputTrackParametersGuesses"};
+
+  ReadDataHandle<SimClusters> m_inputSimClusters{this, "InputSimClusters"};
 
   std::unique_ptr<const Acts::Logger> m_logger;
 
@@ -136,35 +138,35 @@ class RootSimTrackWriter : public IWriter {
   /// Chi2 of the track
   /// with respect ot the
   /// measurement
-  double m_chi2Predicted;
-  double m_chi2Filtered;
-  double m_chi2Smoothed;
+  double m_chi2Predicted = 0;
+  double m_chi2Filtered = 0;
+  double m_chi2Smoothed = 0;
 
   /// Number of degrees of freedom
   /// of the track
-  std::size_t m_ndf;
+  std::size_t m_ndf = 0;
 
   /// TrackId
   std::vector<std::size_t> m_stateTrackId;
   std::vector<std::size_t> m_stateParentTrackId;
   std::vector<std::size_t> m_stateRunId;
 
-  std::size_t m_trackId;
-  std::size_t m_parentTrackId;
-  std::size_t m_runId;
+  std::size_t m_trackId = 0;
+  std::size_t m_parentTrackId = 0;
+  std::size_t m_runId = 0;
 
   /// EventId
-  std::size_t m_eventId;
+  std::size_t m_eventId = 0;
 
   /// True track size
-  std::size_t m_trueTrackSize;
-  std::size_t m_capturedTrackSize;
+  std::size_t m_trueTrackSize = 0;
+  std::size_t m_capturedTrackSize = 0;
 
   /// PDG ID
-  int m_pdgId;
+  int m_pdgId = 0;
 
   /// Charge
-  int m_charge;
+  int m_charge = 0;
 
   /// Guessed bound track parameters
   TVectorD m_boundTrackParametersGuess;
@@ -179,19 +181,19 @@ class RootSimTrackWriter : public IWriter {
   TMatrixD m_boundTrackCovTruth;
 
   /// Initial guess of the momentum at the IP
-  TLorentzVector m_ipMomentumGuess;
+  TLorentzVector m_originMomentumGuess;
 
   /// Initial guess of the vertex at the IP
   TVector3 m_vertexGuess;
 
   /// KF predicted momentum at the IP
-  TLorentzVector m_ipMomentumEst;
+  TLorentzVector m_originMomentumEst;
 
   /// KF predicted vertex at the IP
   TVector3 m_vertexEst;
 
   /// True momentum at the IP
-  TLorentzVector m_ipMomentumTruth;
+  TLorentzVector m_originMomentumTruth;
 
   /// True vertex at the IP
   TVector3 m_vertexTruth;

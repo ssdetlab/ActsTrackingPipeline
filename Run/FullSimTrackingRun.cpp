@@ -20,17 +20,20 @@
 #include <unistd.h>
 
 #include "TrackingPipeline/Alignment/detail/AlignmentStoreBuilders.hpp"
+#include "TrackingPipeline/EventData/DataContainers.hpp"
 #include "TrackingPipeline/Geometry/E320Geometry.hpp"
 #include "TrackingPipeline/Geometry/E320GeometryConstraints.hpp"
 #include "TrackingPipeline/Geometry/GeometryContextDecorator.hpp"
 #include "TrackingPipeline/Infrastructure/Sequencer.hpp"
 #include "TrackingPipeline/Io/AlignmentParametersProvider.hpp"
+#include "TrackingPipeline/Io/RootMeasurementWriter.hpp"
 #include "TrackingPipeline/Io/RootSimClusterReader.hpp"
 #include "TrackingPipeline/Io/RootSimSeedWriter.hpp"
 #include "TrackingPipeline/Io/RootSimTrackWriter.hpp"
 #include "TrackingPipeline/TrackFinding/E320SeedingAlgorithm.hpp"
 #include "TrackingPipeline/TrackFinding/HoughTransformSeeder.hpp"
 #include "TrackingPipeline/TrackFitting/KFTrackFittingAlgorithm.hpp"
+#include "TrackingPipeline/Utilities/ThetaMcsRmsCalculator.hpp"
 
 // Propagator short-hands
 using ActionList = Acts::ActionList<>;
@@ -41,10 +44,8 @@ using Propagator = Acts::Propagator<Acts::EigenStepper<>,
 using PropagatorOptions =
     typename Propagator::template Options<ActionList, AbortList>;
 
-// KF short-hands
-using RecoTrajectory = KFTrackFittingAlgorithm::Trajectory;
-using RecoTrackContainer = KFTrackFittingAlgorithm::TrackContainer;
-using KF = Acts::KalmanFitter<Propagator, RecoTrajectory>;
+// KF short-hand
+using KF = Acts::KalmanFitter<Propagator, KFFitterTrajectory>;
 
 using namespace Acts::UnitLiterals;
 
@@ -67,7 +68,9 @@ int main() {
 
   auto detector = E320::buildDetector(gctx, nullptr);
 
-  std::map<Acts::GeometryIdentifier, const Acts::Surface*> surfaceMap;
+  std::unordered_map<Acts::GeometryIdentifier, const Acts::Surface*> surfaceMap;
+  std::unordered_map<Acts::GeometryIdentifier, const Acts::Surface*>
+      gx2FitterSurfaceMap;
   for (const auto& vol : detector->volumes()) {
     std::cout << "------------------------------------------\n";
     std::cout << vol->name() << "\n";
@@ -77,8 +80,11 @@ int main() {
       std::cout << surf->geometryId() << "\n";
       std::cout << surf->center(gctx) << "\n";
       std::cout << surf->polyhedronRepresentation(gctx, 1000).extent() << "\n";
-      if (surf->geometryId().sensitive()) {
+      if (surf->geometryId().sensitive() != 0u) {
         surfaceMap[surf->geometryId()] = surf;
+        if (surf->geometryId().sensitive() < 40) {
+          gx2FitterSurfaceMap[surf->geometryId()] = surf;
+        }
       }
     }
   }
@@ -98,7 +104,7 @@ int main() {
   Acts::GeometryContext testCtx{alignCtx};
   for (auto& v : detector->volumes()) {
     for (auto& s : v->surfaces()) {
-      if (s->geometryId().sensitive()) {
+      if (s->geometryId().sensitive() != 0u) {
         std::cout << "-----------------------------------\n";
         std::cout << "SURFACE " << s->geometryId() << "\n";
         std::cout << "CENTER " << s->center(testCtx).transpose() << " -- "
@@ -154,9 +160,9 @@ int main() {
           .toRotationMatrix();
 
   Acts::Transform3 seedingRefSurfTransform = Acts::Transform3::Identity();
-  seedingRefSurfTransform.translation() = Acts::Vector3(
-      goInst.ipTcDistance - 0.3_mm, 0, 0);
-      // goInst.ipTcDistance + 2 * goInst.tcHalfPrimary + 0.1_mm, 0, 0);
+  seedingRefSurfTransform.translation() =
+      Acts::Vector3(goInst.ipTcDistance - 0.3_mm, 0, 0);
+  // goInst.ipTcDistance + 2 * goInst.tcHalfPrimary + 0.1_mm, 0, 0);
   seedingRefSurfTransform.rotate(refSurfToWorldRotationX);
   seedingRefSurfTransform.rotate(refSurfToWorldRotationY);
   seedingRefSurfTransform.rotate(refSurfToWorldRotationZ);
@@ -167,18 +173,18 @@ int main() {
 
   Acts::GeometryIdentifier seedingRefSurfaceGeoId;
   seedingRefSurfaceGeoId.setExtra(1);
-  seedingRefSurface->assignGeometryId(std::move(seedingRefSurfaceGeoId));
+  seedingRefSurface->assignGeometryId(seedingRefSurfaceGeoId);
 
   Acts::Transform3 trackingRefSurfTransform = Acts::Transform3::Identity();
-  trackingRefSurfTransform.translation() = 
-  // Acts::Vector3(-0.1_mm, 0, 0);
-  // Acts::Vector3(goInst.bpm3CenterPrimary, 0, 0);
-  // Acts::Vector3(goInst.ipTcDistance + 2 * goInst.tcHalfPrimary + 0.1_mm,
-  // 0,
-  //               0);
-  Acts::Vector3(
-      goInst.dipoleCenterPrimary + goInst.dipoleHalfPrimary + 0.01_mm, 0,
-      0);
+  trackingRefSurfTransform.translation() =
+      // Acts::Vector3(-0.1_mm, 0, 0);
+      // Acts::Vector3(goInst.bpm3CenterPrimary, 0, 0);
+      // Acts::Vector3(goInst.ipTcDistance + 2 * goInst.tcHalfPrimary + 0.1_mm,
+      // 0,
+      //               0);
+      Acts::Vector3(
+          goInst.dipoleCenterPrimary + goInst.dipoleHalfPrimary + 0.01_mm, 0,
+          0);
   trackingRefSurfTransform.rotate(refSurfToWorldRotationX);
   trackingRefSurfTransform.rotate(refSurfToWorldRotationY);
   trackingRefSurfTransform.rotate(refSurfToWorldRotationZ);
@@ -189,7 +195,7 @@ int main() {
 
   Acts::GeometryIdentifier trackingRefSurfaceGeoId;
   trackingRefSurfaceGeoId.setExtra(2);
-  trackingRefSurface->assignGeometryId(std::move(trackingRefSurfaceGeoId));
+  trackingRefSurface->assignGeometryId(trackingRefSurfaceGeoId);
 
   // --------------------------------------------------------------
   // Event reading
@@ -197,7 +203,7 @@ int main() {
 
   // Setup the sequencer
   Sequencer::Config seqCfg;
-  // seqCfg.events = 1000;
+  seqCfg.events = 1000;
   // seqCfg.skip = 1;
   seqCfg.numThreads = 1;
   seqCfg.trackFpes = false;
@@ -209,8 +215,9 @@ int main() {
 
   // Add the sim data reader
   RootSimClusterReader::Config readerCfg;
-  readerCfg.outputSourceLinks = "Measurements";
+  readerCfg.outputSourceLinks = "SourceLinks";
   readerCfg.outputSimClusters = "SimClusters";
+  readerCfg.outputSourceLinkIndices = "SourceLinkIndices";
   readerCfg.treeName = "clusters";
   readerCfg.minGeoId = 10;
   readerCfg.maxGeoId = 18;
@@ -219,7 +226,7 @@ int main() {
 
   std::string pathToDir =
       "/home/romanurmanov/work/E320/E320Prototype/"
-      "E320Prototype_dataInRootFormat/sim/alignment/local_sig_misaligned";
+      "E320Prototype_dataInRootFormat/sim/alignment/local_sig_aligned";
 
   // Get the paths to the files in the directory
   for (const auto& entry : std::filesystem::directory_iterator(pathToDir)) {
@@ -235,31 +242,29 @@ int main() {
       std::make_shared<RootSimClusterReader>(readerCfg, logLevel));
 
   // --------------------------------------------------------------
-  // HT seeding setup
+  // Seeding setup
 
-  double X0 = 21.82;   // [g / cm2]
-  double rho = 2.329;  // [g / cm3]
-  double x = 25e-4;    // [cm]
-  double P = 2500;     // [MeV]
-  double z = 1;
+  // GX2 fitter setup
+  double sensorThickness = 50_um;
+  double particleAbsMom = 2.5_GeV;
+  double particleCharge = 1_e;
 
-  double t = rho * x;  // [g / cm2]
-  double thetaRms = 13.6 / P * z * std::sqrt(t / X0) *
-                    (1 + 0.038 * std::log(t * z * z / (X0)));
+  double thetaRms =
+      detail::getMcpThetaRmsSi(sensorThickness, particleAbsMom, particleCharge);
 
-  HoughTransformSeeder::Config htSeederCfg;
-  htSeederCfg.boundBoxHalfPrimary = goInst.tcHalfPrimary;
-  htSeederCfg.boundBoxHalfLong = goInst.tcHalfLong;
-  htSeederCfg.boundBoxHalfShort = goInst.tcHalfShort;
+  FastGX2Fitter::Config gx2FitterCfg{};
+  gx2FitterCfg.primaryIdx = goInst.primaryIdx;
+  gx2FitterCfg.longIdx = goInst.longIdx;
+  gx2FitterCfg.shortIdx = goInst.shortIdx;
+  gx2FitterCfg.firstLayerGeoId = goInst.tcParameters.front().geoId;
+  gx2FitterCfg.lastLayerGeoId = goInst.tcParameters.back().geoId;
+  gx2FitterCfg.thetaMcpRms = thetaRms;
+  gx2FitterCfg.surfaceMap = gx2FitterSurfaceMap;
 
-  htSeederCfg.nCellsThetaShort = 500;
-  htSeederCfg.nCellsRhoShort = 500;
+  auto gx2Fitter = std::make_shared<FastGX2Fitter>(gx2FitterCfg);
 
-  htSeederCfg.nCellsThetaLong = 500;
-  htSeederCfg.nCellsRhoLong = 500;
-
-  htSeederCfg.nGLSIterations = 2;
-
+  // HT seeder setup
+  HoughTransformSeeder::Config htSeederCfg{};
   htSeederCfg.primaryIdx = goInst.primaryIdx;
   htSeederCfg.longIdx = goInst.longIdx;
   htSeederCfg.shortIdx = goInst.shortIdx;
@@ -269,28 +274,21 @@ int main() {
   htSeederOpt.boundBoxCenterLong = goInst.tcCenterLong;
   htSeederOpt.boundBoxCenterShort = goInst.tcCenterShort;
 
-  htSeederOpt.firstLayerId = goInst.tcParameters.front().geoId;
-  htSeederOpt.lastLayerId = goInst.tcParameters.back().geoId;
-  htSeederOpt.nLayers = goInst.tcParameters.size();
+  htSeederOpt.boundBoxHalfPrimary = goInst.tcHalfPrimary;
+  htSeederOpt.boundBoxHalfLong = goInst.tcHalfLong;
+  htSeederOpt.boundBoxHalfShort = goInst.tcHalfShort;
+
+  htSeederOpt.nCellsThetaShort = 500;
+  htSeederOpt.nCellsRhoShort = 2000;
+
+  htSeederOpt.nCellsThetaLong = 500;
+  htSeederOpt.nCellsRhoLong = 2000;
+
   htSeederOpt.surfaceMap = surfaceMap;
 
   htSeederOpt.minXCount = 5;
-  htSeederOpt.minSeedSize = 5;
-  htSeederOpt.maxSeedSize = 100;
 
-  htSeederOpt.primaryInterchipDistance = goInst.interChipDistance;
-  htSeederOpt.thetaRms = thetaRms;
-  htSeederOpt.maxChi2 = std::numeric_limits<double>::max();
-
-  E320SeedingAlgorithm::Config seedingAlgoCfg;
-  seedingAlgoCfg.htSeeder = std::make_shared<HoughTransformSeeder>(htSeederCfg);
-  seedingAlgoCfg.htOptions = htSeederOpt;
-  seedingAlgoCfg.inputSourceLinks = "Measurements";
-  seedingAlgoCfg.outputSeeds = "Seeds";
-  seedingAlgoCfg.minLayers = 5;
-  seedingAlgoCfg.maxLayers = 5;
-  seedingAlgoCfg.referenceSurface = seedingRefSurface.get();
-
+  // Seeding algorithm setup
   Acts::BoundVector trackOriginStdDevPrior;
   trackOriginStdDevPrior[Acts::eBoundLoc0] = 100_mm;
   trackOriginStdDevPrior[Acts::eBoundLoc1] = 100_mm;
@@ -298,12 +296,23 @@ int main() {
   trackOriginStdDevPrior[Acts::eBoundTheta] = 10_degree;
   trackOriginStdDevPrior[Acts::eBoundQOverP] = 1 / 0.01_GeV;
   trackOriginStdDevPrior[Acts::eBoundTime] = 1_fs;
+
+  E320SeedingAlgorithm::Config seedingAlgoCfg;
+  seedingAlgoCfg.htSeeder = std::make_shared<HoughTransformSeeder>(htSeederCfg);
+  seedingAlgoCfg.htOptions = htSeederOpt;
+  seedingAlgoCfg.inputSourceLinks = "SourceLinks";
+  seedingAlgoCfg.inputDetSourceLinkIndices = "SourceLinkIndices";
+  seedingAlgoCfg.inputBpmSourceLinkIndices = "BpmSourceLinksIndices";
+  seedingAlgoCfg.outputSeeds = "Seeds";
+  seedingAlgoCfg.outputTrackParameters = "TrackParameters";
+  seedingAlgoCfg.gx2Fitter = gx2Fitter;
+  seedingAlgoCfg.nGX2Iterations = 2;
+  seedingAlgoCfg.maxChi2 = 1e2;
+  seedingAlgoCfg.referenceSurface = seedingRefSurface.get();
   seedingAlgoCfg.originCov =
       trackOriginStdDevPrior.cwiseProduct(trackOriginStdDevPrior).asDiagonal();
-
-  seedingAlgoCfg.bpmIds = {goInst.bpm1Parameters.geoId,
-                           goInst.bpm2Parameters.geoId,
-                           goInst.bpm3Parameters.geoId};
+  seedingAlgoCfg.minLayers = 5;
+  seedingAlgoCfg.maxLayers = 5;
   seedingAlgoCfg.propDirection =
       E320SeedingAlgorithm::PropagationDirection::forward;
 
@@ -317,16 +326,17 @@ int main() {
   Acts::GainMatrixSmoother kfSmoother;
 
   // Initialize track fitter options
-  Acts::KalmanFitterExtensions<RecoTrajectory> extensions;
+  Acts::KalmanFitterExtensions<KFFitterTrajectory> extensions;
   // Add calibrator
-  extensions.calibrator.connect<&simpleSourceLinkCalibrator<RecoTrajectory>>();
+  extensions.calibrator
+      .connect<&simpleSourceLinkCalibrator<KFFitterTrajectory>>();
   // Add the updater
   extensions.updater
-      .connect<&Acts::GainMatrixUpdater::operator()<RecoTrajectory>>(
+      .connect<&Acts::GainMatrixUpdater::operator()<KFFitterTrajectory>>(
           &kfUpdater);
   // Add the smoother
   extensions.smoother
-      .connect<&Acts::GainMatrixSmoother::operator()<RecoTrajectory>>(
+      .connect<&Acts::GainMatrixSmoother::operator()<KFFitterTrajectory>>(
           &kfSmoother);
   // Add the surface accessor
   extensions.surfaceAccessor
@@ -359,10 +369,14 @@ int main() {
       kfPropagator, Acts::getDefaultLogger("DetectorKalmanFilter", logLevel));
 
   // Add the track fitting algorithm to the sequencer
-  KFTrackFittingAlgorithm::Config fitterCfg{.inputTrackCandidates = "Seeds",
-                                            .outputTracks = "Tracks",
-                                            .fitter = fitter,
-                                            .kfOptions = options};
+  KFTrackFittingAlgorithm::Config fitterCfg{
+      .inputTrackCandidates = "Seeds",
+      .inputTrackParameters = "TrackParameters",
+      .inputSourceLinks = "SourceLinks",
+      .outputTrackContainer = "TrackContainer",
+      .outputTracks = "Tracks",
+      .fitter = fitter,
+      .kfOptions = options};
 
   sequencer.addAlgorithm(
       std::make_shared<KFTrackFittingAlgorithm>(fitterCfg, logLevel));
@@ -370,10 +384,11 @@ int main() {
   // --------------------------------------------------------------
   // Event write out
 
-  // Seed writer
-  auto seedWriterCfg = RootSimSeedWriter::Config();
+  RootSimSeedWriter::Config seedWriterCfg;
   seedWriterCfg.inputSeeds = "Seeds";
-  seedWriterCfg.inputTruthClusters = "SimClusters";
+  seedWriterCfg.inputTrackParameters = "TrackParameters";
+  seedWriterCfg.inputSimClusters = "SimClusters";
+  seedWriterCfg.inputSourceLinks = "SourceLinks";
   seedWriterCfg.treeName = "seeds";
   seedWriterCfg.filePath =
       "/home/romanurmanov/work/E320/E320Prototype/E320Prototype_analysis/sim/"
@@ -388,7 +403,9 @@ int main() {
       .connect<&SimpleSourceLink::SurfaceAccessor::operator()>(
           &surfaceAccessor);
   trackWriterCfg.referenceSurface = trackingRefSurface.get();
+  trackWriterCfg.inputTrackContainer = "TrackContainer";
   trackWriterCfg.inputTracks = "Tracks";
+  trackWriterCfg.inputTrackParametersGuesses = "TrackParameters";
   trackWriterCfg.inputSimClusters = "SimClusters";
   trackWriterCfg.treeName = "fitted-tracks";
   trackWriterCfg.filePath =

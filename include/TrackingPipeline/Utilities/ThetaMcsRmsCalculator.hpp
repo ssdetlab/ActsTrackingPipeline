@@ -20,7 +20,7 @@ namespace detail {
 double getMcpThetaRms(double X0, double rho, double x, double P, double z) {
   double t = rho * x;
   double thetaRms = 13.6_MeV / P * z * std::sqrt(t / X0) *
-                    (1 + 0.038 * std::log(t * z * z / (X0)));
+                    (1 + 0.038 * std::log(t * z * z / (X0))) / 1_e;
   return thetaRms;
 }
 

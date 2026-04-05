@@ -1,9 +1,10 @@
 #include "TrackingPipeline/Io/RootSimSeedWriter.hpp"
 
 #include "Acts/Utilities/Logger.hpp"
+#include <Acts/Definitions/Algebra.hpp>
 #include <Acts/Geometry/GeometryIdentifier.hpp>
 
-#include <ranges>
+#include <cstddef>
 #include <vector>
 
 #include "TLorentzVector.h"
@@ -26,40 +27,42 @@ RootSimSeedWriter::RootSimSeedWriter(const Config& config,
 
   //------------------------------------------------------------------
   // Tree branches
-  int buf_size = 32000;
-  int split_lvl = 0;
+  int bufSize = 32000;
+  int splitLvl = 0;
 
   // Measurements
-  m_tree->Branch("measurementsGlob", &m_seedMeasurementsGlob, buf_size,
-                 split_lvl);
-  m_tree->Branch("measurementsLoc", &m_seedMeasurementsLoc, buf_size,
-                 split_lvl);
-  m_tree->Branch("geoIds", &m_geoIds, buf_size, split_lvl);
+  m_tree->Branch("measurementsGlob", &m_seedMeasurementsGlob, bufSize,
+                 splitLvl);
+  m_tree->Branch("measurementsLoc", &m_seedMeasurementsLoc, bufSize, splitLvl);
+  m_tree->Branch("geoIds", &m_geoIds, bufSize, splitLvl);
 
   // Seed properties
-  m_tree->Branch("eventId", &m_eventId, buf_size, split_lvl);
-  m_tree->Branch("size", &m_size, buf_size, split_lvl);
-  m_tree->Branch("ipMomentumEst", &m_ipMomentumEst, buf_size, split_lvl);
-  m_tree->Branch("vertexEst", &m_vertexEst, buf_size, split_lvl);
+  m_tree->Branch("eventId", &m_eventId, bufSize, splitLvl);
+  m_tree->Branch("size", &m_size, bufSize, splitLvl);
+  m_tree->Branch("originMomentumEst", &m_originMomentumEst, bufSize, splitLvl);
+  m_tree->Branch("vertexEst", &m_vertexEst, bufSize, splitLvl);
 
   // Truth info
-  m_tree->Branch("trackId", &m_trackId, buf_size, split_lvl);
-  m_tree->Branch("parentTrackId", &m_parentTrackId, buf_size, split_lvl);
-  m_tree->Branch("runId", &m_runId, buf_size, split_lvl);
-  m_tree->Branch("trueTrackSize", &m_trueTrackSize, buf_size, split_lvl);
-  m_tree->Branch("trackInSeedSize", &m_trackInSeedSize, buf_size, split_lvl);
-  m_tree->Branch("isSignal", &m_isSignal, buf_size, split_lvl);
-  m_tree->Branch("ipMomentumTruth", &m_ipMomentumTruth, buf_size, split_lvl);
-  m_tree->Branch("vertexTruth", &m_vertexTruth, buf_size, split_lvl);
+  m_tree->Branch("trackId", &m_trackId, bufSize, splitLvl);
+  m_tree->Branch("parentTrackId", &m_parentTrackId, bufSize, splitLvl);
+  m_tree->Branch("runId", &m_runId, bufSize, splitLvl);
+  m_tree->Branch("trueTrackSize", &m_trueTrackSize, bufSize, splitLvl);
+  m_tree->Branch("trackInSeedSize", &m_trackInSeedSize, bufSize, splitLvl);
+  m_tree->Branch("isSignal", &m_isSignal, bufSize, splitLvl);
+  m_tree->Branch("originMomentumTruth", &m_originMomentumTruth, bufSize,
+                 splitLvl);
+  m_tree->Branch("vertexTruth", &m_vertexTruth, bufSize, splitLvl);
 
   //------------------------------------------------------------------
   // Initialize the data handles
-  m_seeds.initialize(m_cfg.inputSeeds);
-  m_truthClusters.initialize(m_cfg.inputTruthClusters);
+  m_inputSeeds.initialize(m_cfg.inputSeeds);
+  m_inputTrackParameters.initialize(m_cfg.inputTrackParameters);
+  m_inputSimClusters.initialize(m_cfg.inputSimClusters);
+  m_inputSourceLinks.initialize(m_cfg.inputSourceLinks);
 }
 
 ProcessCode RootSimSeedWriter::finalize() {
-  if (m_file) {
+  if (m_file != nullptr) {
     m_file->Write();
     m_file->Close();
   }
@@ -67,11 +70,13 @@ ProcessCode RootSimSeedWriter::finalize() {
 }
 
 ProcessCode RootSimSeedWriter::write(const AlgorithmContext& ctx) {
-  const auto& inputSeeds = m_seeds(ctx);
-  const auto& inputTruthClusters = m_truthClusters(ctx);
+  const auto& inputSeeds = m_inputSeeds(ctx);
+  const auto& inputTrackParameters = m_inputTrackParameters(ctx);
+  const auto& inputSimClusters = m_inputSimClusters(ctx);
+  const auto& inputSourceLinks = m_inputSourceLinks(ctx);
 
   if (inputSeeds.empty()) {
-    ACTS_DEBUG("Received empty seed vector. Continuing");
+    ACTS_DEBUG("Received empty seed vector. Skipping");
     return ProcessCode::SUCCESS;
   }
 
@@ -80,7 +85,7 @@ ProcessCode RootSimSeedWriter::write(const AlgorithmContext& ctx) {
   m_eventId = ctx.eventNumber;
 
   std::map<TrackID, std::set<Acts::GeometryIdentifier>> trackIds;
-  for (const auto& cluster : inputTruthClusters) {
+  for (const auto& cluster : inputSimClusters) {
     if (!cluster.isSignal) {
       continue;
     }
@@ -92,52 +97,56 @@ ProcessCode RootSimSeedWriter::write(const AlgorithmContext& ctx) {
   }
 
   for (const auto& seed : inputSeeds) {
-    const auto& sourceLinks =
-        seed.sourceLinks | std::views::transform([](const auto& sl) {
-          return sl.template get<SimpleSourceLink>();
-        });
+    const auto& sourceLinkIndices = seed.sourceLinkIndices;
+    m_size = sourceLinkIndices.size();
 
     m_seedMeasurementsGlob.clear();
     m_seedMeasurementsLoc.clear();
     m_geoIds.clear();
 
-    m_seedMeasurementsGlob.reserve(sourceLinks.size());
-    m_seedMeasurementsLoc.reserve(sourceLinks.size());
-    m_geoIds.reserve(sourceLinks.size());
-    for (const auto& sl : sourceLinks) {
-      m_seedMeasurementsGlob.emplace_back(sl.parametersGlob().x(),
-                                          sl.parametersGlob().y(),
-                                          sl.parametersGlob().z());
-      m_seedMeasurementsLoc.emplace_back(sl.parametersLoc().x(),
-                                         sl.parametersLoc().y());
-      m_geoIds.push_back(sl.geometryId().sensitive());
+    m_seedMeasurementsGlob.reserve(m_size);
+    m_seedMeasurementsLoc.reserve(m_size);
+    m_geoIds.reserve(m_size);
+    for (std::size_t idx : sourceLinkIndices) {
+      const auto& ssl = inputSourceLinks.at(idx).get<SimpleSourceLink>();
+
+      const Acts::Vector3& parsGlob = ssl.parametersGlob();
+      m_seedMeasurementsGlob.emplace_back(parsGlob.x(), parsGlob.y(),
+                                          parsGlob.z());
+
+      const Acts::Vector2& parsLoc = ssl.parametersLoc();
+      m_seedMeasurementsLoc.emplace_back(parsLoc.x(), parsLoc.y());
+      m_geoIds.push_back(ssl.geometryId().sensitive());
     }
-    m_ipMomentumEst.SetPxPyPzE(
-        seed.ipParameters.momentum().x(), seed.ipParameters.momentum().y(),
-        seed.ipParameters.momentum().z(), seed.ipParameters.absoluteMomentum());
-    m_vertexEst.SetXYZ(seed.ipParameters.position().x(),
-                       seed.ipParameters.position().y(),
-                       seed.ipParameters.position().z());
 
-    m_size = sourceLinks.size();
+    const auto& originParameters =
+        inputTrackParameters.at(seed.originParametersIndex);
+    m_originMomentumEst.SetPxPyPzE(
+        originParameters.momentum().x(), originParameters.momentum().y(),
+        originParameters.momentum().z(), originParameters.absoluteMomentum());
+    m_vertexEst.SetXYZ(originParameters.position().x(),
+                       originParameters.position().y(),
+                       originParameters.position().z());
 
-    std::map<TrackID, std::pair<int, std::set<Acts::GeometryIdentifier>>>
+    std::map<TrackID,
+             std::pair<int, std::unordered_set<Acts::GeometryIdentifier>>>
         seedSignalTrackIds;
-    for (const auto& sl : sourceLinks) {
-      const auto& cl = inputTruthClusters.at(sl.index());
+    for (std::size_t idx : sourceLinkIndices) {
+      const auto& ssl = inputSourceLinks.at(idx).get<SimpleSourceLink>();
+      const auto& cl = inputSimClusters.at(ssl.index());
       if (!cl.isSignal) {
         continue;
       }
       for (const auto& hit : cl.truthHits) {
         TrackID tid = {hit.trackId, hit.parentTrackId, hit.runId};
-        seedSignalTrackIds[tid].first = sl.index();
-        seedSignalTrackIds[tid].second.insert(sl.geometryId());
+        seedSignalTrackIds[tid].first = ssl.index();
+        seedSignalTrackIds[tid].second.insert(ssl.geometryId());
       }
     }
     if (seedSignalTrackIds.empty()) {
       m_trueTrackSize = 0;
       m_isSignal = false;
-      m_ipMomentumTruth = TLorentzVector(0, 0, 0, 0);
+      m_originMomentumTruth = TLorentzVector(0, 0, 0, 0);
       m_tree->Fill();
       continue;
     }
@@ -148,7 +157,7 @@ ProcessCode RootSimSeedWriter::write(const AlgorithmContext& ctx) {
           return (idA.second.second.size() < idB.second.second.size());
         });
     const auto& [sigId, ic] = *maxTrack;
-    auto [idx, geoIds] = ic;
+    auto [sourceLinkIdx, geoIds] = ic;
     std::size_t trackSize = trackIds.at(sigId).size();
 
     std::tie(m_trackId, m_parentTrackId, m_runId) = sigId;
@@ -158,17 +167,16 @@ ProcessCode RootSimSeedWriter::write(const AlgorithmContext& ctx) {
 
     m_isSignal = true;
 
-    const auto& cluster = inputTruthClusters.at(idx);
+    const auto& cluster = inputSimClusters.at(sourceLinkIdx);
     for (const auto& hit : cluster.truthHits) {
       if (std::tie(hit.trackId, hit.parentTrackId, hit.runId) == sigId) {
-        m_ipMomentumTruth.SetPxPyPzE(hit.ipParameters.momentum().x(),
-                                     hit.ipParameters.momentum().y(),
-                                     hit.ipParameters.momentum().z(),
-                                     hit.ipParameters.absoluteMomentum());
-        m_vertexTruth.SetXYZ(hit.ipParameters.position().x(),
-                             hit.ipParameters.position().y(),
-                             hit.ipParameters.position().z());
+        const Acts::Vector3& momentum = hit.ipParameters.momentum();
+        const Acts::Vector3& position = hit.ipParameters.position();
+        double absMom = hit.ipParameters.absoluteMomentum();
 
+        m_originMomentumTruth.SetPxPyPzE(momentum.x(), momentum.y(),
+                                         momentum.z(), absMom);
+        m_vertexTruth.SetXYZ(position.x(), position.y(), position.z());
         break;
       }
     }

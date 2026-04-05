@@ -1,50 +1,67 @@
 #include "TrackingPipeline/TrackFitting/KFTrackFittingAlgorithm.hpp"
 
-#include "Acts/EventData/TrackParameters.hpp"
 #include "Acts/Utilities/Logger.hpp"
+
+#include <cstddef>
+#include <vector>
+
+#include "TrackingPipeline/Utilities/NonOwningVectorProjectionIterator.hpp"
 
 KFTrackFittingAlgorithm::KFTrackFittingAlgorithm(const Config& config,
                                                  Acts::Logging::Level level)
     : IAlgorithm("TrackFittingAlgorithm", level), m_cfg(config) {
   m_inputTrackCandidates.initialize(m_cfg.inputTrackCandidates);
+  m_inputTrackParameters.initialize(m_cfg.inputTrackParameters);
+  m_inputSourceLinks.initialize(m_cfg.inputSourceLinks);
+
+  m_outputTrackContainer.initialize(m_cfg.outputTrackContainer);
   m_outputTracks.initialize(m_cfg.outputTracks);
 }
 
 ProcessCode KFTrackFittingAlgorithm::execute(
     const AlgorithmContext& ctx) const {
-  // Get the input seeds
-  // from the context
-  const auto& inputCandidates = m_inputTrackCandidates(ctx);
+  const auto& inputTrackCandidates = m_inputTrackCandidates(ctx);
+  const auto& inputTrackParameters = m_inputTrackParameters(ctx);
+  const auto& inputSourceLinks = m_inputSourceLinks(ctx);
 
-  ACTS_DEBUG("Received " << inputCandidates.size() << " track candidates");
+  ACTS_DEBUG("Received " << inputTrackCandidates.size() << " track candidates");
+  ACTS_DEBUG("Received " << inputTrackParameters.size() << " track parameters");
+  ACTS_DEBUG("Received " << inputSourceLinks.size() << " source links");
 
-  auto trackContainer = std::make_shared<TrackContainer>();
-  auto trackStateContainer = std::make_shared<Trajectory>();
-  Acts::TrackContainer tracks(trackContainer, trackStateContainer);
+  auto trackContainerBackend =
+      std::make_shared<KFFitterTrackContainerBackend>();
+  auto trackStateContainer = std::make_shared<KFFitterTrajectory>();
+  Acts::TrackContainer trackContainer(trackContainerBackend,
+                                      trackStateContainer);
 
-  std::vector<int> trackIds;
-  trackIds.reserve(inputCandidates.size());
-
-  std::vector<Acts::CurvilinearTrackParameters> ipParametersGuesses;
-  ipParametersGuesses.reserve(inputCandidates.size());
-  for (const auto& candidate : inputCandidates) {
-    const auto& start = candidate.ipParameters;
-    const auto& sourceLinks = candidate.sourceLinks;
-    if (sourceLinks.empty()) {
+  IndexTracks tracks;
+  tracks.reserve(inputTrackCandidates.size());
+  for (std::size_t idx = 0; idx < inputTrackCandidates.size(); idx++) {
+    const auto& candidate = inputTrackCandidates.at(idx);
+    const auto& sourceLinkIndices = candidate.sourceLinkIndices;
+    if (sourceLinkIndices.empty()) {
       continue;
     }
 
-    trackIds.push_back(candidate.trackId);
-    ipParametersGuesses.push_back(candidate.ipParameters);
+    tracks.emplace_back(idx, candidate.originParametersIndex,
+                        candidate.trackId);
 
-    auto res = m_cfg.fitter.fit(sourceLinks.begin(), sourceLinks.end(), start,
-                                m_cfg.kfOptions, tracks);
+    NonOwningVectorProjectionIterator begin(inputSourceLinks,
+                                            sourceLinkIndices);
+    NonOwningVectorProjectionIterator end = begin + sourceLinkIndices.size();
+    const auto& startParameters =
+        inputTrackParameters.at(candidate.originParametersIndex);
+
+    auto res = m_cfg.fitter.fit(begin, end, startParameters, m_cfg.kfOptions,
+                                trackContainer);
   }
-  trackIds.shrink_to_fit();
-  ipParametersGuesses.shrink_to_fit();
+  tracks.shrink_to_fit();
 
-  ACTS_DEBUG("Sending " << tracks.size() << " tracks");
-  m_outputTracks(ctx, Tracks{tracks, trackIds, ipParametersGuesses});
+  ACTS_DEBUG("Sending " << trackContainer.size() << " tracks");
+  ACTS_DEBUG("Sending " << tracks.size() << " track index containers");
+
+  m_outputTrackContainer(ctx, std::move(trackContainer));
+  m_outputTracks(ctx, std::move(tracks));
 
   return ProcessCode::SUCCESS;
 }

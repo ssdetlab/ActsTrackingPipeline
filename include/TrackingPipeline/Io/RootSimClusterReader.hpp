@@ -3,6 +3,9 @@
 #include "Acts/EventData/SourceLink.hpp"
 #include "Acts/Utilities/Logger.hpp"
 
+#include <cstddef>
+#include <unordered_map>
+
 #include "TChain.h"
 #include "TFile.h"
 #include "TLorentzVector.h"
@@ -22,6 +25,8 @@ class RootSimClusterReader : public IReader {
     std::string outputSourceLinks;
     /// Output sim clusters
     std::string outputSimClusters;
+    /// Output source link indices
+    std::string outputSourceLinkIndices;
     /// The names of the input files
     std::vector<std::string> filePaths;
     /// Name of the input tree
@@ -32,7 +37,8 @@ class RootSimClusterReader : public IReader {
     /// Wheter to employ surfaces for local to global conversion
     bool surfaceLocalToGlobal;
     /// Surface map for high-precision local to global conversion
-    std::map<Acts::GeometryIdentifier, const Acts::Surface*> surfaceMap;
+    std::unordered_map<Acts::GeometryIdentifier, const Acts::Surface*>
+        surfaceMap;
   };
 
   RootSimClusterReader(const RootSimClusterReader&) = delete;
@@ -62,12 +68,14 @@ class RootSimClusterReader : public IReader {
   /// The config class
   Config m_cfg;
 
-  /// WriteDataHandle for the sim data
-  WriteDataHandle<SimClusters> m_outputSimClusters{this, "SimClusters"};
-
-  /// WriteDataHandle for the observable data
+  /// WriteDataHandle the data
   WriteDataHandle<std::vector<Acts::SourceLink>> m_outputSourceLinks{
-      this, "OutputData"};
+      this, "OutputSourceLinks"};
+
+  WriteDataHandle<SimClusters> m_outputSimClusters{this, "OutputSimClusters"};
+
+  WriteDataHandle<std::vector<std::size_t>> m_outputSourceLinkIndices{
+      this, "OutputSourceLinkIndices"};
 
   std::unique_ptr<const Acts::Logger> m_logger;
 

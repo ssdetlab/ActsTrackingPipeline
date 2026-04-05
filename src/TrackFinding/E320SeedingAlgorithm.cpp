@@ -6,23 +6,45 @@
 #include <Acts/Definitions/TrackParametrization.hpp>
 
 #include <cstddef>
-#include <functional>
-#include <span>
 #include <utility>
 #include <vector>
 
+#include <TH1.h>
+
 #include "TrackingPipeline/EventData/DataContainers.hpp"
-#include "TrackingPipeline/EventData/SimpleSourceLink.hpp"
 #include "TrackingPipeline/Geometry/E320GeometryConstraints.hpp"
 #include "TrackingPipeline/TrackFinding/HoughTransformSeeder.hpp"
 
 using namespace Acts::UnitLiterals;
 
+namespace {
+
+void constructTracks(const std::shared_ptr<IdxTree::Node>& root,
+                     std::vector<std::size_t>& track,
+                     std::vector<std::vector<std::size_t>>& tracks) {
+  track.push_back(root->m_idx);
+  if (root->children.size() == 0) {
+    tracks.push_back(track);
+    track.pop_back();
+    return;
+  }
+  for (auto& child : root->children) {
+    constructTracks(child, track, tracks);
+  }
+  track.pop_back();
+}
+
+}  // namespace
+
 E320SeedingAlgorithm::E320SeedingAlgorithm(const Config& config,
                                            Acts::Logging::Level level)
     : IAlgorithm("E320SeedingAlgorithm", level), m_cfg(config) {
   m_inputSourceLinks.initialize(m_cfg.inputSourceLinks);
+  m_inputDetSourceLinkIndices.initialize(m_cfg.inputDetSourceLinkIndices);
+  // m_inputBpmSourceLinkIndices.initialize(m_cfg.inputBpmSourceLinkIndices);
+
   m_outputSeeds.initialize(m_cfg.outputSeeds);
+  m_outputTrackParameters.initialize(m_cfg.outputTrackParameters);
 
   const auto& goInst = *E320::GeometryOptions::instance();
 
@@ -78,7 +100,7 @@ Acts::BoundMatrix E320SeedingAlgorithm::transportCovToReference(
 
   Acts::FreeMatrix transportedCov =
       transportJac * cov * transportJac.transpose();
-  transportedCov(Acts::eFreeTime, Acts::eFreeTime) = 25_ns;
+  transportedCov(Acts::eFreeTime, Acts::eFreeTime) = 1_fs;
 
   Acts::FreeToBoundMatrix jacToLoc =
       m_cfg.referenceSurface->freeToBoundJacobian(gctx, refSurfacePoint, dir);
@@ -89,34 +111,26 @@ ProcessCode E320SeedingAlgorithm::execute(const AlgorithmContext& ctx) const {
   using namespace Acts::UnitLiterals;
 
   const auto& inputSourceLinks = m_inputSourceLinks(ctx);
+  const auto& inputDetSourceLinksIndices = m_inputDetSourceLinkIndices(ctx);
+  const auto& inputBpmSourceLinksIndices =
+      (ctx.eventStore.exists(m_cfg.inputBpmSourceLinkIndices))
+          ? m_inputBpmSourceLinkIndices(ctx)
+          : std::vector<std::size_t>();
 
   ACTS_DEBUG("Received " << inputSourceLinks.size() << " source links");
 
   if (inputSourceLinks.empty()) {
     ACTS_DEBUG("Input is empty. Skipping");
-    m_outputSeeds(ctx, Seeds());
+    m_outputSeeds(ctx, IndexSeeds());
+    m_outputTrackParameters(ctx, {});
     return ProcessCode::SUCCESS;
   }
 
-  Seeds outSeeds;
-  std::vector<Acts::SourceLink> bpmSourceLinks;
-  std::vector<std::reference_wrapper<const Acts::SourceLink>> sourceLinkRefs;
-  sourceLinkRefs.reserve(inputSourceLinks.size());
-  for (const auto& sl : inputSourceLinks) {
-    int geoId = sl.get<SimpleSourceLink>().geometryId().sensitive();
-    if (geoId >= m_cfg.htOptions.firstLayerId &&
-        geoId <= m_cfg.htOptions.lastLayerId) {
-      sourceLinkRefs.push_back(std::cref(sl));
-    }
-    if (std::find(m_cfg.bpmIds.begin(), m_cfg.bpmIds.end(), geoId) !=
-        m_cfg.bpmIds.end()) {
-      bpmSourceLinks.push_back(sl);
-    }
-  }
-  sourceLinkRefs.shrink_to_fit();
-
-  std::vector<HoughTransformSeeder::HTSeed> htSeeds = m_cfg.htSeeder->findSeeds(
-      ctx.geoContext, sourceLinkRefs, m_cfg.htOptions);
+  IndexSeeds outSeeds;
+  std::vector<Acts::CurvilinearTrackParameters> outTrackParameters;
+  std::vector<HoughTransformSeeder::HTSeed> htSeeds =
+      m_cfg.htSeeder->findSeeds(ctx.geoContext, inputSourceLinks,
+                                inputDetSourceLinksIndices, m_cfg.htOptions);
 
   const Acts::Vector3& refSurfCenter =
       m_cfg.referenceSurface->center(ctx.geoContext);
@@ -124,46 +138,102 @@ ProcessCode E320SeedingAlgorithm::execute(const AlgorithmContext& ctx) const {
       ctx.geoContext, refSurfCenter, Acts::Vector3::UnitX());
 
   ACTS_DEBUG("Found " << htSeeds.size() << " HT seeds");
-  outSeeds.reserve(htSeeds.size());
+  outSeeds.reserve(htSeeds.size() * m_cfg.maxLayers);
+  outTrackParameters.reserve(htSeeds.size() * m_cfg.maxLayers);
   for (std::size_t i = 0; i < htSeeds.size(); i++) {
-    const auto& [point, dir, cov, sl, chi2, count] = htSeeds.at(i);
+    const auto& [point, dir, slIdxs] = htSeeds.at(i);
 
-    // Transport parameteres to the reference surface
-    double dVertex =
-        (refSurfCenter - point).dot(refSurfNormal) / dir.dot(refSurfNormal);
-    Acts::Vector3 vertex3 = point + dir * dVertex;
-    Acts::Vector4 vertex(vertex3.x(), vertex3.y(), vertex3.z(), 0);
+    IdxTree::IdxContainer idxContainer;
+    idxContainer.reserve(slIdxs.size());
+    std::size_t firstLayerId = std::numeric_limits<std::size_t>::max();
+    for (std::size_t idx : slIdxs) {
+      std::size_t geoId = inputSourceLinks.at(idx)
+                              .get<SimpleSourceLink>()
+                              .geometryId()
+                              .sensitive();
+      idxContainer.push_back({idx, geoId});
+      if (firstLayerId > geoId) {
+        firstLayerId = geoId;
+      }
+    }
 
-    double thetaY = std::atan(dir.y() / dir.x());
-    double absMom =
-        std::abs(m_dipoleFieldStrength * m_dipoleLength / std::sin(thetaY));
+    std::sort(idxContainer.begin(), idxContainer.end(),
+              [](const auto& a, const auto& b) { return a.second < b.second; });
+    auto rootEndIt = std::find_if(
+        idxContainer.begin(), idxContainer.end(),
+        [&firstLayerId](const auto& a) { return (a.second != firstLayerId); });
 
-    // Estimate the abs momentum variance
-    Acts::BoundMatrix originCov = m_cfg.originCov;
-    originCov(Acts::eBoundQOverP, Acts::eBoundQOverP) =
-        transportCovToReference(ctx.geoContext, vertex3, point, dir, cov)(
-            Acts::eBoundQOverP, Acts::eBoundQOverP);
+    for (auto it = idxContainer.begin(); it != rootEndIt; it++) {
+      std::vector<std::size_t> trackContainer;
+      trackContainer.reserve(m_cfg.minLayers);
 
-    std::vector<Acts::SourceLink> sourceLinks = sl;
-    sourceLinks.insert(sourceLinks.end(), bpmSourceLinks.begin(),
-                       bpmSourceLinks.end());
+      std::vector<std::vector<std::size_t>> splitSeedSlIdxs;
+      IdxTree idxTree(idxContainer, it, rootEndIt);
+      constructTracks(idxTree.m_root, trackContainer, splitSeedSlIdxs);
+      for (const auto& seedIdxs : splitSeedSlIdxs) {
+        if (seedIdxs.size() < m_cfg.minLayers ||
+            seedIdxs.size() > m_cfg.maxLayers) {
+          continue;
+        }
 
-    if (m_cfg.propDirection == PropagationDirection::forward) {
-      outSeeds.emplace_back(sourceLinks,
-                            Acts::CurvilinearTrackParameters(
-                                vertex, dir, 1_e / absMom, originCov,
-                                Acts::ParticleHypothesis::electron()),
-                            i);
-    } else if (m_cfg.propDirection == PropagationDirection::backward) {
-      outSeeds.emplace_back(sourceLinks,
-                            Acts::CurvilinearTrackParameters(
-                                vertex, -dir, -1_e / absMom, originCov,
-                                Acts::ParticleHypothesis::electron()),
-                            i);
+        Acts::Vector3 newDir = dir;
+        Acts::Vector3 newPoint = point;
+        Acts::ActsSquareMatrix<6> newCov;
+
+        double chi2 = 0;
+        for (std::size_t l = 0; l < m_cfg.nGX2Iterations; l++) {
+          chi2 = m_cfg.gx2Fitter->gx2Fit(ctx.geoContext, inputSourceLinks,
+                                         seedIdxs, newPoint, newDir, newCov);
+        }
+        if (chi2 > m_cfg.maxChi2) {
+          continue;
+        }
+
+        // Transport parameteres to the reference surface
+        double dVertex = (refSurfCenter - newPoint).dot(refSurfNormal) /
+                         newDir.dot(refSurfNormal);
+        Acts::Vector3 vertex3 = newPoint + newDir * dVertex;
+        Acts::Vector4 vertex(vertex3.x(), vertex3.y(), vertex3.z(), 0);
+
+        double thetaY = std::atan(newDir.y() / newDir.x());
+        double absMom =
+            std::abs(m_dipoleFieldStrength * m_dipoleLength / thetaY);
+
+        // Estimate the abs momentum variance
+        Acts::BoundMatrix originCov = m_cfg.originCov;
+        originCov(Acts::eBoundQOverP, Acts::eBoundQOverP) =
+            transportCovToReference(ctx.geoContext, vertex3, newPoint, newDir,
+                                    newCov)(Acts::eBoundQOverP,
+                                            Acts::eBoundQOverP);
+
+        std::vector<std::size_t> sourceLinksIdxs = seedIdxs;
+        sourceLinksIdxs.insert(sourceLinksIdxs.end(),
+                               inputBpmSourceLinksIndices.begin(),
+                               inputBpmSourceLinksIndices.end());
+
+        if (m_cfg.propDirection == PropagationDirection::forward) {
+          outSeeds.emplace_back(std::move(sourceLinksIdxs),
+                                outTrackParameters.size(), outSeeds.size());
+          outTrackParameters.emplace_back(vertex, newDir, 1_e / absMom,
+                                          originCov,
+                                          Acts::ParticleHypothesis::electron());
+        } else if (m_cfg.propDirection == PropagationDirection::backward) {
+          outSeeds.emplace_back(std::move(sourceLinksIdxs),
+                                outTrackParameters.size(), outSeeds.size());
+          outTrackParameters.emplace_back(vertex, -newDir, -1_e / absMom,
+                                          originCov,
+                                          Acts::ParticleHypothesis::electron());
+        }
+      }
     }
   }
-  ACTS_DEBUG("Found " << outSeeds.size() << " seeds");
+  outSeeds.shrink_to_fit();
+  outTrackParameters.shrink_to_fit();
+
   ACTS_DEBUG("Sending " << outSeeds.size() << " seeds");
+  ACTS_DEBUG("Sending " << outTrackParameters.size() << " track parameteres");
   m_outputSeeds(ctx, std::move(outSeeds));
+  m_outputTrackParameters(ctx, std::move(outTrackParameters));
+
   return ProcessCode::SUCCESS;
 }
