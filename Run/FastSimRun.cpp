@@ -18,6 +18,7 @@
 #include "TrackingPipeline/Geometry/E320GeometryConstraints.hpp"
 #include "TrackingPipeline/Geometry/GeometryContextDecorator.hpp"
 #include "TrackingPipeline/Infrastructure/Sequencer.hpp"
+#include "TrackingPipeline/Infrastructure/TypeDefinitions.hpp"
 #include "TrackingPipeline/Io/DummyReader.hpp"
 #include "TrackingPipeline/Io/RootSimClusterWriter.hpp"
 #include "TrackingPipeline/MagneticField/ConstantMagField.hpp"
@@ -32,9 +33,6 @@
 #include "TrackingPipeline/Simulation/SphericalMomentumGenerator.hpp"
 #include "TrackingPipeline/Simulation/SurfaceRangedDigitizer.hpp"
 #include "TrackingPipeline/Simulation/UniformBackgroundCreator.hpp"
-
-using Propagator = Acts::Propagator<Acts::EigenStepper<>,
-                                    Acts::Experimental::DetectorNavigator>;
 
 using namespace Acts::UnitLiterals;
 
@@ -80,7 +78,7 @@ int main() {
 
   // --------------------------------------------------------------
   // Alignment setup
-  Acts::Vector3 globalShiftMean(0, 0_mm, 0_mm);
+  Acts::Vector3 globalShiftMean(0, 4_mm, -5_mm);
   Acts::Vector3 globalShiftStdErr(0, 0_mm, 0_mm);
 
   std::unordered_map<int, Acts::Vector3> localShiftsMean{
@@ -96,7 +94,7 @@ int main() {
       {16, Acts::Vector3(0_mm, 0_um, 0_um)},
       {18, Acts::Vector3(0_mm, 0_um, 0_um)}};
 
-  Acts::Vector3 globalAnglesMean(0_rad, 0_rad, 0_rad);
+  Acts::Vector3 globalAnglesMean(0_rad, 0_rad, -2e-3_rad);
   Acts::Vector3 globalAnglesStdErr(0_rad, 0_rad, 0_rad);
 
   std::unordered_map<int, Acts::Vector3> localAnglesMean{
@@ -274,7 +272,7 @@ int main() {
   // Vertex generator
   GaussianVertexGenerator::Config vertexGenCfg;
   vertexGenCfg.mean = Acts::Vector3(0, 0, 0);
-  vertexGenCfg.cov = Acts::SquareMatrix3::Identity() * 0_um;
+  vertexGenCfg.cov = Acts::SquareMatrix3::Identity() * 30_um;
   auto vertexGen = std::make_shared<GaussianVertexGenerator>(vertexGenCfg);
 
   SphericalMomentumGenerator::Config momGenCfg;
@@ -319,7 +317,7 @@ int main() {
   measCreatorAlgoCfg.measurementGenerator = measCreator;
   measCreatorAlgoCfg.randomNumberSvc =
       std::make_shared<RandomNumbers>(RandomNumbers::Config());
-  measCreatorAlgoCfg.nMeasurements = 10;
+  measCreatorAlgoCfg.nMeasurements = 1;
 
   sequencer.addAlgorithm(std::make_shared<MeasurementsEmbeddingAlgorithm>(
       measCreatorAlgoCfg, logLevel));

@@ -18,6 +18,7 @@
 #include "TrackingPipeline/Infrastructure/DataHandle.hpp"
 #include "TrackingPipeline/Infrastructure/IWriter.hpp"
 #include "TrackingPipeline/Infrastructure/ProcessCode.hpp"
+#include "TrackingPipeline/Infrastructure/TypeDefinitions.hpp"
 
 using namespace Acts::UnitLiterals;
 

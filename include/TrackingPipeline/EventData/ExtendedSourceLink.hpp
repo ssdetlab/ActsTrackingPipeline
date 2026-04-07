@@ -30,7 +30,7 @@ class ExtendedSourceLink {
     }
   };
 
-  /// Construct a 2d source link
+  /// Construct a 5d source link
   ExtendedSourceLink(const Acts::ActsVector<localSubspaceSize>& paramsLoc,
                      const Acts::ActsVector<globalSubspaceSize>& paramsGlob,
                      const Acts::ActsSquareMatrix<localSubspaceSize>& cov,

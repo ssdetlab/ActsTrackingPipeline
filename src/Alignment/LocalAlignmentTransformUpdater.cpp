@@ -33,14 +33,15 @@ bool LocalAlignmentTransformUpdater::updateAlignmentParameters(
 
   m_cfg.alignmentStore->store[element->surface().geometryId()] = newTransform;
 
+  ACTS_INFO("-----------------------------------------");
+  ACTS_INFO("Surface " << surf.geometryId());
   ACTS_INFO("Delta angles " << deltaAngles.transpose());
   ACTS_INFO("Delta translation " << deltaTranslation.transpose());
-  ACTS_INFO("Surface " << surf.geometryId());
   ACTS_INFO("Center " << surf.center(gctx).transpose());
   ACTS_INFO(
       "Normal " << surf.normal(gctx, surf.center(gctx), Acts::Vector3::UnitX())
                        .transpose());
   ACTS_INFO("Rotation \n" << surf.transform(gctx).rotation());
-  ACTS_INFO("Extent\n" << surf.polyhedronRepresentation(gctx, 1000).extent());
+  ACTS_INFO(surf.polyhedronRepresentation(gctx, 1000).extent());
   return true;
 }

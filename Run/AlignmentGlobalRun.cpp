@@ -12,6 +12,7 @@
 
 #include <cstddef>
 #include <filesystem>
+#include <functional>
 #include <iostream>
 #include <limits>
 #include <memory>
@@ -22,6 +23,7 @@
 
 #include "TrackingPipeline/Alignment/AlignmentAlgorithm.hpp"
 #include "TrackingPipeline/Alignment/AlignmentContext.hpp"
+#include "TrackingPipeline/Alignment/LinearAnnealingScheduler.hpp"
 #include "TrackingPipeline/Alignment/detail/AlignmentStoreBuilders.hpp"
 #include "TrackingPipeline/Alignment/detail/AlignmentStoreUpdaterBuilders.hpp"
 #include "TrackingPipeline/EventData/ExtendedSourceLink.hpp"
@@ -82,7 +84,7 @@ int main() {
     for (const auto& surf : vol->surfaces()) {
       std::cout << surf->geometryId() << "\n";
       std::cout << surf->polyhedronRepresentation(gctx, 1000).extent() << "\n";
-      if (surf->geometryId().sensitive()) {
+      if (surf->geometryId().sensitive() != 0u) {
         surfaceMap[surf->geometryId()] = surf;
       }
     }
@@ -93,7 +95,8 @@ int main() {
   AlignmentParametersProvider::Config alignmentProviderCfg;
   alignmentProviderCfg.filePath =
       "/home/romanurmanov/work/E320/E320Prototype/E320Prototype_analysis/data/"
-      "alignment/local_noam_cuts_clean/it_2/aligned/"
+      "alignment/local_feb_2025_data/local_solid_material_uniform_errors/"
+      "bkg_features_isolation/sig/aligned/"
       "alignment-parameters.root";
   alignmentProviderCfg.treeName = "alignment-parameters";
   AlignmentParametersProvider alignmentProvider(alignmentProviderCfg);
@@ -103,7 +106,7 @@ int main() {
   Acts::GeometryContext testCtx{alignCtx};
   for (auto& v : detector->volumes()) {
     for (auto& s : v->surfaces()) {
-      if (s->geometryId().sensitive()) {
+      if (s->geometryId().sensitive() != 0u) {
         std::cout << "-----------------------------------\n";
         std::cout << "SURFACE " << s->geometryId() << "\n";
         std::cout << "CENTER " << s->center(testCtx).transpose() << " -- "
@@ -130,6 +133,7 @@ int main() {
       }
     }
   }
+  std::cout << "ALIGNMENT COVARIANCE:\n" << aStore->covariance << "\n";
   gctx = Acts::GeometryContext{alignCtx};
 
   // --------------------------------------------------------------
@@ -154,7 +158,7 @@ int main() {
 
   Acts::Transform3 refSurfaceTransform = Acts::Transform3::Identity();
   refSurfaceTransform.translation() =
-      Acts::Vector3(goInst.beWindowCenterPrimary - 0.1_mm, 0, 0);
+      Acts::Vector3(goInst.beWindowCenterPrimary - 0.001_mm, 0, 0);
   refSurfaceTransform.rotate(refSurfToWorldRotationX);
   refSurfaceTransform.rotate(refSurfToWorldRotationY);
   refSurfaceTransform.rotate(refSurfToWorldRotationZ);
@@ -165,7 +169,7 @@ int main() {
 
   Acts::GeometryIdentifier geoId;
   geoId.setExtra(1);
-  refSurface->assignGeometryId(std::move(geoId));
+  refSurface->assignGeometryId(geoId);
 
   // --------------------------------------------------------------
   // Event reading
@@ -189,17 +193,17 @@ int main() {
       std::make_shared<GeometryContextDecorator>(aStore));
 
   // Add the sim data reader
-  RootTrackReader::Constraints readerConstraints;
+  RootTrackReader::Constraints readerConstraints{};
   readerConstraints.minChi2 = 0;
-  readerConstraints.maxChi2 = 1e6;
-  readerConstraints.minVertexEstLong = -50;
-  readerConstraints.maxVertexEstLong = -20;
+  readerConstraints.maxChi2 = 40;
+  readerConstraints.minVertexEstLong = -1e6;
+  readerConstraints.maxVertexEstLong = 1e6;
 
   readerConstraints.minVertexEstShort = -10;
   readerConstraints.maxVertexEstShort = 10;
 
-  readerConstraints.minAbsMomentumEst = 1.5_GeV;
-  readerConstraints.maxAbsMomentumEst = 10_GeV;
+  readerConstraints.minAbsMomentumEst = 1.8_GeV;
+  readerConstraints.maxAbsMomentumEst = 2.8_GeV;
 
   RootTrackReader::Config readerCfg;
   readerCfg.treeName = "fitted-tracks";
@@ -211,7 +215,8 @@ int main() {
 
   std::string pathToDir =
       "/home/romanurmanov/work/E320/E320Prototype/E320Prototype_analysis/data/"
-      "alignment/global_bpms/filtered";
+      "alignment/global_feb_2025_data/global_mapped_material_uniform_errors/"
+      "step1";
 
   // Get the paths to the files in the directory
   for (const auto& entry : std::filesystem::directory_iterator(pathToDir)) {
@@ -233,25 +238,37 @@ int main() {
   for (auto& det : detector->detectorElements()) {
     const auto& surface = det->surface();
     const auto& geoId = surface.geometryId();
-    if (geoId.sensitive() && geoId.sensitive() >= 40) {
+    if (geoId.sensitive() != 0u && geoId.sensitive() == 40) {
       constraintsSurfaceIds.push_back(geoId);
     }
   }
 
   std::vector<Acts::SourceLink> alignmentConstraints;
   for (const auto& geoId : constraintsSurfaceIds) {
-    Acts::ActsVector<7> glob =
-        Acts::ActsVector<ExtendedSourceLink::globalSubspaceSize>::Zero();
-    Acts::ActsVector<ExtendedSourceLink::localSubspaceSize> loc =
-        Acts::ActsVector<ExtendedSourceLink::localSubspaceSize>::Zero();
-    loc(3) = M_PI_2;
-    loc(4) = 1.0 / 2.5_GeV;
-    Acts::ActsVector<ExtendedSourceLink::localSubspaceSize> stdDev = {
-        10_mm, 10_mm, 1_rad, 1_rad, 1 / 0.1_GeV};
-    Acts::ActsSquareMatrix<ExtendedSourceLink::localSubspaceSize> cov =
+    Acts::ActsVector<SimpleSourceLink::globalSubspaceSize> glob =
+        Acts::ActsVector<SimpleSourceLink::globalSubspaceSize>::Zero();
+    glob(0) = refSurface->center(gctx).x();
+
+    Acts::ActsVector<SimpleSourceLink::localSubspaceSize> loc =
+        Acts::ActsVector<SimpleSourceLink::localSubspaceSize>::Zero();
+    Acts::ActsVector<SimpleSourceLink::localSubspaceSize> stdDev = {1_mm, 1_mm};
+    Acts::ActsSquareMatrix<SimpleSourceLink::localSubspaceSize> cov =
         stdDev.cwiseProduct(stdDev).asDiagonal();
     alignmentConstraints.emplace_back(
-        ExtendedSourceLink(loc, glob, cov, geoId, 0, 0));
+        SimpleSourceLink(loc, glob, cov, geoId, 0, 0));
+
+    // Acts::ActsVector<7> glob =
+    //     Acts::ActsVector<ExtendedSourceLink::globalSubspaceSize>::Zero();
+    // Acts::ActsVector<ExtendedSourceLink::localSubspaceSize> loc =
+    //     Acts::ActsVector<ExtendedSourceLink::localSubspaceSize>::Zero();
+    // loc(3) = M_PI_2;
+    // loc(4) = 1.0 / 2.5_GeV;
+    // Acts::ActsVector<ExtendedSourceLink::localSubspaceSize> stdDev = {
+    //     1_mm, 1_mm, 10_rad, 10_rad, 1 / 1_GeV};
+    // Acts::ActsSquareMatrix<ExtendedSourceLink::localSubspaceSize> cov =
+    //     stdDev.cwiseProduct(stdDev).asDiagonal();
+    // alignmentConstraints.emplace_back(
+    //     ExtendedSourceLink(loc, glob, cov, geoId, 0, 0));
   }
 
   // Initialize calibrators
@@ -302,26 +319,66 @@ int main() {
   Acts::BoundMatrix trackOriginCov =
       trackOriginStdDevPrior.cwiseProduct(trackOriginStdDevPrior).asDiagonal();
 
+  // Annealing scheduler
+  std::size_t nAnnealingIt = 1;
+  LinearAnnealingScheduler::Config annealingSchedulerCfg{};
+  annealingSchedulerCfg.alphaStart = 1e0;
+  annealingSchedulerCfg.alphaEnd = 1e0;
+  annealingSchedulerCfg.nIt = nAnnealingIt;
+
+  auto annealingScheduler =
+      std::make_shared<LinearAnnealingScheduler>(annealingSchedulerCfg);
+
+  Acts::Transform3 seedingRefSurfTransform = Acts::Transform3::Identity();
+  seedingRefSurfTransform.translation() =
+      // Acts::Vector3(goInst.pdcWindowCenterPrimary - 0.1_mm, 0, 0);
+      Acts::Vector3(goInst.ipTcDistance + 2 * goInst.tcHalfPrimary + 0.1_mm, 0,
+                    0);
+  seedingRefSurfTransform.rotate(refSurfToWorldRotationX);
+  seedingRefSurfTransform.rotate(refSurfToWorldRotationY);
+  seedingRefSurfTransform.rotate(refSurfToWorldRotationZ);
+
+  auto seedingRefSurface = Acts::Surface::makeShared<Acts::PlaneSurface>(
+      seedingRefSurfTransform,
+      std::make_shared<Acts::RectangleBounds>(halfX, halfY));
+
+  Acts::GeometryIdentifier seedingRefSurfaceGeoId;
+  seedingRefSurfaceGeoId.setExtra(1);
+  seedingRefSurface->assignGeometryId(seedingRefSurfaceGeoId);
+
   AlignmentAlgorithm::Config alignmentCfg{
       .inputTrackCandidates = "SeedsGuess",
       .outputAlignmentParameters = "AlignmentParameters",
       .align = AlignmentAlgorithm::makeAlignmentFunction(detector, field),
-      .alignedTransformUpdater = detail::makeGlobalAlignmentUpdater(alignCtx),
+      .alignmentTransformUpdater = detail::makeGlobalAlignmentUpdater(alignCtx),
+
+      .outputSeeds = "SeedsGuessCorrected",
+      .referenceSurface = seedingRefSurface.get(),
+
       .kfOptions = alignmentKFOptions,
       .chi2ONdfCutOff = 1e-16,
       .deltaChi2ONdfCutOff = {10, 1e-5},
-      .maxNumIterations = 100,
+      .maxAlignmentFitNumIt = 100,
       .alignmentMask = (ActsAlignment::AlignmentMask::Center1 |
                         ActsAlignment::AlignmentMask::Center2 |
                         ActsAlignment::AlignmentMask::Rotation2),
       .alignmentMode = ActsAlignment::AlignmentMode::global,
+      .maxSingularValueTol = 5e-3,
+      .singularValueGapTol = 5e-1,
+      .rigidAngleScale = 1e-0,
       .originCov = trackOriginCov,
-      .constraints = {}};
+      .constraints = {},
+      .nRefittingIt = nAnnealingIt,
+      .annealingScheduler = annealingScheduler};
+
+  alignmentCfg.surfaceAccessor
+      .connect<&SimpleSourceLink::SurfaceAccessor::operator()>(
+          &simpleSurfaceAccessor);
 
   for (auto& det : detector->detectorElements()) {
     const auto& surface = det->surface();
     const auto& geoId = surface.geometryId().sensitive();
-    if (geoId && surface.geometryId().sensitive() >= 10 &&
+    if (geoId != 0u && surface.geometryId().sensitive() >= 10 &&
         surface.geometryId().sensitive() < 40) {
       alignmentCfg.alignedDetElements.push_back(det.get());
     }
@@ -378,7 +435,7 @@ int main() {
 
   // Add the track fitting algorithm to the sequencer
   KFTrackFittingAlgorithm::Config fitterCfg{
-      .inputTrackCandidates = "SeedsGuess",
+      .inputTrackCandidates = "SeedsGuessCorrected",
       .outputTracks = "Tracks",
       .fitter = fitter,
       .kfOptions = options};
@@ -430,7 +487,7 @@ int main() {
 
   for (auto& v : detector->volumes()) {
     for (auto& s : v->surfaces()) {
-      if (s->geometryId().sensitive()) {
+      if (s->geometryId().sensitive() != 0u) {
         std::cout << "-----------------------------------\n";
         std::cout << "SURFACE " << s->geometryId() << "\n";
         std::cout << "CENTER " << s->center(gctx).transpose() << " -- "

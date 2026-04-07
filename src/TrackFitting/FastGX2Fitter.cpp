@@ -1,6 +1,10 @@
+#include "TrackingPipeline/TrackFitting/FastGX2Fitter.hpp"
+
+#include "Acts/Definitions/Algebra.hpp"
+
+#include <cstddef>
 
 #include "TrackingPipeline/EventData/SimpleSourceLink.hpp"
-#include "TrackingPipeline/TrackFitting/FastGX2Fiter.hpp"
 
 using namespace Acts::UnitLiterals;
 
@@ -19,17 +23,34 @@ FastGX2Fitter::FastGX2Fitter(const Config& cfg) : m_cfg(cfg) {
 double FastGX2Fitter::gx2Fit(const Acts::GeometryContext& gctx,
                              const std::vector<Acts::SourceLink>& sourceLinks,
                              const std::vector<std::size_t>& sourceLinksIndices,
-                             Acts::Vector3& pos, Acts::Vector3& dir,
+                             double thetaMcsRms, Acts::Vector3& pos,
+                             Acts::Vector3& dir,
                              Acts::ActsSquareMatrix<6>& cov) {
-  Acts::ActsDynamicMatrix G =
-      Acts::ActsDynamicMatrix::Zero(2 * sourceLinksIndices.size(), 4);
-
-  Eigen::VectorXd X(2 * sourceLinksIndices.size());
+  std::vector<std::size_t> filteredSourceLinksIndices;
+  filteredSourceLinksIndices.reserve(m_cfg.surfaceMap.size());
   for (std::size_t i = 0; i < sourceLinksIndices.size(); i++) {
     std::size_t idx = sourceLinksIndices.at(i);
     const auto& ssl = sourceLinks.at(idx).get<SimpleSourceLink>();
-    const Acts::Vector3& parameters = ssl.parametersGlob();
     const auto& geoId = ssl.geometryId();
+    if (geoId.sensitive() < m_firstLayerGeoId.sensitive() ||
+        geoId.sensitive() > m_lastLayerGeoId.sensitive()) {
+      continue;
+    }
+    filteredSourceLinksIndices.push_back(idx);
+  }
+
+  std::size_t nSourceLinks = filteredSourceLinksIndices.size();
+
+  Acts::ActsDynamicMatrix G =
+      Acts::ActsDynamicMatrix::Zero(2 * nSourceLinks, 4);
+
+  Eigen::VectorXd X(2 * nSourceLinks);
+  for (std::size_t i = 0; i < nSourceLinks; i++) {
+    std::size_t idx = filteredSourceLinksIndices.at(i);
+    const auto& ssl = sourceLinks.at(idx).get<SimpleSourceLink>();
+    const auto& geoId = ssl.geometryId();
+    const Acts::Vector3& parameters = m_cfg.surfaceMap.at(geoId)->localToGlobal(
+        gctx, ssl.parametersLoc(), Acts::Vector3::UnitX());
     X(2 * i) = parameters(m_cfg.longIdx);
     X(2 * i + 1) = parameters(m_cfg.shortIdx);
 
@@ -39,7 +60,7 @@ double FastGX2Fitter::gx2Fit(const Acts::GeometryContext& gctx,
     G(2 * i + 1, 3) = m_primaryInterlayerDistance * i;
   }
   Eigen::LDLT<Acts::ActsDynamicMatrix> ldltD(
-      constructCov(sourceLinks, sourceLinksIndices, dir));
+      constructCov(sourceLinks, filteredSourceLinksIndices, dir, thetaMcsRms));
   Acts::SquareMatrix4 B = G.transpose() * ldltD.solve(G);
   Acts::Vector4 estimates = B.ldlt().solve(G.transpose() * ldltD.solve(X));
 
@@ -54,7 +75,6 @@ double FastGX2Fitter::gx2Fit(const Acts::GeometryContext& gctx,
   dir(m_cfg.longIdx) = tLong;
   dir(m_cfg.shortIdx) = tShort;
   dir.normalize();
-
   double denom = std::pow(1 + tLong * tLong + tShort * tShort, 1.5);
 
   Acts::ActsMatrix<6, 4> jacToGlob;
@@ -78,11 +98,11 @@ double FastGX2Fitter::gx2Fit(const Acts::GeometryContext& gctx,
 Acts::ActsDynamicMatrix FastGX2Fitter::constructCov(
     const std::vector<Acts::SourceLink>& sourceLinks,
     const std::vector<std::size_t>& sourceLinksIndices,
-    const Acts::Vector3& dir) {
+    const Acts::Vector3& dir, double thetaMcsRms) {
   Acts::ActsDynamicMatrix D = Acts::ActsDynamicMatrix::Zero(
       2 * sourceLinksIndices.size(), 2 * sourceLinksIndices.size());
   double mcsVarFactor =
-      std::pow(m_primaryInterlayerDistance * dir.x() * m_cfg.thetaMcpRms, 2);
+      std::pow(m_primaryInterlayerDistance * dir.x() * thetaMcsRms, 2);
   for (std::size_t i = 0; i < sourceLinksIndices.size(); i++) {
     std::size_t idx = sourceLinksIndices.at(i);
     const auto& ssl = sourceLinks.at(idx).get<SimpleSourceLink>();

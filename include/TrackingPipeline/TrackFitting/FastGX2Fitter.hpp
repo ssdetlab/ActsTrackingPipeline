@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Acts/Definitions/Algebra.hpp"
 #include "Acts/EventData/SourceLink.hpp"
 #include "Acts/Surfaces/Surface.hpp"
 
@@ -16,8 +17,6 @@ class FastGX2Fitter {
  public:
   /// @brief config struct
   struct Config {
-    /// RMS of the multiple scattering angle
-    double thetaMcpRms;
     /// Coordinate indices
     std::size_t primaryIdx;
     std::size_t longIdx;
@@ -29,6 +28,9 @@ class FastGX2Fitter {
     std::unordered_map<Acts::GeometryIdentifier, const Acts::Surface*>
         surfaceMap;
   };
+
+  static const std::size_t covarianceDim = 6;
+  using Covariance = Acts::ActsSquareMatrix<covarianceDim>;
 
   /// @brief constructor
   explicit FastGX2Fitter(const Config& cfg);
@@ -45,15 +47,15 @@ class FastGX2Fitter {
   double gx2Fit(const Acts::GeometryContext& gctx,
                 const std::vector<Acts::SourceLink>& sourceLinks,
                 const std::vector<std::size_t>& sourceLinksIndices,
-                Acts::Vector3& pos, Acts::Vector3& dir,
-                Acts::ActsSquareMatrix<6>& cov);
+                double thetaMcsRms, Acts::Vector3& pos, Acts::Vector3& dir,
+                Covariance& cov);
 
  private:
   /// @brief global covariance construction
   Acts::ActsDynamicMatrix constructCov(
       const std::vector<Acts::SourceLink>& sourceLinks,
       const std::vector<std::size_t>& sourceLinksIndices,
-      const Acts::Vector3& dir);
+      const Acts::Vector3& dir, double thetaMcsRms);
 
   Config m_cfg;
 

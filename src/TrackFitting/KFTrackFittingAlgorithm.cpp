@@ -5,7 +5,7 @@
 #include <cstddef>
 #include <vector>
 
-#include "TrackingPipeline/Utilities/NonOwningVectorProjectionIterator.hpp"
+#include "TrackingPipeline/Utilities/NonOwningProjectionIterator.hpp"
 
 KFTrackFittingAlgorithm::KFTrackFittingAlgorithm(const Config& config,
                                                  Acts::Logging::Level level)
@@ -46,9 +46,8 @@ ProcessCode KFTrackFittingAlgorithm::execute(
     tracks.emplace_back(idx, candidate.originParametersIndex,
                         candidate.trackId);
 
-    NonOwningVectorProjectionIterator begin(inputSourceLinks,
-                                            sourceLinkIndices);
-    NonOwningVectorProjectionIterator end = begin + sourceLinkIndices.size();
+    NonOwningProjectionIterator begin(inputSourceLinks, sourceLinkIndices);
+    NonOwningProjectionIterator end = begin + sourceLinkIndices.size();
     const auto& startParameters =
         inputTrackParameters.at(candidate.originParametersIndex);
 

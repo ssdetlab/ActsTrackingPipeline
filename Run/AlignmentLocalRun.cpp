@@ -20,7 +20,7 @@
 
 #include "TrackingPipeline/Alignment/AlignmentAlgorithm.hpp"
 #include "TrackingPipeline/Alignment/AlignmentContext.hpp"
-#include "TrackingPipeline/Alignment/LinerAnnealingScheduler.hpp"
+#include "TrackingPipeline/Alignment/LinearAnnealingScheduler.hpp"
 #include "TrackingPipeline/Alignment/detail/AlignmentStoreBuilders.hpp"
 #include "TrackingPipeline/Alignment/detail/AlignmentStoreUpdaterBuilders.hpp"
 #include "TrackingPipeline/EventData/ExtendedSourceLink.hpp"
@@ -81,7 +81,7 @@ int main() {
     for (const auto& surf : vol->surfaces()) {
       std::cout << surf->geometryId() << "\n";
       std::cout << surf->polyhedronRepresentation(gctx, 1000).extent() << "\n";
-      if (surf->geometryId().sensitive()) {
+      if (surf->geometryId().sensitive() != 0u) {
         surfaceMap[surf->geometryId()] = surf;
       }
     }
@@ -92,7 +92,7 @@ int main() {
   Acts::GeometryContext testCtx{alignCtx};
   for (auto& v : detector->volumes()) {
     for (auto& s : v->surfaces()) {
-      if (s->geometryId().sensitive()) {
+      if (s->geometryId().sensitive() != 0u) {
         std::cout << "-----------------------------------\n";
         std::cout << "SURFACE " << s->geometryId() << "\n";
         std::cout << "CENTER " << s->center(testCtx).transpose() << " -- "
@@ -154,7 +154,7 @@ int main() {
 
   Acts::GeometryIdentifier geoId;
   geoId.setExtra(1);
-  refSurface->assignGeometryId(std::move(geoId));
+  refSurface->assignGeometryId(geoId);
 
   // --------------------------------------------------------------
   // Event reading
@@ -179,7 +179,7 @@ int main() {
       std::make_shared<GeometryContextDecorator>(aStore));
 
   // Add the sim data reader
-  RootTrackReader::Constraints readerConstraints;
+  RootTrackReader::Constraints readerConstraints{};
   readerConstraints.minChi2 = 0;
   readerConstraints.maxChi2 = 40;
   readerConstraints.minVertexEstLong = -1e6;
@@ -269,7 +269,7 @@ int main() {
 
   // Annealing scheduler
   std::size_t nAnnealingIt = 5;
-  LinearAnnealingScheduler::Config annealingSchedulerCfg;
+  LinearAnnealingScheduler::Config annealingSchedulerCfg{};
   annealingSchedulerCfg.alphaStart = 1e3;
   annealingSchedulerCfg.alphaEnd = 1e0;
   annealingSchedulerCfg.nIt = nAnnealingIt;
@@ -281,11 +281,11 @@ int main() {
       .inputTrackCandidates = "SeedsEst",
       .outputAlignmentParameters = "AlignmentParameters",
       .align = AlignmentAlgorithm::makeAlignmentFunction(detector, field),
-      .alignedTransformUpdater = detail::makeLocalAlignmentUpdater(alignCtx),
+      .alignmentTransformUpdater = detail::makeLocalAlignmentUpdater(alignCtx),
       .kfOptions = alignmentKFOptions,
       .chi2ONdfCutOff = 1e-16,
       .deltaChi2ONdfCutOff = {10, 1e-5},
-      .maxNumIterations = 200,
+      .maxAlignmentFitNumIt = 200,
       .alignmentMask = (ActsAlignment::AlignmentMask::Center1 |
                         ActsAlignment::AlignmentMask::Center2 |
                         ActsAlignment::AlignmentMask::Rotation2),
@@ -301,7 +301,7 @@ int main() {
   for (auto& det : detector->detectorElements()) {
     const auto& surface = det->surface();
     const auto& geoId = surface.geometryId().sensitive();
-    if (geoId && surface.geometryId().sensitive() >= 10 &&
+    if (geoId != 0u && surface.geometryId().sensitive() >= 10 &&
         surface.geometryId().sensitive() < 40) {
       alignmentCfg.alignedDetElements.push_back(det.get());
     }
@@ -410,7 +410,7 @@ int main() {
 
   for (auto& v : detector->volumes()) {
     for (auto& s : v->surfaces()) {
-      if (s->geometryId().sensitive()) {
+      if (s->geometryId().sensitive() != 0u) {
         std::cout << "-----------------------------------\n";
         std::cout << "SURFACE " << s->geometryId() << "\n";
         std::cout << "CENTER " << s->center(gctx).transpose() << " -- "
@@ -442,6 +442,7 @@ int main() {
       }
     }
   }
+  std::cout << "ALIGNMENT COVARIANCE:\n" << aStore->covariance << "\n";
 
   return 0;
 }

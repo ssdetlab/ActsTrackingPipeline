@@ -60,7 +60,7 @@ std::vector<std::size_t> HoughTransformSeeder::findLineSourceLinks(
   std::vector<std::size_t> seedSourceLinkIdxs;
   for (std::size_t i = 0; i < sourceLinksIndices.size(); i++) {
     std::size_t idx = sourceLinksIndices.at(i);
-    const auto &ssl = sourceLinks[idx].get<SimpleSourceLink>();
+    const auto &ssl = sourceLinks.at(idx).get<SimpleSourceLink>();
     Acts::Vector3 meas = ssl.parametersGlob() - shift;
     const auto &id = ssl.geometryId();
 
@@ -283,13 +283,14 @@ void HoughTransformSeeder::fillVotingMap(
     double deltaThetaLong, double deltaRhoLong, double maxRhoLong,
     double maxRhoShort) {
   std::unordered_map<int, std::vector<std::size_t>> clusters;
-  std::vector<int> geoIds;
   clusters.reserve(sourceLinksIndices.size());
   for (std::size_t i = 0; i < sourceLinksIndices.size(); i++) {
+    std::size_t idx = sourceLinksIndices.at(i);
     int geoId =
-        sourceLinks.at(i).get<SimpleSourceLink>().geometryId().sensitive();
-    clusters[geoId].push_back(sourceLinksIndices.at(i));
+        sourceLinks.at(idx).get<SimpleSourceLink>().geometryId().sensitive();
+    clusters[geoId].push_back(idx);
   }
+  std::vector<int> geoIds;
   geoIds.reserve(clusters.size());
   for (const auto &[geoId, sls] : clusters) {
     geoIds.push_back(geoId);
@@ -306,7 +307,7 @@ void HoughTransformSeeder::fillVotingMap(
       const auto &sClusters = clusters.at(sId);
 
       for (std::size_t n = 0; n < fClusters.size(); n++) {
-        Acts::Vector3 flPoint = sourceLinks.at(fClusters[n])
+        Acts::Vector3 flPoint = sourceLinks.at(fClusters.at(n))
                                     .get<SimpleSourceLink>()
                                     .parametersGlob() -
                                 shift;
@@ -314,7 +315,7 @@ void HoughTransformSeeder::fillVotingMap(
         double flLong = flPoint(longIdx);
         double flShort = flPoint(shortIdx);
         for (std::size_t m = 0; m < sClusters.size(); m++) {
-          Acts::Vector3 slPoint = sourceLinks.at(sClusters[m])
+          Acts::Vector3 slPoint = sourceLinks.at(sClusters.at(m))
                                       .get<SimpleSourceLink>()
                                       .parametersGlob() -
                                   shift;

@@ -2,6 +2,7 @@
 
 #include "Acts/EventData/SourceLink.hpp"
 #include "Acts/Utilities/Logger.hpp"
+#include <Acts/EventData/TrackParameters.hpp>
 
 #include <cstddef>
 
@@ -36,13 +37,17 @@ class RootSimTrackReader : public IReader {
   /// @brief The nested configuration struct
   struct Config {
     /// Output source links
-    std::string outputMeasurements;
+    std::string outputSourceLinks;
     /// Output sim clusters
     std::string outputSimClusters;
     /// Output seeds
     std::string outputSeedsGuess;
+    /// Output track parameters guess
+    std::string outputTrackParametersGuess;
     /// Output fitted seeds
     std::string outputSeedsEst;
+    /// Output track parameters est
+    std::string outputTrackParametersEst;
     /// The names of the input files
     std::vector<std::string> filePaths;
     /// Name of the input tree
@@ -82,16 +87,22 @@ class RootSimTrackReader : public IReader {
 
   /// WriteDataHandle for the observable data
   WriteDataHandle<std::vector<Acts::SourceLink>> m_outputSourceLinks{
-      this, "OutputData"};
+      this, "OutputSourceLinks"};
 
   /// WriteDataHandle for the sim cluster data
-  WriteDataHandle<SimClusters> m_outputSimClusters{this, "SimClusters"};
+  WriteDataHandle<SimClusters> m_outputSimClusters{this, "OutputSimClusters"};
 
   /// WriteDataHandle for the seed data
-  WriteDataHandle<Seeds> m_outputSeedsGuess{this, "SeedsGuess"};
+  WriteDataHandle<IndexSeeds> m_outputSeedsGuess{this, "SeedsGuess"};
+
+  WriteDataHandle<std::vector<Acts::CurvilinearTrackParameters>>
+      m_outputTrackParametersGuess{this, "OutputTrackParametersGuess"};
 
   /// WriteDataHandle for the fitted seed data
-  WriteDataHandle<Seeds> m_outputSeedsEst{this, "SeedsEst"};
+  WriteDataHandle<IndexSeeds> m_outputSeedsEst{this, "SeedsEst"};
+
+  WriteDataHandle<std::vector<Acts::CurvilinearTrackParameters>>
+      m_outputTrackParametersEst{this, "OutputTrackParametersEst"};
 
   std::unique_ptr<const Acts::Logger> m_logger;
 
@@ -198,19 +209,19 @@ class RootSimTrackReader : public IReader {
   TMatrixD* m_boundTrackCovTruth = nullptr;
 
   /// Initial guess of the momentum at the IP
-  TLorentzVector* m_ipMomentumGuess = nullptr;
+  TLorentzVector* m_originMomentumGuess = nullptr;
 
   /// Initial guess of the vertex at the IP
   TVector3* m_vertexGuess = nullptr;
 
   /// KF predicted momentum at the IP
-  TLorentzVector* m_ipMomentumEst = nullptr;
+  TLorentzVector* m_originMomentumEst = nullptr;
 
   /// KF predicted vertex at the IP
   TVector3* m_vertexEst = nullptr;
 
   /// True momentum at the IP
-  TLorentzVector* m_ipMomentumTruth = nullptr;
+  TLorentzVector* m_originMomentumTruth = nullptr;
 
   /// True vertex at the IP
   TVector3* m_vertexTruth = nullptr;

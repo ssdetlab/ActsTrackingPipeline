@@ -14,7 +14,7 @@
 #include "TrackingPipeline/Io/JsonTrackLookupWriter.hpp"
 #include "TrackingPipeline/Io/RootSimClusterWriter.hpp"
 #include "TrackingPipeline/MagneticField/CompositeMagField.hpp"
-#include "TrackingPipeline/MagneticField/ConstantBoundedField.hpp"
+#include "TrackingPipeline/MagneticField/ConstantBoundedMagField.hpp"
 #include "TrackingPipeline/MagneticField/DipoleMagField.hpp"
 #include "TrackingPipeline/MagneticField/IdealQuadrupoleMagField.hpp"
 #include "TrackingPipeline/Simulation/GaussianVertexGenerator.hpp"

@@ -22,4 +22,5 @@ target_sources(
     AlignmentParametersProvider.cpp
     JsonMaterialWriter.cpp
     E320RootDataReader.cpp
+    E320RootSimClusterReader.cpp
 )

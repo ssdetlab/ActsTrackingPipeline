@@ -6,6 +6,7 @@ target_sources(
     IdealSeedingAlgorithm.cpp
     HoughTransformSeeder.cpp
     E320SeedingAlgorithm.cpp
+    E320TrackParametersEstimator.cpp
     TrackLookupProvider.cpp
     TrackLookupAccumulator.cpp
     TrackLookupEstimationAlgorithm.cpp

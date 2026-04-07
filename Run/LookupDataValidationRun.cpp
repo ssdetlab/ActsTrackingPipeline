@@ -10,7 +10,7 @@
 #include "TrackingPipeline/Io/DummyReader.hpp"
 #include "TrackingPipeline/Io/RootTrackLookupValidationWriter.hpp"
 #include "TrackingPipeline/MagneticField/CompositeMagField.hpp"
-#include "TrackingPipeline/MagneticField/ConstantBoundedField.hpp"
+#include "TrackingPipeline/MagneticField/ConstantBoundedMagField.hpp"
 #include "TrackingPipeline/MagneticField/DipoleMagField.hpp"
 #include "TrackingPipeline/MagneticField/IdealQuadrupoleMagField.hpp"
 #include "TrackingPipeline/MagneticField/QuadrupoleMagField.hpp"

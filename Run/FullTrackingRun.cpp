@@ -22,32 +22,22 @@
 #include <unistd.h>
 
 #include "TrackingPipeline/Alignment/detail/AlignmentStoreBuilders.hpp"
-#include "TrackingPipeline/EventData/DataContainers.hpp"
 #include "TrackingPipeline/Geometry/E320Geometry.hpp"
 #include "TrackingPipeline/Geometry/E320GeometryConstraints.hpp"
 #include "TrackingPipeline/Geometry/GeometryContextDecorator.hpp"
 #include "TrackingPipeline/Infrastructure/Sequencer.hpp"
+#include "TrackingPipeline/Infrastructure/TypeDefinitions.hpp"
 #include "TrackingPipeline/Io/AlignmentParametersProvider.hpp"
 #include "TrackingPipeline/Io/E320RootDataReader.hpp"
 #include "TrackingPipeline/Io/RootMeasurementWriter.hpp"
 #include "TrackingPipeline/Io/RootSeedWriter.hpp"
 #include "TrackingPipeline/Io/RootTrackWriter.hpp"
 #include "TrackingPipeline/TrackFinding/E320SeedingAlgorithm.hpp"
+#include "TrackingPipeline/TrackFinding/E320TrackParametersEstimator.hpp"
 #include "TrackingPipeline/TrackFinding/HoughTransformSeeder.hpp"
+#include "TrackingPipeline/TrackFitting/FastGX2Fitter.hpp"
 #include "TrackingPipeline/TrackFitting/KFTrackFittingAlgorithm.hpp"
 #include "TrackingPipeline/Utilities/ThetaMcsRmsCalculator.hpp"
-
-// Propagator short-hands
-using ActionList = Acts::ActionList<>;
-using AbortList = Acts::AbortList<Acts::EndOfWorldReached>;
-
-using Propagator = Acts::Propagator<Acts::EigenStepper<>,
-                                    Acts::Experimental::DetectorNavigator>;
-using PropagatorOptions =
-    typename Propagator::template Options<ActionList, AbortList>;
-
-// KF short-hands
-using KF = Acts::KalmanFitter<Propagator, KFFitterTrajectory>;
 
 using namespace Acts::UnitLiterals;
 
@@ -268,20 +258,12 @@ int main() {
   // Seeding setup
 
   // GX2 fitter setup
-  double sensorThickness = 50_um;
-  double particleAbsMom = 2.5_GeV;
-  double particleCharge = 1_e;
-
-  double thetaRms =
-      detail::getMcpThetaRmsSi(sensorThickness, particleAbsMom, particleCharge);
-
   FastGX2Fitter::Config gx2FitterCfg{};
   gx2FitterCfg.primaryIdx = goInst.primaryIdx;
   gx2FitterCfg.longIdx = goInst.longIdx;
   gx2FitterCfg.shortIdx = goInst.shortIdx;
   gx2FitterCfg.firstLayerGeoId = goInst.tcParameters.front().geoId;
   gx2FitterCfg.lastLayerGeoId = goInst.tcParameters.back().geoId;
-  gx2FitterCfg.thetaMcpRms = thetaRms;
   gx2FitterCfg.surfaceMap = gx2FitterSurfaceMap;
 
   auto gx2Fitter = std::make_shared<FastGX2Fitter>(gx2FitterCfg);
@@ -320,7 +302,18 @@ int main() {
   trackOriginStdDevPrior[Acts::eBoundQOverP] = 1 / 0.01_GeV;
   trackOriginStdDevPrior[Acts::eBoundTime] = 1_fs;
 
-  E320SeedingAlgorithm::Config seedingAlgoCfg;
+  // Track parameters estimator
+  E320::E320TrackParametersEstimator::Config trackParametersEstimatorCfg{};
+  trackParametersEstimatorCfg.gx2Fitter = gx2Fitter;
+  trackParametersEstimatorCfg.nIterations = 2;
+  trackParametersEstimatorCfg.maxChi2 = std::numeric_limits<double>::max();
+  trackParametersEstimatorCfg.referenceSurface = seedingRefSurface.get();
+  trackParametersEstimatorCfg.originCov =
+      trackOriginStdDevPrior.cwiseProduct(trackOriginStdDevPrior).asDiagonal();
+  trackParametersEstimatorCfg.propDirection =
+      E320::E320TrackParametersEstimator::PropagationDirection::forward;
+
+  E320::E320SeedingAlgorithm::Config seedingAlgoCfg;
   seedingAlgoCfg.htSeeder = std::make_shared<HoughTransformSeeder>(htSeederCfg);
   seedingAlgoCfg.htOptions = htSeederOpt;
   seedingAlgoCfg.inputSourceLinks = "SourceLinks";
@@ -328,25 +321,17 @@ int main() {
   seedingAlgoCfg.inputBpmSourceLinkIndices = "BpmSourceLinkIndices";
   seedingAlgoCfg.outputSeeds = "Seeds";
   seedingAlgoCfg.outputTrackParameters = "TrackParameters";
-  seedingAlgoCfg.gx2Fitter = gx2Fitter;
-  seedingAlgoCfg.nGX2Iterations = 2;
-  seedingAlgoCfg.maxChi2 = 1e2;
-  seedingAlgoCfg.referenceSurface = seedingRefSurface.get();
-  seedingAlgoCfg.originCov =
-      trackOriginStdDevPrior.cwiseProduct(trackOriginStdDevPrior).asDiagonal();
   seedingAlgoCfg.minLayers = 5;
   seedingAlgoCfg.maxLayers = 5;
-  seedingAlgoCfg.propDirection =
-      E320SeedingAlgorithm::PropagationDirection::backward;
 
   sequencer.addAlgorithm(
-      std::make_shared<E320SeedingAlgorithm>(seedingAlgoCfg, logLevel));
+      std::make_shared<E320::E320SeedingAlgorithm>(seedingAlgoCfg, logLevel));
 
   // --------------------------------------------------------------
   // Track fitting
 
-  Acts::GainMatrixUpdater kfUpdater;
-  Acts::GainMatrixSmoother kfSmoother;
+  KFFitterGainUpdater kfUpdater;
+  KFFitterGainSmoother kfSmoother;
 
   // Initialize track fitter options
   Acts::KalmanFitterExtensions<KFFitterTrajectory> extensions;
@@ -355,18 +340,18 @@ int main() {
       .connect<&simpleSourceLinkCalibrator<KFFitterTrajectory>>();
   // Add the updater
   extensions.updater
-      .connect<&Acts::GainMatrixUpdater::operator()<KFFitterTrajectory>>(
+      .connect<&KFFitterGainUpdater::operator()<KFFitterTrajectory>>(
           &kfUpdater);
   // Add the smoother
   extensions.smoother
-      .connect<&Acts::GainMatrixSmoother::operator()<KFFitterTrajectory>>(
+      .connect<&KFFitterGainSmoother::operator()<KFFitterTrajectory>>(
           &kfSmoother);
   // Add the surface accessor
   extensions.surfaceAccessor
       .connect<&SimpleSourceLink::SurfaceAccessor::operator()>(
           &surfaceAccessor);
 
-  auto propOptions = PropagatorOptions(gctx, mctx);
+  auto propOptions = KFFitterPropagatorOptions(gctx, mctx);
 
   propOptions.maxSteps = 1e5;
 
@@ -375,20 +360,20 @@ int main() {
 
   options.referenceSurface = trackingRefSurface.get();
 
-  Acts::Experimental::DetectorNavigator::Config cfg;
+  Navigator::Config cfg;
   cfg.detector = detector.get();
   cfg.resolvePassive = false;
   cfg.resolveMaterial = true;
   cfg.resolveSensitive = true;
-  Acts::Experimental::DetectorNavigator kfNavigator(
-      cfg, Acts::getDefaultLogger("DetectorNavigator", logLevel));
+  Navigator kfNavigator(cfg,
+                        Acts::getDefaultLogger("DetectorNavigator", logLevel));
 
   Acts::EigenStepper<> kfStepper(std::move(field));
   auto kfPropagator =
       Propagator(std::move(kfStepper), std::move(kfNavigator),
                  Acts::getDefaultLogger("Propagator", logLevel));
 
-  const auto fitter = KF(
+  const auto fitter = KFFitter(
       kfPropagator, Acts::getDefaultLogger("DetectorKalmanFilter", logLevel));
 
   // Add the track fitting algorithm to the sequencer

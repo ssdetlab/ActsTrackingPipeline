@@ -1,11 +1,11 @@
 #pragma once
 
 #include "Acts/EventData/TrackParameters.hpp"
-#include "Acts/TrackFitting/KalmanFitter.hpp"
 
 #include "TrackingPipeline/EventData/DataContainers.hpp"
 #include "TrackingPipeline/Infrastructure/DataHandle.hpp"
 #include "TrackingPipeline/Infrastructure/IAlgorithm.hpp"
+#include "TrackingPipeline/Infrastructure/TypeDefinitions.hpp"
 
 class KFTrackFittingAlgorithm : public IAlgorithm {
  public:
@@ -22,7 +22,7 @@ class KFTrackFittingAlgorithm : public IAlgorithm {
     /// Output track container
     std::string outputTracks;
     /// KF fitter
-    const Acts::KalmanFitter<KFFitterPropagator, KFFitterTrajectory>& fitter;
+    const KFFitter& fitter;
     /// KF options
     KFFitterOptions kfOptions;
   };
