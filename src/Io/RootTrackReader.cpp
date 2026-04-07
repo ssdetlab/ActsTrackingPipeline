@@ -6,11 +6,11 @@
 #include <Acts/EventData/TrackParameters.hpp>
 #include <Acts/Utilities/Logger.hpp>
 
+#include <cstddef>
 #include <stdexcept>
 #include <vector>
 
-#include <TFile.h>
-
+#include "TFile.h"
 #include "TrackingPipeline/EventData/DataContainers.hpp"
 #include "TrackingPipeline/EventData/SimpleSourceLink.hpp"
 
@@ -48,7 +48,7 @@ RootTrackReader::RootTrackReader(const Config& config,
   m_tree->SetBranchAddress("trackHitsLocal", &m_trackHitsLocal);
 
   // Covariances of the track hits
-  m_tree->SetBranchAddress("trackHitCovs", &m_trackHitCovs);
+  m_tree->SetBranchAddress("trackHitsCovs", &m_trackHitCovs);
 
   // Geometry ids of the track hits
   m_tree->SetBranchAddress("geometryIds", &m_geometryIds);
@@ -87,13 +87,13 @@ RootTrackReader::RootTrackReader(const Config& config,
   m_tree->SetBranchAddress("boundTrackCovEst", &m_boundTrackCovEst);
 
   /// Initial guess of the momentum at the IP
-  m_tree->SetBranchAddress("ipMomentumGuess", &m_ipMomentumGuess);
+  m_tree->SetBranchAddress("originMomentumGuess", &m_originMomentumGuess);
 
   /// Initial guess of the vertex at the IP
   m_tree->SetBranchAddress("vertexGuess", &m_vertexGuess);
 
   /// KF predicted momentum at the IP
-  m_tree->SetBranchAddress("ipMomentumEst", &m_ipMomentumEst);
+  m_tree->SetBranchAddress("originMomentumEst", &m_originMomentumEst);
 
   /// KF predicted vertex at the IP
   m_tree->SetBranchAddress("vertexEst", &m_vertexEst);
@@ -151,9 +151,13 @@ RootTrackReader::RootTrackReader(const Config& config,
                              << availableEvents().second);
 
   // Initialize the data handles
-  m_outputSourceLinks.initialize(m_cfg.outputMeasurements);
+  m_outputSourceLinks.initialize(m_cfg.outputSourceLinks);
+
   m_outputSeedsGuess.initialize(m_cfg.outputSeedsGuess);
+  m_outputTrackParametersGuess.initialize(m_cfg.outputTrackParametersGuess);
+
   m_outputSeedsEst.initialize(m_cfg.outputSeedsEst);
+  m_outputTrackParametersEst.initialize(m_cfg.outputTrackParametersEst);
 }
 
 std::pair<std::size_t, std::size_t> RootTrackReader::availableEvents() const {
@@ -166,7 +170,7 @@ ProcessCode RootTrackReader::read(const AlgorithmContext& ctx) {
   });
 
   if (it == m_eventMap.end()) {
-    // explicitly warn if it happens for the first or last event as that might
+    // Explicitly warn if it happens for the first or last event as that might
     // indicate a human error
     if ((ctx.eventNumber == availableEvents().first) &&
         (ctx.eventNumber == availableEvents().second - 1)) {
@@ -176,6 +180,12 @@ ProcessCode RootTrackReader::read(const AlgorithmContext& ctx) {
     }
 
     m_outputSourceLinks(ctx, {});
+
+    m_outputSeedsGuess(ctx, {});
+    m_outputTrackParametersGuess(ctx, {});
+
+    m_outputSeedsEst(ctx, {});
+    m_outputTrackParametersEst(ctx, {});
 
     // Return success flag
     return ProcessCode::SUCCESS;
@@ -190,10 +200,14 @@ ProcessCode RootTrackReader::read(const AlgorithmContext& ctx) {
 
   // Create the measurements
   std::vector<Acts::SourceLink> sourceLinks{};
-  Seeds seedsGuess{};
-  Seeds seedsEst{};
+
+  IndexSeeds seedsGuess{};
+  std::vector<Acts::CurvilinearTrackParameters> trackParametersGuess{};
+
+  IndexSeeds seedsEst{};
+  std::vector<Acts::CurvilinearTrackParameters> trackParametersEst{};
+
   std::size_t eventId = std::get<0>(*it);
-  std::size_t sslIdx = 0;
   const Constraints& constraints = m_cfg.constraints;
   for (auto entry = std::get<1>(*it); entry < std::get<2>(*it); entry++) {
     m_tree->GetEntry(entry);
@@ -210,8 +224,8 @@ ProcessCode RootTrackReader::read(const AlgorithmContext& ctx) {
         m_vertexEst->Z() > constraints.maxVertexEstShort) {
       continue;
     }
-    if (m_ipMomentumEst->P() < constraints.minAbsMomentumEst ||
-        m_ipMomentumEst->P() > constraints.maxAbsMomentumEst) {
+    if (m_originMomentumEst->P() < constraints.minAbsMomentumEst ||
+        m_originMomentumEst->P() > constraints.maxAbsMomentumEst) {
       continue;
     }
 
@@ -224,29 +238,7 @@ ProcessCode RootTrackReader::read(const AlgorithmContext& ctx) {
       }
     }
 
-    // Initial guess
-    Acts::Vector4 vertexGuess(m_vertexGuess->X(), m_vertexGuess->Y(),
-                              m_vertexGuess->Z(), 0);
-    Acts::Vector3 ipDirectionGuess(
-        m_ipMomentumGuess->X(), m_ipMomentumGuess->Y(), m_ipMomentumGuess->Z());
-    ipDirectionGuess.normalize();
-    Acts::ParticleHypothesis hypothesis =
-        Acts::ParticleHypothesis(Acts::PdgParticle(m_pdgId));
-    Acts::CurvilinearTrackParameters ipParametersGuess(
-        vertexGuess, ipDirectionGuess, m_charge / m_ipMomentumGuess->P(),
-        ipCovGuess, hypothesis);
-
-    // Estimated
-    Acts::Vector4 vertexEst(m_vertexEst->X(), m_vertexEst->Y(),
-                            m_vertexEst->Z(), 0);
-    Acts::Vector3 ipDirectionEst(m_ipMomentumEst->X(), m_ipMomentumEst->Y(),
-                                 m_ipMomentumEst->Z());
-    ipDirectionEst.normalize();
-    Acts::CurvilinearTrackParameters ipParametersEst(
-        vertexEst, ipDirectionEst, m_charge / m_ipMomentumEst->P(), ipCovEst,
-        hypothesis);
-
-    std::vector<Acts::SourceLink> trackSourceLinks{};
+    std::vector<std::size_t> trackSourceLinkIndices{};
     for (std::size_t i = 0; i < m_trackHitsGlobal->size(); i++) {
       Acts::Vector2 trackHitLocal(m_trackHitsLocal->at(i).X(),
                                   m_trackHitsLocal->at(i).Y());
@@ -260,24 +252,59 @@ ProcessCode RootTrackReader::read(const AlgorithmContext& ctx) {
       Acts::GeometryIdentifier geoId;
       geoId.setSensitive(m_geometryIds->at(i));
       SimpleSourceLink obsSourceLink(trackHitLocal, trackHitGlobal, trackHitCov,
-                                     geoId, eventId, sslIdx);
-
-      sourceLinks.push_back(Acts::SourceLink{obsSourceLink});
-      trackSourceLinks.push_back(Acts::SourceLink{obsSourceLink});
-
-      sslIdx++;
+                                     geoId, eventId, sourceLinks.size());
+      trackSourceLinkIndices.push_back(sourceLinks.size());
+      sourceLinks.push_back(Acts::SourceLink(obsSourceLink));
     }
-    seedsGuess.emplace_back(trackSourceLinks, ipParametersGuess,
+
+    // Initial guess
+    Acts::ParticleHypothesis hypothesis =
+        Acts::ParticleHypothesis(Acts::PdgParticle(m_pdgId));
+    Acts::Vector4 vertexGuess(m_vertexGuess->X(), m_vertexGuess->Y(),
+                              m_vertexGuess->Z(), 0);
+    Acts::Vector3 ipDirectionGuess(m_originMomentumGuess->X(),
+                                   m_originMomentumGuess->Y(),
+                                   m_originMomentumGuess->Z());
+    ipDirectionGuess.normalize();
+
+    seedsGuess.emplace_back(trackSourceLinkIndices, trackParametersGuess.size(),
                             static_cast<int>(seedsGuess.size()));
-    seedsEst.emplace_back(trackSourceLinks, ipParametersEst,
+    trackParametersGuess.emplace_back(vertexGuess, ipDirectionGuess,
+                                      m_charge / m_originMomentumGuess->P(),
+                                      ipCovGuess, hypothesis);
+
+    // Estimated
+    Acts::Vector4 vertexEst(m_vertexEst->X(), m_vertexEst->Y(),
+                            m_vertexEst->Z(), 0);
+    Acts::Vector3 ipDirectionEst(m_originMomentumEst->X(),
+                                 m_originMomentumEst->Y(),
+                                 m_originMomentumEst->Z());
+    ipDirectionEst.normalize();
+
+    seedsEst.emplace_back(trackSourceLinkIndices, trackParametersEst.size(),
                           static_cast<int>(seedsEst.size()));
+    trackParametersEst.emplace_back(vertexEst, ipDirectionEst,
+                                    m_charge / m_originMomentumEst->P(),
+                                    ipCovEst, hypothesis);
   }
 
   ACTS_DEBUG("Read " << sourceLinks.size() << " source links");
-  ACTS_DEBUG("Read " << seedsGuess.size() << " seeds");
+
+  ACTS_DEBUG("Read " << seedsGuess.size() << " guess seeds");
+  ACTS_DEBUG("Read " << trackParametersGuess.size()
+                     << " guess track parameters");
+
+  ACTS_DEBUG("Read " << seedsEst.size() << " estimated seeds");
+  ACTS_DEBUG("Read " << trackParametersEst.size()
+                     << " estimated track parameters");
+
   m_outputSourceLinks(ctx, std::move(sourceLinks));
+
   m_outputSeedsGuess(ctx, std::move(seedsGuess));
+  m_outputTrackParametersGuess(ctx, std::move(trackParametersGuess));
+
   m_outputSeedsEst(ctx, std::move(seedsEst));
+  m_outputTrackParametersEst(ctx, std::move(trackParametersEst));
 
   // Return success flag
   return ProcessCode::SUCCESS;

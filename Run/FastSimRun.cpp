@@ -352,7 +352,6 @@ int main() {
   // Sim cluster writer
   auto clusterWriterCfgSig = RootSimClusterWriter::Config();
   clusterWriterCfgSig.inputClusters = "Clusters";
-  clusterWriterCfgSig.inputClusterIndices = "MeasurementIndices";
   clusterWriterCfgSig.treeName = "clusters";
   clusterWriterCfgSig.filePath =
       "/home/romanurmanov/work/E320/E320Prototype/"

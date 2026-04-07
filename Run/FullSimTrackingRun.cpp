@@ -262,10 +262,6 @@ int main() {
   // Seeding setup
 
   // GX2 fitter setup
-  double sensorThickness = 50_um;
-  double particleAbsMom = 2.5_GeV;
-  double particleCharge = 1_e;
-
   FastGX2Fitter::Config gx2FitterCfg{};
   gx2FitterCfg.primaryIdx = goInst.primaryIdx;
   gx2FitterCfg.longIdx = goInst.longIdx;

@@ -37,7 +37,6 @@
 #include "TrackingPipeline/TrackFinding/HoughTransformSeeder.hpp"
 #include "TrackingPipeline/TrackFitting/FastGX2Fitter.hpp"
 #include "TrackingPipeline/TrackFitting/KFTrackFittingAlgorithm.hpp"
-#include "TrackingPipeline/Utilities/ThetaMcsRmsCalculator.hpp"
 
 using namespace Acts::UnitLiterals;
 
@@ -217,7 +216,7 @@ int main() {
 
   // Setup the sequencer
   Sequencer::Config seqCfg;
-  // seqCfg.events = 100;
+  seqCfg.events = 100;
   seqCfg.numThreads = 32;
   seqCfg.trackFpes = false;
   seqCfg.logLevel = logLevel;
@@ -283,17 +282,17 @@ int main() {
   htSeederOpt.boundBoxHalfLong = goInst.tcHalfLong;
   htSeederOpt.boundBoxHalfShort = goInst.tcHalfShort;
 
-  htSeederOpt.nCellsThetaShort = 1700;
-  htSeederOpt.nCellsRhoShort = 1700;
+  htSeederOpt.nCellsThetaShort = 500;
+  htSeederOpt.nCellsRhoShort = 2000;
 
-  htSeederOpt.nCellsThetaLong = 1700;
-  htSeederOpt.nCellsRhoLong = 1700;
+  htSeederOpt.nCellsThetaLong = 500;
+  htSeederOpt.nCellsRhoLong = 2000;
 
   htSeederOpt.surfaceMap = surfaceMap;
 
   htSeederOpt.minXCount = 5;
 
-  // Seeding algorithm setup
+  // Covariance prior
   Acts::BoundVector trackOriginStdDevPrior;
   trackOriginStdDevPrior[Acts::eBoundLoc0] = 100_mm;
   trackOriginStdDevPrior[Acts::eBoundLoc1] = 100_mm;
@@ -306,13 +305,18 @@ int main() {
   E320::E320TrackParametersEstimator::Config trackParametersEstimatorCfg{};
   trackParametersEstimatorCfg.gx2Fitter = gx2Fitter;
   trackParametersEstimatorCfg.nIterations = 2;
-  trackParametersEstimatorCfg.maxChi2 = std::numeric_limits<double>::max();
+  trackParametersEstimatorCfg.maxChi2 = 1e2;
   trackParametersEstimatorCfg.referenceSurface = seedingRefSurface.get();
   trackParametersEstimatorCfg.originCov =
       trackOriginStdDevPrior.cwiseProduct(trackOriginStdDevPrior).asDiagonal();
   trackParametersEstimatorCfg.propDirection =
-      E320::E320TrackParametersEstimator::PropagationDirection::forward;
+      E320::E320TrackParametersEstimator::PropagationDirection::backward;
 
+  auto trackParametersEstimator =
+      std::make_shared<E320::E320TrackParametersEstimator>(
+          trackParametersEstimatorCfg);
+
+  // Seeding algorithm
   E320::E320SeedingAlgorithm::Config seedingAlgoCfg;
   seedingAlgoCfg.htSeeder = std::make_shared<HoughTransformSeeder>(htSeederCfg);
   seedingAlgoCfg.htOptions = htSeederOpt;
@@ -321,6 +325,7 @@ int main() {
   seedingAlgoCfg.inputBpmSourceLinkIndices = "BpmSourceLinkIndices";
   seedingAlgoCfg.outputSeeds = "Seeds";
   seedingAlgoCfg.outputTrackParameters = "TrackParameters";
+  seedingAlgoCfg.trackParametersEstimator = trackParametersEstimator;
   seedingAlgoCfg.minLayers = 5;
   seedingAlgoCfg.maxLayers = 5;
 
@@ -395,7 +400,6 @@ int main() {
   // Cluster writer
   RootMeasurementWriter::Config measurementWriterCfg{};
   measurementWriterCfg.inputSourceLinks = "SourceLinks";
-  measurementWriterCfg.inputSourceLinkIndices = "DetSourceLinkIndices";
   measurementWriterCfg.treeName = "measurements";
   measurementWriterCfg.filePath =
       "/home/romanurmanov/work/E320/E320Prototype/E320Prototype_analysis/data/"

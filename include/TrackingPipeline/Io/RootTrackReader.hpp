@@ -2,6 +2,7 @@
 
 #include "Acts/EventData/SourceLink.hpp"
 #include "Acts/Utilities/Logger.hpp"
+#include <Acts/EventData/TrackParameters.hpp>
 
 #include <cstddef>
 
@@ -36,11 +37,15 @@ class RootTrackReader : public IReader {
   /// @brief The nested configuration struct
   struct Config {
     /// Output source links
-    std::string outputMeasurements;
+    std::string outputSourceLinks;
     /// Output seeds
     std::string outputSeedsGuess;
+    /// Output track parameters guess
+    std::string outputTrackParametersGuess;
     /// Output fitted seeds
     std::string outputSeedsEst;
+    /// Output track parameters est
+    std::string outputTrackParametersEst;
     /// The names of the input files
     std::vector<std::string> filePaths;
     /// Name of the input tree
@@ -80,13 +85,19 @@ class RootTrackReader : public IReader {
 
   /// WriteDataHandle for the observable data
   WriteDataHandle<std::vector<Acts::SourceLink>> m_outputSourceLinks{
-      this, "OutputData"};
+      this, "OutputSourceLinks"};
 
-  /// WriteDataHandle for the guess seed data
-  WriteDataHandle<Seeds> m_outputSeedsGuess{this, "SeedsGuess"};
+  /// WriteDataHandle for the seed data
+  WriteDataHandle<IndexSeeds> m_outputSeedsGuess{this, "SeedsGuess"};
 
-  /// WriteDataHandle for the estimated seed data
-  WriteDataHandle<Seeds> m_outputSeedsEst{this, "SeedsEst"};
+  WriteDataHandle<std::vector<Acts::CurvilinearTrackParameters>>
+      m_outputTrackParametersGuess{this, "OutputTrackParametersGuess"};
+
+  /// WriteDataHandle for the fitted seed data
+  WriteDataHandle<IndexSeeds> m_outputSeedsEst{this, "SeedsEst"};
+
+  WriteDataHandle<std::vector<Acts::CurvilinearTrackParameters>>
+      m_outputTrackParametersEst{this, "OutputTrackParametersEst"};
 
   std::unique_ptr<const Acts::Logger> m_logger;
 
@@ -108,7 +119,6 @@ class RootTrackReader : public IReader {
 
   /// Covariances of the track hits
   std::vector<TMatrixD>* m_trackHitCovs = nullptr;
-  std::vector<TMatrixD>* m_trackHitCovsInf = nullptr;
 
   /// Geometry ids of the track hits
   std::vector<std::size_t>* m_geometryIds = nullptr;
@@ -164,13 +174,13 @@ class RootTrackReader : public IReader {
   TMatrixD* m_boundTrackCovEst = nullptr;
 
   /// Initial guess of the momentum at the IP
-  TLorentzVector* m_ipMomentumGuess = nullptr;
+  TLorentzVector* m_originMomentumGuess = nullptr;
 
   /// Initial guess of the vertex at the IP
   TVector3* m_vertexGuess = nullptr;
 
   /// KF predicted momentum at the IP
-  TLorentzVector* m_ipMomentumEst = nullptr;
+  TLorentzVector* m_originMomentumEst = nullptr;
 
   /// KF predicted vertex at the IP
   TVector3* m_vertexEst = nullptr;
