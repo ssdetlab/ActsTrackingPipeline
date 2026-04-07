@@ -38,7 +38,6 @@ RootMeasurementWriter::RootMeasurementWriter(const Config& config,
   //------------------------------------------------------------------
   // Initialize the data handles
   m_inputSourceLinks.initialize(m_cfg.inputSourceLinks);
-  m_inputSourceLinkIndices.initialize(m_cfg.inputSourceLinkIndices);
 }
 
 ProcessCode RootMeasurementWriter::finalize() {
@@ -51,17 +50,17 @@ ProcessCode RootMeasurementWriter::finalize() {
 
 ProcessCode RootMeasurementWriter::write(const AlgorithmContext& ctx) {
   const auto& inputSourceLinks = m_inputSourceLinks(ctx);
-  const auto& inputSourceLinkIndices = m_inputSourceLinkIndices(ctx);
 
   ACTS_DEBUG("Received " << inputSourceLinks.size() << " source links");
-  ACTS_DEBUG("Received " << inputSourceLinkIndices.size()
-                         << " source link indices");
+
+  if (inputSourceLinks.empty()) {
+    return ProcessCode::SUCCESS;
+  }
 
   std::lock_guard<std::mutex> lock(m_mutex);
 
-  for (std::size_t i = 0; i < inputSourceLinkIndices.size(); i++) {
-    std::size_t idx = inputSourceLinkIndices.at(i);
-    const auto& ssl = inputSourceLinks.at(idx).get<SimpleSourceLink>();
+  for (const auto& sl : inputSourceLinks) {
+    const auto& ssl = sl.get<SimpleSourceLink>();
 
     Acts::Vector2 geoCenterLocal = ssl.parametersLoc();
     Acts::Vector3 geoCenterGlobal = ssl.parametersGlob();

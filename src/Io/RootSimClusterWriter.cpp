@@ -68,7 +68,6 @@ RootSimClusterWriter::RootSimClusterWriter(const Config& config,
   //------------------------------------------------------------------
   // Initialize the data handles
   m_inputClusters.initialize(m_cfg.inputClusters);
-  m_inputClusterIndices.initialize(m_cfg.inputClusterIndices);
 }
 
 ProcessCode RootSimClusterWriter::finalize() {
@@ -81,20 +80,15 @@ ProcessCode RootSimClusterWriter::finalize() {
 
 ProcessCode RootSimClusterWriter::write(const AlgorithmContext& ctx) {
   const auto& inputClusters = m_inputClusters(ctx);
-  const auto& inputClusterIndices = m_inputClusterIndices(ctx);
 
   ACTS_DEBUG("Received " << inputClusters.size() << " clusters");
-  ACTS_DEBUG("Received " << inputClusterIndices.size() << " cluster indices");
-  if (inputClusterIndices.empty()) {
+  if (inputClusters.empty()) {
     return ProcessCode::SUCCESS;
   }
 
   std::lock_guard<std::mutex> lock(m_mutex);
 
-  for (std::size_t i = 0; i < inputClusterIndices.size(); i++) {
-    std::size_t idx = inputClusterIndices.at(i);
-
-    const auto& cluster = inputClusters.at(idx);
+  for (const auto& cluster : inputClusters) {
     const auto& clusterSsl = cluster.sourceLink;
 
     const Acts::Vector3& clusterParsGlob = clusterSsl.parametersGlob();

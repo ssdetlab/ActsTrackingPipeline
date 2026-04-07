@@ -22,8 +22,6 @@ class RootMeasurementWriter : public IWriter {
   struct Config {
     /// Input source links
     std::string inputSourceLinks;
-    /// Input source link indices
-    std::string inputSourceLinkIndices;
     /// Name of the output tree
     std::string treeName;
     /// The names of the output file
@@ -57,9 +55,6 @@ class RootMeasurementWriter : public IWriter {
 
   ReadDataHandle<std::vector<Acts::SourceLink>> m_inputSourceLinks{
       this, "InputSourceLinks"};
-
-  ReadDataHandle<std::vector<std::size_t>> m_inputSourceLinkIndices{
-      this, "inputMeasurements"};
 
   std::unique_ptr<const Acts::Logger> m_logger;
 

@@ -27,8 +27,6 @@ class RootSimClusterWriter : public IWriter {
   struct Config {
     /// Truth cluster data
     std::string inputClusters;
-    /// Truth cluster indices data
-    std::string inputClusterIndices;
     /// Name of the input tree
     std::string treeName;
     /// The names of the input files
@@ -63,9 +61,6 @@ class RootSimClusterWriter : public IWriter {
   Config m_cfg;
 
   ReadDataHandle<SimClusters> m_inputClusters{this, "InputClusters"};
-
-  ReadDataHandle<std::vector<std::size_t>> m_inputClusterIndices{
-      this, "InputClusterIndices"};
 
   std::unique_ptr<const Acts::Logger> m_logger;
 
