@@ -43,9 +43,6 @@ ProcessCode KFTrackFittingAlgorithm::execute(
       continue;
     }
 
-    tracks.emplace_back(idx, candidate.originParametersIndex,
-                        candidate.trackId);
-
     NonOwningProjectionIterator begin(inputSourceLinks, sourceLinkIndices);
     NonOwningProjectionIterator end = begin + sourceLinkIndices.size();
     const auto& startParameters =
@@ -53,6 +50,10 @@ ProcessCode KFTrackFittingAlgorithm::execute(
 
     auto res = m_cfg.fitter.fit(begin, end, startParameters, m_cfg.kfOptions,
                                 trackContainer);
+    if (res.ok()) {
+      tracks.emplace_back(trackContainer.size() - 1,
+                          candidate.originParametersIndex, candidate.trackId);
+    }
   }
   tracks.shrink_to_fit();
 
