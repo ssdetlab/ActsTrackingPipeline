@@ -11,7 +11,7 @@ class AlignmentContext {
   AlignmentContext() = delete;
 
   /// Constructor with Store and context index
-  AlignmentContext(const std::shared_ptr<AlignmentStore>& aStore) {
+  explicit AlignmentContext(const std::shared_ptr<AlignmentStore>& aStore) {
     if (aStore == nullptr) {
       throw std::runtime_error("Invalid alignment store initialization");
     }
