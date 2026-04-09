@@ -1,44 +1,39 @@
 #pragma once
 
+#include "Acts/Definitions/Algebra.hpp"
 #include "Acts/MagneticField/MagneticFieldProvider.hpp"
 
 #include <cstddef>
 #include <iostream>
-#include <memory>
 
 #include "TrackingPipeline/MagneticField/MagneticFieldStore.hpp"
 
-class IdealQuadrupoleMagField : public Acts::MagneticFieldProvider {
+class ConstantMagField : public Acts::MagneticFieldProvider {
  public:
   struct Cache {
-    double gradient;
-
-    Cache(double grad) : gradient(grad) {}
+    Acts::Vector3 field;
+    Cache(const Acts::Vector3& fld) : field(fld) {}
 
     Cache(std::size_t id, const Acts::MagneticFieldContext& mctx,
-          double defaultGrad) {
+          const Acts::Vector3& defaultField) {
       if (!mctx.hasValue()) {
-        gradient = defaultGrad;
-        // std::cout << "QUAD " << id << " DEFAULT GRAD -- NO MCTX\n";
+        field = defaultField;
+        // std::cout << "DIPOLE " << id << " DEFAULT FIELD -- NO MCTX\n";
         return;
       }
       const auto& store = mctx.get<std::shared_ptr<MagneticFieldStore>&>();
       if (store->store.contains(id)) {
-        gradient = store->store.at(id).as<Cache>().gradient;
-        // std::cout << "QUAD " << id << " GRAD " << gradient << " ("
-        //          << defaultGrad << ")\n";
+        field = store->store.at(id).as<Cache>().field;
+        // std::cout << "DIPOLE " << id << " FIELD " << field << " ("
+        //          << defaultField << ")\n";
       } else {
-        gradient = defaultGrad;
-        // std::cout << "QUAD " << id << " DEFAULT GRAD -- NO STORE\n";
+        field = defaultField;
+        // std::cout << "DIPOLE " << id << " DEFAULT FIELD -- NO STORE\n";
       }
     }
   };
 
-  IdealQuadrupoleMagField(std::size_t id, double gradient,
-                          const Acts::Vector3& origin,
-                          const Acts::RotationMatrix3& rotation);
-
-  ~IdealQuadrupoleMagField() override;
+  ConstantMagField(std::size_t id, const Acts::Vector3& field);
 
   Acts::Result<Acts::Vector3> getField(
       const Acts::Vector3& position,
@@ -53,7 +48,5 @@ class IdealQuadrupoleMagField : public Acts::MagneticFieldProvider {
 
  private:
   std::size_t m_id;
-  double m_gradient;
-  Acts::Vector3 m_origin;
-  Acts::RotationMatrix3 m_rotation;
+  Acts::Vector3 m_field;
 };

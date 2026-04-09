@@ -3,59 +3,42 @@
 #include "Acts/Geometry/Extent.hpp"
 #include "Acts/MagneticField/MagneticFieldProvider.hpp"
 
+#include <cstddef>
 #include <memory>
 
-/// @brief Constant magnetic field with bounded region
-///
-/// This class provides a constant magnetic field within a
-/// bounded region. The magnetic field is zero outside the
-/// bounded region.
 class CompositeMagField : public Acts::MagneticFieldProvider {
  public:
-  using FieldComponent =
-      std::pair<Acts::Extent,
-                const std::shared_ptr<Acts::MagneticFieldProvider>>;
+  struct FieldComponent {
+    std::size_t id;
+    Acts::Extent extent;
+    std::shared_ptr<Acts::MagneticFieldProvider> fieldProvider;
+  };
   using FieldComponents = std::vector<FieldComponent>;
 
-  /// @brief Cache for the magnetic field provider
-  ///
-  /// No specific cache is needed for the constant
-  /// magnetic field
   struct Cache {
-    /// @brief constructor with context
-    Cache(const Acts::MagneticFieldContext& /*mcfg*/) {}
+    std::unordered_map<std::size_t, Acts::MagneticFieldProvider::Cache>
+        componentCaches;
+    Cache(const FieldComponents& components,
+          const Acts::MagneticFieldContext& mctx) {
+      for (const auto& component : components) {
+        // std::cout << "COMPONENT ID " << component.id << "\n";
+        componentCaches.insert(
+            {component.id, component.fieldProvider->makeCache(mctx)});
+      }
+    }
   };
 
-  /// @brief Constructor with magnetic field vector
-  ///
-  /// @param params magnetic field parameters for Bx,By,Bz
-  /// @param BFieldExtent magnetic field extent
   CompositeMagField(const FieldComponents& fieldComponents);
 
   ~CompositeMagField() override;
 
-  /// @brief Get the magnetic field cache
-  ///
-  /// @param mctx Magnetic field context
-  /// @return magnetic field cache
   Acts::MagneticFieldProvider::Cache makeCache(
       const Acts::MagneticFieldContext& mctx) const override;
 
-  /// @brief Get the magnetic field at a given position
-  ///
-  /// @param position Vector3 position in global coordinate system
-  /// @param cache Cache for the magnetic field provider
-  /// @return magnetic field vector
   Acts::Result<Acts::Vector3> getField(
       const Acts::Vector3& position,
       MagneticFieldProvider::Cache& cache) const override;
 
-  /// @brief Get the magnetic field gradient at a given position
-  ///
-  /// @param position Vector3 position in global coordinate system
-  /// @param derivative ActsMatrix<3, 3> to store the gradient
-  /// @param cache Cache for the magnetic field provider
-  /// @return magnetic field gradient vector
   Acts::Result<Acts::Vector3> getFieldGradient(
       const Acts::Vector3& position, Acts::ActsMatrix<3, 3>& derivative,
       MagneticFieldProvider::Cache& cache) const override;

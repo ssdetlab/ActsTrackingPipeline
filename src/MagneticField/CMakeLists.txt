@@ -5,4 +5,5 @@ target_sources(
     CompositeMagField.cpp
     QuadrupoleMagField.cpp
     IdealQuadrupoleMagField.cpp
+    ConstantMagField.cpp
   )
