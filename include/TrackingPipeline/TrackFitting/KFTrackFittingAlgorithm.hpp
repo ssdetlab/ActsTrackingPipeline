@@ -23,8 +23,12 @@ class KFTrackFittingAlgorithm : public IAlgorithm {
     std::string outputTracks;
     /// KF fitter
     const KFFitter& fitter;
-    /// KF options
-    KFFitterOptions kfOptions;
+    /// Maximum number of steps
+    std::size_t maxSteps;
+    /// KF extensions
+    KFFitterExtensions kfExtensions;
+    /// Reference surface
+    const Acts::Surface* referenceSurface;
   };
 
   /// @brief Constructor

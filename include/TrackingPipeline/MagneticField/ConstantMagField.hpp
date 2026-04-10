@@ -4,7 +4,6 @@
 #include "Acts/MagneticField/MagneticFieldProvider.hpp"
 
 #include <cstddef>
-#include <iostream>
 
 #include "TrackingPipeline/MagneticField/MagneticFieldStore.hpp"
 
@@ -12,23 +11,19 @@ class ConstantMagField : public Acts::MagneticFieldProvider {
  public:
   struct Cache {
     Acts::Vector3 field;
-    Cache(const Acts::Vector3& fld) : field(fld) {}
+    explicit Cache(const Acts::Vector3& fld) : field(fld) {}
 
     Cache(std::size_t id, const Acts::MagneticFieldContext& mctx,
           const Acts::Vector3& defaultField) {
       if (!mctx.hasValue()) {
         field = defaultField;
-        // std::cout << "DIPOLE " << id << " DEFAULT FIELD -- NO MCTX\n";
         return;
       }
       const auto& store = mctx.get<std::shared_ptr<MagneticFieldStore>&>();
       if (store->store.contains(id)) {
         field = store->store.at(id).as<Cache>().field;
-        // std::cout << "DIPOLE " << id << " FIELD " << field << " ("
-        //          << defaultField << ")\n";
       } else {
         field = defaultField;
-        // std::cout << "DIPOLE " << id << " DEFAULT FIELD -- NO STORE\n";
       }
     }
   };

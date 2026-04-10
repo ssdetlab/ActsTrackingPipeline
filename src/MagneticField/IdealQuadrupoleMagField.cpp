@@ -2,8 +2,6 @@
 
 #include "Acts/Definitions/Algebra.hpp"
 
-#include <iostream>
-
 IdealQuadrupoleMagField::IdealQuadrupoleMagField(
     std::size_t id, double gradient, const Acts::Vector3& origin,
     const Acts::RotationMatrix3& rotation)
@@ -15,8 +13,6 @@ Acts::Result<Acts::Vector3> IdealQuadrupoleMagField::getField(
     const Acts::Vector3& position, MagneticFieldProvider::Cache& cache) const {
   const auto& quadCache = cache.as<Cache>();
   double gradient = quadCache.gradient;
-  // std::cout << "QUAD " << m_id << " GET FIELD GRAD " << gradient << " at pos "
-  //           << position.transpose() << "\n";
 
   Acts::Vector3 global(position.x() - m_origin.x(), position.y() - m_origin.y(),
                        position.z() - m_origin.z());
@@ -36,7 +32,6 @@ Acts::Result<Acts::Vector3> IdealQuadrupoleMagField::getFieldGradient(
 
 Acts::MagneticFieldProvider::Cache IdealQuadrupoleMagField::makeCache(
     const Acts::MagneticFieldContext& mctx) const {
-  // std::cout << "QUAD " << m_id << " MAKE CACHE\n";
   return Acts::MagneticFieldProvider::Cache(std::in_place_type<Cache>, m_id,
                                             mctx, m_gradient);
 }

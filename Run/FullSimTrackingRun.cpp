@@ -32,6 +32,11 @@
 #include "TrackingPipeline/Io/E320RootSimClusterReader.hpp"
 #include "TrackingPipeline/Io/RootSimSeedWriter.hpp"
 #include "TrackingPipeline/Io/RootSimTrackWriter.hpp"
+#include "TrackingPipeline/MagneticField/ConstantMagField.hpp"
+#include "TrackingPipeline/MagneticField/IdealQuadrupoleMagField.hpp"
+#include "TrackingPipeline/MagneticField/MagneticFieldContextDecorator.hpp"
+#include "TrackingPipeline/MagneticField/MagneticFieldParametersContext.hpp"
+#include "TrackingPipeline/MagneticField/MagneticFieldStore.hpp"
 #include "TrackingPipeline/TrackFinding/E320SeedingAlgorithm.hpp"
 #include "TrackingPipeline/TrackFinding/E320TrackParametersEstimator.hpp"
 #include "TrackingPipeline/TrackFinding/HoughTransformSeeder.hpp"
@@ -52,8 +57,6 @@ int main() {
 
   // Initialize contexts
   Acts::GeometryContext gctx;
-  Acts::MagneticFieldContext mctx;
-  Acts::CalibrationContext cctx;
 
   // --------------------------------------------------------------
   // Detector setup
@@ -93,7 +96,7 @@ int main() {
       std::cout << surf->polyhedronRepresentation(gctx, 1000).extent() << "\n";
       if (surf->geometryId().sensitive() != 0u) {
         surfaceMap[surf->geometryId()] = surf;
-        if (surf->geometryId().sensitive() < 40) {
+        if (surf->geometryId().sensitive() < goInst.bpm0Parameters.geoId) {
           gx2FitterSurfaceMap[surf->geometryId()] = surf;
         }
       }
@@ -118,45 +121,83 @@ int main() {
 
   // Print alignment parameters
   Acts::GeometryContext defaultGctx;
-  Acts::GeometryContext testCtx{alignCtx};
+  gctx = Acts::GeometryContext{alignCtx};
   for (auto& v : detector->volumes()) {
     for (auto& s : v->surfaces()) {
       if (s->geometryId().sensitive() != 0u) {
         std::cout << "-----------------------------------\n";
         std::cout << "SURFACE " << s->geometryId() << "\n";
-        std::cout << "CENTER " << s->center(testCtx).transpose() << " -- "
+        std::cout << "CENTER " << s->center(gctx).transpose() << " -- "
                   << s->center(defaultGctx).transpose() << "\n";
         std::cout << "DELTA "
-                  << (s->center(testCtx) - s->center(defaultGctx)).transpose() *
+                  << (s->center(gctx) - s->center(defaultGctx)).transpose() *
                          1e3
                   << "\n";
         std::cout << "NORMAL "
-                  << s->normal(testCtx, s->center(testCtx),
-                               Acts::Vector3::UnitY())
+                  << s->normal(gctx, s->center(gctx), Acts::Vector3::UnitY())
                          .transpose()
                   << " -- "
-                  << s->normal(testCtx, s->center(defaultGctx),
+                  << s->normal(gctx, s->center(defaultGctx),
                                Acts::Vector3::UnitY())
                          .transpose()
                   << "\n";
         std::cout << "ROTATION \n"
-                  << s->transform(testCtx).rotation() << " -- \n"
+                  << s->transform(gctx).rotation() << " -- \n"
                   << "\n"
                   << s->transform(defaultGctx).rotation() << "\n";
 
         std::cout << "EXTENT "
-                  << s->polyhedronRepresentation(testCtx, 1000).extent()
+                  << s->polyhedronRepresentation(gctx, 1000).extent()
                   << "\n -- \n"
                   << s->polyhedronRepresentation(defaultGctx, 1000).extent()
                   << "\n";
       }
     }
   }
-  // Add alignment context to the geometry context
-  gctx = Acts::GeometryContext{alignCtx};
 
   // --------------------------------------------------------------
   // The magnetic field setup
+
+  auto mStore1 = std::make_shared<MagneticFieldStore>();
+  mStore1->store = {
+      {goInst.quad1Id,
+       Acts::MagneticFieldProvider::Cache(
+           std::in_place_type<IdealQuadrupoleMagField::Cache>, 0)},
+      {goInst.quad2Id,
+       Acts::MagneticFieldProvider::Cache(
+           std::in_place_type<IdealQuadrupoleMagField::Cache>, 0)},
+      {goInst.quad3Id,
+       Acts::MagneticFieldProvider::Cache(
+           std::in_place_type<IdealQuadrupoleMagField::Cache>, 0)},
+      {goInst.xCorrectorId, Acts::MagneticFieldProvider::Cache(
+                                std::in_place_type<ConstantMagField::Cache>,
+                                Acts::Vector3(0, 0.026107_T, 0))},
+      {goInst.dipoleId, Acts::MagneticFieldProvider::Cache(
+                            std::in_place_type<ConstantMagField::Cache>,
+                            Acts::Vector3(0, 0, -0.2192_T))}};
+
+  auto mStore2 = std::make_shared<MagneticFieldStore>();
+  mStore2->store = {
+      {goInst.quad1Id,
+       Acts::MagneticFieldProvider::Cache(
+           std::in_place_type<IdealQuadrupoleMagField::Cache>, 0)},
+      {goInst.quad2Id,
+       Acts::MagneticFieldProvider::Cache(
+           std::in_place_type<IdealQuadrupoleMagField::Cache>, 0)},
+      {goInst.quad3Id,
+       Acts::MagneticFieldProvider::Cache(
+           std::in_place_type<IdealQuadrupoleMagField::Cache>, 0)},
+      {goInst.xCorrectorId, Acts::MagneticFieldProvider::Cache(
+                                std::in_place_type<ConstantMagField::Cache>,
+                                Acts::Vector3(0, 0.026107_T, 0))},
+      {goInst.dipoleId, Acts::MagneticFieldProvider::Cache(
+                            std::in_place_type<ConstantMagField::Cache>,
+                            Acts::Vector3(0, 0, -0.2192_T))}};
+
+  MagneticFieldStoreCollection mFieldStoreCollection = {{0, mStore1},
+                                                        {1000, mStore2}};
+  auto mFieldParametersContext =
+      std::make_shared<MagneticFieldParametersContext>(mFieldStoreCollection);
 
   auto field = E320::buildMagField(gctx);
 
@@ -177,9 +218,10 @@ int main() {
 
   // Seeding reference surface
   Acts::Transform3 seedingRefSurfTransform = Acts::Transform3::Identity();
-  seedingRefSurfTransform.translation() = Acts::Vector3(
-      // goInst.ipTcDistance - 0.3_mm, 0, 0);
-      goInst.ipTcDistance + 2 * goInst.tcHalfPrimary + 0.1_mm, 0, 0);
+  seedingRefSurfTransform.translation() =
+      // Acts::Vector3(goInst.ipTcDistance - 0.3_mm, 0, 0);
+      Acts::Vector3(goInst.ipTcDistance + 2 * goInst.tcHalfPrimary + 0.1_mm, 0,
+                    0);
   seedingRefSurfTransform.rotate(refSurfToWorldRotationX);
   seedingRefSurfTransform.rotate(refSurfToWorldRotationY);
   seedingRefSurfTransform.rotate(refSurfToWorldRotationZ);
@@ -194,10 +236,8 @@ int main() {
 
   // Tracking reference surface
   Acts::Transform3 trackingRefSurfTransform = Acts::Transform3::Identity();
-  trackingRefSurfTransform.translation() = Acts::Vector3(-0.1_mm, 0, 0);
-  // Acts::Vector3(goInst.bpm3CenterPrimary, 0, 0);
-  // Acts::Vector3(goInst.ipTcDistance + 2 * goInst.tcHalfPrimary + 0.1_mm, 0,
-  //               0);
+  trackingRefSurfTransform.translation() =
+      Acts::Vector3(goInst.bpm0CenterPrimary - 0.1_mm, 0, 0);
   // Acts::Vector3(
   //     goInst.dipoleCenterPrimary + goInst.dipoleHalfPrimary + 0.01_mm, 0,
   //     0);
@@ -219,15 +259,17 @@ int main() {
 
   // Setup the sequencer
   Sequencer::Config seqCfg;
-  // seqCfg.events = 2;
-  // seqCfg.skip = 1;
-  seqCfg.numThreads = 1;
+  // seqCfg.events = 1000;
+  // seqCfg.skip = 1000;
+  seqCfg.numThreads = 32;
   seqCfg.trackFpes = false;
   seqCfg.logLevel = logLevel;
   Sequencer sequencer(seqCfg);
 
   sequencer.addContextDecorator(
       std::make_shared<GeometryContextDecorator>(aStore));
+  sequencer.addContextDecorator(
+      std::make_shared<MagneticFieldContextDecorator>(mFieldParametersContext));
 
   // Add the sim data reader
   E320::E320RootSimClusterReader::Config readerCfg;
@@ -236,8 +278,9 @@ int main() {
   readerCfg.outputDetSourceLinkIndices = "DetSourceLinkIndices";
   readerCfg.outputBpmSourceLinkIndices = "BpmSourceLinkIndices";
   readerCfg.treeName = "clusters";
-  readerCfg.minGeoId = 10;
-  readerCfg.maxGeoId = 50;
+  readerCfg.minGeoId = goInst.tcParameters.front().geoId;
+  // readerCfg.maxGeoId = goInst.tcParameters.back().geoId;
+  readerCfg.maxGeoId = goInst.bpm3Parameters.geoId;
   readerCfg.surfaceLocalToGlobal = true;
   readerCfg.surfaceMap = surfaceMap;
 
@@ -339,36 +382,26 @@ int main() {
 
   // --------------------------------------------------------------
   // Track fitting
-
   KFFitterGainUpdater kfUpdater;
   KFFitterGainSmoother kfSmoother;
 
-  // Initialize track fitter options
-  Acts::KalmanFitterExtensions<KFFitterTrajectory> extensions;
+  // Initialize track fitter extensions
+  Acts::KalmanFitterExtensions<KFFitterTrajectory> kfExtensions;
   // Add calibrator
-  extensions.calibrator
+  kfExtensions.calibrator
       .connect<&simpleSourceLinkCalibrator<KFFitterTrajectory>>();
   // Add the updater
-  extensions.updater
+  kfExtensions.updater
       .connect<&KFFitterGainUpdater::operator()<KFFitterTrajectory>>(
           &kfUpdater);
   // Add the smoother
-  extensions.smoother
+  kfExtensions.smoother
       .connect<&KFFitterGainSmoother::operator()<KFFitterTrajectory>>(
           &kfSmoother);
   // Add the surface accessor
-  extensions.surfaceAccessor
+  kfExtensions.surfaceAccessor
       .connect<&SimpleSourceLink::SurfaceAccessor::operator()>(
           &surfaceAccessor);
-
-  auto propOptions = KFFitterPropagatorOptions(gctx, mctx);
-
-  propOptions.maxSteps = 1e5;
-
-  auto options =
-      Acts::KalmanFitterOptions(gctx, mctx, cctx, extensions, propOptions);
-
-  options.referenceSurface = trackingRefSurface.get();
 
   Navigator::Config cfg;
   cfg.detector = detector.get();
@@ -394,7 +427,9 @@ int main() {
       .outputTrackContainer = "TrackContainer",
       .outputTracks = "Tracks",
       .fitter = fitter,
-      .kfOptions = options};
+      .maxSteps = static_cast<size_t>(1e5),
+      .kfExtensions = kfExtensions,
+      .referenceSurface = trackingRefSurface.get()};
 
   sequencer.addAlgorithm(
       std::make_shared<KFTrackFittingAlgorithm>(fitterCfg, logLevel));

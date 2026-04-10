@@ -37,6 +37,11 @@
 #include "TrackingPipeline/Io/RootSimSeedWriter.hpp"
 #include "TrackingPipeline/Io/RootSimTrackReader.hpp"
 #include "TrackingPipeline/Io/RootSimTrackWriter.hpp"
+#include "TrackingPipeline/MagneticField/ConstantMagField.hpp"
+#include "TrackingPipeline/MagneticField/IdealQuadrupoleMagField.hpp"
+#include "TrackingPipeline/MagneticField/MagneticFieldContextDecorator.hpp"
+#include "TrackingPipeline/MagneticField/MagneticFieldParametersContext.hpp"
+#include "TrackingPipeline/MagneticField/MagneticFieldStore.hpp"
 #include "TrackingPipeline/TrackFinding/E320TrackParametersEstimator.hpp"
 #include "TrackingPipeline/TrackFitting/KFTrackFittingAlgorithm.hpp"
 
@@ -53,8 +58,6 @@ int main() {
 
   // Initialize contexts
   Acts::GeometryContext gctx;
-  Acts::MagneticFieldContext mctx;
-  Acts::CalibrationContext cctx;
 
   // --------------------------------------------------------------
   // Detector setup
@@ -92,7 +95,7 @@ int main() {
       std::cout << surf->center(gctx) << "\n";
       std::cout << surf->polyhedronRepresentation(gctx, 1000).extent() << "\n";
       if (surf->geometryId().sensitive() != 0u &&
-          surf->geometryId().sensitive() < 40) {
+          surf->geometryId().sensitive() < goInst.bpm0Parameters.geoId) {
         gx2FitterSurfaceMap[surf->geometryId()] = surf;
       }
     }
@@ -146,6 +149,47 @@ int main() {
   // --------------------------------------------------------------
   // The magnetic field setup
 
+  auto mStore1 = std::make_shared<MagneticFieldStore>();
+  mStore1->store = {
+      {goInst.quad1Id,
+       Acts::MagneticFieldProvider::Cache(
+           std::in_place_type<IdealQuadrupoleMagField::Cache>, 0)},
+      {goInst.quad2Id,
+       Acts::MagneticFieldProvider::Cache(
+           std::in_place_type<IdealQuadrupoleMagField::Cache>, 0)},
+      {goInst.quad3Id,
+       Acts::MagneticFieldProvider::Cache(
+           std::in_place_type<IdealQuadrupoleMagField::Cache>, 0)},
+      {goInst.xCorrectorId, Acts::MagneticFieldProvider::Cache(
+                                std::in_place_type<ConstantMagField::Cache>,
+                                Acts::Vector3(0, 0.026107_T, 0))},
+      {goInst.dipoleId, Acts::MagneticFieldProvider::Cache(
+                            std::in_place_type<ConstantMagField::Cache>,
+                            Acts::Vector3(0, 0, -0.2192_T))}};
+
+  auto mStore2 = std::make_shared<MagneticFieldStore>();
+  mStore2->store = {
+      {goInst.quad1Id,
+       Acts::MagneticFieldProvider::Cache(
+           std::in_place_type<IdealQuadrupoleMagField::Cache>, 0)},
+      {goInst.quad2Id,
+       Acts::MagneticFieldProvider::Cache(
+           std::in_place_type<IdealQuadrupoleMagField::Cache>, 0)},
+      {goInst.quad3Id,
+       Acts::MagneticFieldProvider::Cache(
+           std::in_place_type<IdealQuadrupoleMagField::Cache>, 0)},
+      {goInst.xCorrectorId, Acts::MagneticFieldProvider::Cache(
+                                std::in_place_type<ConstantMagField::Cache>,
+                                Acts::Vector3(0, -0.026107_T, 0))},
+      {goInst.dipoleId, Acts::MagneticFieldProvider::Cache(
+                            std::in_place_type<ConstantMagField::Cache>,
+                            Acts::Vector3(0, 0, -0.2192_T))}};
+
+  MagneticFieldStoreCollection mFieldStoreCollection = {{0, mStore1},
+                                                        {1000, mStore2}};
+  auto mFieldParametersContext =
+      std::make_shared<MagneticFieldParametersContext>(mFieldStoreCollection);
+
   auto field = E320::buildMagField(gctx);
 
   // --------------------------------------------------------------
@@ -162,6 +206,8 @@ int main() {
 
   sequencer.addContextDecorator(
       std::make_shared<GeometryContextDecorator>(aStore));
+  sequencer.addContextDecorator(
+      std::make_shared<MagneticFieldContextDecorator>(mFieldParametersContext));
 
   // Add the sim data reader
   RootSimTrackReader::Constraints readerConstraints{};
@@ -254,9 +300,9 @@ int main() {
   // --------------------------------------------------------------
   // Alignment
 
-  // Initialize track fitter options
-  KFFitterGainUpdater kfUpdater;
-  KFFitterGainSmoother kfSmoother;
+  // Initialize track fitter extensions
+  KFFitterGainUpdater alignmentKFUpdater;
+  KFFitterGainSmoother alignmentKFSmoother;
 
   Acts::KalmanFitterExtensions<KFFitterTrajectory> alignmentExtensions;
   // Add calibrator
@@ -265,24 +311,15 @@ int main() {
   // Add the updater
   alignmentExtensions.updater
       .connect<&KFFitterGainUpdater::operator()<KFFitterTrajectory>>(
-          &kfUpdater);
+          &alignmentKFUpdater);
   // Add the smoother
   alignmentExtensions.smoother
       .connect<&KFFitterGainSmoother::operator()<KFFitterTrajectory>>(
-          &kfSmoother);
+          &alignmentKFSmoother);
   // Add the surface accessor
   alignmentExtensions.surfaceAccessor
       .connect<&SimpleSourceLink::SurfaceAccessor::operator()>(
           &surfaceAccessor);
-
-  auto alignmentPropOptions = KFFitterPropagatorOptions(gctx, mctx);
-
-  alignmentPropOptions.maxSteps = 1000;
-
-  auto alignmentKFOptions = KFFitterOptions(
-      gctx, mctx, cctx, alignmentExtensions, alignmentPropOptions);
-
-  alignmentKFOptions.referenceSurface = trackingRefSurface.get();
 
   // Initial track state covariance matrix
   Acts::BoundVector trackOriginStdDevPrior;
@@ -368,7 +405,9 @@ int main() {
       .outputTrackParameters = "UpdatedTrackParameters",
       .alignmentFunction =
           AlignmentAlgorithm::makeAlignmentFunction(detector, field),
-      .kfOptions = alignmentKFOptions,
+      .maxKFSteps = static_cast<std::size_t>(1e5),
+      .kfExtensions = alignmentExtensions,
+      .kfReferenceSurface = trackingRefSurface.get(),
       .chi2ONdfCutOff = 1e-16,
       .deltaChi2ONdfCutOff = {10, 1e-5},
       .maxAlignmentFitNumIt = 200,
@@ -390,8 +429,9 @@ int main() {
   for (auto& det : detector->detectorElements()) {
     const auto& surface = det->surface();
     const auto& geoId = surface.geometryId().sensitive();
-    if (geoId != 0u && surface.geometryId().sensitive() > 10 &&
-        surface.geometryId().sensitive() < 40) {
+    if (geoId != 0u &&
+        surface.geometryId().sensitive() > goInst.tcParameters.front().geoId &&
+        surface.geometryId().sensitive() <= goInst.tcParameters.back().geoId) {
       alignmentCfg.alignedDetElements.push_back(det.get());
     }
   }
@@ -402,31 +442,26 @@ int main() {
 
   // --------------------------------------------------------------
   // Track fitting
+  KFFitterGainUpdater kfUpdater;
+  KFFitterGainSmoother kfSmoother;
 
-  // Initialize track fitter options
-  Acts::KalmanFitterExtensions<KFFitterTrajectory> extensions;
+  // Initialize track fitter extensions
+  Acts::KalmanFitterExtensions<KFFitterTrajectory> kfExtensions;
   // Add calibrator
-  extensions.calibrator
+  kfExtensions.calibrator
       .connect<&simpleSourceLinkCalibrator<KFFitterTrajectory>>();
   // Add the updater
-  extensions.updater
+  kfExtensions.updater
       .connect<&KFFitterGainUpdater::operator()<KFFitterTrajectory>>(
           &kfUpdater);
   // Add the smoother
-  extensions.smoother
+  kfExtensions.smoother
       .connect<&KFFitterGainSmoother::operator()<KFFitterTrajectory>>(
           &kfSmoother);
   // Add the surface accessor
-  extensions.surfaceAccessor
+  kfExtensions.surfaceAccessor
       .connect<&SimpleSourceLink::SurfaceAccessor::operator()>(
           &surfaceAccessor);
-
-  auto propOptions = KFFitterPropagatorOptions(gctx, mctx);
-
-  propOptions.maxSteps = 1e5;
-
-  auto kfOptions = Acts::KalmanFitterOptions(
-      gctx, mctx, cctx, extensions, propOptions, trackingRefSurface.get());
 
   Navigator::Config cfg;
   cfg.detector = detector.get();
@@ -452,7 +487,9 @@ int main() {
       .outputTrackContainer = "TrackContainer",
       .outputTracks = "Tracks",
       .fitter = fitter,
-      .kfOptions = kfOptions};
+      .maxSteps = static_cast<size_t>(1e5),
+      .kfExtensions = kfExtensions,
+      .referenceSurface = trackingRefSurface.get()};
 
   sequencer.addAlgorithm(
       std::make_shared<KFTrackFittingAlgorithm>(fitterCfg, logLevel));

@@ -11,7 +11,7 @@
 
 class MagneticFieldContextDecorator : public IContextDecorator {
  public:
-  MagneticFieldContextDecorator(
+  explicit MagneticFieldContextDecorator(
       const std::shared_ptr<MagneticFieldParametersContext>&
           fieldStoreCollectionPtr)
       : m_fieldStoreCollectionPtr(fieldStoreCollectionPtr) {}

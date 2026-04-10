@@ -84,6 +84,17 @@ ProcessCode AlignmentAlgorithm::execute(const AlgorithmContext& ctx) const {
     return ProcessCode::SUCCESS;
   }
 
+  // Initialize KF options
+  auto propOptions =
+      KFFitterPropagatorOptions(ctx.geoContext, ctx.magFieldContext);
+  propOptions.maxSteps = m_cfg.maxKFSteps;
+
+  auto kfOptions = Acts::KalmanFitterOptions(
+      ctx.geoContext, ctx.magFieldContext, ctx.calibContext, m_cfg.kfExtensions,
+      propOptions);
+
+  kfOptions.referenceSurface = m_cfg.kfReferenceSurface;
+
   // Add constraints
   ConcatVectorView inputSourceLinksView(inputSourceLinks, m_cfg.constraints);
 
@@ -108,7 +119,7 @@ ProcessCode AlignmentAlgorithm::execute(const AlgorithmContext& ctx) const {
 
   // Set the alignment options
   ActsAlignment::AlignmentOptions<KFFitterOptions> alignOptions(
-      m_cfg.kfOptions, m_cfg.alignmentTransformUpdater,
+      kfOptions, m_cfg.alignmentTransformUpdater,
       m_cfg.alignmentParametersSolver, m_cfg.alignedDetElements,
       m_cfg.chi2ONdfCutOff, m_cfg.deltaChi2ONdfCutOff,
       m_cfg.maxAlignmentFitNumIt, m_cfg.alignmentMask);

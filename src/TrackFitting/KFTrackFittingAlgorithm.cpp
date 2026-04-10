@@ -28,6 +28,17 @@ ProcessCode KFTrackFittingAlgorithm::execute(
   ACTS_DEBUG("Received " << inputTrackParameters.size() << " track parameters");
   ACTS_DEBUG("Received " << inputSourceLinks.size() << " source links");
 
+  // Initialize KF options
+  auto propOptions =
+      KFFitterPropagatorOptions(ctx.geoContext, ctx.magFieldContext);
+  propOptions.maxSteps = m_cfg.maxSteps;
+
+  auto kfOptions = Acts::KalmanFitterOptions(
+      ctx.geoContext, ctx.magFieldContext, ctx.calibContext, m_cfg.kfExtensions,
+      propOptions);
+
+  kfOptions.referenceSurface = m_cfg.referenceSurface;
+
   auto trackContainerBackend =
       std::make_shared<KFFitterTrackContainerBackend>();
   auto trackStateContainer = std::make_shared<KFFitterTrajectory>();
@@ -48,7 +59,7 @@ ProcessCode KFTrackFittingAlgorithm::execute(
     const auto& startParameters =
         inputTrackParameters.at(candidate.originParametersIndex);
 
-    auto res = m_cfg.fitter.fit(begin, end, startParameters, m_cfg.kfOptions,
+    auto res = m_cfg.fitter.fit(begin, end, startParameters, kfOptions,
                                 trackContainer);
     if (res.ok()) {
       tracks.emplace_back(trackContainer.size() - 1,

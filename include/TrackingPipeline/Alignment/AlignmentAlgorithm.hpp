@@ -64,8 +64,12 @@ class AlignmentAlgorithm final : public IAlgorithm {
     ActsAlignment::AlignmentParametersSolver alignmentParametersSolver;
     /// Detector elements to be aligned
     std::vector<Acts::DetectorElementBase*> alignedDetElements;
-    /// KF options
-    KFFitterOptions kfOptions;
+    /// Maximum number of fitter propagation steps
+    std::size_t maxKFSteps;
+    /// KF extensions
+    KFFitterExtensions kfExtensions;
+    /// Fitter reference surface
+    const Acts::Surface* kfReferenceSurface;
     /// Cutoff value for average chi2/ndf
     double chi2ONdfCutOff;
     /// Cutoff value for delta of average chi2/ndf within a couple of iterations

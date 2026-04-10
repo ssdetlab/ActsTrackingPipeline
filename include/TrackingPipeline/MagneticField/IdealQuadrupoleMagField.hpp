@@ -3,8 +3,6 @@
 #include "Acts/MagneticField/MagneticFieldProvider.hpp"
 
 #include <cstddef>
-#include <iostream>
-#include <memory>
 
 #include "TrackingPipeline/MagneticField/MagneticFieldStore.hpp"
 
@@ -13,23 +11,19 @@ class IdealQuadrupoleMagField : public Acts::MagneticFieldProvider {
   struct Cache {
     double gradient;
 
-    Cache(double grad) : gradient(grad) {}
+    explicit Cache(double grad) : gradient(grad) {}
 
     Cache(std::size_t id, const Acts::MagneticFieldContext& mctx,
           double defaultGrad) {
       if (!mctx.hasValue()) {
         gradient = defaultGrad;
-        // std::cout << "QUAD " << id << " DEFAULT GRAD -- NO MCTX\n";
         return;
       }
       const auto& store = mctx.get<std::shared_ptr<MagneticFieldStore>&>();
       if (store->store.contains(id)) {
         gradient = store->store.at(id).as<Cache>().gradient;
-        // std::cout << "QUAD " << id << " GRAD " << gradient << " ("
-        //          << defaultGrad << ")\n";
       } else {
         gradient = defaultGrad;
-        // std::cout << "QUAD " << id << " DEFAULT GRAD -- NO STORE\n";
       }
     }
   };

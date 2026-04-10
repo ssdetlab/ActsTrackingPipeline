@@ -44,6 +44,8 @@ using KFFitterPropagatorOptions =
     typename Propagator::template Options<KFFitterActionList,
                                           KFFitterAbortList>;
 
+using KFFitterExtensions = Acts::KalmanFitterExtensions<KFFitterTrajectory>;
+
 using KFFitter = Acts::KalmanFitter<Propagator, KFFitterTrajectory>;
 
 /// -----------------------------------------------

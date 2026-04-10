@@ -253,9 +253,9 @@ int main() {
   // --------------------------------------------------------------
   // Alignment
 
-  // Initialize track fitter options
-  KFFitterGainUpdater kfUpdater;
-  KFFitterGainSmoother kfSmoother;
+  // Initialize track fitter extensions
+  KFFitterGainUpdater alignmentKFUpdater;
+  KFFitterGainSmoother alignmentKFSmoother;
 
   Acts::KalmanFitterExtensions<KFFitterTrajectory> alignmentExtensions;
   // Add calibrator
@@ -264,11 +264,11 @@ int main() {
   // Add the updater
   alignmentExtensions.updater
       .connect<&KFFitterGainUpdater::operator()<KFFitterTrajectory>>(
-          &kfUpdater);
+          &alignmentKFUpdater);
   // Add the smoother
   alignmentExtensions.smoother
       .connect<&KFFitterGainSmoother::operator()<KFFitterTrajectory>>(
-          &kfSmoother);
+          &alignmentKFSmoother);
   // Add the surface accessor
   alignmentExtensions.surfaceAccessor
       .connect<&SimpleSourceLink::SurfaceAccessor::operator()>(
@@ -367,7 +367,9 @@ int main() {
       .outputTrackParameters = "UpdatedTrackParameters",
       .alignmentFunction =
           AlignmentAlgorithm::makeAlignmentFunction(detector, field),
-      .kfOptions = alignmentKFOptions,
+      .maxKFSteps = static_cast<std::size_t>(1e5),
+      .kfExtensions = alignmentExtensions,
+      .kfReferenceSurface = trackingRefSurface.get(),
       .chi2ONdfCutOff = 1e-16,
       .deltaChi2ONdfCutOff = {10, 1e-5},
       .maxAlignmentFitNumIt = 200,
@@ -401,31 +403,26 @@ int main() {
 
   // --------------------------------------------------------------
   // Track fitting
+  KFFitterGainUpdater kfUpdater;
+  KFFitterGainSmoother kfSmoother;
 
-  // Initialize track fitter options
-  Acts::KalmanFitterExtensions<KFFitterTrajectory> extensions;
+  // Initialize track fitter extensions
+  Acts::KalmanFitterExtensions<KFFitterTrajectory> kfExtensions;
   // Add calibrator
-  extensions.calibrator
+  kfExtensions.calibrator
       .connect<&simpleSourceLinkCalibrator<KFFitterTrajectory>>();
   // Add the updater
-  extensions.updater
+  kfExtensions.updater
       .connect<&KFFitterGainUpdater::operator()<KFFitterTrajectory>>(
           &kfUpdater);
   // Add the smoother
-  extensions.smoother
+  kfExtensions.smoother
       .connect<&KFFitterGainSmoother::operator()<KFFitterTrajectory>>(
           &kfSmoother);
   // Add the surface accessor
-  extensions.surfaceAccessor
+  kfExtensions.surfaceAccessor
       .connect<&SimpleSourceLink::SurfaceAccessor::operator()>(
           &surfaceAccessor);
-
-  auto propOptions = KFFitterPropagatorOptions(gctx, mctx);
-
-  propOptions.maxSteps = 1e5;
-
-  auto kfOptions = Acts::KalmanFitterOptions(
-      gctx, mctx, cctx, extensions, propOptions, trackingRefSurface.get());
 
   Navigator::Config cfg;
   cfg.detector = detector.get();
@@ -451,7 +448,9 @@ int main() {
       .outputTrackContainer = "TrackContainer",
       .outputTracks = "Tracks",
       .fitter = fitter,
-      .kfOptions = kfOptions};
+      .maxSteps = static_cast<size_t>(1e5),
+      .kfExtensions = kfExtensions,
+      .referenceSurface = trackingRefSurface.get()};
 
   sequencer.addAlgorithm(
       std::make_shared<KFTrackFittingAlgorithm>(fitterCfg, logLevel));

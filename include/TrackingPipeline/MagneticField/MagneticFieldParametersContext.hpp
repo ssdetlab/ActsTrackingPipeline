@@ -6,7 +6,8 @@
 
 class MagneticFieldParametersContext {
  public:
-  MagneticFieldParametersContext(const MagneticFieldStoreCollection& collection)
+  explicit MagneticFieldParametersContext(
+      const MagneticFieldStoreCollection& collection)
       : m_collection(collection) {}
 
   MagneticFieldStore& magneticFieldStore(std::size_t eventNumber) {
