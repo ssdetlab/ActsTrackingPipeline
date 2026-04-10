@@ -128,9 +128,7 @@ ProcessCode AlignmentAlgorithm::execute(const AlgorithmContext& ctx) const {
       // TODO: find another way of applying annealing (contexts)
       for (auto& sl : inputSourceLinks) {
         auto& ssl = sl.get<SimpleSourceLink>();
-        if (ssl.geometryId().sensitive() > 40) {
-          ssl.setCovarianceAnnealingFactor(alpha);
-        }
+        ssl.setCovarianceAnnealingFactor(alpha);
       }
     }
 
