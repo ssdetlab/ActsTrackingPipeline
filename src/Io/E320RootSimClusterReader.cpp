@@ -117,6 +117,7 @@ E320RootSimClusterReader::E320RootSimClusterReader(const Config& config,
 
   // Initialize BPM geometry ids
   const auto& goInst = *GeometryOptions::instance();
+  m_bpmGeoIds.insert(goInst.bpm0Parameters.geoId);
   m_bpmGeoIds.insert(goInst.bpm1Parameters.geoId);
   m_bpmGeoIds.insert(goInst.bpm2Parameters.geoId);
   m_bpmGeoIds.insert(goInst.bpm3Parameters.geoId);
