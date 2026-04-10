@@ -72,9 +72,8 @@ struct GeometryOptions {
   const Acts::Vector3 longDir = detail::binningValueToDirection(longBinValue);
   const Acts::Vector3 shortDir = detail::binningValueToDirection(shortBinValue);
 
-  const std::size_t gapVolumeIdPrefactor = 50;
-  const std::size_t magVolumeIdPrefactor = 100;
-  const std::size_t ipVolumeIdPrefactor = 150;
+  const std::size_t magVolumeIdPrefactor = 60;
+  const std::size_t gapVolumeIdPrefactor = 70;
 
   const double worldHalfLong = 2_m;
   const double worldHalfShort = 2_m;
@@ -85,12 +84,28 @@ struct GeometryOptions {
   const double toWorldAngleZ = M_PI_2;
 
   /// --------------------------------------------------------------
+  /// Parameters of the BPMs
+
+  const double bpmHalfX = worldHalfLong;
+  const double bpmHalfY = worldHalfShort;
+
+  const double bpmThickness = 1_mm;
+
+  /// --------------------------------------------------------------
   /// Parameters of the Be window
 
   const double beWindowHalfX = worldHalfLong;
   const double beWindowHalfY = worldHalfShort;
 
   const double beWindowThickness = 1_mm;
+
+  /// --------------------------------------------------------------
+  /// Parameters of the IP surface
+
+  const double ipSurfaceHalfX = worldHalfLong;
+  const double ipSurfaceHalfY = worldHalfShort;
+
+  const double ipSurfaceThickness = 1_mm;
 
   /// --------------------------------------------------------------
   /// Parameters of the quads
@@ -194,10 +209,23 @@ struct GeometryOptions {
       128, chipHalfY, chipHalfY, Acts::closed, Acts::BinningValue::binY);
 
   /// --------------------------------------------------------------
+  /// Upstream BPM placement
+
+  const double bpm0CenterPrimary = -1515_mm;  // 3156
+
+  const double bpmCenterLong = 0_mm;
+  const double bpmCenterShort = 0_mm;
+
+  const SurfaceParameters bpm0Parameters{
+      {primaryBinValue, bpm0CenterPrimary, toWorldAngleX},
+      {longBinValue, bpmCenterLong, toWorldAngleY},
+      {shortBinValue, bpmCenterShort, toWorldAngleZ},
+      30};
+
+  /// --------------------------------------------------------------
   /// Be window placement
 
-  const double beWindowCenterPrimary = -842_mm;
-  // const double beWindowCenterPrimary = 0_mm;
+  const double beWindowCenterPrimary = -845_mm;
   const double beWindowCenterLong = 0_mm;
   const double beWindowCenterShort = 0_mm;
 
@@ -208,30 +236,40 @@ struct GeometryOptions {
       40};
 
   /// --------------------------------------------------------------
-  /// BMP placement
+  /// IP surface placement
+
+  const double ipSurfaceCenterPrimary = 0_mm;
+  const double ipSurfaceCenterLong = 0_mm;
+  const double ipSurfaceCenterShort = 0_mm;
+
+  const SurfaceParameters ipSurfaceParameters{
+      {primaryBinValue, ipSurfaceCenterPrimary, toWorldAngleX},
+      {longBinValue, ipSurfaceCenterLong, toWorldAngleY},
+      {shortBinValue, ipSurfaceCenterShort, toWorldAngleZ},
+      41};
+
+  /// --------------------------------------------------------------
+  /// Downstream BMP placement
 
   const double bpm1CenterPrimary = 4944_mm;  // 3218
   const double bpm2CenterPrimary = 7168_mm;  // 3265
   const double bpm3CenterPrimary = 9393_mm;  // 3315
 
-  const double bpmCenterLong = 0_mm;
-  const double bpmCenterShort = 0_mm;
-
   const SurfaceParameters bpm1Parameters{
       {primaryBinValue, bpm1CenterPrimary, toWorldAngleX},
       {longBinValue, bpmCenterLong, toWorldAngleY},
       {shortBinValue, bpmCenterShort, toWorldAngleZ},
-      41};
+      31};
   const SurfaceParameters bpm2Parameters{
       {primaryBinValue, bpm2CenterPrimary, toWorldAngleX},
       {longBinValue, bpmCenterLong, toWorldAngleY},
       {shortBinValue, bpmCenterShort, toWorldAngleZ},
-      42};
+      32};
   const SurfaceParameters bpm3Parameters{
       {primaryBinValue, bpm3CenterPrimary, toWorldAngleX},
       {longBinValue, bpmCenterLong, toWorldAngleY},
       {shortBinValue, bpmCenterShort, toWorldAngleZ},
-      43};
+      33};
 
   /// --------------------------------------------------------------
   /// Quads placement
@@ -279,7 +317,7 @@ struct GeometryOptions {
       {primaryBinValue, pdcWindowCenterPrimary, toWorldAngleX},
       {longBinValue, pdcWindowCenterLong, toWorldAngleY},
       {shortBinValue, pdcWindowCenterShort, toWorldAngleZ},
-      30};
+      50};
 
   /// --------------------------------------------------------------
   /// Tracking chamber placement
