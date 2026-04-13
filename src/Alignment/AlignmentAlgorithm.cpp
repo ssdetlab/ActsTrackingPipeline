@@ -96,7 +96,7 @@ ProcessCode AlignmentAlgorithm::execute(const AlgorithmContext& ctx) const {
   kfOptions.referenceSurface = m_cfg.kfReferenceSurface;
 
   // Add constraints
-  ConcatVectorView inputSourceLinksView(inputSourceLinks, m_cfg.constraints);
+  detail::ConcatVectorView inputSourceLinksView(inputSourceLinks, m_cfg.constraints);
 
   std::size_t nCandidates = inputTrackCandidates.size();
 

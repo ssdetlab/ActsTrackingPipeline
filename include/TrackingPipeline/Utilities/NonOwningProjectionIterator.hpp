@@ -4,6 +4,8 @@
 #include <iterator>
 #include <vector>
 
+namespace detail {
+
 /// @brief iterator class implementing index projection
 /// iteration over a container implementing "at()" method
 ///
@@ -129,3 +131,5 @@ class NonOwningProjectionIterator {
   const container_t* m_typeRange;
   const std::vector<std::size_t>* m_indexRange;
 };
+
+}  // namespace detail

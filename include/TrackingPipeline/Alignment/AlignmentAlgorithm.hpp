@@ -23,10 +23,10 @@
 
 class AlignmentAlgorithm final : public IAlgorithm {
  public:
-  using SourceLinkContainer = std::vector<
-      NonOwningProjectionContainer<ConcatVectorView<Acts::SourceLink>>>;
+  using SourceLinkContainer = std::vector<detail::NonOwningProjectionContainer<
+      detail::ConcatVectorView<Acts::SourceLink>>>;
 
-  using TrackParametersContainer = NonOwningProjectionContainer<
+  using TrackParametersContainer = detail::NonOwningProjectionContainer<
       std::vector<Acts::CurvilinearTrackParameters>>;
 
   /// Alignment function that takes the above parameters and runs alignment

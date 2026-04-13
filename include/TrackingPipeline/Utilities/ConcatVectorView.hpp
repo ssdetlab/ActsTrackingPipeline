@@ -2,6 +2,8 @@
 
 #include <vector>
 
+namespace detail {
+
 template <typename T>
 class ConcatVectorView {
  public:
@@ -114,4 +116,5 @@ class ConcatVectorView {
   const std::vector<T>& m_a;
   const std::vector<T>& m_b;
 };
-;
+
+}  // namespace detail

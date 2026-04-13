@@ -2,8 +2,6 @@
 
 #include "Acts/EventData/TrackParameters.hpp"
 #include "Acts/Utilities/Logger.hpp"
-#include <Acts/Definitions/Algebra.hpp>
-#include <Acts/Definitions/TrackParametrization.hpp>
 
 #include <cstddef>
 #include <utility>
@@ -11,26 +9,7 @@
 
 #include "TrackingPipeline/EventData/DataContainers.hpp"
 #include "TrackingPipeline/TrackFinding/HoughTransformSeeder.hpp"
-
-namespace {
-
-void constructTracks(
-    const std::shared_ptr<E320::E320SeedingAlgorithm::IdxTree::Node>& root,
-    std::vector<std::size_t>& track,
-    std::vector<std::vector<std::size_t>>& tracks) {
-  track.push_back(root->m_idx);
-  if (root->children.size() == 0) {
-    tracks.push_back(track);
-    track.pop_back();
-    return;
-  }
-  for (auto& child : root->children) {
-    constructTracks(child, track, tracks);
-  }
-  track.pop_back();
-}
-
-}  // namespace
+#include "TrackingPipeline/Utilities/IdxTree.hpp"
 
 namespace E320 {
 
@@ -39,9 +18,7 @@ E320SeedingAlgorithm::E320SeedingAlgorithm(const Config& config,
     : IAlgorithm("E320SeedingAlgorithm", level), m_cfg(config) {
   m_inputSourceLinks.initialize(m_cfg.inputSourceLinks);
   m_inputDetSourceLinkIndices.initialize(m_cfg.inputDetSourceLinkIndices);
-  if (!m_cfg.inputBpmSourceLinkIndices.empty()) {
-    m_inputBpmSourceLinkIndices.initialize(m_cfg.inputBpmSourceLinkIndices);
-  }
+  m_inputBpmSourceLinkIndices.initialize(m_cfg.inputBpmSourceLinkIndices);
 
   m_outputSeeds.initialize(m_cfg.outputSeeds);
   m_outputTrackParameters.initialize(m_cfg.outputTrackParameters);
@@ -51,32 +28,27 @@ ProcessCode E320SeedingAlgorithm::execute(const AlgorithmContext& ctx) const {
   using namespace Acts::UnitLiterals;
 
   const auto& inputSourceLinks = m_inputSourceLinks(ctx);
-  const auto& inputDetSourceLinksIndices = m_inputDetSourceLinkIndices(ctx);
-  const auto& inputBpmSourceLinksIndices =
-      (ctx.eventStore.exists(m_cfg.inputBpmSourceLinkIndices))
-          ? m_inputBpmSourceLinkIndices(ctx)
-          : std::vector<std::size_t>();
+  const auto& inputDetSourceLinkIndices = m_inputDetSourceLinkIndices(ctx);
+  const auto& inputBpmSourceLinkIndices = m_inputBpmSourceLinkIndices(ctx);
 
   ACTS_DEBUG("Received " << inputSourceLinks.size() << " source links");
-  ACTS_DEBUG("Received " << inputDetSourceLinksIndices.size()
+  ACTS_DEBUG("Received " << inputDetSourceLinkIndices.size()
                          << " detector source link indices");
-  ACTS_DEBUG("Received " << inputBpmSourceLinksIndices.size()
+  ACTS_DEBUG("Received " << inputBpmSourceLinkIndices.size()
                          << " bpm source link indices");
 
-  if (inputDetSourceLinksIndices.empty()) {
+  if (inputDetSourceLinkIndices.empty()) {
     ACTS_DEBUG("Input is empty. Skipping");
     m_outputSeeds(ctx, IndexSeeds());
     m_outputTrackParameters(ctx, {});
     return ProcessCode::SUCCESS;
   }
 
-  std::vector<std::size_t> inputDetSourceLinkIndices;
-
   IndexSeeds outSeeds;
   std::vector<Acts::CurvilinearTrackParameters> outTrackParameters;
   std::vector<HoughTransformSeeder::HTSeed> htSeeds =
       m_cfg.htSeeder->findSeeds(ctx.geoContext, inputSourceLinks,
-                                inputDetSourceLinksIndices, m_cfg.htOptions);
+                                inputDetSourceLinkIndices, m_cfg.htOptions);
 
   ACTS_DEBUG("Found " << htSeeds.size() << " HT seeds");
   outSeeds.reserve(htSeeds.size() * m_cfg.maxLayers);
@@ -84,7 +56,7 @@ ProcessCode E320SeedingAlgorithm::execute(const AlgorithmContext& ctx) const {
   for (std::size_t i = 0; i < htSeeds.size(); i++) {
     const auto& [point, dir, slIdxs] = htSeeds.at(i);
 
-    IdxTree::IdxContainer idxContainer;
+    detail::IdxTree::IdxContainer idxContainer;
     idxContainer.reserve(slIdxs.size());
     std::size_t firstLayerId = std::numeric_limits<std::size_t>::max();
     for (std::size_t idx : slIdxs) {
@@ -109,8 +81,9 @@ ProcessCode E320SeedingAlgorithm::execute(const AlgorithmContext& ctx) const {
       trackContainer.reserve(m_cfg.minLayers);
 
       std::vector<std::vector<std::size_t>> splitSeedSlIdxs;
-      IdxTree idxTree(idxContainer, it, rootEndIt);
-      constructTracks(idxTree.m_root, trackContainer, splitSeedSlIdxs);
+      detail::IdxTree idxTree(idxContainer, it, rootEndIt);
+      idxTree.constructTracks(idxTree.getRootNode(), trackContainer,
+                              splitSeedSlIdxs);
       for (const auto& seedIdxs : splitSeedSlIdxs) {
         if (seedIdxs.size() < m_cfg.minLayers ||
             seedIdxs.size() > m_cfg.maxLayers) {
@@ -127,8 +100,8 @@ ProcessCode E320SeedingAlgorithm::execute(const AlgorithmContext& ctx) const {
 
         std::vector<std::size_t> sourceLinksIdxs = seedIdxs;
         sourceLinksIdxs.insert(sourceLinksIdxs.end(),
-                               inputBpmSourceLinksIndices.begin(),
-                               inputBpmSourceLinksIndices.end());
+                               inputBpmSourceLinkIndices.begin(),
+                               inputBpmSourceLinkIndices.end());
 
         outSeeds.emplace_back(std::move(sourceLinksIdxs),
                               outTrackParameters.size(), outSeeds.size());

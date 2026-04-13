@@ -54,8 +54,9 @@ ProcessCode KFTrackFittingAlgorithm::execute(
       continue;
     }
 
-    NonOwningProjectionIterator begin(inputSourceLinks, sourceLinkIndices);
-    NonOwningProjectionIterator end = begin + sourceLinkIndices.size();
+    detail::NonOwningProjectionIterator begin(inputSourceLinks,
+                                              sourceLinkIndices);
+    detail::NonOwningProjectionIterator end = begin + sourceLinkIndices.size();
     const auto& startParameters =
         inputTrackParameters.at(candidate.originParametersIndex);
 
