@@ -35,7 +35,7 @@
 #include "TrackingPipeline/TrackFinding/E320SeedingAlgorithm.hpp"
 #include "TrackingPipeline/TrackFinding/E320TrackParametersEstimator.hpp"
 #include "TrackingPipeline/TrackFinding/HoughTransformSeeder.hpp"
-#include "TrackingPipeline/TrackFitting/FastGX2Fitter.hpp"
+#include "TrackingPipeline/TrackFitting/StraightLineGX2Fitter.hpp"
 #include "TrackingPipeline/TrackFitting/KFTrackFittingAlgorithm.hpp"
 
 using namespace Acts::UnitLiterals;
@@ -257,7 +257,7 @@ int main() {
   // Seeding setup
 
   // GX2 fitter setup
-  FastGX2Fitter::Config gx2FitterCfg{};
+  StraightLineGX2Fitter::Config gx2FitterCfg{};
   gx2FitterCfg.primaryIdx = goInst.primaryIdx;
   gx2FitterCfg.longIdx = goInst.longIdx;
   gx2FitterCfg.shortIdx = goInst.shortIdx;
@@ -265,7 +265,7 @@ int main() {
   gx2FitterCfg.lastLayerGeoId = goInst.tcParameters.back().geoId;
   gx2FitterCfg.surfaceMap = gx2FitterSurfaceMap;
 
-  auto gx2Fitter = std::make_shared<FastGX2Fitter>(gx2FitterCfg);
+  auto gx2Fitter = std::make_shared<StraightLineGX2Fitter>(gx2FitterCfg);
 
   // HT seeder setup
   HoughTransformSeeder::Config htSeederCfg{};

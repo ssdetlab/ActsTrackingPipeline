@@ -333,7 +333,7 @@ int main() {
       std::make_shared<LinearAnnealingScheduler>(annealingSchedulerCfg);
 
   // GX2 fitter setup
-  FastGX2Fitter::Config gx2FitterCfg{};
+  StraightLineGX2Fitter::Config gx2FitterCfg{};
   gx2FitterCfg.primaryIdx = goInst.primaryIdx;
   gx2FitterCfg.longIdx = goInst.longIdx;
   gx2FitterCfg.shortIdx = goInst.shortIdx;
@@ -341,7 +341,7 @@ int main() {
   gx2FitterCfg.lastLayerGeoId = goInst.tcParameters.back().geoId;
   gx2FitterCfg.surfaceMap = gx2FitterSurfaceMap;
 
-  auto gx2Fitter = std::make_shared<FastGX2Fitter>(gx2FitterCfg);
+  auto gx2Fitter = std::make_shared<StraightLineGX2Fitter>(gx2FitterCfg);
 
   // Track parameters estimator
   E320::E320TrackParametersEstimator::Config trackParametersEstimatorCfg{};

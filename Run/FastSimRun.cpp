@@ -75,7 +75,7 @@ int main() {
 
   // --------------------------------------------------------------
   // Alignment setup
-  Acts::Vector3 globalShiftMean(0, -4_mm, 5_mm);
+  Acts::Vector3 globalShiftMean(0, 0_mm, 0_mm);
   Acts::Vector3 globalShiftStdErr(0, 0_mm, 0_mm);
 
   std::unordered_map<int, Acts::Vector3> localShiftsMean{
@@ -91,7 +91,7 @@ int main() {
       {16, Acts::Vector3(0_mm, 0_um, 0_um)},
       {18, Acts::Vector3(0_mm, 0_um, 0_um)}};
 
-  Acts::Vector3 globalAnglesMean(0_rad, 0_rad, 2e-3_rad);
+  Acts::Vector3 globalAnglesMean(0_rad, 0_rad, 0_rad);
   Acts::Vector3 globalAnglesStdErr(0_rad, 0_rad, 0_rad);
 
   std::unordered_map<int, Acts::Vector3> localAnglesMean{
@@ -152,46 +152,46 @@ int main() {
   // --------------------------------------------------------------
   // The magnetic field setup
 
-  auto mStore1 = std::make_shared<MagneticFieldStore>();
-  mStore1->store = {
-      {goInst.quad1Id,
-       Acts::MagneticFieldProvider::Cache(
-           std::in_place_type<IdealQuadrupoleMagField::Cache>, 0)},
-      {goInst.quad2Id,
-       Acts::MagneticFieldProvider::Cache(
-           std::in_place_type<IdealQuadrupoleMagField::Cache>, 0)},
-      {goInst.quad3Id,
-       Acts::MagneticFieldProvider::Cache(
-           std::in_place_type<IdealQuadrupoleMagField::Cache>, 0)},
-      {goInst.xCorrectorId, Acts::MagneticFieldProvider::Cache(
-                                std::in_place_type<ConstantMagField::Cache>,
-                                Acts::Vector3(0, 0.026107_T, 0))},
-      {goInst.dipoleId, Acts::MagneticFieldProvider::Cache(
-                            std::in_place_type<ConstantMagField::Cache>,
-                            Acts::Vector3(0, 0, -0.2192_T))}};
+  // auto mStore1 = std::make_shared<MagneticFieldStore>();
+  // mStore1->store = {
+  //     {goInst.quad1Id,
+  //      Acts::MagneticFieldProvider::Cache(
+  //          std::in_place_type<IdealQuadrupoleMagField::Cache>, 0)},
+  //     {goInst.quad2Id,
+  //      Acts::MagneticFieldProvider::Cache(
+  //          std::in_place_type<IdealQuadrupoleMagField::Cache>, 0)},
+  //     {goInst.quad3Id,
+  //      Acts::MagneticFieldProvider::Cache(
+  //          std::in_place_type<IdealQuadrupoleMagField::Cache>, 0)},
+  //     {goInst.xCorrectorId, Acts::MagneticFieldProvider::Cache(
+  //                               std::in_place_type<ConstantMagField::Cache>,
+  //                               Acts::Vector3(0, 0.026107_T, 0))},
+  //     {goInst.dipoleId, Acts::MagneticFieldProvider::Cache(
+  //                           std::in_place_type<ConstantMagField::Cache>,
+  //                           Acts::Vector3(0, 0, -0.2192_T))}};
 
-  auto mStore2 = std::make_shared<MagneticFieldStore>();
-  mStore2->store = {
-      {goInst.quad1Id,
-       Acts::MagneticFieldProvider::Cache(
-           std::in_place_type<IdealQuadrupoleMagField::Cache>, 0)},
-      {goInst.quad2Id,
-       Acts::MagneticFieldProvider::Cache(
-           std::in_place_type<IdealQuadrupoleMagField::Cache>, 0)},
-      {goInst.quad3Id,
-       Acts::MagneticFieldProvider::Cache(
-           std::in_place_type<IdealQuadrupoleMagField::Cache>, 0)},
-      {goInst.xCorrectorId, Acts::MagneticFieldProvider::Cache(
-                                std::in_place_type<ConstantMagField::Cache>,
-                                Acts::Vector3(0, 0.026107_T, 0))},
-      {goInst.dipoleId, Acts::MagneticFieldProvider::Cache(
-                            std::in_place_type<ConstantMagField::Cache>,
-                            Acts::Vector3(0, 0, -0.2192_T))}};
+  // auto mStore2 = std::make_shared<MagneticFieldStore>();
+  // mStore2->store = {
+  //     {goInst.quad1Id,
+  //      Acts::MagneticFieldProvider::Cache(
+  //          std::in_place_type<IdealQuadrupoleMagField::Cache>, 0)},
+  //     {goInst.quad2Id,
+  //      Acts::MagneticFieldProvider::Cache(
+  //          std::in_place_type<IdealQuadrupoleMagField::Cache>, 0)},
+  //     {goInst.quad3Id,
+  //      Acts::MagneticFieldProvider::Cache(
+  //          std::in_place_type<IdealQuadrupoleMagField::Cache>, 0)},
+  //     {goInst.xCorrectorId, Acts::MagneticFieldProvider::Cache(
+  //                               std::in_place_type<ConstantMagField::Cache>,
+  //                               Acts::Vector3(0, 0.026107_T, 0))},
+  //     {goInst.dipoleId, Acts::MagneticFieldProvider::Cache(
+  //                           std::in_place_type<ConstantMagField::Cache>,
+  //                           Acts::Vector3(0, 0, -0.2192_T))}};
 
-  MagneticFieldStoreCollection mFieldStoreCollection = {{0, mStore1},
-                                                        {1000, mStore2}};
-  auto mFieldParametersContext =
-      std::make_shared<MagneticFieldParametersContext>(mFieldStoreCollection);
+  // MagneticFieldStoreCollection mFieldStoreCollection = {{0, mStore1},
+  //                                                       {1000, mStore2}};
+  // auto mFieldParametersContext =
+  //     std::make_shared<MagneticFieldParametersContext>(mFieldStoreCollection);
 
   auto field = E320::buildMagField(gctx);
 
@@ -237,8 +237,8 @@ int main() {
 
   sequencer.addContextDecorator(
       std::make_shared<GeometryContextDecorator>(aStore));
-  sequencer.addContextDecorator(
-      std::make_shared<MagneticFieldContextDecorator>(mFieldParametersContext));
+  // sequencer.addContextDecorator(
+  //     std::make_shared<MagneticFieldContextDecorator>(mFieldParametersContext));
 
   // --------------------------------------------------------------
   // Add dummy reader
@@ -246,7 +246,7 @@ int main() {
   dummyReaderCfg.outputSourceLinks = "SimMeasurements";
   dummyReaderCfg.outputSimClusters = "SimClusters";
   dummyReaderCfg.outputSourceLinkIndices = "SimMeasurementIndices";
-  dummyReaderCfg.nEvents = 2e3;
+  dummyReaderCfg.nEvents = 1e3;
 
   sequencer.addReader(std::make_shared<DummyReader>(dummyReaderCfg));
 
@@ -274,7 +274,7 @@ int main() {
     SurfaceRangedDigitizer::Resolution res =
         (geoId.sensitive() < goInst.bpm0Parameters.geoId)
             ? std::make_pair(5_um, 5_um)
-            : std::make_pair(100_um, 100_um);
+            : std::make_pair(100_mm, 100_mm);
     digitizerCfg.resolutions.insert({surf->geometryId(), res});
   }
   auto digitizer = std::make_shared<SurfaceRangedDigitizer>(digitizerCfg);
@@ -289,14 +289,14 @@ int main() {
 
   // Vertex generator
   GaussianVertexGenerator::Config vertexGenCfg;
-  vertexGenCfg.mean = Acts::Vector3(goInst.bpm0CenterPrimary - 1_mm, 0, 0);
-  vertexGenCfg.cov = Acts::SquareMatrix3::Identity() * 0_um;
+  vertexGenCfg.mean = Acts::Vector3(goInst.bpm0CenterPrimary - 5_mm, 0, 0);
+  vertexGenCfg.cov = Acts::SquareMatrix3::Identity() * 30_um;
   auto vertexGen = std::make_shared<GaussianVertexGenerator>(vertexGenCfg);
 
   SphericalMomentumGenerator::Config momGenCfg;
-  momGenCfg.pRange = {2.5_GeV, 2.5_GeV};
-  momGenCfg.phiRange = {0.0, 0.0};
-  momGenCfg.thetaRange = {M_PI_2 + 0.0, M_PI_2 + 0.0};
+  momGenCfg.pRange = {10.0_GeV, 10.0_GeV};
+  momGenCfg.phiRange = {1e-3_rad, 1e-3_rad};
+  momGenCfg.thetaRange = {M_PI_2 - 1e-3_rad, M_PI_2 - 1e-3_rad};
 
   auto momGen = std::make_shared<SphericalMomentumGenerator>(momGenCfg);
 
@@ -309,7 +309,7 @@ int main() {
       .maxSteps = 1000,
       .isSignal = true,
       .hypothesis = Acts::ParticleHypothesis::electron(),
-      .charge = 1_e};
+      .charge = -1_e};
 
   std::unordered_map<Acts::GeometryIdentifier, MeasurementsCreator::Constraints>
       measCreatorConstraints;
@@ -318,7 +318,7 @@ int main() {
     const auto& geoId = surface.geometryId();
     if (geoId.sensitive() != 0u &&
         geoId.sensitive() >= goInst.bpm0Parameters.geoId) {
-      measCreatorConstraints.insert({geoId, {-30, 30, -30, 30}});
+      // measCreatorConstraints.insert({geoId, {-30, 30, -30, 30}});
     }
   }
   measCreatorCfg.constraints = measCreatorConstraints;

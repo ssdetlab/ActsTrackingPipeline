@@ -2,6 +2,7 @@
 
 #include "Acts/Definitions/Algebra.hpp"
 #include "Acts/Definitions/TrackParametrization.hpp"
+#include "Acts/EventData/ParticleHypothesis.hpp"
 #include "Acts/EventData/SourceLink.hpp"
 
 #include <cstddef>
@@ -9,12 +10,8 @@
 #include "TrackingPipeline/TrackFinding/ITrackParametersEstimator.hpp"
 #include "TrackingPipeline/TrackFitting/StraightLineGX2Fitter.hpp"
 
-namespace E320 {
-
-class E320TrackParametersEstimator : public ITrackParametersEstimator {
+class StraightLineTrackParametersEstimator : public ITrackParametersEstimator {
  public:
-  enum struct PropagationDirection : int { forward = 0, backward = 1 };
-
   /// @brief The nested configuration struct
   struct Config {
     /// Fast GX2 fitter
@@ -25,14 +22,20 @@ class E320TrackParametersEstimator : public ITrackParametersEstimator {
     double maxChi2;
     /// Reference surface
     const Acts::Surface* referenceSurface;
+    /// Absolute momentum to assign
+    double absMomentum;
+    /// Particle hypothesis
+    Acts::ParticleHypothesis particleHypothesis;
+    /// Particle charge to assign
+    double charge;
     /// Initial track state covariance prior
     Acts::BoundMatrix originCov;
-    /// Forward or backward propagation parameters
-    PropagationDirection propDirection;
+    /// RMS of the MCS angle
+    double thetaRms;
   };
 
   /// @brief Constructor
-  explicit E320TrackParametersEstimator(const Config& config);
+  explicit StraightLineTrackParametersEstimator(const Config& config);
 
   /// @brief Execute method
   Result estimateParameters(const Acts::GeometryContext& gctx,
@@ -47,14 +50,4 @@ class E320TrackParametersEstimator : public ITrackParametersEstimator {
  private:
   /// Configuration
   Config m_cfg;
-
-  Acts::BoundMatrix transportCovToReference(
-      const Acts::GeometryContext& gctx, const Acts::Vector3& refSurfacePoint,
-      const Acts::Vector3& point, const Acts::Vector3& dir,
-      const Acts::ActsSquareMatrix<6>& cov) const;
-
-  double m_dipoleLength;
-  double m_dipoleFieldStrength;
 };
-
-}  // namespace E320

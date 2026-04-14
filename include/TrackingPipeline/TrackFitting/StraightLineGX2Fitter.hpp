@@ -5,7 +5,10 @@
 #include "Acts/Surfaces/Surface.hpp"
 
 #include <cstddef>
+#include <cstdint>
 #include <unordered_map>
+
+#include "TrackingPipeline/Utilities/TupleHash.hpp"
 
 /// @brief simple global chi2 fitter for intermediate estimations
 ///
@@ -13,7 +16,7 @@
 /// accounting for multiple scattering effects. The layers
 /// of the tracking detector are assumed to be evenly spaced.
 /// The fitter relies on the initial estimate of the track's direction.
-class FastGX2Fitter {
+class StraightLineGX2Fitter {
  public:
   /// @brief config struct
   struct Config {
@@ -33,7 +36,7 @@ class FastGX2Fitter {
   using Covariance = Acts::ActsSquareMatrix<covarianceDim>;
 
   /// @brief constructor
-  explicit FastGX2Fitter(const Config& cfg);
+  explicit StraightLineGX2Fitter(const Config& cfg);
 
   /// @brief perform global chi2 fit
   ///
@@ -53,6 +56,9 @@ class FastGX2Fitter {
  private:
   /// @brief global covariance construction
   Acts::ActsDynamicMatrix constructCov(
+      std::unordered_map<std::pair<std::uint32_t, std::uint32_t>, double,
+                         detail::PairHash>
+          interSurfaceDistanceSums,
       const std::vector<Acts::SourceLink>& sourceLinks,
       const std::vector<std::size_t>& sourceLinksIndices,
       const Acts::Vector3& dir, double thetaMcsRms);
@@ -61,6 +67,4 @@ class FastGX2Fitter {
 
   Acts::GeometryIdentifier m_firstLayerGeoId;
   Acts::GeometryIdentifier m_lastLayerGeoId;
-
-  double m_primaryInterlayerDistance;
 };

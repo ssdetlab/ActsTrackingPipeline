@@ -4,6 +4,8 @@ target_sources(
     SourceLinkGridConstructor.cpp
     ForwardOrderedIntersectionFinder.cpp
     IdealSeedingAlgorithm.cpp
+    TryAllSeedingAlgorithm.cpp
+    StraightLineTrackParametersEstimator.cpp
     HoughTransformSeeder.cpp
     E320SeedingAlgorithm.cpp
     E320TrackParametersEstimator.cpp

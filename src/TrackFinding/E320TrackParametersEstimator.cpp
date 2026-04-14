@@ -9,7 +9,6 @@
 #include <vector>
 
 #include "TrackingPipeline/Geometry/E320GeometryConstraints.hpp"
-#include "TrackingPipeline/TrackFitting/FastGX2Fitter.hpp"
 #include "TrackingPipeline/Utilities/ThetaMcsRmsCalculator.hpp"
 
 using namespace Acts::UnitLiterals;
@@ -27,8 +26,8 @@ E320TrackParametersEstimator::E320TrackParametersEstimator(const Config& config)
 Acts::BoundMatrix E320TrackParametersEstimator::transportCovToReference(
     const Acts::GeometryContext& gctx, const Acts::Vector3& refSurfacePoint,
     const Acts::Vector3& point, const Acts::Vector3& dir,
-    const FastGX2Fitter::Covariance& cov) const {
-  constexpr std::size_t gx2CovDim = FastGX2Fitter::covarianceDim;
+    const StraightLineGX2Fitter::Covariance& cov) const {
+  constexpr std::size_t gx2CovDim = StraightLineGX2Fitter::covarianceDim;
 
   const Acts::Vector3& refSurfCenter = m_cfg.referenceSurface->center(gctx);
 
@@ -89,7 +88,7 @@ E320TrackParametersEstimator::estimateParameters(
     const Acts::Vector3& point) const {
   Acts::Vector3 newDir = dir;
   Acts::Vector3 newPoint = point;
-  FastGX2Fitter::Covariance newCov;
+  StraightLineGX2Fitter::Covariance newCov;
 
   double chi2 = 0;
   double thetaY = std::atan(newDir.y() / newDir.x());
