@@ -163,6 +163,10 @@ ProcessCode E320::E320RootDataReader::read(const AlgorithmContext& ctx) {
       double quadCenterX = 0;
       double quadCenterY = 0;
       switch (bpmEv.id) {
+        case 3156:
+          quadCenterX = goInst.quad1CenterShort;
+          quadCenterY = goInst.quad1CenterLong;
+          break;
         case 3218:
           quadCenterX = goInst.quad1CenterShort;
           quadCenterY = goInst.quad1CenterLong;
