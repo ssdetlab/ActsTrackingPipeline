@@ -209,20 +209,6 @@ struct GeometryOptions {
       128, chipHalfY, chipHalfY, Acts::closed, Acts::BinningValue::binY);
 
   /// --------------------------------------------------------------
-  /// Upstream BPM placement
-
-  const double bpm0CenterPrimary = -1515_mm;  // 3156
-
-  const double bpmCenterLong = 0_mm;
-  const double bpmCenterShort = 0_mm;
-
-  const SurfaceParameters bpm0Parameters{
-      {primaryBinValue, bpm0CenterPrimary, toWorldAngleX},
-      {longBinValue, bpmCenterLong, toWorldAngleY},
-      {shortBinValue, bpmCenterShort, toWorldAngleZ},
-      30};
-
-  /// --------------------------------------------------------------
   /// Be window placement
 
   const double beWindowCenterPrimary = -845_mm;
@@ -250,11 +236,19 @@ struct GeometryOptions {
 
   /// --------------------------------------------------------------
   /// Downstream BMP placement
+  const double bpmCenterLong = 0_mm;
+  const double bpmCenterShort = 0_mm;
 
+  const double bpm0CenterPrimary = -1515_mm;  // 3156
   const double bpm1CenterPrimary = 4944_mm;  // 3218
   const double bpm2CenterPrimary = 7168_mm;  // 3265
   const double bpm3CenterPrimary = 9393_mm;  // 3315
 
+  const SurfaceParameters bpm0Parameters{
+      {primaryBinValue, bpm0CenterPrimary, toWorldAngleX},
+      {longBinValue, bpmCenterLong, toWorldAngleY},
+      {shortBinValue, bpmCenterShort, toWorldAngleZ},
+      30};
   const SurfaceParameters bpm1Parameters{
       {primaryBinValue, bpm1CenterPrimary, toWorldAngleX},
       {longBinValue, bpmCenterLong, toWorldAngleY},
@@ -273,6 +267,12 @@ struct GeometryOptions {
 
   /// --------------------------------------------------------------
   /// Quads placement
+
+  const double quad0CenterPrimary = -1900_mm;
+  const double quad0CenterLong = 0.056_mm;
+  // const double quad0CenterLong = 0_mm;
+  const double quad0CenterShort = -1.821_mm;
+  // const double quad0CenterShort = 0;
 
   const double quad1CenterPrimary = 4157_mm;
   const double quad1CenterLong = -0.055_mm;
