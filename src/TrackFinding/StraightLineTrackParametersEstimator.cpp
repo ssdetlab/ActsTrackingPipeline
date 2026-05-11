@@ -36,15 +36,11 @@ StraightLineTrackParametersEstimator::estimateParameters(
   const Acts::Vector3& refSurfNormal = m_cfg.referenceSurface->normal(
       gctx, refSurfCenter, Acts::Vector3::UnitX());
 
-  std::cout << "POINT " << newPoint.transpose() << "\n";
-  std::cout << "DIR " << newDir.transpose() << "\n";
-
   // Transport parameteres to the reference surface
   double dVertex =
       (refSurfCenter - newPoint).dot(refSurfNormal) / newDir.dot(refSurfNormal);
   Acts::Vector3 vertex3 = newPoint + newDir * dVertex;
   Acts::Vector4 vertex(vertex3.x(), vertex3.y(), vertex3.z(), 0);
-  std::cout << "VERTEX " << vertex.transpose() << "\n";
 
   return Acts::CurvilinearTrackParameters(
       vertex, newDir, m_cfg.charge / m_cfg.absMomentum, m_cfg.originCov,
