@@ -68,8 +68,20 @@ E320::E320RootDataReader::E320RootDataReader(const Config& config,
 
   std::get<2>(m_eventMap.back()) = nEntries;
 
-  // Add the data branch
+  // Enable branches
   m_tree->SetBranchStatus("*", true);
+
+  // Initialize geometry ids
+  const auto& goInst = *E320::GeometryOptions::instance();
+  m_geoIdMap = {{0, goInst.tcParameters.at(4).geoId},
+                {2, goInst.tcParameters.at(3).geoId},
+                {4, goInst.tcParameters.at(2).geoId},
+                {6, goInst.tcParameters.at(1).geoId},
+                {8, goInst.tcParameters.at(0).geoId},
+                {3156, goInst.bpm0Parameters.geoId},
+                {3218, goInst.bpm1Parameters.geoId},
+                {3265, goInst.bpm2Parameters.geoId},
+                {3315, goInst.bpm3Parameters.geoId}};
 
   ACTS_DEBUG("Event range: " << availableEvents().first << " - "
                              << availableEvents().second);
@@ -164,8 +176,8 @@ ProcessCode E320::E320RootDataReader::read(const AlgorithmContext& ctx) {
       double quadCenterY = 0;
       switch (bpmEv.id) {
         case 3156:
-          quadCenterX = goInst.quad1CenterShort;
-          quadCenterY = goInst.quad1CenterLong;
+          quadCenterX = goInst.quad0CenterShort;
+          quadCenterY = goInst.quad0CenterLong;
           break;
         case 3218:
           quadCenterX = goInst.quad1CenterShort;
@@ -189,7 +201,7 @@ ProcessCode E320::E320RootDataReader::read(const AlgorithmContext& ctx) {
           ctx.geoContext, hitLoc, Acts::Vector3::UnitX());
 
       // Estimate error
-      Acts::Vector2 stdDev(bpmEv.stdDevY, bpmEv.stdDevX);
+      Acts::Vector2 stdDev(1_mm, 1_mm);
       Acts::SquareMatrix2 cov = stdDev.cwiseProduct(stdDev).asDiagonal();
 
       // Fill the measurement

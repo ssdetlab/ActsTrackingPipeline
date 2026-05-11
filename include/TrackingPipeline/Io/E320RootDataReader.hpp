@@ -90,9 +90,7 @@ class E320RootDataReader : public IReader {
   /// Vector of {eventNr, entryMin, entryMax}
   std::vector<std::tuple<uint32_t, std::size_t, std::size_t>> m_eventMap;
 
-  std::unordered_map<std::uint8_t, std::size_t> m_geoIdMap{
-      {0, 18}, {2, 16},    {4, 14},    {6, 12},
-      {8, 10}, {3218, 41}, {3265, 42}, {3315, 43}};
+  std::unordered_map<std::uint8_t, std::size_t> m_geoIdMap; 
 
   /// The input tree name
   TTree* m_tree = nullptr;
