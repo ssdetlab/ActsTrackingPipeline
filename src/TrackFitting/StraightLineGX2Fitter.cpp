@@ -1,18 +1,24 @@
 #include "TrackingPipeline/TrackFitting/StraightLineGX2Fitter.hpp"
 
 #include "Acts/Definitions/Algebra.hpp"
-#include <Acts/Geometry/GeometryContext.hpp>
+#include "Acts/Geometry/GeometryContext.hpp"
 
 #include <cstddef>
 
 #include "TrackingPipeline/EventData/SimpleSourceLink.hpp"
 #include "TrackingPipeline/Geometry/detail/BinningValueUtils.hpp"
 
-using namespace Acts::UnitLiterals;
-
 StraightLineGX2Fitter::StraightLineGX2Fitter(const Config& cfg) : m_cfg(cfg) {
   m_firstLayerGeoId.setSensitive(m_cfg.firstLayerGeoId);
   m_lastLayerGeoId.setSensitive(m_cfg.lastLayerGeoId);
+
+  for (const auto& [geoId, surf] : m_cfg.surfaceMap) {
+    m_surfaces.emplace_back(geoId, surf);
+  }
+  std::sort(m_surfaces.begin(), m_surfaces.end(),
+            [](const auto& a, const auto& b) {
+              return (a.first.sensitive() < b.first.sensitive());
+            });
 }
 
 double StraightLineGX2Fitter::gx2Fit(
@@ -33,10 +39,14 @@ double StraightLineGX2Fitter::gx2Fit(
   std::unordered_map<std::pair<std::uint32_t, std::uint32_t>, double,
                      detail::PairHash>
       interSurfaceDistanceSums;
-  for (const auto& [geoIdI, surfI] : m_cfg.surfaceMap) {
-    for (const auto& [geoIdJ, surfJ] : m_cfg.surfaceMap) {
+  std::size_t nLayers = m_surfaces.size();
+  for (std::size_t i = 0; i < nLayers; i++) {
+    const auto& [geoIdI, surfI] = m_surfaces.at(i);
+    for (std::size_t j = 0; j < nLayers; j++) {
+      const auto& [geoIdJ, surfJ] = m_surfaces.at(j);
       double sum = 0;
-      for (const auto& [geoIdK, surfK] : m_cfg.surfaceMap) {
+      for (std::size_t k = 0; k < std::min(i, j); k++) {
+        const auto& [geoIdK, surfK] = m_surfaces.at(k);
         double dki = (surfaceCenters.at(geoIdI) - surfaceCenters.at(geoIdK))
                          .dot(surfaceNormals.at(geoIdI)) /
                      dir.dot(surfaceNormals.at(geoIdI));
@@ -122,9 +132,8 @@ double StraightLineGX2Fitter::gx2Fit(
 }
 
 Acts::ActsDynamicMatrix StraightLineGX2Fitter::constructCov(
-    std::unordered_map<std::pair<std::uint32_t, std::uint32_t>, double,
-                       detail::PairHash>
-        interSurfaceDistanceSums,
+    const std::unordered_map<std::pair<std::uint32_t, std::uint32_t>, double,
+                             detail::PairHash>& interSurfaceDistanceSums,
     const std::vector<Acts::SourceLink>& sourceLinks,
     const std::vector<std::size_t>& sourceLinksIndices,
     const Acts::Vector3& dir, double thetaMcsRms) {
@@ -132,22 +141,26 @@ Acts::ActsDynamicMatrix StraightLineGX2Fitter::constructCov(
       2 * sourceLinksIndices.size(), 2 * sourceLinksIndices.size());
   double mcsVarFactor = std::pow(dir(m_cfg.primaryIdx) * thetaMcsRms, 2);
   for (std::size_t i = 0; i < sourceLinksIndices.size(); i++) {
-    std::size_t idx = sourceLinksIndices.at(i);
-    const auto& sslI = sourceLinks.at(idx).get<SimpleSourceLink>();
+    std::size_t idxI = sourceLinksIndices.at(i);
+    const auto& sslI = sourceLinks.at(idxI).get<SimpleSourceLink>();
     const auto& geoIdI = sslI.geometryId();
 
     double mcsVar =
         mcsVarFactor *
-        interSurfaceDistanceSums.at({geoIdI.sensitive(), geoIdI.sensitive()});
+        interSurfaceDistanceSums.at({geoIdI.sensitive(),
+        geoIdI.sensitive()});
     Acts::SquareMatrix2 varMat =
         sslI.covariance() + Acts::SquareMatrix2::Identity() * mcsVar;
     D.block(i * 2, i * 2, 2, 2) = varMat;
     for (std::size_t j = 0; j < i; j++) {
-      const auto& sslJ = sourceLinks.at(idx).get<SimpleSourceLink>();
+      std::size_t idxJ = sourceLinksIndices.at(j);
+      const auto& sslJ = sourceLinks.at(idxJ).get<SimpleSourceLink>();
       const auto& geoIdJ = sslJ.geometryId();
       double covPiPj =
           mcsVarFactor *
-          interSurfaceDistanceSums.at({geoIdI.sensitive(), geoIdJ.sensitive()});
+          interSurfaceDistanceSums.at({geoIdI.sensitive(),
+          geoIdJ.sensitive()});
+
       Acts::SquareMatrix2 covMat = Acts::SquareMatrix2::Identity() * covPiPj;
       D.block(i * 2, j * 2, 2, 2) = covMat;
       D.block(j * 2, i * 2, 2, 2) = covMat;

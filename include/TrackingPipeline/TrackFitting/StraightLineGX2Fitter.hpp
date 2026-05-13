@@ -56,15 +56,16 @@ class StraightLineGX2Fitter {
  private:
   /// @brief global covariance construction
   Acts::ActsDynamicMatrix constructCov(
-      std::unordered_map<std::pair<std::uint32_t, std::uint32_t>, double,
-                         detail::PairHash>
-          interSurfaceDistanceSums,
+      const std::unordered_map<std::pair<std::uint32_t, std::uint32_t>, double,
+                               detail::PairHash>& interSurfaceDistanceSums,
       const std::vector<Acts::SourceLink>& sourceLinks,
       const std::vector<std::size_t>& sourceLinksIndices,
       const Acts::Vector3& dir, double thetaMcsRms);
 
   Config m_cfg;
 
+  std::vector<std::pair<Acts::GeometryIdentifier, const Acts::Surface*>>
+      m_surfaces;
   Acts::GeometryIdentifier m_firstLayerGeoId;
   Acts::GeometryIdentifier m_lastLayerGeoId;
 };
