@@ -3,6 +3,7 @@
 #include "Acts/Definitions/Algebra.hpp"
 #include "Acts/Definitions/TrackParametrization.hpp"
 #include "Acts/EventData/SourceLink.hpp"
+#include "Acts/MagneticField/MagneticFieldContext.hpp"
 
 #include <cstddef>
 
@@ -36,6 +37,7 @@ class E320TrackParametersEstimator : public ITrackParametersEstimator {
 
   /// @brief Execute method
   Result estimateParameters(const Acts::GeometryContext& gctx,
+                            const Acts::MagneticFieldContext& mctx,
                             const std::vector<Acts::SourceLink>& sourceLinks,
                             const std::vector<std::size_t>& sourceLinkIndices,
                             const Acts::Vector3& dir,
@@ -53,6 +55,8 @@ class E320TrackParametersEstimator : public ITrackParametersEstimator {
       const Acts::Vector3& point, const Acts::Vector3& dir,
       const Acts::ActsSquareMatrix<6>& cov) const;
 
+  std::size_t m_dirIdx;
+  std::size_t m_dipoleId;
   double m_dipoleLength;
   double m_dipoleFieldStrength;
 };

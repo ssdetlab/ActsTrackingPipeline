@@ -2,6 +2,7 @@
 
 #include "Acts/EventData/SourceLink.hpp"
 #include "Acts/EventData/TrackParameters.hpp"
+#include "Acts/MagneticField/MagneticFieldContext.hpp"
 #include "Acts/Utilities/Result.hpp"
 
 class ITrackParametersEstimator {
@@ -9,7 +10,7 @@ class ITrackParametersEstimator {
   using Result = Acts::Result<Acts::CurvilinearTrackParameters>;
 
   virtual Result estimateParameters(
-      const Acts::GeometryContext& gctx,
+      const Acts::GeometryContext& gctx, const Acts::MagneticFieldContext& mctx,
       const std::vector<Acts::SourceLink>& sourceLinks,
       const std::vector<std::size_t>& sourceLinkIndices,
       const Acts::Vector3& dir, const Acts::Vector3& point) const = 0;
