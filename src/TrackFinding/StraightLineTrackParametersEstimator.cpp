@@ -15,6 +15,7 @@ StraightLineTrackParametersEstimator::StraightLineTrackParametersEstimator(
 StraightLineTrackParametersEstimator::Result
 StraightLineTrackParametersEstimator::estimateParameters(
     const Acts::GeometryContext& gctx,
+    const Acts::MagneticFieldContext& /*mctx*/,
     const std::vector<Acts::SourceLink>& sourceLinks,
     const std::vector<std::size_t>& sourceLinkIndices, const Acts::Vector3& dir,
     const Acts::Vector3& point) const {

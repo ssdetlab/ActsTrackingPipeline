@@ -3,12 +3,15 @@
 #include <Acts/Definitions/Algebra.hpp>
 #include <Acts/EventData/SourceLink.hpp>
 #include <Acts/EventData/TrackParameters.hpp>
+#include <Acts/MagneticField/MagneticFieldContext.hpp>
 #include <Acts/Utilities/Result.hpp>
 
 #include <cstddef>
 #include <vector>
 
 #include "TrackingPipeline/Geometry/E320GeometryConstraints.hpp"
+#include "TrackingPipeline/MagneticField/ConstantMagField.hpp"
+#include "TrackingPipeline/MagneticField/MagneticFieldStore.hpp"
 #include "TrackingPipeline/Utilities/ThetaMcsRmsCalculator.hpp"
 
 using namespace Acts::UnitLiterals;
@@ -19,6 +22,8 @@ E320TrackParametersEstimator::E320TrackParametersEstimator(const Config& config)
     : m_cfg(config) {
   const auto& goInst = *E320::GeometryOptions::instance();
 
+  m_dirIdx = goInst.dipoleDirIdx;
+  m_dipoleId = goInst.dipoleId;
   m_dipoleLength = goInst.dipoleHalfPrimary * 2;
   m_dipoleFieldStrength = goInst.dipoleFieldStrength;
 }
@@ -82,7 +87,7 @@ Acts::BoundMatrix E320TrackParametersEstimator::transportCovToReference(
 
 E320TrackParametersEstimator::Result
 E320TrackParametersEstimator::estimateParameters(
-    const Acts::GeometryContext& gctx,
+    const Acts::GeometryContext& gctx, const Acts::MagneticFieldContext& mctx,
     const std::vector<Acts::SourceLink>& sourceLinks,
     const std::vector<std::size_t>& sourceLinkIndices, const Acts::Vector3& dir,
     const Acts::Vector3& point) const {
@@ -119,7 +124,17 @@ E320TrackParametersEstimator::estimateParameters(
   Acts::Vector4 vertex(vertex3.x(), vertex3.y(), vertex3.z(), 0);
 
   thetaY = std::atan(newDir.y() / newDir.x());
-  absMom = std::abs(m_dipoleFieldStrength * m_dipoleLength / thetaY);
+
+  double dipoleFieldStrength = m_dipoleFieldStrength;
+  if (mctx.hasValue()) {
+    const auto& store = mctx.get<std::shared_ptr<MagneticFieldStore>&>();
+    if (store->store.contains(m_dipoleId)) {
+      dipoleFieldStrength = store->store.at(m_dipoleId)
+                                .as<ConstantMagField::Cache>()
+                                .m_field(m_dirIdx);
+    }
+  }
+  absMom = std::abs(dipoleFieldStrength * m_dipoleLength / thetaY);
 
   // Estimate the abs momentum variance
   Acts::BoundMatrix cov = m_cfg.originCov;

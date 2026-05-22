@@ -92,7 +92,8 @@ ProcessCode E320SeedingAlgorithm::execute(const AlgorithmContext& ctx) const {
 
         auto trackParametersResult =
             m_cfg.trackParametersEstimator->estimateParameters(
-                ctx.geoContext, inputSourceLinks, seedIdxs, dir, point);
+                ctx.geoContext, ctx.magFieldContext, inputSourceLinks, seedIdxs,
+                dir, point);
 
         if (!trackParametersResult.ok()) {
           continue;
