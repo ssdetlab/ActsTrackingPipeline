@@ -96,7 +96,8 @@ ProcessCode AlignmentAlgorithm::execute(const AlgorithmContext& ctx) const {
   kfOptions.referenceSurface = m_cfg.kfReferenceSurface;
 
   // Add constraints
-  detail::ConcatVectorView inputSourceLinksView(inputSourceLinks, m_cfg.constraints);
+  detail::ConcatVectorView inputSourceLinksView(inputSourceLinks,
+                                                m_cfg.constraints);
 
   std::size_t nCandidates = inputTrackCandidates.size();
 
@@ -165,10 +166,10 @@ ProcessCode AlignmentAlgorithm::execute(const AlgorithmContext& ctx) const {
 
       originParameters =
           m_cfg.trackParametersEstimator
-              ->estimateParameters(ctx.geoContext, inputSourceLinks,
-                                   candidate.sourceLinkIndices,
-                                   originParameters.direction(),
-                                   originParameters.position(ctx.geoContext))
+              ->estimateParameters(
+                  ctx.geoContext, ctx.magFieldContext, inputSourceLinks,
+                  candidate.sourceLinkIndices, originParameters.direction(),
+                  originParameters.position(ctx.geoContext))
               .value();
     }
 
