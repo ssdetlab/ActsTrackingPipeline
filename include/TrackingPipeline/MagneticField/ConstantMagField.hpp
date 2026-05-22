@@ -10,20 +10,23 @@
 class ConstantMagField : public Acts::MagneticFieldProvider {
  public:
   struct Cache {
-    Acts::Vector3 field;
-    explicit Cache(const Acts::Vector3& fld) : field(fld) {}
+    Acts::Vector3 m_field;
+    Cache(double strength, std::size_t dirIdx) {
+      m_field = Acts::Vector3::Zero();
+      m_field(dirIdx) = strength;
+    }
 
     Cache(std::size_t id, const Acts::MagneticFieldContext& mctx,
           const Acts::Vector3& defaultField) {
       if (!mctx.hasValue()) {
-        field = defaultField;
+        m_field = defaultField;
         return;
       }
       const auto& store = mctx.get<std::shared_ptr<MagneticFieldStore>&>();
       if (store->store.contains(id)) {
-        field = store->store.at(id).as<Cache>().field;
+        m_field = store->store.at(id).as<Cache>().m_field;
       } else {
-        field = defaultField;
+        m_field = defaultField;
       }
     }
   };

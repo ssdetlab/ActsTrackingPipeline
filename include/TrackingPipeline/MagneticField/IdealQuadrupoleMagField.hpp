@@ -9,21 +9,21 @@
 class IdealQuadrupoleMagField : public Acts::MagneticFieldProvider {
  public:
   struct Cache {
-    double gradient;
+    double m_gradient;
 
-    explicit Cache(double grad) : gradient(grad) {}
+    explicit Cache(double grad) : m_gradient(grad) {}
 
     Cache(std::size_t id, const Acts::MagneticFieldContext& mctx,
           double defaultGrad) {
       if (!mctx.hasValue()) {
-        gradient = defaultGrad;
+        m_gradient = defaultGrad;
         return;
       }
       const auto& store = mctx.get<std::shared_ptr<MagneticFieldStore>&>();
       if (store->store.contains(id)) {
-        gradient = store->store.at(id).as<Cache>().gradient;
+        m_gradient = store->store.at(id).as<Cache>().m_gradient;
       } else {
-        gradient = defaultGrad;
+        m_gradient = defaultGrad;
       }
     }
   };

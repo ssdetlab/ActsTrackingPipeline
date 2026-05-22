@@ -12,7 +12,7 @@ IdealQuadrupoleMagField::~IdealQuadrupoleMagField() = default;
 Acts::Result<Acts::Vector3> IdealQuadrupoleMagField::getField(
     const Acts::Vector3& position, MagneticFieldProvider::Cache& cache) const {
   const auto& quadCache = cache.as<Cache>();
-  double gradient = quadCache.gradient;
+  double gradient = quadCache.m_gradient;
 
   Acts::Vector3 global(position.x() - m_origin.x(), position.y() - m_origin.y(),
                        position.z() - m_origin.z());

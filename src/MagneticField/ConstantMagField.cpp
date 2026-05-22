@@ -8,7 +8,7 @@ ConstantMagField::ConstantMagField(std::size_t id, const Acts::Vector3& field)
 Acts::Result<Acts::Vector3> ConstantMagField::getField(
     const Acts::Vector3& position, MagneticFieldProvider::Cache& cache) const {
   const auto& fieldCache = cache.as<Cache>();
-  return Acts::Result<Acts::Vector3>::success(fieldCache.field);
+  return Acts::Result<Acts::Vector3>::success(fieldCache.m_field);
 }
 
 Acts::Result<Acts::Vector3> ConstantMagField::getFieldGradient(
