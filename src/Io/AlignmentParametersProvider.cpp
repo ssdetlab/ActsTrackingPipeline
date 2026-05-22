@@ -3,7 +3,6 @@
 #include "Acts/Definitions/Algebra.hpp"
 
 #include <cstddef>
-#include <iostream>
 #include <memory>
 #include <stdexcept>
 
@@ -47,7 +46,7 @@ AlignmentParametersProvider::AlignmentParametersProvider(const Config& config)
   for (std::size_t i = 0; i < m_geoId->size(); i++) {
     Acts::GeometryIdentifier geoId;
     geoId.setSensitive(m_geoId->at(i));
-    if (!geoId.sensitive()) {
+    if (geoId.sensitive() == 0u) {
       continue;
     }
     Acts::Vector3 translation(m_newTranslation->at(i).X(),

@@ -54,7 +54,7 @@ class AlignmentParametersProvider {
   std::vector<TVector3>* m_newTranslation = nullptr;
   std::vector<TMatrixD>* m_newRotation = nullptr;
 
-  std::size_t m_alignmentDof;
+  std::size_t m_alignmentDof = 0;
 
   TMatrixD* m_alignmentCov = nullptr;
 };
