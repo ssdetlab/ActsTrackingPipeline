@@ -7,12 +7,12 @@
 
 #include "TrackingPipeline/Infrastructure/IContextDecorator.hpp"
 #include "TrackingPipeline/Infrastructure/ProcessCode.hpp"
-#include "TrackingPipeline/MagneticField/MagneticFieldParametersContext.hpp"
+#include "TrackingPipeline/MagneticField/MagneticFieldStoreCollection.hpp"
 
 class MagneticFieldContextDecorator : public IContextDecorator {
  public:
   explicit MagneticFieldContextDecorator(
-      const std::shared_ptr<MagneticFieldParametersContext>&
+      const std::shared_ptr<MagneticFieldStoreCollection>&
           fieldStoreCollectionPtr)
       : m_fieldStoreCollectionPtr(fieldStoreCollectionPtr) {}
 
@@ -25,7 +25,7 @@ class MagneticFieldContextDecorator : public IContextDecorator {
   const std::string& name() const override { return m_name; };
 
  private:
-  std::shared_ptr<MagneticFieldParametersContext> m_fieldStoreCollectionPtr;
+  std::shared_ptr<MagneticFieldStoreCollection> m_fieldStoreCollectionPtr;
 
   std::string m_name = "MagneticFieldContextDecorator";
 };
