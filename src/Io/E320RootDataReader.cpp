@@ -37,11 +37,8 @@ E320::E320RootDataReader::E320RootDataReader(const Config& config,
   m_outputDetSourceLinksIndices.initialize(m_cfg.outputDetSourceLinkIndices);
   m_outputBpmSourceLinksIndices.initialize(m_cfg.outputBpmSourceLinkIndices);
 
-  // Set the branches
+  // Set eventId branch
   m_tree->SetBranchAddress("eventId", &m_eventId);
-  m_tree->SetBranchAddress(m_cfg.eventKey.c_str(), &m_detEvent);
-
-  m_tree->SetBranchStatus("*", false);
   if (m_tree->GetBranch("eventId") == nullptr) {
     throw std::invalid_argument("Missing eventId branch");
   }
@@ -59,6 +56,9 @@ E320::E320RootDataReader::E320RootDataReader(const Config& config,
       std::get<2>(m_eventMap.back()) = i;
       m_eventMap.emplace_back(m_eventId, i, i);
     }
+    if (i == nEntries - 1) {
+      std::get<2>(m_eventMap.back()) = nEntries;
+    }
   }
 
   // Sort by event id
@@ -66,10 +66,8 @@ E320::E320RootDataReader::E320RootDataReader(const Config& config,
     return std::get<0>(a) < std::get<0>(b);
   });
 
-  std::get<2>(m_eventMap.back()) = nEntries;
-
-  // Enable branches
-  m_tree->SetBranchStatus("*", true);
+  // Set data branch
+  m_tree->SetBranchAddress(m_cfg.eventKey.c_str(), &m_detEvent);
 
   // Initialize geometry ids
   const auto& goInst = *E320::GeometryOptions::instance();
