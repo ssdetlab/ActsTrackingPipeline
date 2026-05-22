@@ -36,15 +36,15 @@
 #include "TrackingPipeline/MagneticField/ConstantMagField.hpp"
 #include "TrackingPipeline/MagneticField/IdealQuadrupoleMagField.hpp"
 #include "TrackingPipeline/MagneticField/MagneticFieldContextDecorator.hpp"
-#include "TrackingPipeline/MagneticField/MagneticFieldParametersContext.hpp"
 #include "TrackingPipeline/MagneticField/MagneticFieldStore.hpp"
+#include "TrackingPipeline/MagneticField/MagneticFieldStoreCollection.hpp"
 #include "TrackingPipeline/TrackFinding/E320SeedingAlgorithm.hpp"
 #include "TrackingPipeline/TrackFinding/E320TrackParametersEstimator.hpp"
 #include "TrackingPipeline/TrackFinding/HoughTransformSeeder.hpp"
 #include "TrackingPipeline/TrackFinding/StraightLineTrackParametersEstimator.hpp"
 #include "TrackingPipeline/TrackFinding/TryAllSeedingAlgorithm.hpp"
-#include "TrackingPipeline/TrackFitting/StraightLineGX2Fitter.hpp"
 #include "TrackingPipeline/TrackFitting/KFTrackFittingAlgorithm.hpp"
+#include "TrackingPipeline/TrackFitting/StraightLineGX2Fitter.hpp"
 #include "TrackingPipeline/Utilities/ThetaMcsRmsCalculator.hpp"
 
 using namespace Acts::UnitLiterals;

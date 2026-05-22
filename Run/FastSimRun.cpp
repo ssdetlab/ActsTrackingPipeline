@@ -20,11 +20,8 @@
 #include "TrackingPipeline/Infrastructure/Sequencer.hpp"
 #include "TrackingPipeline/Infrastructure/TypeDefinitions.hpp"
 #include "TrackingPipeline/Io/DummyReader.hpp"
+#include "TrackingPipeline/Io/E320MagneticFieldWriter.hpp"
 #include "TrackingPipeline/Io/RootSimClusterWriter.hpp"
-#include "TrackingPipeline/MagneticField/ConstantMagField.hpp"
-#include "TrackingPipeline/MagneticField/IdealQuadrupoleMagField.hpp"
-#include "TrackingPipeline/MagneticField/MagneticFieldContextDecorator.hpp"
-#include "TrackingPipeline/MagneticField/MagneticFieldStore.hpp"
 #include "TrackingPipeline/Simulation/ClusterSizeBasedDigitizer.hpp"
 #include "TrackingPipeline/Simulation/GaussianVertexGenerator.hpp"
 #include "TrackingPipeline/Simulation/MeasurementsCreator.hpp"
@@ -75,15 +72,15 @@ int main() {
 
   // --------------------------------------------------------------
   // Alignment setup
-  Acts::Vector3 globalShiftMean(0, 0_mm, 0_mm);
+  Acts::Vector3 globalShiftMean(0, -5_mm, 9_mm);
   Acts::Vector3 globalShiftStdErr(0, 0_mm, 0_mm);
 
   std::unordered_map<int, Acts::Vector3> localShiftsMean{
-      {10, Acts::Vector3(0_mm, 0_um, 0_um)},
-      {12, Acts::Vector3(0_mm, 0_um, 0_um)},
-      {14, Acts::Vector3(0_mm, 0_um, 0_um)},
-      {16, Acts::Vector3(0_mm, 0_um, 0_um)},
-      {18, Acts::Vector3(0_mm, 0_um, 0_um)}};
+      {10, Acts::Vector3(0_mm, 28_um, -34_um)},
+      {12, Acts::Vector3(0_mm, 42_um, 36_um)},
+      {14, Acts::Vector3(0_mm, -16_um, -29_um)},
+      {16, Acts::Vector3(0_mm, 47_um, -24_um)},
+      {18, Acts::Vector3(0_mm, -60_um, 55_um)}};
   std::unordered_map<int, Acts::Vector3> localShiftsStdErr{
       {10, Acts::Vector3(0_mm, 0_um, 0_um)},
       {12, Acts::Vector3(0_mm, 0_um, 0_um)},
@@ -95,11 +92,11 @@ int main() {
   Acts::Vector3 globalAnglesStdErr(0_rad, 0_rad, 0_rad);
 
   std::unordered_map<int, Acts::Vector3> localAnglesMean{
-      {10, Acts::Vector3(0_rad, 0_rad, 0_rad)},
-      {12, Acts::Vector3(0_rad, 0_rad, 0_rad)},
-      {14, Acts::Vector3(0_rad, 0_rad, 0_rad)},
-      {16, Acts::Vector3(0_rad, 0_rad, 0_rad)},
-      {18, Acts::Vector3(0_rad, 0_rad, 0_rad)}};
+      {10, Acts::Vector3(0_rad, 0_rad, -1e-3_rad)},
+      {12, Acts::Vector3(0_rad, 0_rad, 2e-3_rad)},
+      {14, Acts::Vector3(0_rad, 0_rad, 2e-3_rad)},
+      {16, Acts::Vector3(0_rad, 0_rad, 1.5e-3_rad)},
+      {18, Acts::Vector3(0_rad, 0_rad, -1.8e-3_rad)}};
   std::unordered_map<int, Acts::Vector3> localAnglesStdErr{
       {10, Acts::Vector3(0_rad, 0_rad, 0_rad)},
       {12, Acts::Vector3(0_rad, 0_rad, 0_rad)},
@@ -152,47 +149,6 @@ int main() {
   // --------------------------------------------------------------
   // The magnetic field setup
 
-  // auto mStore1 = std::make_shared<MagneticFieldStore>();
-  // mStore1->store = {
-  //     {goInst.quad1Id,
-  //      Acts::MagneticFieldProvider::Cache(
-  //          std::in_place_type<IdealQuadrupoleMagField::Cache>, 0)},
-  //     {goInst.quad2Id,
-  //      Acts::MagneticFieldProvider::Cache(
-  //          std::in_place_type<IdealQuadrupoleMagField::Cache>, 0)},
-  //     {goInst.quad3Id,
-  //      Acts::MagneticFieldProvider::Cache(
-  //          std::in_place_type<IdealQuadrupoleMagField::Cache>, 0)},
-  //     {goInst.xCorrectorId, Acts::MagneticFieldProvider::Cache(
-  //                               std::in_place_type<ConstantMagField::Cache>,
-  //                               Acts::Vector3(0, 0.026107_T, 0))},
-  //     {goInst.dipoleId, Acts::MagneticFieldProvider::Cache(
-  //                           std::in_place_type<ConstantMagField::Cache>,
-  //                           Acts::Vector3(0, 0, -0.2192_T))}};
-
-  // auto mStore2 = std::make_shared<MagneticFieldStore>();
-  // mStore2->store = {
-  //     {goInst.quad1Id,
-  //      Acts::MagneticFieldProvider::Cache(
-  //          std::in_place_type<IdealQuadrupoleMagField::Cache>, 0)},
-  //     {goInst.quad2Id,
-  //      Acts::MagneticFieldProvider::Cache(
-  //          std::in_place_type<IdealQuadrupoleMagField::Cache>, 0)},
-  //     {goInst.quad3Id,
-  //      Acts::MagneticFieldProvider::Cache(
-  //          std::in_place_type<IdealQuadrupoleMagField::Cache>, 0)},
-  //     {goInst.xCorrectorId, Acts::MagneticFieldProvider::Cache(
-  //                               std::in_place_type<ConstantMagField::Cache>,
-  //                               Acts::Vector3(0, 0.026107_T, 0))},
-  //     {goInst.dipoleId, Acts::MagneticFieldProvider::Cache(
-  //                           std::in_place_type<ConstantMagField::Cache>,
-  //                           Acts::Vector3(0, 0, -0.2192_T))}};
-
-  // MagneticFieldStoreCollection mFieldStoreCollection = {{0, mStore1},
-  //                                                       {1000, mStore2}};
-  // auto mFieldParametersContext =
-  //     std::make_shared<MagneticFieldParametersContext>(mFieldStoreCollection);
-
   auto field = E320::buildMagField(gctx);
 
   // --------------------------------------------------------------
@@ -230,15 +186,14 @@ int main() {
   // Setup the sequencer
   Sequencer::Config seqCfg;
   seqCfg.numThreads = 1;
-  seqCfg.skip = 0;
+  // seqCfg.skip = 0;
+  seqCfg.skip = 1000;
   seqCfg.trackFpes = false;
   seqCfg.logLevel = logLevel;
   Sequencer sequencer(seqCfg);
 
   sequencer.addContextDecorator(
       std::make_shared<GeometryContextDecorator>(aStore));
-  // sequencer.addContextDecorator(
-  //     std::make_shared<MagneticFieldContextDecorator>(mFieldParametersContext));
 
   // --------------------------------------------------------------
   // Add dummy reader
@@ -246,7 +201,8 @@ int main() {
   dummyReaderCfg.outputSourceLinks = "SimMeasurements";
   dummyReaderCfg.outputSimClusters = "SimClusters";
   dummyReaderCfg.outputSourceLinkIndices = "SimMeasurementIndices";
-  dummyReaderCfg.nEvents = 1e3;
+  // dummyReaderCfg.nEvents = 1e3;
+  dummyReaderCfg.nEvents = 2e3;
 
   sequencer.addReader(std::make_shared<DummyReader>(dummyReaderCfg));
 
@@ -269,23 +225,22 @@ int main() {
 
   // Digitizer
 
-  SurfaceRangedDigitizer::Config digitizerCfg;
-  for (const auto& surf : detSurfaces) {
-    SurfaceRangedDigitizer::Resolution res =
-        (geoId.sensitive() < goInst.bpm0Parameters.geoId)
-            ? std::make_pair(5_um, 5_um)
-            : std::make_pair(100_mm, 100_mm);
-    digitizerCfg.resolutions.insert({surf->geometryId(), res});
-  }
-  auto digitizer = std::make_shared<SurfaceRangedDigitizer>(digitizerCfg);
+  // SurfaceRangedDigitizer::Config digitizerCfg;
+  // for (const auto& surf : detSurfaces) {
+  //   SurfaceRangedDigitizer::Resolution res =
+  //       (geoId.sensitive() < goInst.bpm0Parameters.geoId)
+  //           ? std::make_pair(5_um, 5_um)
+  //           : std::make_pair(100_mm, 100_mm);
+  //   digitizerCfg.resolutions.insert({surf->geometryId(), res});
+  // }
+  // auto digitizer = std::make_shared<SurfaceRangedDigitizer>(digitizerCfg);
 
-  // ClusterSizeBasedDigitizer::Config digitizerCfg;
-  // digitizerCfg.clSizeProbsStdDevs = {{1, {0.168115, 0.00333208, 0.00395262}},
-  //                                    {2, {0.284536, 0.00473498, 0.00444654}},
-  //                                    {3, {0.217946, 0.00431227, 0.00417356}},
-  //                                    {4, {0.329402, 0.00490848,
-  //                                    0.00509384}}};
-  // auto digitizer = std::make_shared<ClusterSizeBasedDigitizer>(digitizerCfg);
+  ClusterSizeBasedDigitizer::Config digitizerCfg;
+  digitizerCfg.clSizeProbsStdDevs = {{1, {0.168115, 0.00333208, 0.00395262}},
+                                     {2, {0.284536, 0.00473498, 0.00444654}},
+                                     {3, {0.217946, 0.00431227, 0.00417356}},
+                                     {4, {0.329402, 0.00490848, 0.00509384}}};
+  auto digitizer = std::make_shared<ClusterSizeBasedDigitizer>(digitizerCfg);
 
   // Vertex generator
   GaussianVertexGenerator::Config vertexGenCfg;
@@ -294,9 +249,10 @@ int main() {
   auto vertexGen = std::make_shared<GaussianVertexGenerator>(vertexGenCfg);
 
   SphericalMomentumGenerator::Config momGenCfg;
-  momGenCfg.pRange = {10.0_GeV, 10.0_GeV};
-  momGenCfg.phiRange = {1e-3_rad, 1e-3_rad};
-  momGenCfg.thetaRange = {M_PI_2 - 1e-3_rad, M_PI_2 - 1e-3_rad};
+  momGenCfg.pRange = {2.0_GeV, 3.0_GeV};
+  // momGenCfg.pRange = {1.9_GeV, 2.1_GeV};
+  momGenCfg.phiRange = {0_rad, 0_rad};
+  momGenCfg.thetaRange = {M_PI_2 - 0_rad, M_PI_2 - 0_rad};
 
   auto momGen = std::make_shared<SphericalMomentumGenerator>(momGenCfg);
 
@@ -309,16 +265,16 @@ int main() {
       .maxSteps = 1000,
       .isSignal = true,
       .hypothesis = Acts::ParticleHypothesis::electron(),
-      .charge = -1_e};
+      .charge = 1_e};
 
   std::unordered_map<Acts::GeometryIdentifier, MeasurementsCreator::Constraints>
       measCreatorConstraints;
   for (auto& det : detector->detectorElements()) {
     const auto& surface = det->surface();
     const auto& geoId = surface.geometryId();
-    if (geoId.sensitive() != 0u &&
-        geoId.sensitive() >= goInst.bpm0Parameters.geoId) {
-      // measCreatorConstraints.insert({geoId, {-30, 30, -30, 30}});
+    if (geoId.sensitive() >= goInst.bpm0Parameters.geoId &&
+        geoId.sensitive() >= goInst.bpm3Parameters.geoId) {
+      measCreatorConstraints.insert({geoId, {-30, 30, -30, 30}});
     }
   }
   measCreatorCfg.constraints = measCreatorConstraints;
@@ -330,13 +286,13 @@ int main() {
   measCreatorAlgoCfg.inputSourceLinks = "SimMeasurements";
   measCreatorAlgoCfg.inputSimClusters = "SimClusters";
   measCreatorAlgoCfg.inputSourceLinkIndices = "SimMeasurementIndices";
-  measCreatorAlgoCfg.outputSourceLinks = "Measurements";
-  measCreatorAlgoCfg.outputSimClusters = "Clusters";
-  measCreatorAlgoCfg.outputSourceLinkIndices = "MeasurementIndices";
+  measCreatorAlgoCfg.outputSourceLinks = "Measurements1";
+  measCreatorAlgoCfg.outputSimClusters = "Clusters1";
+  measCreatorAlgoCfg.outputSourceLinkIndices = "MeasurementIndices1";
   measCreatorAlgoCfg.measurementGenerator = measCreator;
   measCreatorAlgoCfg.randomNumberSvc =
       std::make_shared<RandomNumbers>(RandomNumbers::Config());
-  measCreatorAlgoCfg.nMeasurements = 1;
+  measCreatorAlgoCfg.nMeasurements = 30;
 
   sequencer.addAlgorithm(std::make_shared<MeasurementsEmbeddingAlgorithm>(
       measCreatorAlgoCfg, logLevel));
@@ -347,7 +303,7 @@ int main() {
   // Background creator
   UniformBackgroundCreator::Config bkgCreatorCfg;
   bkgCreatorCfg.resolution = {5_um, 5_um};
-  bkgCreatorCfg.nMeasurements = 300;
+  bkgCreatorCfg.nMeasurements = 700;
   bkgCreatorCfg.surfaces = detSurfaces;
 
   auto bkgCreator = std::make_shared<UniformBackgroundCreator>(bkgCreatorCfg);
@@ -355,15 +311,17 @@ int main() {
   MeasurementsEmbeddingAlgorithm::Config bkgCreatorAlgoCfg;
   bkgCreatorAlgoCfg.inputSourceLinks = "Measurements1";
   bkgCreatorAlgoCfg.inputSimClusters = "Clusters1";
+  bkgCreatorAlgoCfg.inputSourceLinkIndices = "MeasurementIndices1";
   bkgCreatorAlgoCfg.outputSourceLinks = "Measurements";
   bkgCreatorAlgoCfg.outputSimClusters = "Clusters";
+  bkgCreatorAlgoCfg.outputSourceLinkIndices = "MeasurementIndices";
   bkgCreatorAlgoCfg.measurementGenerator = bkgCreator;
   bkgCreatorAlgoCfg.randomNumberSvc =
       std::make_shared<RandomNumbers>(RandomNumbers::Config());
   bkgCreatorAlgoCfg.nMeasurements = 1;
 
-  // sequencer.addAlgorithm(std::make_shared<MeasurementsEmbeddingAlgorithm>(
-  //     bkgCreatorAlgoCfg, logLevel));
+  sequencer.addAlgorithm(std::make_shared<MeasurementsEmbeddingAlgorithm>(
+      bkgCreatorAlgoCfg, logLevel));
 
   // --------------------------------------------------------------
   // Event write out
@@ -375,10 +333,23 @@ int main() {
   clusterWriterCfgSig.filePath =
       "/home/romanurmanov/work/E320/E320Prototype/"
       "E320Prototype_dataInRootFormat/sim/"
-      "clusters.root";
+      // "clusters-0.root";
+      "clusters-1.root";
 
   sequencer.addWriter(
       std::make_shared<RootSimClusterWriter>(clusterWriterCfgSig, logLevel));
+
+  // Magnetic field writer
+  auto magFieldWriterCfg = E320::E320MagneticFieldWriter::Config();
+  magFieldWriterCfg.treeName = "magnets";
+  magFieldWriterCfg.filePath =
+      "/home/romanurmanov/work/E320/E320Prototype/"
+      "E320Prototype_dataInRootFormat/sim/"
+      // "magnets-0.root";
+      "magnets-1.root";
+
+  sequencer.addWriter(std::make_shared<E320::E320MagneticFieldWriter>(
+      magFieldWriterCfg, logLevel));
 
   return sequencer.run();
 }

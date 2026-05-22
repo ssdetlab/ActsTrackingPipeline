@@ -34,9 +34,11 @@
 #include "TrackingPipeline/Infrastructure/Sequencer.hpp"
 #include "TrackingPipeline/Infrastructure/TypeDefinitions.hpp"
 #include "TrackingPipeline/Io/AlignmentParametersWriter.hpp"
+#include "TrackingPipeline/Io/E320MagneticFieldParametersProvider.hpp"
 #include "TrackingPipeline/Io/RootSeedWriter.hpp"
 #include "TrackingPipeline/Io/RootTrackReader.hpp"
 #include "TrackingPipeline/Io/RootTrackWriter.hpp"
+#include "TrackingPipeline/MagneticField/MagneticFieldContextDecorator.hpp"
 #include "TrackingPipeline/TrackFinding/E320TrackParametersEstimator.hpp"
 #include "TrackingPipeline/TrackFitting/KFTrackFittingAlgorithm.hpp"
 
@@ -91,8 +93,8 @@ int main() {
       std::cout << surf->geometryId() << "\n";
       std::cout << surf->center(gctx) << "\n";
       std::cout << surf->polyhedronRepresentation(gctx, 1000).extent() << "\n";
-      if (surf->geometryId().sensitive() != 0u &&
-          surf->geometryId().sensitive() < 40) {
+      if (surf->geometryId().sensitive() >= goInst.tcParameters.front().geoId &&
+          surf->geometryId().sensitive() <= goInst.tcParameters.back().geoId) {
         gx2FitterSurfaceMap[surf->geometryId()] = surf;
       }
     }
@@ -148,6 +150,28 @@ int main() {
 
   auto field = E320::buildMagField(gctx);
 
+  // E320::E320MagneticFieldParametersProvider::Config magFieldProviderCfg;
+  // magFieldProviderCfg.treeName = "magnets";
+  // std::vector<std::string> inDirs = {
+  //     "/home/romanurmanov/work/E320/E320Prototype/E320Prototype_analysis/data/"
+  //     "alignment/local_march_2026_data/sig/magnets"};
+
+  // // Get the paths to the files in the directory
+  // for (const auto& dir : inDirs) {
+  //   for (const auto& entry : std::filesystem::directory_iterator(dir)) {
+  //     if (!entry.is_regular_file() || entry.path().extension() != ".root") {
+  //       continue;
+  //     }
+  //     std::string pathToFile = entry.path();
+  //     magFieldProviderCfg.filePaths.push_back(pathToFile);
+  //   }
+  // }
+  // E320::E320MagneticFieldParametersProvider magFieldProvider(
+  //     magFieldProviderCfg);
+
+  // auto magFieldCollection =
+  // magFieldProvider.getMagneticFieldStoreCollection();
+
   // --------------------------------------------------------------
   // Event reading
   SimpleSourceLink::SurfaceAccessor surfaceAccessor{detector.get()};
@@ -162,19 +186,21 @@ int main() {
 
   sequencer.addContextDecorator(
       std::make_shared<GeometryContextDecorator>(aStore));
+  // sequencer.addContextDecorator(
+  //     std::make_shared<MagneticFieldContextDecorator>(magFieldCollection));
 
   // Add the sim data reader
   RootTrackReader::Constraints readerConstraints{};
   readerConstraints.minChi2 = 0;
-  readerConstraints.maxChi2 = 1e9;
-  readerConstraints.minVertexEstLong = -1e10;
-  readerConstraints.maxVertexEstLong = 1e10;
+  readerConstraints.maxChi2 = 40;
+  readerConstraints.minVertexEstLong = -2000;
+  readerConstraints.maxVertexEstLong = 2000;
 
-  readerConstraints.minVertexEstShort = -1e10;
-  readerConstraints.maxVertexEstShort = 1e10;
+  readerConstraints.minVertexEstShort = -2000;
+  readerConstraints.maxVertexEstShort = 2000;
 
   readerConstraints.minAbsMomentumEst = 0_GeV;
-  readerConstraints.maxAbsMomentumEst = 30_GeV;
+  readerConstraints.maxAbsMomentumEst = 10_GeV;
 
   RootTrackReader::Config readerCfg;
   readerCfg.treeName = "fitted-tracks";
@@ -188,8 +214,8 @@ int main() {
 
   std::string pathToDir =
       "/home/romanurmanov/work/E320/E320Prototype/E320Prototype_analysis/data/"
-      "alignment/local_feb_2025_data/local_solid_material_uniform_errors/"
-      "bkg_features_isolation/sig/step2";
+      "alignment/local_march_2026_data/sig/5um_errors/"
+      "it2/filtered";
 
   // Get the paths to the files in the directory
   for (const auto& entry : std::filesystem::directory_iterator(pathToDir)) {
@@ -321,12 +347,12 @@ int main() {
                                                   logLevel);
 
   // Number of refitting iterations
-  std::size_t nRefittingIt = 2;
+  std::size_t nRefittingIt = 1;
 
   // Annealing scheduler
   LinearAnnealingScheduler::Config annealingSchedulerCfg{};
-  annealingSchedulerCfg.alphaStart = 1e1;
-  annealingSchedulerCfg.alphaEnd = 1e0;
+  annealingSchedulerCfg.alphaStart = 1e3;
+  annealingSchedulerCfg.alphaEnd = 1e3;
   annealingSchedulerCfg.nIt = nRefittingIt;
 
   auto annealingScheduler =
@@ -391,8 +417,8 @@ int main() {
   for (auto& det : detector->detectorElements()) {
     const auto& surface = det->surface();
     const auto& geoId = surface.geometryId().sensitive();
-    if (geoId != 0u && surface.geometryId().sensitive() > 10 &&
-        surface.geometryId().sensitive() < 40) {
+    if (surface.geometryId().sensitive() > goInst.tcParameters.front().geoId &&
+        surface.geometryId().sensitive() <= goInst.tcParameters.back().geoId) {
       alignmentCfg.alignedDetElements.push_back(det.get());
     }
   }
@@ -465,7 +491,7 @@ int main() {
   seedWriterCfg.inputSourceLinks = "SourceLinks";
   seedWriterCfg.treeName = "seeds";
   seedWriterCfg.filePath =
-      "/home/romanurmanov/work/E320/E320Prototype/E320Prototype_analysis/sim/"
+      "/home/romanurmanov/work/E320/E320Prototype/E320Prototype_analysis/data/"
       "seeds.root";
 
   sequencer.addWriter(
@@ -482,7 +508,7 @@ int main() {
   trackWriterCfg.inputTrackParametersGuesses = "UpdatedTrackParameters";
   trackWriterCfg.treeName = "fitted-tracks";
   trackWriterCfg.filePath =
-      "/home/romanurmanov/work/E320/E320Prototype/E320Prototype_analysis/sim/"
+      "/home/romanurmanov/work/E320/E320Prototype/E320Prototype_analysis/data/"
       "fitted-tracks.root";
 
   sequencer.addWriter(
@@ -493,7 +519,7 @@ int main() {
   alignmentWriterCfg.treeName = "alignment-parameters";
   alignmentWriterCfg.inputAlignmentResults = "AlignmentParameters";
   alignmentWriterCfg.filePath =
-      "/home/romanurmanov/work/E320/E320Prototype/E320Prototype_analysis/sim/"
+      "/home/romanurmanov/work/E320/E320Prototype/E320Prototype_analysis/data/"
       "alignment-parameters.root";
 
   sequencer.addWriter(std::make_shared<AlignmentParametersWriter>(

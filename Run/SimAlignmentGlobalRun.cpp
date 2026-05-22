@@ -43,8 +43,8 @@
 #include "TrackingPipeline/MagneticField/ConstantMagField.hpp"
 #include "TrackingPipeline/MagneticField/IdealQuadrupoleMagField.hpp"
 #include "TrackingPipeline/MagneticField/MagneticFieldContextDecorator.hpp"
-#include "TrackingPipeline/MagneticField/MagneticFieldParametersContext.hpp"
 #include "TrackingPipeline/MagneticField/MagneticFieldStore.hpp"
+#include "TrackingPipeline/MagneticField/MagneticFieldStoreCollection.hpp"
 #include "TrackingPipeline/TrackFinding/E320TrackParametersEstimator.hpp"
 #include "TrackingPipeline/TrackFitting/KFTrackFittingAlgorithm.hpp"
 
@@ -152,47 +152,6 @@ int main() {
   // --------------------------------------------------------------
   // The magnetic field setup
 
-  auto mStore1 = std::make_shared<MagneticFieldStore>();
-  mStore1->store = {
-      {goInst.quad1Id,
-       Acts::MagneticFieldProvider::Cache(
-           std::in_place_type<IdealQuadrupoleMagField::Cache>, 0)},
-      {goInst.quad2Id,
-       Acts::MagneticFieldProvider::Cache(
-           std::in_place_type<IdealQuadrupoleMagField::Cache>, 0)},
-      {goInst.quad3Id,
-       Acts::MagneticFieldProvider::Cache(
-           std::in_place_type<IdealQuadrupoleMagField::Cache>, 0)},
-      {goInst.xCorrectorId, Acts::MagneticFieldProvider::Cache(
-                                std::in_place_type<ConstantMagField::Cache>,
-                                Acts::Vector3(0, 0.026107_T, 0))},
-      {goInst.dipoleId, Acts::MagneticFieldProvider::Cache(
-                            std::in_place_type<ConstantMagField::Cache>,
-                            Acts::Vector3(0, 0, -0.2192_T))}};
-
-  auto mStore2 = std::make_shared<MagneticFieldStore>();
-  mStore2->store = {
-      {goInst.quad1Id,
-       Acts::MagneticFieldProvider::Cache(
-           std::in_place_type<IdealQuadrupoleMagField::Cache>, 0)},
-      {goInst.quad2Id,
-       Acts::MagneticFieldProvider::Cache(
-           std::in_place_type<IdealQuadrupoleMagField::Cache>, 0)},
-      {goInst.quad3Id,
-       Acts::MagneticFieldProvider::Cache(
-           std::in_place_type<IdealQuadrupoleMagField::Cache>, 0)},
-      {goInst.xCorrectorId, Acts::MagneticFieldProvider::Cache(
-                                std::in_place_type<ConstantMagField::Cache>,
-                                Acts::Vector3(0, 0.026107_T, 0))},
-      {goInst.dipoleId, Acts::MagneticFieldProvider::Cache(
-                            std::in_place_type<ConstantMagField::Cache>,
-                            Acts::Vector3(0, 0, -0.2192_T))}};
-
-  MagneticFieldStoreCollection mFieldStoreCollection = {{0, mStore1},
-                                                        {1000, mStore2}};
-  auto mFieldParametersContext =
-      std::make_shared<MagneticFieldParametersContext>(mFieldStoreCollection);
-
   auto field = E320::buildMagField(gctx);
 
   // --------------------------------------------------------------
@@ -209,8 +168,6 @@ int main() {
 
   sequencer.addContextDecorator(
       std::make_shared<GeometryContextDecorator>(aStore));
-  sequencer.addContextDecorator(
-      std::make_shared<MagneticFieldContextDecorator>(mFieldParametersContext));
 
   // Add the sim data reader
   RootSimTrackReader::Constraints readerConstraints{};
@@ -439,7 +396,7 @@ int main() {
       .kfReferenceSurface = trackingRefSurface.get(),
       .chi2ONdfCutOff = 1e-16,
       .deltaChi2ONdfCutOff = {10, 1e-5},
-      .maxAlignmentFitNumIt = 100,
+      .maxAlignmentFitNumIt = 2,
       .alignmentMask = alignmentMask,
       .originCov = trackOriginCov,
       .constraints = alignmentConstraints,

@@ -37,7 +37,7 @@
 #include "TrackingPipeline/MagneticField/ConstantMagField.hpp"
 #include "TrackingPipeline/MagneticField/IdealQuadrupoleMagField.hpp"
 #include "TrackingPipeline/MagneticField/MagneticFieldContextDecorator.hpp"
-#include "TrackingPipeline/MagneticField/MagneticFieldParametersContext.hpp"
+#include "TrackingPipeline/MagneticField/MagneticFieldStoreCollection.hpp"
 #include "TrackingPipeline/MagneticField/MagneticFieldStore.hpp"
 #include "TrackingPipeline/TrackFinding/E320SeedingAlgorithm.hpp"
 #include "TrackingPipeline/TrackFinding/E320TrackParametersEstimator.hpp"
@@ -245,7 +245,7 @@ int main() {
   // Tracking reference surface
   Acts::Transform3 trackingRefSurfTransform = Acts::Transform3::Identity();
   trackingRefSurfTransform.translation() =
-      Acts::Vector3(goInst.bpm0CenterPrimary - 0.1_mm, 0, 0);
+      Acts::Vector3(goInst.beWindowCenterPrimary, 0, 0);
   trackingRefSurfTransform.rotate(refSurfToWorldRotationX);
   trackingRefSurfTransform.rotate(refSurfToWorldRotationY);
   trackingRefSurfTransform.rotate(refSurfToWorldRotationZ);
@@ -264,8 +264,8 @@ int main() {
 
   // Setup the sequencer
   Sequencer::Config seqCfg;
-  seqCfg.events = 100;
-  seqCfg.numThreads = 32;
+  // seqCfg.events = 1;
+  seqCfg.numThreads = 1;
   seqCfg.trackFpes = false;
   seqCfg.logLevel = logLevel;
   Sequencer sequencer(seqCfg);
@@ -348,7 +348,7 @@ int main() {
   seedingAlgoCfg.outputSeeds = "Seeds";
   seedingAlgoCfg.outputTrackParameters = "TrackParameters";
   seedingAlgoCfg.trackParametersEstimator = trackParametersEstimator;
-  seedingAlgoCfg.minLayers = 4;
+  seedingAlgoCfg.minLayers = 1;
   seedingAlgoCfg.maxLayers = 4;
 
   sequencer.addAlgorithm(

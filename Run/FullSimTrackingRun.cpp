@@ -29,19 +29,21 @@
 #include "TrackingPipeline/Infrastructure/Sequencer.hpp"
 #include "TrackingPipeline/Infrastructure/TypeDefinitions.hpp"
 #include "TrackingPipeline/Io/AlignmentParametersProvider.hpp"
+#include "TrackingPipeline/Io/E320MagneticFieldParametersProvider.hpp"
+#include "TrackingPipeline/Io/E320MagneticFieldWriter.hpp"
 #include "TrackingPipeline/Io/E320RootSimClusterReader.hpp"
 #include "TrackingPipeline/Io/RootSimSeedWriter.hpp"
 #include "TrackingPipeline/Io/RootSimTrackWriter.hpp"
 #include "TrackingPipeline/MagneticField/ConstantMagField.hpp"
 #include "TrackingPipeline/MagneticField/IdealQuadrupoleMagField.hpp"
 #include "TrackingPipeline/MagneticField/MagneticFieldContextDecorator.hpp"
-#include "TrackingPipeline/MagneticField/MagneticFieldParametersContext.hpp"
 #include "TrackingPipeline/MagneticField/MagneticFieldStore.hpp"
+#include "TrackingPipeline/MagneticField/MagneticFieldStoreCollection.hpp"
 #include "TrackingPipeline/TrackFinding/E320SeedingAlgorithm.hpp"
 #include "TrackingPipeline/TrackFinding/E320TrackParametersEstimator.hpp"
 #include "TrackingPipeline/TrackFinding/HoughTransformSeeder.hpp"
-#include "TrackingPipeline/TrackFitting/StraightLineGX2Fitter.hpp"
 #include "TrackingPipeline/TrackFitting/KFTrackFittingAlgorithm.hpp"
+#include "TrackingPipeline/TrackFitting/StraightLineGX2Fitter.hpp"
 
 using namespace Acts::UnitLiterals;
 
@@ -110,8 +112,7 @@ int main() {
   // AlignmentParametersProvider::Config alignmentProviderCfg;
   // alignmentProviderCfg.filePath =
   //     "/home/romanurmanov/work/E320/E320Prototype/E320Prototype_analysis/sim/"
-  //     "alignment/local/it3/"
-  //     "alignment-parameters.root";
+  //     "alignment/local/aligned/alignment-parameters.root";
   // alignmentProviderCfg.treeName = "alignment-parameters";
   // AlignmentParametersProvider alignmentProvider(alignmentProviderCfg);
   // aStore = alignmentProvider.getAlignmentStore();
@@ -155,51 +156,32 @@ int main() {
     }
   }
 
-  // // --------------------------------------------------------------
-  // // The magnetic field setup
-
-  // auto mStore1 = std::make_shared<MagneticFieldStore>();
-  // mStore1->store = {
-  //     {goInst.quad1Id,
-  //      Acts::MagneticFieldProvider::Cache(
-  //          std::in_place_type<IdealQuadrupoleMagField::Cache>, 0)},
-  //     {goInst.quad2Id,
-  //      Acts::MagneticFieldProvider::Cache(
-  //          std::in_place_type<IdealQuadrupoleMagField::Cache>, 0)},
-  //     {goInst.quad3Id,
-  //      Acts::MagneticFieldProvider::Cache(
-  //          std::in_place_type<IdealQuadrupoleMagField::Cache>, 0)},
-  //     {goInst.xCorrectorId, Acts::MagneticFieldProvider::Cache(
-  //                               std::in_place_type<ConstantMagField::Cache>,
-  //                               Acts::Vector3(0, 0.026107_T, 0))},
-  //     {goInst.dipoleId, Acts::MagneticFieldProvider::Cache(
-  //                           std::in_place_type<ConstantMagField::Cache>,
-  //                           Acts::Vector3(0, 0, -0.2192_T))}};
-
-  // auto mStore2 = std::make_shared<MagneticFieldStore>();
-  // mStore2->store = {
-  //     {goInst.quad1Id,
-  //      Acts::MagneticFieldProvider::Cache(
-  //          std::in_place_type<IdealQuadrupoleMagField::Cache>, 0)},
-  //     {goInst.quad2Id,
-  //      Acts::MagneticFieldProvider::Cache(
-  //          std::in_place_type<IdealQuadrupoleMagField::Cache>, 0)},
-  //     {goInst.quad3Id,
-  //      Acts::MagneticFieldProvider::Cache(
-  //          std::in_place_type<IdealQuadrupoleMagField::Cache>, 0)},
-  //     {goInst.xCorrectorId, Acts::MagneticFieldProvider::Cache(
-  //                               std::in_place_type<ConstantMagField::Cache>,
-  //                               Acts::Vector3(0, 0.026107_T, 0))},
-  //     {goInst.dipoleId, Acts::MagneticFieldProvider::Cache(
-  //                           std::in_place_type<ConstantMagField::Cache>,
-  //                           Acts::Vector3(0, 0, -0.2192_T))}};
-
-  // MagneticFieldStoreCollection mFieldStoreCollection = {{0, mStore1},
-  //                                                       {1000, mStore2}};
-  // auto mFieldParametersContext =
-  //     std::make_shared<MagneticFieldParametersContext>(mFieldStoreCollection);
+  // --------------------------------------------------------------
+  // The magnetic field setup
 
   auto field = E320::buildMagField(gctx);
+
+  E320::E320MagneticFieldParametersProvider::Config magFieldProviderCfg;
+  magFieldProviderCfg.treeName = "magnets";
+  std::vector<std::string> inDirs = {
+      "/home/romanurmanov/work/E320/E320Prototype/"
+      "E320Prototype_dataInRootFormat/sim/alignment/local_sig_misaligned/"
+      "magnets"};
+
+  // Get the paths to the files in the directory
+  for (const auto& dir : inDirs) {
+    for (const auto& entry : std::filesystem::directory_iterator(dir)) {
+      if (!entry.is_regular_file() || entry.path().extension() != ".root") {
+        continue;
+      }
+      std::string pathToFile = entry.path();
+      magFieldProviderCfg.filePaths.push_back(pathToFile);
+    }
+  }
+  E320::E320MagneticFieldParametersProvider magFieldProvider(
+      magFieldProviderCfg);
+
+  auto magFieldCollection = magFieldProvider.getMagneticFieldStoreCollection();
 
   // --------------------------------------------------------------
   // Reference surfaces
@@ -219,9 +201,9 @@ int main() {
   // Seeding reference surface
   Acts::Transform3 seedingRefSurfTransform = Acts::Transform3::Identity();
   seedingRefSurfTransform.translation() =
-      // Acts::Vector3(goInst.ipTcDistance - 0.3_mm, 0, 0);
-      Acts::Vector3(goInst.ipTcDistance + 2 * goInst.tcHalfPrimary + 0.1_mm, 0,
-                    0);
+      Acts::Vector3(goInst.ipTcDistance - 0.1_mm, 0, 0);
+  // Acts::Vector3(goInst.ipTcDistance + 2 * goInst.tcHalfPrimary + 0.1_mm, 0,
+  //               0);
   seedingRefSurfTransform.rotate(refSurfToWorldRotationX);
   seedingRefSurfTransform.rotate(refSurfToWorldRotationY);
   seedingRefSurfTransform.rotate(refSurfToWorldRotationZ);
@@ -237,10 +219,10 @@ int main() {
   // Tracking reference surface
   Acts::Transform3 trackingRefSurfTransform = Acts::Transform3::Identity();
   trackingRefSurfTransform.translation() =
-      Acts::Vector3(goInst.bpm0CenterPrimary - 0.1_mm, 0, 0);
-  // Acts::Vector3(
-  //     goInst.dipoleCenterPrimary + goInst.dipoleHalfPrimary + 0.01_mm, 0,
-  //     0);
+      // Acts::Vector3(goInst.bpm0CenterPrimary - 0.1_mm, 0, 0);
+      Acts::Vector3(
+          goInst.dipoleCenterPrimary + goInst.dipoleHalfPrimary + 0.01_mm, 0,
+          0);
   trackingRefSurfTransform.rotate(refSurfToWorldRotationX);
   trackingRefSurfTransform.rotate(refSurfToWorldRotationY);
   trackingRefSurfTransform.rotate(refSurfToWorldRotationZ);
@@ -259,17 +241,17 @@ int main() {
 
   // Setup the sequencer
   Sequencer::Config seqCfg;
-  // seqCfg.events = 1000;
+  // seqCfg.events = 1;
   // seqCfg.skip = 1000;
-  seqCfg.numThreads = 32;
+  seqCfg.numThreads = 1;
   seqCfg.trackFpes = false;
   seqCfg.logLevel = logLevel;
   Sequencer sequencer(seqCfg);
 
   sequencer.addContextDecorator(
       std::make_shared<GeometryContextDecorator>(aStore));
-  // sequencer.addContextDecorator(
-  //     std::make_shared<MagneticFieldContextDecorator>(mFieldParametersContext));
+  sequencer.addContextDecorator(
+      std::make_shared<MagneticFieldContextDecorator>(magFieldCollection));
 
   // Add the sim data reader
   E320::E320RootSimClusterReader::Config readerCfg;
@@ -278,16 +260,17 @@ int main() {
   readerCfg.outputDetSourceLinkIndices = "DetSourceLinkIndices";
   readerCfg.outputBpmSourceLinkIndices = "BpmSourceLinkIndices";
   readerCfg.treeName = "clusters";
-  // readerCfg.minGeoId = goInst.tcParameters.front().geoId;
-  readerCfg.minGeoId = goInst.bpm0Parameters.geoId;
-  // readerCfg.maxGeoId = goInst.tcParameters.back().geoId;
-  readerCfg.maxGeoId = goInst.bpm3Parameters.geoId;
+  readerCfg.minGeoId = goInst.tcParameters.front().geoId;
+  // readerCfg.minGeoId = goInst.bpm0Parameters.geoId;
+  readerCfg.maxGeoId = goInst.tcParameters.back().geoId;
+  // readerCfg.maxGeoId = goInst.bpm3Parameters.geoId;
   readerCfg.surfaceLocalToGlobal = true;
   readerCfg.surfaceMap = surfaceMap;
 
   std::string pathToDir =
       "/home/romanurmanov/work/E320/E320Prototype/"
-      "E320Prototype_dataInRootFormat/sim/alignment/global_beam_bpms";
+      "E320Prototype_dataInRootFormat/sim/alignment/local_sig_misaligned/"
+      "clusters";
 
   // Get the paths to the files in the directory
   for (const auto& entry : std::filesystem::directory_iterator(pathToDir)) {
@@ -331,11 +314,11 @@ int main() {
   htSeederOpt.boundBoxHalfLong = goInst.tcHalfLong;
   htSeederOpt.boundBoxHalfShort = goInst.tcHalfShort;
 
-  htSeederOpt.nCellsThetaShort = 200;
-  htSeederOpt.nCellsRhoShort = 200;
+  htSeederOpt.nCellsThetaShort = 500;
+  htSeederOpt.nCellsRhoShort = 500;
 
-  htSeederOpt.nCellsThetaLong = 200;
-  htSeederOpt.nCellsRhoLong = 200;
+  htSeederOpt.nCellsThetaLong = 500;
+  htSeederOpt.nCellsRhoLong = 500;
 
   htSeederOpt.surfaceMap = surfaceMap;
 
@@ -359,7 +342,7 @@ int main() {
   trackParametersEstimatorCfg.originCov =
       trackOriginStdDevPrior.cwiseProduct(trackOriginStdDevPrior).asDiagonal();
   trackParametersEstimatorCfg.propDirection =
-      E320::E320TrackParametersEstimator::PropagationDirection::backward;
+      E320::E320TrackParametersEstimator::PropagationDirection::forward;
 
   auto trackParametersEstimator =
       std::make_shared<E320::E320TrackParametersEstimator>(
@@ -469,6 +452,16 @@ int main() {
 
   sequencer.addWriter(
       std::make_shared<RootSimTrackWriter>(trackWriterCfg, logLevel));
+
+  // Magnetic field writer
+  auto magFieldWriterCfg = E320::E320MagneticFieldWriter::Config();
+  magFieldWriterCfg.treeName = "magnets";
+  magFieldWriterCfg.filePath =
+      "/home/romanurmanov/work/E320/E320Prototype/E320Prototype_analysis/sim/"
+      "magnets.root";
+
+  sequencer.addWriter(std::make_shared<E320::E320MagneticFieldWriter>(
+      magFieldWriterCfg, logLevel));
 
   return sequencer.run();
 }
