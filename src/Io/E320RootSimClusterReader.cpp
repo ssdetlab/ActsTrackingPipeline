@@ -198,27 +198,6 @@ ProcessCode E320RootSimClusterReader::read(const AlgorithmContext& ctx) {
     clusterCov << (*m_clusterCov)(0, 0), (*m_clusterCov)(0, 1),
         (*m_clusterCov)(1, 0), (*m_clusterCov)(1, 1);
 
-    // -------------------------------------------------------------
-    const auto& goInst = *E320::GeometryOptions::instance();
-    std::size_t clSize = 0;
-    double xStdDev = std::sqrt((*m_clusterCov)(0, 0));
-    if (xStdDev == 0.00333208) {
-      clSize = 1;
-    } else if (xStdDev == 0.00473498) {
-      clSize = 2;
-    } else if (xStdDev == 0.00431227) {
-      clSize = 3;
-    } else if (xStdDev == 0.00490848) {
-      clSize = 4;
-    }
-    Acts::Vector2 stdDev =
-        (clSize == 0)
-            ? Acts::Vector2(5_um, 5_um)
-            : Acts::Vector2(2 * goInst.pixelHalfX / std::sqrt(12 * clSize),
-                            2 * goInst.pixelHalfY / std::sqrt(12 * clSize));
-    clusterCov = stdDev.cwiseProduct(stdDev).asDiagonal();
-    // -------------------------------------------------------------
-
     SimpleSourceLink obsSourceLink(geoCenterLocal, geoCenterGlobal, clusterCov,
                                    geoId, eventId, sourceLinks.size());
     if (m_bpmGeoIds.contains(geoId.sensitive())) {
