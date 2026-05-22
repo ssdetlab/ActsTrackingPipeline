@@ -147,8 +147,7 @@ Acts::ActsDynamicMatrix StraightLineGX2Fitter::constructCov(
 
     double mcsVar =
         mcsVarFactor *
-        interSurfaceDistanceSums.at({geoIdI.sensitive(),
-        geoIdI.sensitive()});
+        interSurfaceDistanceSums.at({geoIdI.sensitive(), geoIdI.sensitive()});
     Acts::SquareMatrix2 varMat =
         sslI.covariance() + Acts::SquareMatrix2::Identity() * mcsVar;
     D.block(i * 2, i * 2, 2, 2) = varMat;
@@ -158,8 +157,7 @@ Acts::ActsDynamicMatrix StraightLineGX2Fitter::constructCov(
       const auto& geoIdJ = sslJ.geometryId();
       double covPiPj =
           mcsVarFactor *
-          interSurfaceDistanceSums.at({geoIdI.sensitive(),
-          geoIdJ.sensitive()});
+          interSurfaceDistanceSums.at({geoIdI.sensitive(), geoIdJ.sensitive()});
 
       Acts::SquareMatrix2 covMat = Acts::SquareMatrix2::Identity() * covPiPj;
       D.block(i * 2, j * 2, 2, 2) = covMat;
