@@ -73,7 +73,8 @@ class AlignmentParametersWriter : public IWriter {
   std::vector<TVector3> m_newTranslation;
   std::vector<TMatrixD> m_newRotation;
 
-  std::size_t m_alignmentDof;
+  /// Number of alignment d.o.fs
+  std::size_t m_alignmentDof = 0;
 
   TMatrixD m_alignmentCov;
 
