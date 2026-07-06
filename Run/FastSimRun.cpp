@@ -72,15 +72,15 @@ int main() {
 
   // --------------------------------------------------------------
   // Alignment setup
-  Acts::Vector3 globalShiftMean(0, -5_mm, 9_mm);
+  Acts::Vector3 globalShiftMean(0, 0_mm, 0_mm);
   Acts::Vector3 globalShiftStdErr(0, 0_mm, 0_mm);
 
   std::unordered_map<int, Acts::Vector3> localShiftsMean{
-      {10, Acts::Vector3(0_mm, 28_um, -34_um)},
-      {12, Acts::Vector3(0_mm, 42_um, 36_um)},
-      {14, Acts::Vector3(0_mm, -16_um, -29_um)},
-      {16, Acts::Vector3(0_mm, 47_um, -24_um)},
-      {18, Acts::Vector3(0_mm, -60_um, 55_um)}};
+      {10, Acts::Vector3(0_mm, 0_um, 0_um)},
+      {12, Acts::Vector3(0_mm, 0_um, 0_um)},
+      {14, Acts::Vector3(0_mm, 0_um, 0_um)},
+      {16, Acts::Vector3(0_mm, 0_um, 0_um)},
+      {18, Acts::Vector3(0_mm, 0_um, 0_um)}};
   std::unordered_map<int, Acts::Vector3> localShiftsStdErr{
       {10, Acts::Vector3(0_mm, 0_um, 0_um)},
       {12, Acts::Vector3(0_mm, 0_um, 0_um)},
@@ -92,11 +92,11 @@ int main() {
   Acts::Vector3 globalAnglesStdErr(0_rad, 0_rad, 0_rad);
 
   std::unordered_map<int, Acts::Vector3> localAnglesMean{
-      {10, Acts::Vector3(0_rad, 0_rad, -1e-3_rad)},
-      {12, Acts::Vector3(0_rad, 0_rad, 2e-3_rad)},
-      {14, Acts::Vector3(0_rad, 0_rad, 2e-3_rad)},
-      {16, Acts::Vector3(0_rad, 0_rad, 1.5e-3_rad)},
-      {18, Acts::Vector3(0_rad, 0_rad, -1.8e-3_rad)}};
+      {10, Acts::Vector3(0_rad, 0_rad, 0_rad)},
+      {12, Acts::Vector3(0_rad, 0_rad, 0_rad)},
+      {14, Acts::Vector3(0_rad, 0_rad, 0_rad)},
+      {16, Acts::Vector3(0_rad, 0_rad, 0_rad)},
+      {18, Acts::Vector3(0_rad, 0_rad, 0_rad)}};
   std::unordered_map<int, Acts::Vector3> localAnglesStdErr{
       {10, Acts::Vector3(0_rad, 0_rad, 0_rad)},
       {12, Acts::Vector3(0_rad, 0_rad, 0_rad)},
@@ -186,8 +186,7 @@ int main() {
   // Setup the sequencer
   Sequencer::Config seqCfg;
   seqCfg.numThreads = 1;
-  // seqCfg.skip = 0;
-  seqCfg.skip = 1000;
+  seqCfg.skip = 0;
   seqCfg.trackFpes = false;
   seqCfg.logLevel = logLevel;
   Sequencer sequencer(seqCfg);
@@ -201,8 +200,8 @@ int main() {
   dummyReaderCfg.outputSourceLinks = "SimMeasurements";
   dummyReaderCfg.outputSimClusters = "SimClusters";
   dummyReaderCfg.outputSourceLinkIndices = "SimMeasurementIndices";
-  // dummyReaderCfg.nEvents = 1e3;
-  dummyReaderCfg.nEvents = 2e3;
+  dummyReaderCfg.nEvents = 1e5;
+  // dummyReaderCfg.nEvents = 3e3;
 
   sequencer.addReader(std::make_shared<DummyReader>(dummyReaderCfg));
 
@@ -225,34 +224,32 @@ int main() {
 
   // Digitizer
 
-  // SurfaceRangedDigitizer::Config digitizerCfg;
-  // for (const auto& surf : detSurfaces) {
-  //   SurfaceRangedDigitizer::Resolution res =
-  //       (geoId.sensitive() < goInst.bpm0Parameters.geoId)
-  //           ? std::make_pair(5_um, 5_um)
-  //           : std::make_pair(100_mm, 100_mm);
-  //   digitizerCfg.resolutions.insert({surf->geometryId(), res});
-  // }
-  // auto digitizer = std::make_shared<SurfaceRangedDigitizer>(digitizerCfg);
+  SimpleDigitizer::Config digitizerCfg;
+  digitizerCfg.resolution = {5_um, 5_um};
+  auto digitizer = std::make_shared<SimpleDigitizer>(digitizerCfg);
 
-  ClusterSizeBasedDigitizer::Config digitizerCfg;
-  digitizerCfg.clSizeProbsStdDevs = {{1, {0.168115, 0.00333208, 0.00395262}},
-                                     {2, {0.284536, 0.00473498, 0.00444654}},
-                                     {3, {0.217946, 0.00431227, 0.00417356}},
-                                     {4, {0.329402, 0.00490848, 0.00509384}}};
-  auto digitizer = std::make_shared<ClusterSizeBasedDigitizer>(digitizerCfg);
+  // ClusterSizeBasedDigitizer::Config digitizerCfg;
+  // digitizerCfg.clSizeProbsStdDevs = {{1, {0.168115, 0.00333208, 0.00395262}},
+  //                                    {2, {0.284536, 0.00473498, 0.00444654}},
+  //                                    {3, {0.217946, 0.00431227, 0.00417356}},
+  //                                    {4, {0.329402, 0.00490848,
+  //                                    0.00509384}}};
+  // auto digitizer = std::make_shared<ClusterSizeBasedDigitizer>(digitizerCfg);
 
   // Vertex generator
   GaussianVertexGenerator::Config vertexGenCfg;
-  vertexGenCfg.mean = Acts::Vector3(goInst.bpm0CenterPrimary - 5_mm, 0, 0);
-  vertexGenCfg.cov = Acts::SquareMatrix3::Identity() * 30_um;
+  vertexGenCfg.mean = 
+    // Acts::Vector3(goInst.bpm0CenterPrimary - 5_mm, 0, 1_mm);
+    Acts::Vector3(goInst.ipSurfaceCenterPrimary - 0.1_mm, 0, 1_mm);
+  vertexGenCfg.cov = Acts::SquareMatrix3::Identity() * 30_um * 30_um;
   auto vertexGen = std::make_shared<GaussianVertexGenerator>(vertexGenCfg);
 
   SphericalMomentumGenerator::Config momGenCfg;
-  momGenCfg.pRange = {2.0_GeV, 3.0_GeV};
+  momGenCfg.pRange = {3.0_GeV, 5.0_GeV};
+  // momGenCfg.pRange = {2.0_GeV, 3.0_GeV};
   // momGenCfg.pRange = {1.9_GeV, 2.1_GeV};
-  momGenCfg.phiRange = {0_rad, 0_rad};
-  momGenCfg.thetaRange = {M_PI_2 - 0_rad, M_PI_2 - 0_rad};
+  momGenCfg.phiRange = {-1e-3_rad, 1e-3_rad};
+  momGenCfg.thetaRange = {M_PI_2 - 1e-3_rad, M_PI_2 + 1e-3_rad};
 
   auto momGen = std::make_shared<SphericalMomentumGenerator>(momGenCfg);
 
@@ -265,7 +262,7 @@ int main() {
       .maxSteps = 1000,
       .isSignal = true,
       .hypothesis = Acts::ParticleHypothesis::electron(),
-      .charge = 1_e};
+      .charge = -1_e};
 
   std::unordered_map<Acts::GeometryIdentifier, MeasurementsCreator::Constraints>
       measCreatorConstraints;
@@ -273,8 +270,8 @@ int main() {
     const auto& surface = det->surface();
     const auto& geoId = surface.geometryId();
     if (geoId.sensitive() >= goInst.bpm0Parameters.geoId &&
-        geoId.sensitive() >= goInst.bpm3Parameters.geoId) {
-      measCreatorConstraints.insert({geoId, {-30, 30, -30, 30}});
+        geoId.sensitive() <= goInst.bpm3Parameters.geoId) {
+      measCreatorConstraints.insert({geoId, {-3e4, 3e4, -3e4, 3e4}});
     }
   }
   measCreatorCfg.constraints = measCreatorConstraints;
@@ -286,13 +283,13 @@ int main() {
   measCreatorAlgoCfg.inputSourceLinks = "SimMeasurements";
   measCreatorAlgoCfg.inputSimClusters = "SimClusters";
   measCreatorAlgoCfg.inputSourceLinkIndices = "SimMeasurementIndices";
-  measCreatorAlgoCfg.outputSourceLinks = "Measurements1";
-  measCreatorAlgoCfg.outputSimClusters = "Clusters1";
-  measCreatorAlgoCfg.outputSourceLinkIndices = "MeasurementIndices1";
+  measCreatorAlgoCfg.outputSourceLinks = "Measurements";
+  measCreatorAlgoCfg.outputSimClusters = "Clusters";
+  measCreatorAlgoCfg.outputSourceLinkIndices = "MeasurementIndices";
   measCreatorAlgoCfg.measurementGenerator = measCreator;
   measCreatorAlgoCfg.randomNumberSvc =
       std::make_shared<RandomNumbers>(RandomNumbers::Config());
-  measCreatorAlgoCfg.nMeasurements = 30;
+  measCreatorAlgoCfg.nMeasurements = 1;
 
   sequencer.addAlgorithm(std::make_shared<MeasurementsEmbeddingAlgorithm>(
       measCreatorAlgoCfg, logLevel));
@@ -320,8 +317,8 @@ int main() {
       std::make_shared<RandomNumbers>(RandomNumbers::Config());
   bkgCreatorAlgoCfg.nMeasurements = 1;
 
-  sequencer.addAlgorithm(std::make_shared<MeasurementsEmbeddingAlgorithm>(
-      bkgCreatorAlgoCfg, logLevel));
+  // sequencer.addAlgorithm(std::make_shared<MeasurementsEmbeddingAlgorithm>(
+  //     bkgCreatorAlgoCfg, logLevel));
 
   // --------------------------------------------------------------
   // Event write out
@@ -333,8 +330,7 @@ int main() {
   clusterWriterCfgSig.filePath =
       "/home/romanurmanov/work/E320/E320Prototype/"
       "E320Prototype_dataInRootFormat/sim/"
-      // "clusters-0.root";
-      "clusters-1.root";
+      "clusters.root";
 
   sequencer.addWriter(
       std::make_shared<RootSimClusterWriter>(clusterWriterCfgSig, logLevel));
@@ -345,8 +341,7 @@ int main() {
   magFieldWriterCfg.filePath =
       "/home/romanurmanov/work/E320/E320Prototype/"
       "E320Prototype_dataInRootFormat/sim/"
-      // "magnets-0.root";
-      "magnets-1.root";
+      "magnets.root";
 
   sequencer.addWriter(std::make_shared<E320::E320MagneticFieldWriter>(
       magFieldWriterCfg, logLevel));

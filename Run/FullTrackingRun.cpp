@@ -31,9 +31,9 @@
 #include "TrackingPipeline/Io/E320MagneticFieldParametersProvider.hpp"
 #include "TrackingPipeline/Io/E320MagneticFieldWriter.hpp"
 #include "TrackingPipeline/Io/E320RootDataReader.hpp"
+#include "TrackingPipeline/Io/E320RootTrackWriter.hpp"
 #include "TrackingPipeline/Io/RootMeasurementWriter.hpp"
 #include "TrackingPipeline/Io/RootSeedWriter.hpp"
-#include "TrackingPipeline/Io/RootTrackWriter.hpp"
 #include "TrackingPipeline/MagneticField/MagneticFieldContextDecorator.hpp"
 #include "TrackingPipeline/TrackFinding/E320SeedingAlgorithm.hpp"
 #include "TrackingPipeline/TrackFinding/E320TrackParametersEstimator.hpp"
@@ -108,7 +108,7 @@ int main() {
   AlignmentParametersProvider::Config alignmentProviderCfg;
   alignmentProviderCfg.filePath =
       "/home/romanurmanov/work/E320/E320Prototype/E320Prototype_analysis/data/"
-      "alignment/local_march_2026_data/sig/5um_errors/aligned/"
+      "alignment/local_march_2026_data/sig/feb_data_procedure/test/aligned/"
       "alignment-parameters.root";
   alignmentProviderCfg.treeName = "alignment-parameters";
   AlignmentParametersProvider alignmentProvider(alignmentProviderCfg);
@@ -164,24 +164,11 @@ int main() {
   magFieldProviderCfg.treeName = "magnets";
   std::vector<std::string> inDirs = {
       "/home/romanurmanov/work/E320/E320Prototype/"
-      "E320Prototype_dataInRootFormat/E320Shift_March_2026/processed/"
-      "alignment_roi30/"
-      "data_Run849",
-      "/home/romanurmanov/work/E320/E320Prototype/"
-      "E320Prototype_dataInRootFormat/E320Shift_March_2026/processed/"
-      "alignment_roi30/"
-      "data_Run851",
-      "/home/romanurmanov/work/E320/E320Prototype/"
-      "E320Prototype_dataInRootFormat/E320Shift_March_2026/processed/"
-      "alignment_roi30/"
-      "data_Run855",
-      "/home/romanurmanov/work/E320/E320Prototype/"
-      "E320Prototype_dataInRootFormat/E320Shift_March_2026/processed/"
-      "alignment_roi30/"
-      "data_Run856"};
+      "E320Prototype_dataInRootFormat/E320Shift_June_2026_positrons/processed/"
+      "positron_runs/june_23/combined"};
   // "/home/romanurmanov/work/E320/E320Prototype/"
-  // "E320Prototype_dataInRootFormat/E320Shift_March_2026/processed/"
-  // "data_Run859"};
+  // "E320Prototype_dataInRootFormat/E320Shift_June_2026_positrons/processed/"
+  // "positron_runs/june_23/even"};
 
   // Get the paths to the files in the directory
   for (const auto& dir : inDirs) {
@@ -256,7 +243,8 @@ int main() {
   // Setup the sequencer
   Sequencer::Config seqCfg;
   // seqCfg.events = 10;
-  seqCfg.numThreads = 32;
+  // seqCfg.skip = 57500;
+  seqCfg.numThreads = 1;
   seqCfg.trackFpes = false;
   seqCfg.logLevel = logLevel;
   Sequencer sequencer(seqCfg);
@@ -271,6 +259,7 @@ int main() {
   readerCfg.outputSourceLinks = "SourceLinks";
   readerCfg.outputDetSourceLinkIndices = "DetSourceLinkIndices";
   readerCfg.outputBpmSourceLinkIndices = "BpmSourceLinkIndices";
+  readerCfg.outputEventMetaData = "EventMetaData";
   readerCfg.treeName = "data";
   readerCfg.eventKey = "event";
   readerCfg.minGeoId = goInst.tcParameters.front().geoId;
@@ -344,7 +333,7 @@ int main() {
   E320::E320TrackParametersEstimator::Config trackParametersEstimatorCfg{};
   trackParametersEstimatorCfg.gx2Fitter = gx2Fitter;
   trackParametersEstimatorCfg.nIterations = 2;
-  trackParametersEstimatorCfg.maxChi2 = 1e2;
+  trackParametersEstimatorCfg.maxChi2 = std::numeric_limits<double>::max();
   trackParametersEstimatorCfg.referenceSurface = seedingRefSurface.get();
   trackParametersEstimatorCfg.originCov =
       trackOriginStdDevPrior.cwiseProduct(trackOriginStdDevPrior).asDiagonal();
@@ -455,7 +444,7 @@ int main() {
       std::make_shared<RootSeedWriter>(seedWriterCfg, logLevel));
 
   // Fitted track writer
-  RootTrackWriter::Config trackWriterCfg;
+  E320::E320RootTrackWriter::Config trackWriterCfg;
   trackWriterCfg.surfaceAccessor
       .connect<&SimpleSourceLink::SurfaceAccessor::operator()>(
           &surfaceAccessor);
@@ -463,6 +452,7 @@ int main() {
   trackWriterCfg.inputTrackContainer = "TrackContainer";
   trackWriterCfg.inputTracks = "Tracks";
   trackWriterCfg.inputTrackParametersGuesses = "TrackParameters";
+  trackWriterCfg.inputEventMetaData = "EventMetaData";
   trackWriterCfg.treeName = "fitted-tracks";
   trackWriterCfg.filePath =
       "/home/romanurmanov/work/E320/E320Prototype/E320Prototype_analysis/"
@@ -470,7 +460,7 @@ int main() {
       "fitted-tracks.root";
 
   sequencer.addWriter(
-      std::make_shared<RootTrackWriter>(trackWriterCfg, logLevel));
+      std::make_shared<E320::E320RootTrackWriter>(trackWriterCfg, logLevel));
 
   // Magnetic field writer
   auto magFieldWriterCfg = E320::E320MagneticFieldWriter::Config();
