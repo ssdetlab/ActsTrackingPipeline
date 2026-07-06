@@ -108,28 +108,63 @@ struct GeometryOptions {
   const double ipSurfaceThickness = 1_mm;
 
   /// --------------------------------------------------------------
+  /// Parameters of the composite field
+
+  const std::size_t compositeMagFieldId = 10;
+
+  /// --------------------------------------------------------------
   /// Parameters of the quads
 
   const std::size_t quad1Id = 1;
   const double quad1HalfPrimary = 486.664_mm;
   const double quad1HalfLong = 32.33_mm;
   const double quad1HalfShort = 32.33_mm;
-  const double quad1Gradient = -0.7637_T / 1_m;  // Run 502
+  // const double quad1Gradient = -0.7637_T / 1_m;  // Run 502
   // const double quad1Gradient = -0.6659_T / 1_m;  // Run 503
+  // const double quad1Gradient = -2.493_T / 1_m;  // Run 849
+  // const double quad1Gradient = -3.116_T / 1_m;  // Run 856
+  // const double quad1Gradient = -4.633_T / 1_m;  // BPM test
+  // const double quad1Gradient = -6.950_T / 1_m;  // BPM test
+  // const double quad1Gradient = -9.266_T / 1_m;  // BPM test
+  // const double quad1Gradient = -11.582_T / 1_m;  // BPM test
+  // const double quad1Gradient = -13.899_T / 1_m;  // BPM test
+  // const double quad1Gradient = -16.215_T / 1_m;  // BPM test
+  // const double quad1Gradient = -18.532_T / 1_m;  // BPM test
+  const double quad1Gradient = -4.63_T / 1_m;
 
   const std::size_t quad2Id = 2;
   const double quad2HalfPrimary = 486.664_mm;
   const double quad2HalfLong = 32.33_mm;
   const double quad2HalfShort = 32.33_mm;
-  const double quad2Gradient = 2.855_T / 1_m;  // Run 502
+  // const double quad2Gradient = 2.855_T / 1_m;  // Run 502
   // const double quad2Gradient = 2.986_T / 1_m;  // Run 503
+  // const double quad2Gradient = 3.694_T / 1_m;  // Run 849
+  // const double quad2Gradient = 4.618_T / 1_m;  // Run 856
+  // const double quad2Gradient = 7.223_T / 1_m;  // BPM test
+  // const double quad2Gradient = 10.841_T / 1_m;  // BPM test
+  // const double quad2Gradient = 14.455_T / 1_m;  // BPM test
+  // const double quad2Gradient = 18.069_T / 1_m;  // BPM test
+  // const double quad2Gradient = 21.682_T / 1_m;  // BPM test
+  // const double quad2Gradient = 25.296_T / 1_m;  // BPM test
+  // const double quad2Gradient = 28.910_T / 1_m;  // BPM test
+  const double quad2Gradient = 6.466_T / 1_m;
 
   const std::size_t quad3Id = 3;
   const double quad3HalfPrimary = 486.664_mm;
   const double quad3HalfLong = 32.33_mm;
   const double quad3HalfShort = 32.33_mm;
-  const double quad3Gradient = -0.7637_T / 1_m;  // Run 502
+  // const double quad3Gradient = -0.7637_T / 1_m;  // Run 502
   // const double quad3Gradient = -0.6659_T / 1_m;  // Run 503
+  // const double quad3Gradient = -2.493_T / 1_m;  // Run 849
+  // const double quad3Gradient = -3.116_T / 1_m;  // Run 856
+  // const double quad3Gradient = -4.633_T / 1_m;  // BPM test
+  // const double quad3Gradient = -6.950_T / 1_m;  // BPM test
+  // const double quad3Gradient = -9.266_T / 1_m;  // BPM test
+  // const double quad3Gradient = -11.582_T / 1_m;  // BPM test
+  // const double quad3Gradient = -13.899_T / 1_m;  // BPM test
+  // const double quad3Gradient = -16.215_T / 1_m;  // BPM test
+  // const double quad3Gradient = -18.532_T / 1_m;  // BPM test
+  const double quad3Gradient = -4.63_T / 1_m;
 
   /// --------------------------------------------------------------
   /// Parameters of the x-corrector
@@ -139,8 +174,13 @@ struct GeometryOptions {
   const double xCorrectorHalfLong = 40_mm;
   const double xCorrectorHalfShort = 40_mm;
 
-  const double xCorrectorFieldStrength = 0.026107_T;  // Run 502
+  // const double xCorrectorFieldStrength = 0.026107_T;  // Run 502
   // const double xCorrectorFieldStrength = 0.0_T;  // Run 503
+  // const double xCorrectorFieldStrength = 0.02781_T;  // Run 849
+  // const double xCorrectorFieldStrength = 0.02781_T;  // Run 856
+  const double xCorrectorFieldStrength = 0.02782_T;
+
+  std::size_t xCorrectorDirIdx = longIdx;
 
   const double xCorrectorFieldPrimary = 0;
   const double xCorrectorFieldLong = xCorrectorFieldStrength;
@@ -154,7 +194,12 @@ struct GeometryOptions {
   const double dipoleHalfLong = 50.927_mm;
   const double dipoleHalfShort = 22.352_mm;
 
-  const double dipoleFieldStrength = -0.2192_T;
+  // const double dipoleFieldStrength = -0.2192_T; // Run 502
+  // const double dipoleFieldStrength = -0.1751_T; // Run 849
+  // const double dipoleFieldStrength = -0.2185_T; // Run 856
+  const double dipoleFieldStrength = -0.3239_T;
+
+  std::size_t dipoleDirIdx = shortIdx;
 
   const double dipoleFieldPrimary = 0;
   const double dipoleFieldLong = 0;
@@ -235,34 +280,42 @@ struct GeometryOptions {
       41};
 
   /// --------------------------------------------------------------
-  /// Downstream BMP placement
+  /// BMP placement
   const double bpmCenterLong = 0_mm;
   const double bpmCenterShort = 0_mm;
 
   const double bpm0CenterPrimary = -1515_mm;  // 3156
-  const double bpm1CenterPrimary = 4944_mm;  // 3218
-  const double bpm2CenterPrimary = 7168_mm;  // 3265
-  const double bpm3CenterPrimary = 9393_mm;  // 3315
+  const double bpm1CenterPrimary = 4944_mm;   // 3218
+  const double bpm2CenterPrimary = 7168_mm;   // 3265
+  const double bpm3CenterPrimary = 9393_mm;   // 3315
 
   const SurfaceParameters bpm0Parameters{
       {primaryBinValue, bpm0CenterPrimary, toWorldAngleX},
       {longBinValue, bpmCenterLong, toWorldAngleY},
+      // {longBinValue, 0.056_mm, toWorldAngleY},
       {shortBinValue, bpmCenterShort, toWorldAngleZ},
+      // {shortBinValue, -1.621_mm, toWorldAngleZ},
       30};
   const SurfaceParameters bpm1Parameters{
       {primaryBinValue, bpm1CenterPrimary, toWorldAngleX},
       {longBinValue, bpmCenterLong, toWorldAngleY},
+      // {longBinValue, -0.055_mm, toWorldAngleY},
       {shortBinValue, bpmCenterShort, toWorldAngleZ},
+      // {shortBinValue, -3.7_mm, toWorldAngleZ},
       31};
   const SurfaceParameters bpm2Parameters{
       {primaryBinValue, bpm2CenterPrimary, toWorldAngleX},
       {longBinValue, bpmCenterLong, toWorldAngleY},
+      // {longBinValue, -0.164_mm, toWorldAngleY},
       {shortBinValue, bpmCenterShort, toWorldAngleZ},
+      // {shortBinValue, -2.542_mm, toWorldAngleZ},
       32};
   const SurfaceParameters bpm3Parameters{
       {primaryBinValue, bpm3CenterPrimary, toWorldAngleX},
       {longBinValue, bpmCenterLong, toWorldAngleY},
+      // {longBinValue, 0.042_mm, toWorldAngleY},
       {shortBinValue, bpmCenterShort, toWorldAngleZ},
+      // {shortBinValue, -3.346_mm, toWorldAngleZ},
       33};
 
   /// --------------------------------------------------------------
@@ -272,19 +325,19 @@ struct GeometryOptions {
   const double quad0CenterLong = 0.056_mm;
   // const double quad0CenterLong = 0_mm;
   const double quad0CenterShort = -1.821_mm;
-  // const double quad0CenterShort = 0;
+  // const double quad0CenterShort = 0_mm;
 
   const double quad1CenterPrimary = 4157_mm;
   const double quad1CenterLong = -0.055_mm;
   // const double quad1CenterLong = 0_mm;
   const double quad1CenterShort = -3.5_mm;
-  // const double quad1CenterShort = 0;
+  // const double quad1CenterShort = 0_mm;
 
   const double quad2CenterPrimary = 6382_mm;
   const double quad2CenterLong = -0.164_mm;
   // const double quad2CenterLong = 0_mm;
   const double quad2CenterShort = -2.642_mm;
-  // const double quad2CenterShort = 0;
+  // const double quad2CenterShort = 0_mm;
 
   const double quad3CenterPrimary = 8606_mm;
   const double quad3CenterLong = 0.042_mm;
