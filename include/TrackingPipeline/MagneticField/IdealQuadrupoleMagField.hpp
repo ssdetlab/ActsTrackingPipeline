@@ -19,9 +19,10 @@ class IdealQuadrupoleMagField : public Acts::MagneticFieldProvider {
         m_gradient = defaultGrad;
         return;
       }
-      const auto& store = mctx.get<std::shared_ptr<MagneticFieldStore>&>();
-      if (store->store.contains(id)) {
-        m_gradient = store->store.at(id).as<Cache>().m_gradient;
+      const auto& store =
+          mctx.get<std::shared_ptr<MagneticFieldStore>&>()->store;
+      if (store.contains(id)) {
+        m_gradient = store.at(id).as<Cache>().m_gradient;
       } else {
         m_gradient = defaultGrad;
       }
