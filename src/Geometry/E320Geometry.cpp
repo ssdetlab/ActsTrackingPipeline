@@ -73,7 +73,7 @@ std::shared_ptr<const Acts::Experimental::Detector> buildDetector(
   auto siSurfMaterial =
       std::make_shared<Acts::HomogeneousSurfaceMaterial>(siliconSlab);
 
-  Acts::MaterialSlab thinSlab(silicon, 1_um);
+  Acts::MaterialSlab thinSlab(silicon, 0_um);
   auto thinSurfMaterial =
       std::make_shared<Acts::HomogeneousSurfaceMaterial>(thinSlab);
 
@@ -394,13 +394,14 @@ std::shared_ptr<Acts::MagneticFieldProvider> buildMagField(
       std::make_shared<ConstantMagField>(goInst.dipoleId, dipoleB);
 
   CompositeMagField::FieldComponents fieldComponents = {
-      {goInst.quad1Id, quad1Extent, quad1Field},
-      {goInst.quad2Id, quad2Extent, quad2Field},
-      {goInst.quad3Id, quad3Extent, quad3Field},
-      {goInst.xCorrectorId, xCorrectorExtent, xCorrectorField},
-      {goInst.dipoleId, dipoleExtent, dipoleField}};
+      {goInst.quad1Id, {quad1Extent, quad1Field}},
+      {goInst.quad2Id, {quad2Extent, quad2Field}},
+      {goInst.quad3Id, {quad3Extent, quad3Field}},
+      {goInst.xCorrectorId, {xCorrectorExtent, xCorrectorField}},
+      {goInst.dipoleId, {dipoleExtent, dipoleField}}};
 
-  return std::make_shared<CompositeMagField>(fieldComponents);
+  return std::make_shared<CompositeMagField>(goInst.compositeMagFieldId,
+                                             fieldComponents);
 }
 
 }  // namespace E320

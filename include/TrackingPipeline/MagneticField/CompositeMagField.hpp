@@ -6,29 +6,65 @@
 #include <cstddef>
 #include <memory>
 
+#include "TrackingPipeline/MagneticField/MagneticFieldStore.hpp"
+
 class CompositeMagField : public Acts::MagneticFieldProvider {
  public:
   struct FieldComponent {
-    std::size_t id;
     Acts::Extent extent;
     std::shared_ptr<Acts::MagneticFieldProvider> fieldProvider;
   };
-  using FieldComponents = std::vector<FieldComponent>;
+  using FieldComponents = std::unordered_map<std::size_t, FieldComponent>;
+
+  using FieldComponentExtents = std::unordered_map<std::size_t, Acts::Extent>;
+  using FieldComponentCaches =
+      std::unordered_map<std::size_t, Acts::MagneticFieldProvider::Cache>;
 
   struct Cache {
-    std::unordered_map<std::size_t, Acts::MagneticFieldProvider::Cache>
-        componentCaches;
-    Cache(const FieldComponents& components,
+    FieldComponentExtents m_componentExtents;
+    FieldComponentCaches m_componentCaches;
+
+    explicit Cache(const FieldComponentExtents& componentExtents)
+        : m_componentExtents(componentExtents) {}
+
+    Cache(std::size_t id, const FieldComponents& defaultComponents,
           const Acts::MagneticFieldContext& mctx) {
-      for (const auto& component : components) {
-        // std::cout << "COMPONENT ID " << component.id << "\n";
-        componentCaches.insert(
-            {component.id, component.fieldProvider->makeCache(mctx)});
+      if (!mctx.hasValue()) {
+        for (const auto& [cId, defaultComponent] : defaultComponents) {
+          m_componentExtents.insert({cId, defaultComponent.extent});
+          m_componentCaches.insert(
+              {cId, defaultComponent.fieldProvider->makeCache(mctx)});
+        }
+      } else {
+        const auto& store =
+            mctx.get<std::shared_ptr<MagneticFieldStore>&>()->store;
+        if (store.contains(id)) {
+          auto componentExtents = store.at(id).as<Cache>().m_componentExtents;
+          auto componentCaches = store.at(id).as<Cache>().m_componentCaches;
+
+          for (const auto& [cId, defaultComponent] : defaultComponents) {
+            if (componentExtents.contains(cId)) {
+              m_componentExtents.insert({cId, componentExtents.at(cId)});
+              m_componentCaches.insert(
+                  {cId, defaultComponent.fieldProvider->makeCache(mctx)});
+            } else {
+              m_componentExtents.insert({cId, defaultComponent.extent});
+              m_componentCaches.insert(
+                  {cId, defaultComponent.fieldProvider->makeCache(mctx)});
+            }
+          }
+        } else {
+          for (const auto& [cId, defaultComponent] : defaultComponents) {
+            m_componentExtents.insert({cId, defaultComponent.extent});
+            m_componentCaches.insert(
+                {cId, defaultComponent.fieldProvider->makeCache(mctx)});
+          }
+        }
       }
     }
   };
 
-  CompositeMagField(const FieldComponents& fieldComponents);
+  CompositeMagField(std::size_t id, const FieldComponents& fieldComponents);
 
   ~CompositeMagField() override;
 
@@ -44,5 +80,6 @@ class CompositeMagField : public Acts::MagneticFieldProvider {
       MagneticFieldProvider::Cache& cache) const override;
 
  private:
+  std::size_t m_id;
   FieldComponents m_fieldComponents;
 };
