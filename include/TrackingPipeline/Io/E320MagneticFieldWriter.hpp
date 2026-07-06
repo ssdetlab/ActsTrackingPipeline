@@ -60,6 +60,19 @@ class E320MagneticFieldWriter : public IWriter {
   double m_quad2Grad = 0;
   double m_quad3Grad = 0;
 
+  /// Quad poitions mm
+  double m_quad1CenterPrimary = 0;
+  double m_quad2CenterPrimary = 0;
+  double m_quad3CenterPrimary = 0;
+
+  double m_quad1CenterLong = 0;
+  double m_quad2CenterLong = 0;
+  double m_quad3CenterLong = 0;
+
+  double m_quad1CenterShort = 0;
+  double m_quad2CenterShort = 0;
+  double m_quad3CenterShort = 0;
+
   /// XCOR strength T
   double m_xCorrectorStrength = 0;
 

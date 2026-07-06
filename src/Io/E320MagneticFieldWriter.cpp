@@ -29,9 +29,25 @@ E320MagneticFieldWriter::E320MagneticFieldWriter(const Config& config,
   int splitLvl = 0;
 
   // Quad gradients T/m
-  m_tree->Branch("quad0Grad", &m_quad1Grad, bufSize, splitLvl);
-  m_tree->Branch("quad1Grad", &m_quad2Grad, bufSize, splitLvl);
-  m_tree->Branch("quad2Grad", &m_quad3Grad, bufSize, splitLvl);
+  m_tree->Branch("quad1Grad", &m_quad1Grad, bufSize, splitLvl);
+  m_tree->Branch("quad2Grad", &m_quad2Grad, bufSize, splitLvl);
+  m_tree->Branch("quad3Grad", &m_quad3Grad, bufSize, splitLvl);
+
+  /// Quad poitions mm
+  m_tree->Branch("quad1CenterPrimary", &m_quad1CenterPrimary, bufSize,
+                 splitLvl);
+  m_tree->Branch("quad2CenterPrimary", &m_quad2CenterPrimary, bufSize,
+                 splitLvl);
+  m_tree->Branch("quad3CenterPrimary", &m_quad3CenterPrimary, bufSize,
+                 splitLvl);
+
+  m_tree->Branch("quad1CenterLong", &m_quad1CenterLong, bufSize, splitLvl);
+  m_tree->Branch("quad2CenterLong", &m_quad2CenterLong, bufSize, splitLvl);
+  m_tree->Branch("quad3CenterLong", &m_quad3CenterLong, bufSize, splitLvl);
+
+  m_tree->Branch("quad1CenterShort", &m_quad1CenterShort, bufSize, splitLvl);
+  m_tree->Branch("quad2CenterShort", &m_quad2CenterShort, bufSize, splitLvl);
+  m_tree->Branch("quad3CenterShort", &m_quad3CenterShort, bufSize, splitLvl);
 
   // XCOR strength T
   m_tree->Branch("xCorrectorStrength", &m_xCorrectorStrength, bufSize,
@@ -67,6 +83,19 @@ ProcessCode E320MagneticFieldWriter::write(const AlgorithmContext& ctx) {
       goInst.quad2Gradient * Acts::UnitConstants::m / Acts::UnitConstants::T;
   m_quad3Grad =
       goInst.quad3Gradient * Acts::UnitConstants::m / Acts::UnitConstants::T;
+
+  // Quad poitions mm
+  m_quad1CenterPrimary = goInst.quad1CenterPrimary / Acts::UnitConstants::mm;
+  m_quad2CenterPrimary = goInst.quad2CenterPrimary / Acts::UnitConstants::mm;
+  m_quad3CenterPrimary = goInst.quad3CenterPrimary / Acts::UnitConstants::mm;
+
+  m_quad1CenterLong = goInst.quad1CenterLong / Acts::UnitConstants::mm;
+  m_quad2CenterLong = goInst.quad2CenterLong / Acts::UnitConstants::mm;
+  m_quad3CenterLong = goInst.quad3CenterLong / Acts::UnitConstants::mm;
+
+  m_quad1CenterShort = goInst.quad1CenterShort / Acts::UnitConstants::mm;
+  m_quad2CenterShort = goInst.quad2CenterShort / Acts::UnitConstants::mm;
+  m_quad3CenterShort = goInst.quad3CenterShort / Acts::UnitConstants::mm;
 
   // XCOR strength T
   m_xCorrectorStrength =
