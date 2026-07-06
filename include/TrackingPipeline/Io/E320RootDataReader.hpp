@@ -33,6 +33,8 @@ class E320RootDataReader : public IReader {
     std::string outputDetSourceLinkIndices;
     /// Collection with the BPM measurement data indices
     std::string outputBpmSourceLinkIndices;
+    /// Collection with the event meta data
+    std::string outputEventMetaData;
     /// The names of the input files
     std::vector<std::string> filePaths;
     /// Name of the input tree
@@ -45,6 +47,12 @@ class E320RootDataReader : public IReader {
     /// Surface map for high-precision local to global conversion
     std::unordered_map<Acts::GeometryIdentifier, const Acts::Surface*>
         surfaceMap;
+  };
+
+  struct EventMetaData {
+    std::size_t epicsParity;
+    std::size_t epicsPulseId;
+    std::size_t epicsDAQNumber;
   };
 
   E320RootDataReader(const E320RootDataReader&) = delete;
@@ -82,6 +90,8 @@ class E320RootDataReader : public IReader {
   WriteDataHandle<std::vector<std::size_t>> m_outputBpmSourceLinksIndices{
       this, "OutputBpmSourceLinksIndices"};
 
+  WriteDataHandle<EventMetaData> m_outputEventMetaData{this, "OutputMetaData"};
+
   std::unique_ptr<const Acts::Logger> m_logger;
 
   /// Mutex used to protect multi-threaded reads
@@ -90,7 +100,7 @@ class E320RootDataReader : public IReader {
   /// Vector of {eventNr, entryMin, entryMax}
   std::vector<std::tuple<uint32_t, std::size_t, std::size_t>> m_eventMap;
 
-  std::unordered_map<std::uint8_t, std::size_t> m_geoIdMap; 
+  std::unordered_map<std::uint8_t, std::size_t> m_geoIdMap;
 
   /// The input tree name
   TTree* m_tree = nullptr;

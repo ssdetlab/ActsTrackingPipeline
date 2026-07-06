@@ -36,6 +36,7 @@ E320::E320RootDataReader::E320RootDataReader(const Config& config,
   m_outputSourceLinks.initialize(m_cfg.outputSourceLinks);
   m_outputDetSourceLinksIndices.initialize(m_cfg.outputDetSourceLinkIndices);
   m_outputBpmSourceLinksIndices.initialize(m_cfg.outputBpmSourceLinkIndices);
+  m_outputEventMetaData.initialize(m_cfg.outputEventMetaData);
 
   // Set eventId branch
   m_tree->SetBranchAddress("eventId", &m_eventId);
@@ -126,12 +127,15 @@ ProcessCode E320::E320RootDataReader::read(const AlgorithmContext& ctx) {
   std::vector<Acts::SourceLink> sourceLinks{};
   std::vector<std::size_t> detSourceLinksIndices{};
   std::vector<std::size_t> bpmSourceLinksIndices{};
+  EventMetaData eventMetaData{};
 
   std::size_t eventId = std::get<0>(*it);
   Acts::GeometryIdentifier geoId;
   for (auto entry = std::get<1>(*it); entry < std::get<2>(*it); entry++) {
     m_tree->GetEntry(entry);
 
+    eventMetaData = {m_detEvent->epicsParity, m_detEvent->epicsPID,
+                     m_detEvent->epicsDAQNumber};
     for (const auto& staveEv : m_detEvent->st_ev_buffer) {
       for (const auto& chipEv : staveEv.ch_ev_buffer) {
         int sensitiveId = m_geoIdMap.at(chipEv.chip_id);
@@ -218,6 +222,7 @@ ProcessCode E320::E320RootDataReader::read(const AlgorithmContext& ctx) {
   m_outputSourceLinks(ctx, std::move(sourceLinks));
   m_outputDetSourceLinksIndices(ctx, std::move(detSourceLinksIndices));
   m_outputBpmSourceLinksIndices(ctx, std::move(bpmSourceLinksIndices));
+  m_outputEventMetaData(ctx, std::move(eventMetaData));
 
   // Return success flag
   return ProcessCode::SUCCESS;

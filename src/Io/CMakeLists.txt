@@ -18,11 +18,12 @@ target_sources(
     RootTrackReader.cpp
     JsonTrackLookupReader.cpp
     JsonTrackLookupWriter.cpp
+    JsonMaterialWriter.cpp
     AlignmentParametersWriter.cpp
     AlignmentParametersProvider.cpp
     E320MagneticFieldParametersProvider.cpp
     E320MagneticFieldWriter.cpp
-    JsonMaterialWriter.cpp
     E320RootDataReader.cpp
     E320RootSimClusterReader.cpp
+    E320RootTrackWriter.cpp
 )

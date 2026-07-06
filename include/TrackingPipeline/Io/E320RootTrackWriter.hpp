@@ -19,9 +19,12 @@
 #include "TrackingPipeline/Infrastructure/IWriter.hpp"
 #include "TrackingPipeline/Infrastructure/ProcessCode.hpp"
 #include "TrackingPipeline/Infrastructure/TypeDefinitions.hpp"
+#include "TrackingPipeline/Io/E320RootDataReader.hpp"
+
+namespace E320 {
 
 /// @brief writer storing fitted sim tracks in a ROOT file
-class RootTrackWriter : public IWriter {
+class E320RootTrackWriter : public IWriter {
  public:
   /// @brief nested configuration struct
   struct Config {
@@ -35,17 +38,19 @@ class RootTrackWriter : public IWriter {
     std::string inputTracks;
     /// Input track container
     std::string inputTrackParametersGuesses;
+    /// Input event meta data
+    std::string inputEventMetaData;
     /// Output tree name
     std::string treeName;
     /// Output file path
     std::string filePath;
   };
 
-  RootTrackWriter(const RootTrackWriter &) = delete;
-  RootTrackWriter(const RootTrackWriter &&) = delete;
+  E320RootTrackWriter(const E320RootTrackWriter &) = delete;
+  E320RootTrackWriter(const E320RootTrackWriter &&) = delete;
 
   /// @brief constructor
-  RootTrackWriter(const Config &config, Acts::Logging::Level level);
+  E320RootTrackWriter(const Config &config, Acts::Logging::Level level);
 
   /// @brief finalize method
   ProcessCode finalize() override;
@@ -74,6 +79,9 @@ class RootTrackWriter : public IWriter {
   ReadDataHandle<std::vector<Acts::CurvilinearTrackParameters>>
       m_inputTrackParametersGuesses{this, "InputTrackParametersGuesses"};
 
+  ReadDataHandle<E320::E320RootDataReader::EventMetaData> m_inputEventMetaData{
+      this, "InputMetaData"};
+
   std::unique_ptr<const Acts::Logger> m_logger;
 
   /// The output file
@@ -83,6 +91,11 @@ class RootTrackWriter : public IWriter {
   TTree *m_tree = nullptr;
 
  protected:
+  /// EPICS meta
+  std::size_t m_epicsParity = 0;
+  std::size_t m_epicsPulseId = 0;
+  std::size_t m_epicsDAQNumber = 0;
+
   /// Measurement hits
   std::vector<TVector3> m_trackHitsGlobal;
   std::vector<TVector2> m_trackHitsLocal;
@@ -158,3 +171,5 @@ class RootTrackWriter : public IWriter {
   /// Mutex to protect the tree filling
   std::mutex m_mutex;
 };
+
+}  // namespace E320
