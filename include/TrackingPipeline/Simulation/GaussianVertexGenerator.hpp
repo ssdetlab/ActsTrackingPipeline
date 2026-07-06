@@ -11,7 +11,7 @@ class GaussianVertexGenerator : public IVertexGenerator {
     Acts::SquareMatrix3 cov;
   };
 
-  GaussianVertexGenerator(const Config& cfg);
+  explicit GaussianVertexGenerator(const Config& cfg);
 
   Acts::Vector3 genVertex(RandomEngine& rng) const override;
 

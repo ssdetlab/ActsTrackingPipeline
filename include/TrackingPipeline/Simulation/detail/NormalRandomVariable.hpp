@@ -6,7 +6,7 @@
 /// @brief Multivariate normal random variable generator
 class NormalRandomVariable {
  public:
-  NormalRandomVariable(Eigen::MatrixXd const& covar)
+  explicit NormalRandomVariable(Eigen::MatrixXd const& covar)
       : NormalRandomVariable(Eigen::VectorXd::Zero(covar.rows()), covar) {}
 
   NormalRandomVariable(Eigen::VectorXd const& mean,
@@ -28,8 +28,7 @@ class NormalRandomVariable {
   }
 
   Eigen::VectorXd gen(RandomEngine& rng) const {
-    static std::normal_distribution<> dist;
-
+    std::normal_distribution<> dist(0, 1);
     return m_mean + m_transform * Eigen::VectorXd{m_mean.size()}.unaryExpr(
                                       [&](auto x) { return dist(rng); });
   }
