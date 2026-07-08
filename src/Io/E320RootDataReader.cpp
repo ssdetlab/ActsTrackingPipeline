@@ -109,6 +109,7 @@ ProcessCode E320::E320RootDataReader::read(const AlgorithmContext& ctx) {
     m_outputSourceLinks(ctx, {});
     m_outputDetSourceLinksIndices(ctx, {});
     m_outputBpmSourceLinksIndices(ctx, {});
+    m_outputEventMetaData(ctx, {});
 
     // Return success flag
     return ProcessCode::SUCCESS;
@@ -133,6 +134,17 @@ ProcessCode E320::E320RootDataReader::read(const AlgorithmContext& ctx) {
   Acts::GeometryIdentifier geoId;
   for (auto entry = std::get<1>(*it); entry < std::get<2>(*it); entry++) {
     m_tree->GetEntry(entry);
+
+    if (m_cfg.requireEpicsParity &&
+        m_detEvent->epicsParity != m_cfg.requiredEpicsParity) {
+      m_outputSourceLinks(ctx, {});
+      m_outputDetSourceLinksIndices(ctx, {});
+      m_outputBpmSourceLinksIndices(ctx, {});
+      m_outputEventMetaData(ctx, std::move(eventMetaData));
+
+      // Return success flag
+      return ProcessCode::SUCCESS;
+    }
 
     eventMetaData = {m_detEvent->epicsParity, m_detEvent->epicsPID,
                      m_detEvent->epicsDAQNumber};
@@ -167,6 +179,16 @@ ProcessCode E320::E320RootDataReader::read(const AlgorithmContext& ctx) {
         }
       }
     }
+    if (detSourceLinksIndices.size() > m_cfg.maxOccupancy) {
+      m_outputSourceLinks(ctx, {});
+      m_outputDetSourceLinksIndices(ctx, {});
+      m_outputBpmSourceLinksIndices(ctx, {});
+      m_outputEventMetaData(ctx, std::move(eventMetaData));
+
+      // Return success flag
+      return ProcessCode::SUCCESS;
+    }
+
     for (const auto& bpmEv : m_detEvent->bpm_ev_buffer) {
       int sensitiveId = m_geoIdMap.at(bpmEv.id);
       if (sensitiveId < m_cfg.minGeoId || sensitiveId > m_cfg.maxGeoId) {

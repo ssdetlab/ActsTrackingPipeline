@@ -25,6 +25,8 @@ class E320RootDataReader : public IReader {
  public:
   using Hit = std::pair<std::size_t, std::size_t>;
 
+  enum EpicsParity : int { Even = 0, Odd = 1 };
+
   /// @brief The nested configuration struct
   struct Config {
     /// Collection with the detector measurement data
@@ -41,6 +43,12 @@ class E320RootDataReader : public IReader {
     std::string treeName;
     /// The keys we have in the ROOT file
     std::string eventKey;
+    /// Epics parity requirement flag
+    bool requireEpicsParity;
+    /// Required Epics parity
+    EpicsParity requiredEpicsParity;
+    /// Maximum detector occupancy
+    std::size_t maxOccupancy;
     /// Geometry ID scope
     int minGeoId;
     int maxGeoId;
