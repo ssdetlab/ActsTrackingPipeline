@@ -28,6 +28,10 @@ E320::E320RootTrackWriter::E320RootTrackWriter(const Config& config,
   int splitLvl = 0;
 
   // Event meta data
+  m_tree->Branch("eudaqTrgN", &m_eudaqTrgN, bufSize, splitLvl);
+  m_tree->Branch("eudaqDAQNumber", &m_eudaqDAQNumber, bufSize, splitLvl);
+  m_tree->Branch("eudaqRunStartTs", &m_eudaqRunStartTs, bufSize, splitLvl);
+  m_tree->Branch("eudaqRunEndTs", &m_eudaqRunEndTs, bufSize, splitLvl);
   m_tree->Branch("epicsParity", &m_epicsParity, bufSize, splitLvl);
   m_tree->Branch("epicsPulseId", &m_epicsPulseId, bufSize, splitLvl);
   m_tree->Branch("epicsDAQNumber", &m_epicsDAQNumber, bufSize, splitLvl);
@@ -135,6 +139,10 @@ ProcessCode E320::E320RootTrackWriter::write(const AlgorithmContext& ctx) {
   std::lock_guard<std::mutex> lock(m_mutex);
 
   m_eventId = ctx.eventNumber;
+  m_eudaqTrgN = inputMetaData.eudaqTrgN;
+  m_eudaqDAQNumber = inputMetaData.eudaqDAQNumber;
+  m_eudaqRunStartTs = inputMetaData.eudaqRunStartTs;
+  m_eudaqRunEndTs = inputMetaData.eudaqRunEndTs;
   m_epicsParity = inputMetaData.epicsParity;
   m_epicsPulseId = inputMetaData.epicsPulseId;
   m_epicsDAQNumber = inputMetaData.epicsDAQNumber;

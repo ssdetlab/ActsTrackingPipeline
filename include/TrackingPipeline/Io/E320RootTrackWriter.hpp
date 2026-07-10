@@ -91,7 +91,11 @@ class E320RootTrackWriter : public IWriter {
   TTree *m_tree = nullptr;
 
  protected:
-  /// EPICS meta
+  /// Event meta data
+  std::size_t m_eudaqTrgN = 0;
+  std::size_t m_eudaqDAQNumber = 0;
+  std::size_t m_eudaqRunStartTs = 0;
+  std::size_t m_eudaqRunEndTs = 0;
   std::size_t m_epicsParity = 0;
   std::size_t m_epicsPulseId = 0;
   std::size_t m_epicsDAQNumber = 0;

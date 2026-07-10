@@ -146,8 +146,13 @@ ProcessCode E320::E320RootDataReader::read(const AlgorithmContext& ctx) {
       return ProcessCode::SUCCESS;
     }
 
-    eventMetaData = {m_detEvent->epicsParity, m_detEvent->epicsPID,
-                     m_detEvent->epicsDAQNumber};
+    eventMetaData = EventMetaData{.eudaqTrgN = m_detEvent->trg_n,
+                                  .eudaqDAQNumber = m_detEvent->run_number,
+                                  .eudaqRunStartTs = m_detEvent->ts_begin,
+                                  .eudaqRunEndTs = m_detEvent->ts_end,
+                                  .epicsParity = m_detEvent->epicsParity,
+                                  .epicsPulseId = m_detEvent->epicsPID,
+                                  .epicsDAQNumber = m_detEvent->epicsDAQNumber};
     for (const auto& staveEv : m_detEvent->st_ev_buffer) {
       for (const auto& chipEv : staveEv.ch_ev_buffer) {
         int sensitiveId = m_geoIdMap.at(chipEv.chip_id);
