@@ -1,8 +1,8 @@
 #include "TrackingPipeline/Io/RootSeedWriter.hpp"
 
+#include "Acts/Definitions/Algebra.hpp"
+#include "Acts/Geometry/GeometryIdentifier.hpp"
 #include "Acts/Utilities/Logger.hpp"
-#include <Acts/Definitions/Algebra.hpp>
-#include <Acts/Geometry/GeometryIdentifier.hpp>
 
 #include <cstddef>
 #include <vector>

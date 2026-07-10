@@ -2,9 +2,8 @@
 
 #include "Acts/Definitions/Algebra.hpp"
 #include "Acts/EventData/SourceLink.hpp"
-#include <Acts/Utilities/Logger.hpp>
+#include "Acts/Utilities/Logger.hpp"
 
-#include <cstddef>
 #include <stdexcept>
 #include <vector>
 
