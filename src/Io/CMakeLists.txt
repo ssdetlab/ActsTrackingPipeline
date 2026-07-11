@@ -26,4 +26,5 @@ target_sources(
     E320RootDataReader.cpp
     E320RootSimClusterReader.cpp
     E320RootTrackWriter.cpp
+    E320RootTrackReader.cpp
 )
