@@ -23,7 +23,7 @@
 
 namespace E320 {
 
-/// @brief writer storing fitted sim tracks in a ROOT file
+/// @brief E320-specific track writer
 class E320RootTrackWriter : public IWriter {
  public:
   /// @brief nested configuration struct

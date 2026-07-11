@@ -20,11 +20,13 @@
 
 namespace E320 {
 
-/// @brief ROOT file reader designed for the EUDAQ2 format
+/// @brief E320-specific data reader
 class E320RootDataReader : public IReader {
  public:
+  /// Particle hit shorthand
   using Hit = std::pair<std::size_t, std::size_t>;
 
+  /// @brief Epics parity enum
   enum EpicsParity : int { Even = 0, Odd = 1 };
 
   /// @brief The nested configuration struct
@@ -99,7 +101,7 @@ class E320RootDataReader : public IReader {
   /// The config class
   Config m_cfg;
 
-  /// WriteDataHandle for the observable data
+  /// WriteDataHandles for the data
   WriteDataHandle<std::vector<Acts::SourceLink>> m_outputSourceLinks{
       this, "OutputSourceLinks"};
 
@@ -111,6 +113,7 @@ class E320RootDataReader : public IReader {
 
   WriteDataHandle<EventMetaData> m_outputEventMetaData{this, "OutputMetaData"};
 
+  /// Logging instance
   std::unique_ptr<const Acts::Logger> m_logger;
 
   /// Mutex used to protect multi-threaded reads
@@ -119,18 +122,21 @@ class E320RootDataReader : public IReader {
   /// Vector of {eventNr, entryMin, entryMax}
   std::vector<std::tuple<uint32_t, std::size_t, std::size_t>> m_eventMap;
 
+  /// Geometry ID map between EUDAQ and ACTS
   std::unordered_map<std::uint8_t, std::size_t> m_geoIdMap;
 
-  /// The input tree name
+  /// The input tree handle
   TTree* m_tree = nullptr;
   TFile* m_file = nullptr;
   TChain* m_chainOwner = nullptr;
 
+  /// E320-specific geometry options
   E320::GeometryOptions m_gOpt;
 
  protected:
   /// Detector event handle
   E320Io::DetectorEvent* m_detEvent = nullptr;
+
   /// Event number handle
   ULong64_t m_eventId = 0;
 };
