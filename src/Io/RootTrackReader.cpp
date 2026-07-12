@@ -40,8 +40,42 @@ RootTrackReader::RootTrackReader(const Config& config,
     m_tree = dynamic_cast<TTree*>(m_chainOwner);
   }
 
+  // Set event Id branch
+  m_tree->SetBranchAddress("eventId", &m_eventId);
+  if (m_tree->GetBranch("eventId") == nullptr) {
+    throw std::invalid_argument("Missing eventId SetbranchAddress");
+  }
+  auto nEntries = static_cast<std::size_t>(m_tree->GetEntries());
+
+  if (!m_cfg.mergeIntoOneEvent) {
+    // Add the first entry
+    m_tree->GetEntry(0);
+    m_eventMap.emplace_back(m_eventId, 0, 0);
+
+    for (std::size_t i = 0; i < nEntries; ++i) {
+      m_tree->GetEntry(i);
+      if (m_eventId != std::get<0>(m_eventMap.back())) {
+        std::get<2>(m_eventMap.back()) = i;
+        m_eventMap.emplace_back(m_eventId, i, i);
+      }
+      if (i == nEntries - 1) {
+        std::get<2>(m_eventMap.back()) = nEntries;
+      }
+    }
+  } else {
+    m_eventMap = {{0, 0, nEntries}};
+  }
+
+  // Sort by event id
+  std::ranges::sort(m_eventMap, [](const auto& a, const auto& b) {
+    return std::get<0>(a) < std::get<0>(b);
+  });
+
+  ACTS_DEBUG("Event range: " << availableEvents().first << " - "
+                             << availableEvents().second);
+
   //------------------------------------------------------------------
-  // Tree branches
+  // Set the rest of the branches
 
   // Measurement hits
   m_tree->SetBranchAddress("trackHitsGlobal", &m_trackHitsGlobal);
@@ -76,26 +110,26 @@ RootTrackReader::RootTrackReader(const Config& config,
   m_tree->SetBranchAddress("filteredPulls", &m_filteredPulls);
   m_tree->SetBranchAddress("smoothedPulls", &m_smoothedPulls);
 
-  /// Guessed bound track parameters
+  // Guessed bound track parameters
   m_tree->SetBranchAddress("boundTrackParametersGuess",
                            &m_boundTrackParametersGuess);
   m_tree->SetBranchAddress("boundTrackCovGuess", &m_boundTrackCovGuess);
 
-  /// KF predicted bound track parameters
+  // KF predicted bound track parameters
   m_tree->SetBranchAddress("boundTrackParametersEst",
                            &m_boundTrackParametersEst);
   m_tree->SetBranchAddress("boundTrackCovEst", &m_boundTrackCovEst);
 
-  /// Initial guess of the momentum at the IP
+  // Initial guess of the momentum at the IP
   m_tree->SetBranchAddress("originMomentumGuess", &m_originMomentumGuess);
 
-  /// Initial guess of the vertex at the IP
+  // Initial guess of the vertex at the IP
   m_tree->SetBranchAddress("vertexGuess", &m_vertexGuess);
 
-  /// KF predicted momentum at the IP
+  // KF predicted momentum at the IP
   m_tree->SetBranchAddress("originMomentumEst", &m_originMomentumEst);
 
-  /// KF predicted vertex at the IP
+  // KF predicted vertex at the IP
   m_tree->SetBranchAddress("vertexEst", &m_vertexEst);
 
   // Chi2 and ndf of the fitted track
@@ -107,48 +141,11 @@ RootTrackReader::RootTrackReader(const Config& config,
   // Track ID
   m_tree->SetBranchAddress("trackId", &m_trackId);
 
-  // Event ID
-  m_tree->SetBranchAddress("eventId", &m_eventId);
-
   // PDG ID
   m_tree->SetBranchAddress("pdgId", &m_pdgId);
 
   // Charge
   m_tree->SetBranchAddress("charge", &m_charge);
-
-  // Disable all branches and only enable event-id for a first scan of the
-  // file
-  m_tree->SetBranchStatus("*", false);
-  if (m_tree->GetBranch("eventId") == nullptr) {
-    throw std::invalid_argument("Missing eventId SetbranchAddress");
-  }
-  m_tree->SetBranchStatus("eventId", true);
-  auto nEntries = static_cast<std::size_t>(m_tree->GetEntries());
-
-  // Go through all entries and store the position of the events
-  m_tree->GetEntry(0);
-  m_eventMap.emplace_back(m_eventId, 0, 0);
-  if (!m_cfg.mergeIntoOneEvent) {
-    for (std::size_t i = 0; i < nEntries; ++i) {
-      m_tree->GetEntry(i);
-      if (m_eventId != std::get<0>(m_eventMap.back())) {
-        std::get<2>(m_eventMap.back()) = i;
-        m_eventMap.emplace_back(m_eventId, i, i);
-      }
-    }
-  }
-
-  // Sort by event id
-  std::ranges::sort(m_eventMap, [](const auto& a, const auto& b) {
-    return std::get<0>(a) < std::get<0>(b);
-  });
-
-  std::get<2>(m_eventMap.back()) = nEntries;
-
-  // Re-Enable all branches
-  m_tree->SetBranchStatus("*", true);
-  ACTS_DEBUG("Event range: " << availableEvents().first << " - "
-                             << availableEvents().second);
 
   // Initialize the data handles
   m_outputSourceLinks.initialize(m_cfg.outputSourceLinks);
