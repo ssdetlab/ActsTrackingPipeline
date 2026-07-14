@@ -10,7 +10,7 @@ Acts::Vector3 StationaryVertexGenerator::genVertex(
   return m_cfg.vertex;
 }
 
-Acts::SquareMatrix3 StationaryVertexGenerator::getCovariance() const {
+Acts::SquareMatrix3 StationaryVertexGenerator::getVertexCovariance() const {
   return m_cov;
 }
 

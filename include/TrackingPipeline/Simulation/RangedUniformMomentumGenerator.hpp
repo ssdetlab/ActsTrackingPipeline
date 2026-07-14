@@ -12,11 +12,11 @@ class RangedUniformMomentumGenerator : public IMomentumGenerator {
     Acts::Vector3 direction;
   };
 
-  RangedUniformMomentumGenerator(const Config& config);
+  explicit RangedUniformMomentumGenerator(const Config& config);
 
   Acts::Vector3 genMomentum(RandomEngine& rng) const override;
 
-  Acts::SquareMatrix4 getCovariance() const override;
+  Acts::SquareMatrix4 getMomentumCovariance() const override;
 
   Acts::Vector3 getMean() const override;
 

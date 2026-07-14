@@ -15,7 +15,7 @@ class GaussianVertexGenerator : public IVertexGenerator {
 
   Acts::Vector3 genVertex(RandomEngine& rng) const override;
 
-  Acts::SquareMatrix3 getCovariance() const override;
+  Acts::SquareMatrix3 getVertexCovariance() const override;
 
   Acts::Vector3 getMean() const override;
 

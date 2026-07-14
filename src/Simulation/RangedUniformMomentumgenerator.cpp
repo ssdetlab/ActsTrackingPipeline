@@ -33,7 +33,7 @@ Acts::Vector3 RangedUniformMomentumGenerator::genMomentum(
   return p * m_cfg.direction;
 }
 
-Acts::SquareMatrix4 RangedUniformMomentumGenerator::getCovariance() const {
+Acts::SquareMatrix4 RangedUniformMomentumGenerator::getMomentumCovariance() const {
   return m_cov;
 }
 

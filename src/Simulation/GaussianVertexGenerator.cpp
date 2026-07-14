@@ -7,7 +7,7 @@ Acts::Vector3 GaussianVertexGenerator::genVertex(RandomEngine& rng) const {
   return m_normal.gen(rng);
 }
 
-Acts::SquareMatrix3 GaussianVertexGenerator::getCovariance() const {
+Acts::SquareMatrix3 GaussianVertexGenerator::getVertexCovariance() const {
   return m_normal.getCovariance();
 }
 

@@ -36,8 +36,8 @@ SphericalMomentumGenerator::SphericalMomentumGenerator(const Config& config)
   double meanPhi = (phiMax + phiMin) / 2.0;
   double varPhi = (phiMax - phiMin) * (phiMax - phiMin) / 12.0;
 
-  double meanRho;
-  double mean2Rho;
+  double meanRho = 0;
+  double mean2Rho = 0;
   if (!nonBijective) {
     meanRho =
         1.0 / 2.0 *
@@ -124,7 +124,7 @@ Acts::Vector3 SphericalMomentumGenerator::genMomentum(RandomEngine& rng) const {
                               std::sin(theta) * std::sin(phi), std::cos(theta));
 }
 
-Acts::SquareMatrix4 SphericalMomentumGenerator::getCovariance() const {
+Acts::SquareMatrix4 SphericalMomentumGenerator::getMomentumCovariance() const {
   return m_cov;
 }
 

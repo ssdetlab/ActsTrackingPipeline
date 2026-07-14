@@ -12,11 +12,11 @@ class UniformVertexGenerator : public IVertexGenerator {
     Acts::Vector3 maxs;
   };
 
-  UniformVertexGenerator(const Config& cfg);
+  explicit UniformVertexGenerator(const Config& cfg);
 
   Acts::Vector3 genVertex(RandomEngine& rng) const override;
 
-  Acts::SquareMatrix3 getCovariance() const override;
+  Acts::SquareMatrix3 getVertexCovariance() const override;
 
   Acts::Vector3 getMean() const override;
 

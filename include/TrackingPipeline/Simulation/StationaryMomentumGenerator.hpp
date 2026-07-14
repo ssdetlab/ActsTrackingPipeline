@@ -9,11 +9,11 @@ class StationaryMomentumGenerator : public IMomentumGenerator {
     Acts::Vector3 momentum;
   };
 
-  StationaryMomentumGenerator(const Config& config);
+  explicit StationaryMomentumGenerator(const Config& config);
 
   Acts::Vector3 genMomentum(RandomEngine& rng) const override;
 
-  Acts::SquareMatrix4 getCovariance() const override;
+  Acts::SquareMatrix4 getMomentumCovariance() const override;
 
  private:
   Config m_cfg;

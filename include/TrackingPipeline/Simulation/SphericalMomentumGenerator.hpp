@@ -13,11 +13,11 @@ class SphericalMomentumGenerator : public IMomentumGenerator {
     std::pair<double, double> phiRange;
   };
 
-  SphericalMomentumGenerator(const Config& config);
+  explicit SphericalMomentumGenerator(const Config& config);
 
   Acts::Vector3 genMomentum(RandomEngine& rng) const override;
 
-  Acts::SquareMatrix4 getCovariance() const override;
+  Acts::SquareMatrix4 getMomentumCovariance() const override;
 
   Acts::Vector3 getMean() const override;
 

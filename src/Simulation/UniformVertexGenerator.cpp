@@ -22,9 +22,10 @@ Acts::Vector3 UniformVertexGenerator::genVertex(RandomEngine& rng) const {
   return m_cfg.mins + vertex.cwiseProduct(m_cfg.maxs - m_cfg.mins);
 }
 
-Acts::SquareMatrix3 UniformVertexGenerator::getCovariance() const {
+Acts::SquareMatrix3 UniformVertexGenerator::getVertexCovariance() const {
   return m_cov;
 }
+
 Acts::Vector3 UniformVertexGenerator::getMean() const {
   return m_mean;
 }
