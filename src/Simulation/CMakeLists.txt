@@ -10,6 +10,7 @@ target_sources(
     RangedUniformMomentumgenerator.cpp
     SphericalMomentumGenerator.cpp
     StationaryMomentumGenerator.cpp
+    ConvergingBeamGenerator.cpp
     IdealDigitizer.cpp
     SimpleDigitizer.cpp
     SurfaceRangedDigitizer.cpp
