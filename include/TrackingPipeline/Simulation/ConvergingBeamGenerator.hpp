@@ -22,6 +22,9 @@ class ConvergingBeamGenerator : public IVertexGenerator,
     /// Beam waist size
     double waistSigmaLong;
     double waistSigmaShort;
+    /// Angle of the beam at the waist
+    double waistMeanThetaLong;
+    double waistMeanThetaShort;
     /// Angular divergence of the beam at the waist
     double waistSigmaThetaLong;
     double waistSigmaThetaShort;

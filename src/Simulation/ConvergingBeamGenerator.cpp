@@ -46,8 +46,10 @@ void ConvergingBeamGenerator::internalUpdate(RandomEngine& rng) const {
   double waistLong = m_cfg.waistSigmaLong * m_unitNormal(rng);
   double waistShort = m_cfg.waistSigmaShort * m_unitNormal(rng);
 
-  double waistThetaLong = m_cfg.waistSigmaThetaLong * m_unitNormal(rng);
-  double waistThetaShort = m_cfg.waistSigmaThetaShort * m_unitNormal(rng);
+  double waistThetaLong =
+      m_cfg.waistMeanThetaLong + m_cfg.waistSigmaThetaLong * m_unitNormal(rng);
+  double waistThetaShort = m_cfg.waistMeanThetaShort +
+                           m_cfg.waistSigmaThetaShort * m_unitNormal(rng);
 
   double deltaPrimary =
       m_cfg.waistPosition(m_cfg.primaryIdx) - m_cfg.referencePositionPrimary;
