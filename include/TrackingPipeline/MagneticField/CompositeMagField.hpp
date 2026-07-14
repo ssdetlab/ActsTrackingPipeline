@@ -6,8 +6,6 @@
 #include <cstddef>
 #include <memory>
 
-#include "TrackingPipeline/MagneticField/MagneticFieldStore.hpp"
-
 class CompositeMagField : public Acts::MagneticFieldProvider {
  public:
   struct FieldComponent {
@@ -27,39 +25,12 @@ class CompositeMagField : public Acts::MagneticFieldProvider {
     explicit Cache(const FieldComponentExtents& componentExtents)
         : m_componentExtents(componentExtents) {}
 
-    Cache(std::size_t id, const FieldComponents& defaultComponents,
+    Cache(std::size_t id, const FieldComponents& components,
           const Acts::MagneticFieldContext& mctx) {
-      if (!mctx.hasValue()) {
-        for (const auto& [cId, defaultComponent] : defaultComponents) {
-          m_componentExtents.insert({cId, defaultComponent.extent});
-          m_componentCaches.insert(
-              {cId, defaultComponent.fieldProvider->makeCache(mctx)});
-        }
-      } else {
-        const auto& store =
-            mctx.get<std::shared_ptr<MagneticFieldStore>&>()->store;
-        if (store.contains(id)) {
-          auto componentExtents = store.at(id).as<Cache>().m_componentExtents;
-          auto componentCaches = store.at(id).as<Cache>().m_componentCaches;
-
-          for (const auto& [cId, defaultComponent] : defaultComponents) {
-            if (componentExtents.contains(cId)) {
-              m_componentExtents.insert({cId, componentExtents.at(cId)});
-              m_componentCaches.insert(
-                  {cId, defaultComponent.fieldProvider->makeCache(mctx)});
-            } else {
-              m_componentExtents.insert({cId, defaultComponent.extent});
-              m_componentCaches.insert(
-                  {cId, defaultComponent.fieldProvider->makeCache(mctx)});
-            }
-          }
-        } else {
-          for (const auto& [cId, defaultComponent] : defaultComponents) {
-            m_componentExtents.insert({cId, defaultComponent.extent});
-            m_componentCaches.insert(
-                {cId, defaultComponent.fieldProvider->makeCache(mctx)});
-          }
-        }
+      for (const auto& [cId, component] : components) {
+        m_componentExtents.insert({cId, component.extent});
+        m_componentCaches.insert(
+            {cId, component.fieldProvider->makeCache(mctx)});
       }
     }
   };
