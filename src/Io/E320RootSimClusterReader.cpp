@@ -12,6 +12,7 @@
 #include <vector>
 
 #include "TrackingPipeline/EventData/DataContainers.hpp"
+#include "TrackingPipeline/EventData/ExtendedSourceLink.hpp"
 #include "TrackingPipeline/EventData/SimpleSourceLink.hpp"
 #include "TrackingPipeline/Geometry/E320GeometryConstraints.hpp"
 #include "TrackingPipeline/Infrastructure/ProcessCode.hpp"
@@ -122,6 +123,7 @@ E320RootSimClusterReader::E320RootSimClusterReader(const Config& config,
   m_bpmGeoIds.insert(goInst.bpm1Parameters.geoId);
   m_bpmGeoIds.insert(goInst.bpm2Parameters.geoId);
   m_bpmGeoIds.insert(goInst.bpm3Parameters.geoId);
+  m_bpmGeoIds.insert(goInst.ipSurfaceParameters.geoId);
 
   // Initialize the data handles
   m_outputSourceLinks.initialize(m_cfg.outputSourceLinks);
