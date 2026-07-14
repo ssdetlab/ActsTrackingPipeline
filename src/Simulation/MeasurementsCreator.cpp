@@ -23,12 +23,12 @@ MeasurementsCreator::MeasurementsCreator(const Propagator& propagator,
   m_freeIpCov = Acts::FreeMatrix::Zero();
 
   m_freeIpCov.block(Acts::eFreePos0, Acts::eFreePos0, 3, 3) =
-      m_cfg.vertexGenerator->getCovariance();
+      m_cfg.vertexGenerator->getVertexCovariance();
 
   m_freeIpCov(Acts::eFreeTime, Acts::eFreeTime) = 25_ns;
 
   m_freeIpCov.block(Acts::eFreeDir0, Acts::eFreeDir0, 4, 4) =
-      m_cfg.momentumGenerator->getCovariance();
+      m_cfg.momentumGenerator->getMomentumCovariance();
 };
 
 std::size_t MeasurementsCreator::gen(

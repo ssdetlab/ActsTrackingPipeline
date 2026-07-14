@@ -11,6 +11,6 @@ Acts::SquareMatrix3 GaussianVertexGenerator::getVertexCovariance() const {
   return m_normal.getCovariance();
 }
 
-Acts::Vector3 GaussianVertexGenerator::getMean() const {
+Acts::Vector3 GaussianVertexGenerator::getVertexMean() const {
   return m_normal.getMean();
 }

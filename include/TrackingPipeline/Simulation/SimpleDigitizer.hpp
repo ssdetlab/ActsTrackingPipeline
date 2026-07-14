@@ -12,7 +12,7 @@ class SimpleDigitizer : public IDigitizer {
     std::pair<double, double> resolution;
   };
 
-  SimpleDigitizer(const Config& config);
+  explicit SimpleDigitizer(const Config& config);
 
   std::pair<Acts::Vector2, Acts::SquareMatrix2> genCluster(
       RandomEngine& rng, const Acts::GeometryIdentifier& geoId,
@@ -22,4 +22,6 @@ class SimpleDigitizer : public IDigitizer {
   Config m_cfg;
 
   Acts::SquareMatrix2 m_cov;
+
+  mutable std::normal_distribution<double> m_normal{0., 1.};
 };

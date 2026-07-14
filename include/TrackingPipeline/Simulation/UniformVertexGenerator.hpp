@@ -18,7 +18,7 @@ class UniformVertexGenerator : public IVertexGenerator {
 
   Acts::SquareMatrix3 getVertexCovariance() const override;
 
-  Acts::Vector3 getMean() const override;
+  Acts::Vector3 getVertexMean() const override;
 
  private:
   Config m_cfg;
@@ -26,4 +26,6 @@ class UniformVertexGenerator : public IVertexGenerator {
   Acts::SquareMatrix3 m_cov;
 
   Acts::Vector3 m_mean;
+
+  mutable std::uniform_real_distribution<double> m_uniform{0, 1};
 };

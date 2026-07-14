@@ -128,6 +128,6 @@ Acts::SquareMatrix4 SphericalMomentumGenerator::getMomentumCovariance() const {
   return m_cov;
 }
 
-Acts::Vector3 SphericalMomentumGenerator::getMean() const {
+Acts::Vector3 SphericalMomentumGenerator::getMomentumMean() const {
   return m_mean;
 }

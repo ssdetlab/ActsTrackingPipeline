@@ -17,26 +17,28 @@ RangedUniformMomentumGenerator::RangedUniformMomentumGenerator(
   m_cov = Acts::SquareMatrix4::Zero();
   m_cov(3, 3) = (mean2P - meanP * meanP);
   m_mean = m_cfg.direction * meanP;
+
+  m_rangeSelect =
+      std::uniform_int_distribution<int>(0, m_cfg.pRanges.size() - 1);
 }
 
 Acts::Vector3 RangedUniformMomentumGenerator::genMomentum(
     RandomEngine& rng) const {
-  std::uniform_int_distribution<int> range_select(0, m_cfg.pRanges.size() - 1);
-  int range = range_select(rng);
+  int range = m_rangeSelect(rng);
 
-  double Pmin = m_cfg.pRanges.at(range).first;
-  double Pmax = m_cfg.pRanges.at(range).second;
+  double pMin = m_cfg.pRanges.at(range).first;
+  double pMax = m_cfg.pRanges.at(range).second;
 
-  std::uniform_real_distribution<double> uniform(Pmin, Pmax);
-  double p = uniform(rng);
+  double p = pMin + m_uniform(rng) * (pMax - pMin);
 
   return p * m_cfg.direction;
 }
 
-Acts::SquareMatrix4 RangedUniformMomentumGenerator::getMomentumCovariance() const {
+Acts::SquareMatrix4 RangedUniformMomentumGenerator::getMomentumCovariance()
+    const {
   return m_cov;
 }
 
-Acts::Vector3 RangedUniformMomentumGenerator::getMean() const {
+Acts::Vector3 RangedUniformMomentumGenerator::getMomentumMean() const {
   return m_mean;
 }

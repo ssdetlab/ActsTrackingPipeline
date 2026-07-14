@@ -28,9 +28,9 @@ class NormalRandomVariable {
   }
 
   Eigen::VectorXd gen(RandomEngine& rng) const {
-    std::normal_distribution<> dist(0, 1);
-    return m_mean + m_transform * Eigen::VectorXd{m_mean.size()}.unaryExpr(
-                                      [&](auto x) { return dist(rng); });
+    return m_mean +
+           m_transform * Eigen::VectorXd{m_mean.size()}.unaryExpr(
+                             [&](auto x) { return m_normalDist(rng); });
   }
 
   Eigen::VectorXd getMean() const { return m_mean; }
@@ -43,4 +43,6 @@ class NormalRandomVariable {
   Eigen::VectorXd m_mean;
   Eigen::MatrixXd m_cov;
   Eigen::MatrixXd m_transform;
+
+  mutable std::normal_distribution<> m_normalDist{0, 1};
 };

@@ -10,5 +10,5 @@ struct IMomentumGenerator {
 
   virtual Acts::SquareMatrix4 getMomentumCovariance() const = 0;
 
-  virtual Acts::Vector3 getMean() const = 0;
+  virtual Acts::Vector3 getMomentumMean() const = 0;
 };

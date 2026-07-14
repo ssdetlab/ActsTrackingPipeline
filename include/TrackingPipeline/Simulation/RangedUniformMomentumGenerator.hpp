@@ -18,7 +18,7 @@ class RangedUniformMomentumGenerator : public IMomentumGenerator {
 
   Acts::SquareMatrix4 getMomentumCovariance() const override;
 
-  Acts::Vector3 getMean() const override;
+  Acts::Vector3 getMomentumMean() const override;
 
  private:
   Config m_cfg;
@@ -26,4 +26,7 @@ class RangedUniformMomentumGenerator : public IMomentumGenerator {
   Acts::SquareMatrix4 m_cov;
 
   Acts::Vector3 m_mean;
+
+  mutable std::uniform_int_distribution<int> m_rangeSelect;
+  mutable std::uniform_real_distribution<double> m_uniform{0, 1};
 };

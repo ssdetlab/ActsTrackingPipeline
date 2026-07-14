@@ -17,8 +17,7 @@ UniformVertexGenerator::UniformVertexGenerator(const Config& cfg) : m_cfg(cfg) {
 }
 
 Acts::Vector3 UniformVertexGenerator::genVertex(RandomEngine& rng) const {
-  std::uniform_real_distribution<double> uniform;
-  Acts::Vector3 vertex{uniform(rng), uniform(rng), uniform(rng)};
+  Acts::Vector3 vertex{m_uniform(rng), m_uniform(rng), m_uniform(rng)};
   return m_cfg.mins + vertex.cwiseProduct(m_cfg.maxs - m_cfg.mins);
 }
 
@@ -26,6 +25,6 @@ Acts::SquareMatrix3 UniformVertexGenerator::getVertexCovariance() const {
   return m_cov;
 }
 
-Acts::Vector3 UniformVertexGenerator::getMean() const {
+Acts::Vector3 UniformVertexGenerator::getVertexMean() const {
   return m_mean;
 }

@@ -17,7 +17,7 @@ class StationaryVertexGenerator : public IVertexGenerator {
 
   Acts::SquareMatrix3 getVertexCovariance() const override;
 
-  Acts::Vector3 getMean() const override;
+  Acts::Vector3 getVertexMean() const override;
 
  private:
   Config m_cfg;

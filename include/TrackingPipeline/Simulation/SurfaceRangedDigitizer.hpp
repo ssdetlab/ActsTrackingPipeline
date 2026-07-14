@@ -1,24 +1,23 @@
 #pragma once
 
 #include "Acts/Definitions/Algebra.hpp"
-#include <Acts/Geometry/GeometryIdentifier.hpp>
 
+#include <cstddef>
 #include <unordered_map>
 #include <utility>
 
 #include "TrackingPipeline/Simulation/IDigitizer.hpp"
 
-/// @brief Class that digitizes hits based on the provided
-/// resolution assuming Gaussian smearing
+/// @brief surface-specific Gaussian-smearing digitizer
 class SurfaceRangedDigitizer : public IDigitizer {
  public:
   using Resolution = std::pair<double, double>;
 
   struct Config {
-    std::unordered_map<Acts::GeometryIdentifier, Resolution> resolutions;
+    std::unordered_map<std::size_t, Resolution> resolutions;
   };
 
-  SurfaceRangedDigitizer(const Config& config);
+  explicit SurfaceRangedDigitizer(const Config& config);
 
   std::pair<Acts::Vector2, Acts::SquareMatrix2> genCluster(
       RandomEngine& rng, const Acts::GeometryIdentifier& geoId,
@@ -27,5 +26,7 @@ class SurfaceRangedDigitizer : public IDigitizer {
  private:
   Config m_cfg;
 
-  std::unordered_map<Acts::GeometryIdentifier, Acts::SquareMatrix2> m_covs;
+  std::unordered_map<std::size_t, Acts::SquareMatrix2> m_covs;
+
+  mutable std::normal_distribution<double> m_normal{0., 1.};
 };

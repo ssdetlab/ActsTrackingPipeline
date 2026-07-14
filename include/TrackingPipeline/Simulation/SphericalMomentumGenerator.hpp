@@ -19,7 +19,7 @@ class SphericalMomentumGenerator : public IMomentumGenerator {
 
   Acts::SquareMatrix4 getMomentumCovariance() const override;
 
-  Acts::Vector3 getMean() const override;
+  Acts::Vector3 getMomentumMean() const override;
 
  private:
   Config m_cfg;

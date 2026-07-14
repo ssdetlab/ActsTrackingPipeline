@@ -14,6 +14,6 @@ Acts::SquareMatrix3 StationaryVertexGenerator::getVertexCovariance() const {
   return m_cov;
 }
 
-Acts::Vector3 StationaryVertexGenerator::getMean() const {
+Acts::Vector3 StationaryVertexGenerator::getVertexMean() const {
   return m_cfg.vertex;
 }

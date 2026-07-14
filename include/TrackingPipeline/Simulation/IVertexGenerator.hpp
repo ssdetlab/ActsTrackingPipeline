@@ -10,5 +10,5 @@ struct IVertexGenerator {
 
   virtual Acts::SquareMatrix3 getVertexCovariance() const = 0;
 
-  virtual Acts::Vector3 getMean() const = 0;
+  virtual Acts::Vector3 getVertexMean() const = 0;
 };
