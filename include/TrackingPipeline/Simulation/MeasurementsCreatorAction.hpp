@@ -59,19 +59,14 @@ struct MeasurementsCreatorAction {
             .value();
 
     // The truth info of local hit
-    Acts::BoundVector parameters = Acts::BoundVector::Zero();
-    parameters[Acts::eBoundLoc0] = localPos[Acts::eBoundLoc0];
-    parameters[Acts::eBoundLoc1] = localPos[Acts::eBoundLoc1];
-
-    const Acts::Vector3 &direction = stepper.direction(state.stepping);
-    parameters[Acts::eBoundPhi] = Acts::VectorHelpers::phi(direction);
-    parameters[Acts::eBoundTheta] = Acts::VectorHelpers::theta(direction);
-    parameters[Acts::eBoundQOverP] = state.stepping.pars[Acts::eFreeQOverP];
-    parameters[Acts::eBoundTime] = state.stepping.pars[Acts::eFreeTime];
+    Acts::BoundVector parameters =
+        std::get<0>(stepper.boundState(state.stepping, *surface).value())
+            .parameters();
 
     // Construct a particle object
     Acts::Vector4 globalFourPos = {globalPos.x(), globalPos.y(), globalPos.z(),
                                    parameters[Acts::eBoundTime]};
+    const Acts::Vector3 &direction = stepper.direction(state.stepping);
 
     const auto id = ActsFatras::Barcode().setVertexPrimary(1).setParticle(1);
     auto simParticle = ActsFatras::Particle(
@@ -118,13 +113,11 @@ struct MeasurementsCreatorAction {
       scattering(gen, material, simParticle);
       BBProcess(gen, material, simParticle);
       BHProcess(gen, material, simParticle);
+
       scatteredParameters[Acts::eBoundQOverP] =
           simParticle.charge() / simParticle.absoluteMomentum();
-
       scatteredParameters[Acts::eBoundPhi] = simParticle.phi();
-      scatteredParameters[Acts::eBoundTheta] =
-          (std::abs(std::sin(simParticle.theta())) > 1e-6) ? simParticle.theta()
-                                                           : 1e-6;
+      scatteredParameters[Acts::eBoundTheta] = simParticle.theta();
     }
 
     // Reset the state
