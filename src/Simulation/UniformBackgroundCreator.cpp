@@ -1,5 +1,7 @@
 #include "TrackingPipeline/Simulation/UniformBackgroundCreator.hpp"
 
+#include "TrackingPipeline/EventData/SimpleSourceLink.hpp"
+
 UniformBackgroundCreator::UniformBackgroundCreator(const Config& config)
     : m_cfg(config) {
   Acts::Vector2 stdDev = {m_cfg.resolution.first, m_cfg.resolution.second};
@@ -33,10 +35,11 @@ std::size_t UniformBackgroundCreator::gen(
           hitLoc,
           surf->localToGlobal(ctx.geoContext, hitLoc, Acts::Vector3::UnitX()),
           m_cov, surf->geometryId(), ctx.eventNumber, sourceLinks.size());
+      Acts::SourceLink sl(ssl);
       sourceLinksIndices.push_back(sourceLinks.size());
-      sourceLinks.push_back(Acts::SourceLink(ssl));
+      sourceLinks.push_back(sl);
 
-      SimCluster cluster{ssl, {}, false};
+      SimCluster cluster{sl, {}, false};
       simClusters.push_back(cluster);
     }
   }
