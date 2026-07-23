@@ -7,7 +7,7 @@
 
 /// @brief Interface for generating digitization smearing
 struct IDigitizer {
-  virtual std::pair<Acts::Vector2, Acts::SquareMatrix2> genCluster(
+  virtual std::pair<Acts::Vector2, Acts::SquareMatrix2> digitize(
       RandomEngine& rng, const Acts::GeometryIdentifier& geoId,
       const Acts::Vector2& pos) const = 0;
 };

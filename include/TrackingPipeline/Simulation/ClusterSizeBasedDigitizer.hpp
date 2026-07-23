@@ -19,7 +19,7 @@ class ClusterSizeBasedDigitizer : public IDigitizer {
 
   ClusterSizeBasedDigitizer(const Config& config);
 
-  std::pair<Acts::Vector2, Acts::SquareMatrix2> genCluster(
+  std::pair<Acts::Vector2, Acts::SquareMatrix2> digitize(
       RandomEngine& rng, const Acts::GeometryIdentifier& geoId,
       const Acts::Vector2& pos) const override;
 

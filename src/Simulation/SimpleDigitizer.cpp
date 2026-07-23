@@ -5,7 +5,7 @@ SimpleDigitizer::SimpleDigitizer(const Config& config) : m_cfg(config) {
   m_cov = stdDev.cwiseProduct(stdDev).asDiagonal();
 }
 
-std::pair<Acts::Vector2, Acts::SquareMatrix2> SimpleDigitizer::genCluster(
+std::pair<Acts::Vector2, Acts::SquareMatrix2> SimpleDigitizer::digitize(
     RandomEngine& rng, const Acts::GeometryIdentifier& /*geoId*/,
     const Acts::Vector2& pos) const {
   Acts::Vector2 stdDev = {m_cfg.resolution.first, m_cfg.resolution.second};

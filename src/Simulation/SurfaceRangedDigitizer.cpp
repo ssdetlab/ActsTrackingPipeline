@@ -11,7 +11,7 @@ SurfaceRangedDigitizer::SurfaceRangedDigitizer(const Config& config)
 }
 
 std::pair<Acts::Vector2, Acts::SquareMatrix2>
-SurfaceRangedDigitizer::genCluster(RandomEngine& rng,
+SurfaceRangedDigitizer::digitize(RandomEngine& rng,
                                    const Acts::GeometryIdentifier& geoId,
                                    const Acts::Vector2& pos) const {
   std::size_t id = geoId.sensitive();
