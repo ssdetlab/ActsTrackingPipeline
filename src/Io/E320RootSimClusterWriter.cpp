@@ -112,6 +112,16 @@ ProcessCode E320::E320RootSimClusterWriter::write(const AlgorithmContext& ctx) {
   for (const auto& cluster : inputClusters) {
     const auto& clusterSl = cluster.sourceLink;
 
+    // Common data
+    m_eventId = ctx.eventNumber;
+
+    m_isSignal = static_cast<int>(cluster.isSignal);
+
+    // TMatrixD data has to be persistent
+    TArrayD hitCovData(4);
+    TArrayD angleCovData(4);
+
+    // Process cluster data
     if (clusterSl.type() == typeid(SimpleSourceLink)) {
       const auto& clusterSsl = clusterSl.get<SimpleSourceLink>();
       const Acts::Vector3& clusterParsGlob = clusterSsl.parametersGlob();
@@ -123,11 +133,15 @@ ProcessCode E320::E320RootSimClusterWriter::write(const AlgorithmContext& ctx) {
       m_onSurfaceDirection = TVector3(0, 0, 0);
       m_geoId = clusterSsl.geometryId().sensitive();
 
-      TArrayD clusterCovData(4);
       for (std::size_t i = 0; i < 4; i++) {
-        clusterCovData[i] = clusterSsl.covariance()(i);
+        hitCovData[i] = clusterSsl.covariance()(i);
       }
-      m_clusterCov.Use(2, 2, clusterCovData.GetArray());
+      m_clusterCov.Use(2, 2, hitCovData.GetArray());
+
+      for (std::size_t i = 0; i < 4; i++) {
+        angleCovData[i] = 0;
+      }
+      m_angleCov.Use(2, 2, angleCovData.GetArray());
     } else if (clusterSl.type() == typeid(ExtendedSourceLink)) {
       const auto& clusterEsl = clusterSl.get<ExtendedSourceLink>();
       const Acts::ActsVector<ExtendedGlobalSize>& clusterParsGlob =
@@ -143,7 +157,6 @@ ProcessCode E320::E320RootSimClusterWriter::write(const AlgorithmContext& ctx) {
       m_geoId = clusterEsl.geometryId().sensitive();
 
       Acts::SquareMatrix2 hitCov = clusterEsl.covariance().topLeftCorner(2, 2);
-      TArrayD hitCovData(4);
       for (std::size_t i = 0; i < 4; i++) {
         hitCovData[i] = hitCov(i);
       }
@@ -151,17 +164,15 @@ ProcessCode E320::E320RootSimClusterWriter::write(const AlgorithmContext& ctx) {
 
       Acts::SquareMatrix2 angleCov =
           clusterEsl.covariance().bottomRightCorner(2, 2);
-      TArrayD angleCovData(4);
       for (std::size_t i = 0; i < 4; i++) {
         angleCovData[i] = angleCov(i);
       }
       m_angleCov.Use(2, 2, angleCovData.GetArray());
+    } else {
+      throw std::runtime_error("Unknown source link type ID");
     }
 
-    m_eventId = ctx.eventNumber;
-
-    m_isSignal = static_cast<int>(cluster.isSignal);
-
+    // Allocate containers
     std::size_t truthHitsSize = cluster.truthHits.size();
     m_trackHitsGlobal.clear();
     m_trackHitsGlobal.reserve(truthHitsSize);
@@ -199,6 +210,7 @@ ProcessCode E320::E320RootSimClusterWriter::write(const AlgorithmContext& ctx) {
     m_onSurfaceMomentumTruth.clear();
     m_onSurfaceMomentumTruth.reserve(truthHitsSize);
 
+    // Process sim hits
     for (const auto& hit : cluster.truthHits) {
       const Acts::BoundVector& hitTruthPars = hit.truthParameters;
       m_trackHitsLocal.push_back(TVector2(hitTruthPars[Acts::eBoundLoc0],
