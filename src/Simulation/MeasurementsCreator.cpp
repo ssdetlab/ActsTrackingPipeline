@@ -62,7 +62,6 @@ std::size_t MeasurementsCreator::gen(
 
   TrackParameters trackParameters(mPos4, phi, theta, m_cfg.charge / p, ipCov,
                                   m_cfg.hypothesis);
-  trackParameters.absoluteMomentum();
 
   MeasurementsCreatorAction::result_type resultParameters;
   try {
@@ -96,30 +95,22 @@ std::size_t MeasurementsCreator::gen(
       }
     }
 
-    // Digitize hits
+    // Observable data
+    Acts::SourceLink sl = m_cfg.sourceLinkCreators.at(geoId.sensitive())(
+        ctx.geoContext, ctx.eventNumber, sourceLinks.size(), boundPars, rng);
+    sourceLinksIndices.push_back(sourceLinks.size());
+    sourceLinks.push_back(sl);
+
+    // Truth information
     Acts::Vector2 trueLocalPos{boundVec[Acts::eBoundLoc0],
                                boundVec[Acts::eBoundLoc1]};
     Acts::Vector3 trueGlobalPos = boundPars.referenceSurface().localToGlobal(
         ctx.geoContext, trueLocalPos, Acts::Vector3::UnitX());
-
-    auto [digLocalPos, digCov] =
-        m_cfg.hitDigitizer->genCluster(rng, geoId, trueLocalPos);
-    Acts::Vector3 digGlobalPos = boundPars.referenceSurface().localToGlobal(
-        ctx.geoContext, digLocalPos, Acts::Vector3::UnitX());
-
-    // Truth information
     SimHit sh{
         boundVec, trueGlobalPos,        trackParameters,
         trackId,  static_cast<int>(id), static_cast<int>(ctx.eventNumber)};
-
-    // Observable information
-    SimpleSourceLink ssl(digLocalPos, digGlobalPos, digCov, geoId,
-                         ctx.eventNumber, sourceLinks.size());
-    sourceLinksIndices.push_back(sourceLinks.size());
-    sourceLinks.push_back(Acts::SourceLink(ssl));
-
     SimCluster cl{
-        ssl,
+        sl,
         {sh},
         m_cfg.isSignal,
     };
