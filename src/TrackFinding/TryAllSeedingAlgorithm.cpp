@@ -1,5 +1,6 @@
 #include "TrackingPipeline/TrackFinding/TryAllSeedingAlgorithm.hpp"
 
+#include "TrackingPipeline/EventData/SimpleSourceLink.hpp"
 #include "TrackingPipeline/Utilities/IdxTree.hpp"
 
 TryAllSeedingAlgorithm::TryAllSeedingAlgorithm(Config config,

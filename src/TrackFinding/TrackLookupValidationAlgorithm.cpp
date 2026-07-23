@@ -34,9 +34,9 @@ ProcessCode TrackLookupValidationAlgorithm::execute(
   std::vector<Acts::CurvilinearTrackParameters> ipParsEst;
   std::vector<Acts::CurvilinearTrackParameters> refLayerParsEst;
   for (const auto& cluster : clusters) {
-    ACTS_VERBOSE("Analysing cluster at GeoID "
-                 << cluster.sourceLink.geometryId());
-    if (!m_cfg.refLayers.contains(cluster.sourceLink.geometryId())) {
+    const auto& ssl = cluster.sourceLink.get<SimpleSourceLink>();
+    ACTS_VERBOSE("Analysing cluster at GeoID " << ssl.geometryId());
+    if (!m_cfg.refLayers.contains(ssl.geometryId())) {
       ACTS_VERBOSE("Cluster is not in the reference layer. Continue");
       continue;
     }
@@ -45,8 +45,7 @@ ProcessCode TrackLookupValidationAlgorithm::execute(
       continue;
     }
 
-    const Acts::Surface* layer =
-        m_cfg.refLayers.at(cluster.sourceLink.geometryId());
+    const Acts::Surface* layer = m_cfg.refLayers.at(ssl.geometryId());
     ACTS_VERBOSE("Cluster layer GeoID "
                  << layer->geometryId() << " at center ["
                  << layer->center(ctx.geoContext).transpose() << "]");
@@ -78,10 +77,8 @@ ProcessCode TrackLookupValidationAlgorithm::execute(
           hit.truthParameters[Acts::eBoundQOverP], std::nullopt,
           ip.particleHypothesis());
 
-      SimpleSourceLink hitSsl(
-          refLocalPos, refGlobalPos, cluster.sourceLink.covariance(),
-          cluster.sourceLink.geometryId(), cluster.sourceLink.eventId(),
-          cluster.sourceLink.index());
+      SimpleSourceLink hitSsl(refLocalPos, refGlobalPos, ssl.covariance(),
+                              ssl.geometryId(), ssl.eventId(), ssl.index());
       auto [ipEst, refEst] =
           m_cfg.estimator(ctx.geoContext, Acts::SourceLink{hitSsl});
 

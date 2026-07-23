@@ -2,6 +2,8 @@
 
 #include "Acts/Surfaces/RectangleBounds.hpp"
 
+#include "TrackingPipeline/EventData/SimpleSourceLink.hpp"
+
 TrackLookupEstimationAlgorithm::TrackLookupEstimationAlgorithm(
     const Config& config, Acts::Logging::Level level)
     : IAlgorithm("TrackLookupEstimationAlgorithm", level), m_cfg(config) {
@@ -55,7 +57,7 @@ ProcessCode TrackLookupEstimationAlgorithm::execute(
   // Iterate over the reference layer hits and
   // accumulate the track parameters
   for (const auto& cluster : clusters) {
-    const auto& geoId = cluster.sourceLink.geometryId();
+    const auto& geoId = cluster.sourceLink.get<SimpleSourceLink>().geometryId();
     if (!m_cfg.refLayers.contains(geoId)) {
       continue;
     }
