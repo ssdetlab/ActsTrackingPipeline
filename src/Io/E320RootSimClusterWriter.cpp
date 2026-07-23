@@ -44,6 +44,9 @@ E320::E320RootSimClusterWriter::E320RootSimClusterWriter(
   m_tree->Branch("onSurfaceDirection", &m_onSurfaceDirection, bufSize,
                  splitLvl);
 
+  // Track angular covariance in the surface frame
+  m_tree->Branch("angleCov", &m_angleCov, bufSize, splitLvl);
+
   // Surface geometry ID
   m_tree->Branch("geoId", &m_geoId, bufSize, splitLvl);
 
