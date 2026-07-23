@@ -8,7 +8,7 @@
 class IdealDigitizer : public IDigitizer {
  public:
   /// @brief Constructor
-  IdealDigitizer() = default;
+  IdealDigitizer();
 
   /// @brief digitize measurement
   ///
