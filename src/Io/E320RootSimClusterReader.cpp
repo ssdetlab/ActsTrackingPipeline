@@ -5,9 +5,13 @@
 #include <Acts/Definitions/PdgParticle.hpp>
 #include <Acts/EventData/TrackParameters.hpp>
 #include <Acts/Utilities/Logger.hpp>
+#include <Acts/Utilities/VectorHelpers.hpp>
 
+#include <chrono>
 #include <cmath>
+#include <complex>
 #include <cstddef>
+#include <random>
 #include <stdexcept>
 #include <vector>
 
@@ -45,58 +49,17 @@ E320RootSimClusterReader::E320RootSimClusterReader(const Config& config,
     m_tree = dynamic_cast<TTree*>(m_chainOwner);
   }
 
-  //------------------------------------------------------------------
-  // Tree branches
-  int bufSize = 32000;
-  int splitLvl = 0;
-
-  // Cluster parameters
-  m_tree->SetBranchAddress("geoCenterGlobal", &m_geoCenterGlobal);
-  m_tree->SetBranchAddress("geoCenterLocal", &m_geoCenterLocal);
-  m_tree->SetBranchAddress("clusterCov", &m_clusterCov);
-  m_tree->SetBranchAddress("geoId", &m_geoId);
-
-  // Measurement hits
-  m_tree->SetBranchAddress("trackHitsGlobal", &m_trackHitsGlobal);
-  m_tree->SetBranchAddress("trackHitsLocal", &m_trackHitsLocal);
+  // Set event Id branch
   m_tree->SetBranchAddress("eventId", &m_eventId);
-  m_tree->SetBranchAddress("charge", &m_charge);
-  m_tree->SetBranchAddress("pdgId", &m_pdgId);
-
-  // Bound origin parameters
-  m_tree->SetBranchAddress("boundTrackParameters", &m_boundTrackParameters);
-  m_tree->SetBranchAddress("boundTrackCov", &m_boundTrackCov);
-
-  // Origin momentum
-  m_tree->SetBranchAddress("originMomentum", &m_originMomentum);
-
-  // Origin vertex
-  m_tree->SetBranchAddress("vertex", &m_vertex);
-
-  // Momentum at clusters
-  m_tree->SetBranchAddress("onSurfaceMomentum", &m_onSurfaceMomentum);
-
-  // Track ID
-  m_tree->SetBranchAddress("trackId", &m_trackId);
-  m_tree->SetBranchAddress("parentTrackId", &m_parentTrackId);
-  m_tree->SetBranchAddress("runId", &m_runId);
-
-  // Misc
-  m_tree->SetBranchAddress("isSignal", &m_isSignal);
-
-  // Disable all branches and only enable event-id for a first scan of the
-  // file
-  m_tree->SetBranchStatus("*", false);
   if (m_tree->GetBranch("eventId") == nullptr) {
     throw std::invalid_argument("Missing eventId branch");
   }
-  m_tree->SetBranchStatus("eventId", true);
   auto nEntries = static_cast<std::size_t>(m_tree->GetEntries());
 
-  // Go through all entries and store the position of the events
+  // Add the first entry
   m_tree->GetEntry(0);
   m_eventMap.emplace_back(m_eventId, 0, 0);
-  for (std::size_t i = 0; i < nEntries; ++i) {
+  for (std::size_t i = 1; i < nEntries; ++i) {
     m_tree->GetEntry(i);
     if (m_eventId != std::get<0>(m_eventMap.back())) {
       std::get<2>(m_eventMap.back()) = i;
@@ -112,24 +75,75 @@ E320RootSimClusterReader::E320RootSimClusterReader(const Config& config,
     return std::get<0>(a) < std::get<0>(b);
   });
 
-  // Re-Enable all branches
-  m_tree->SetBranchStatus("*", true);
   ACTS_DEBUG("Event range: " << availableEvents().first << " - "
                              << availableEvents().second);
 
-  // Initialize BPM geometry ids
+  //------------------------------------------------------------------
+  // Set the rest of the branches
+
+  // Cluster hit in the surface frame
+  m_tree->SetBranchAddress("geoCenterLocal", &m_geoCenterLocal);
+
+  // Cluster hit in the global frame
+  m_tree->SetBranchAddress("geoCenterGlobal", &m_geoCenterGlobal);
+
+  // Cluster hit covariance in the surface frame
+  m_tree->SetBranchAddress("clusterCov", &m_clusterCov);
+
+  // Momentum direction measurement in the track frame
+  m_tree->SetBranchAddress("onSurfaceDirection", &m_onSurfaceDirection);
+
+  // Track angular covariance in the surface frame
+  m_tree->SetBranchAddress("angleCov", &m_angleCov);
+
+  // Surface geometry ID
+  m_tree->SetBranchAddress("geoId", &m_geoId);
+
+  // Signal/background flag
+  m_tree->SetBranchAddress("isSignal", &m_isSignal);
+
+  // True track hits within the clusters
+  m_tree->SetBranchAddress("trackHitsGlobal", &m_trackHitsGlobal);
+  m_tree->SetBranchAddress("trackHitsLocal", &m_trackHitsLocal);
+
+  // Track IDs
+  m_tree->SetBranchAddress("trackId", &m_trackId);
+  m_tree->SetBranchAddress("parentTrackId", &m_parentTrackId);
+  m_tree->SetBranchAddress("runId", &m_runId);
+
+  // Bound origin parameters
+  m_tree->SetBranchAddress("boundTrackParameters", &m_boundTrackParameters);
+  m_tree->SetBranchAddress("boundTrackCov", &m_boundTrackCov);
+
+  // Origin momentum
+  m_tree->SetBranchAddress("originMomentum", &m_originMomentum);
+
+  // Origin vertex
+  m_tree->SetBranchAddress("vertex", &m_vertex);
+
+  // Momentum at clusters
+  m_tree->SetBranchAddress("onSurfaceMomentumTruth", &m_onSurfaceMomentumTruth);
+
+  // Charges of the tracks' particles
+  m_tree->SetBranchAddress("charge", &m_charge);
+
+  // PDG IDs of the tracks' particles
+  m_tree->SetBranchAddress("pdgId", &m_pdgId);
+
+  // Initialize constraint surfaces geometry ids
   const auto& goInst = *GeometryOptions::instance();
-  m_bpmGeoIds.insert(goInst.bpm0Parameters.geoId);
-  m_bpmGeoIds.insert(goInst.bpm1Parameters.geoId);
-  m_bpmGeoIds.insert(goInst.bpm2Parameters.geoId);
-  m_bpmGeoIds.insert(goInst.bpm3Parameters.geoId);
-  m_bpmGeoIds.insert(goInst.ipSurfaceParameters.geoId);
+  m_constraintSurfacesGeoIds.insert(goInst.bpm0Parameters.geoId);
+  m_constraintSurfacesGeoIds.insert(goInst.bpm1Parameters.geoId);
+  m_constraintSurfacesGeoIds.insert(goInst.bpm2Parameters.geoId);
+  m_constraintSurfacesGeoIds.insert(goInst.bpm3Parameters.geoId);
+  m_constraintSurfacesGeoIds.insert(goInst.ipSurfaceParameters.geoId);
 
   // Initialize the data handles
   m_outputSourceLinks.initialize(m_cfg.outputSourceLinks);
   m_outputSimClusters.initialize(m_cfg.outputSimClusters);
   m_outputDetSourceLinkIndices.initialize(m_cfg.outputDetSourceLinkIndices);
-  m_outputBpmSourceLinkIndices.initialize(m_cfg.outputBpmSourceLinkIndices);
+  m_outputConstraintSourceLinkIndices.initialize(
+      m_cfg.outputConstraintSourceLinkIndices);
 }
 
 std::pair<std::size_t, std::size_t> E320RootSimClusterReader::availableEvents()
@@ -155,7 +169,7 @@ ProcessCode E320RootSimClusterReader::read(const AlgorithmContext& ctx) {
     m_outputSourceLinks(ctx, {});
     m_outputSimClusters(ctx, {});
     m_outputDetSourceLinkIndices(ctx, {});
-    m_outputBpmSourceLinkIndices(ctx, {});
+    m_outputConstraintSourceLinkIndices(ctx, {});
 
     // Return success flag
     return ProcessCode::SUCCESS;
@@ -171,7 +185,7 @@ ProcessCode E320RootSimClusterReader::read(const AlgorithmContext& ctx) {
   // Create the measurements
   std::vector<Acts::SourceLink> sourceLinks{};
   std::vector<std::size_t> detSourceLinkIndices{};
-  std::vector<std::size_t> bpmSourceLinkIndices{};
+  std::vector<std::size_t> constraintSourceLinkIndices{};
   SimClusters simClusters{};
   std::size_t eventId = std::get<0>(*it);
   for (auto entry = std::get<1>(*it); entry < std::get<2>(*it); entry++) {
@@ -184,30 +198,62 @@ ProcessCode E320RootSimClusterReader::read(const AlgorithmContext& ctx) {
     Acts::GeometryIdentifier geoId;
     geoId.setSensitive(m_geoId);
 
-    Acts::Vector2 geoCenterLocal(m_geoCenterLocal->X(), m_geoCenterLocal->Y());
+    if (m_constraintSurfacesGeoIds.contains(m_geoId)) {
+      TVector3 onSurfaceDirection = *m_onSurfaceDirection;
+      if (m_cfg.backwards) {
+        onSurfaceDirection *= -1;
+      }
 
-    Acts::Vector3 geoCenterGlobal;
-    if (m_cfg.surfaceLocalToGlobal) {
-      geoCenterGlobal = m_cfg.surfaceMap.at(geoId)->localToGlobal(
-          ctx.geoContext, geoCenterLocal, Acts::Vector3::UnitX());
+      Acts::ActsVector<ExtendedLocalSize> measLoc(
+          m_geoCenterLocal->X(), m_geoCenterLocal->Y(),
+          onSurfaceDirection.Phi(), onSurfaceDirection.Theta());
+
+      Acts::ActsVector<ExtendedGlobalSize> measGlob(
+          m_geoCenterGlobal->X(), m_geoCenterGlobal->Y(),
+          m_geoCenterGlobal->Z(), onSurfaceDirection.X(),
+          onSurfaceDirection.Y(), onSurfaceDirection.Z());
+
+      Acts::SquareMatrix2 hitCov;
+      hitCov << (*m_clusterCov)(0, 0), (*m_clusterCov)(0, 1),
+          (*m_clusterCov)(1, 0), (*m_clusterCov)(1, 1);
+
+      Acts::SquareMatrix2 angleCov;
+      angleCov << (*m_angleCov)(0, 0), (*m_angleCov)(0, 1), (*m_angleCov)(1, 0),
+          (*m_angleCov)(1, 1);
+
+      Acts::ActsSquareMatrix<ExtendedLocalSize> measCov =
+          Acts::ActsSquareMatrix<ExtendedLocalSize>::Zero();
+      measCov.topLeftCorner(2, 2) = hitCov;
+      measCov.bottomRightCorner(2, 2) = angleCov;
+
+      ExtendedSourceLink esl(measLoc, measGlob, measCov, geoId, eventId,
+                             sourceLinks.size(), m_cfg.backwards);
+      constraintSourceLinkIndices.push_back(sourceLinks.size());
+      sourceLinks.push_back(Acts::SourceLink(esl));
     } else {
-      geoCenterGlobal =
-          Acts::Vector3(m_geoCenterGlobal->X(), m_geoCenterGlobal->Y(),
-                        m_geoCenterGlobal->Z());
-    }
+      Acts::Vector2 geoCenterLocal(m_geoCenterLocal->X(),
+                                   m_geoCenterLocal->Y());
 
-    Acts::SquareMatrix2 clusterCov;
-    clusterCov << (*m_clusterCov)(0, 0), (*m_clusterCov)(0, 1),
-        (*m_clusterCov)(1, 0), (*m_clusterCov)(1, 1);
+      Acts::Vector3 geoCenterGlobal;
+      if (m_cfg.surfaceLocalToGlobal) {
+        geoCenterGlobal = m_cfg.surfaceMap.at(geoId)->localToGlobal(
+            ctx.geoContext, geoCenterLocal, Acts::Vector3::UnitX());
+      } else {
+        geoCenterGlobal =
+            Acts::Vector3(m_geoCenterGlobal->X(), m_geoCenterGlobal->Y(),
+                          m_geoCenterGlobal->Z());
+      }
 
-    SimpleSourceLink obsSourceLink(geoCenterLocal, geoCenterGlobal, clusterCov,
-                                   geoId, eventId, sourceLinks.size());
-    if (m_bpmGeoIds.contains(geoId.sensitive())) {
-      bpmSourceLinkIndices.push_back(sourceLinks.size());
-    } else {
+      Acts::SquareMatrix2 clusterCov;
+      clusterCov << (*m_clusterCov)(0, 0), (*m_clusterCov)(0, 1),
+          (*m_clusterCov)(1, 0), (*m_clusterCov)(1, 1);
+
+      SimpleSourceLink ssl(geoCenterLocal, geoCenterGlobal, clusterCov, geoId,
+                           eventId, sourceLinks.size());
+
       detSourceLinkIndices.push_back(sourceLinks.size());
+      sourceLinks.push_back(Acts::SourceLink(ssl));
     }
-    sourceLinks.push_back(Acts::SourceLink(obsSourceLink));
 
     SimHits hits;
     hits.reserve(m_trackHitsLocal->size());
@@ -234,10 +280,11 @@ ProcessCode E320RootSimClusterReader::read(const AlgorithmContext& ctx) {
       Acts::BoundVector truthParameters;
       truthParameters[Acts::eBoundLoc0] = m_trackHitsLocal->at(i).X();
       truthParameters[Acts::eBoundLoc1] = m_trackHitsLocal->at(i).Y();
-      truthParameters[Acts::eBoundPhi] = m_onSurfaceMomentum->at(i).Phi();
-      truthParameters[Acts::eBoundTheta] = m_onSurfaceMomentum->at(i).Theta();
+      truthParameters[Acts::eBoundPhi] = m_onSurfaceMomentumTruth->at(i).Phi();
+      truthParameters[Acts::eBoundTheta] =
+          m_onSurfaceMomentumTruth->at(i).Theta();
       truthParameters[Acts::eBoundQOverP] =
-          m_charge->at(i) / m_onSurfaceMomentum->at(i).P();
+          m_charge->at(i) / m_onSurfaceMomentumTruth->at(i).P();
 
       Acts::Vector3 trueTrackHitGlobal(m_trackHitsGlobal->at(i).X(),
                                        m_trackHitsGlobal->at(i).Y(),
@@ -248,7 +295,7 @@ ProcessCode E320RootSimClusterReader::read(const AlgorithmContext& ctx) {
                       m_parentTrackId->at(i),     m_runId->at(i)};
       hits.push_back(trackHit);
     }
-    SimCluster cluster{obsSourceLink, hits, static_cast<bool>(m_isSignal)};
+    SimCluster cluster{sourceLinks.back(), hits, static_cast<bool>(m_isSignal)};
     simClusters.push_back(cluster);
   }
 
@@ -256,13 +303,14 @@ ProcessCode E320RootSimClusterReader::read(const AlgorithmContext& ctx) {
   ACTS_DEBUG("Read " << simClusters.size() << " clusters");
   ACTS_DEBUG("Read " << detSourceLinkIndices.size()
                      << " detector source link indices");
-  ACTS_DEBUG("Read " << bpmSourceLinkIndices.size()
+  ACTS_DEBUG("Read " << constraintSourceLinkIndices.size()
                      << " BPM source link indices");
 
   m_outputSourceLinks(ctx, std::move(sourceLinks));
   m_outputSimClusters(ctx, std::move(simClusters));
   m_outputDetSourceLinkIndices(ctx, std::move(detSourceLinkIndices));
-  m_outputBpmSourceLinkIndices(ctx, std::move(bpmSourceLinkIndices));
+  m_outputConstraintSourceLinkIndices(ctx,
+                                      std::move(constraintSourceLinkIndices));
 
   // Return success flag
   return ProcessCode::SUCCESS;
