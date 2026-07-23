@@ -130,9 +130,9 @@ ProcessCode E320::E320RootSimClusterWriter::write(const AlgorithmContext& ctx) {
       m_clusterCov.Use(2, 2, clusterCovData.GetArray());
     } else if (clusterSl.type() == typeid(ExtendedSourceLink)) {
       const auto& clusterEsl = clusterSl.get<ExtendedSourceLink>();
-      const Acts::ActsVector<ExntendedGlobalSize>& clusterParsGlob =
+      const Acts::ActsVector<ExtendedGlobalSize>& clusterParsGlob =
           clusterEsl.parametersGlob();
-      const Acts::ActsVector<ExntendedLocalSize>& clusterParsLoc =
+      const Acts::ActsVector<ExtendedLocalSize>& clusterParsLoc =
           clusterEsl.parametersLoc();
 
       m_geoCenterGlobal =

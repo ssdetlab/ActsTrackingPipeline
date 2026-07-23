@@ -29,9 +29,9 @@ using TrackID = std::tuple<int, int, int>;
 class E320RootSimClusterWriter : public IWriter {
  public:
   /// Exntended sizes shorthands
-  static constexpr const std::size_t ExntendedLocalSize =
+  static constexpr const std::size_t ExtendedLocalSize =
       ExtendedSourceLink::localSubspaceSize;
-  static constexpr const std::size_t ExntendedGlobalSize =
+  static constexpr const std::size_t ExtendedGlobalSize =
       ExtendedSourceLink::globalSubspaceSize;
 
   /// @brief The nested configuration struct
