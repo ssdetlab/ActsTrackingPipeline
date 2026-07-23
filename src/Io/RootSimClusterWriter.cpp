@@ -89,7 +89,7 @@ ProcessCode RootSimClusterWriter::write(const AlgorithmContext& ctx) {
   std::lock_guard<std::mutex> lock(m_mutex);
 
   for (const auto& cluster : inputClusters) {
-    const auto& clusterSsl = cluster.sourceLink;
+    const auto& clusterSsl = cluster.sourceLink.get<SimpleSourceLink>();
 
     const Acts::Vector3& clusterParsGlob = clusterSsl.parametersGlob();
     const Acts::Vector2& clusterParsLoc = clusterSsl.parametersLoc();

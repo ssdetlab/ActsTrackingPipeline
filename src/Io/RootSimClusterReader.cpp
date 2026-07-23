@@ -186,8 +186,9 @@ ProcessCode RootSimClusterReader::read(const AlgorithmContext& ctx) {
 
     SimpleSourceLink obsSourceLink(geoCenterLocal, geoCenterGlobal, clusterCov,
                                    geoId, eventId, sourceLinks.size());
+    Acts::SourceLink sl(obsSourceLink);
     sourceLinkIndices.push_back(sourceLinks.size());
-    sourceLinks.push_back(Acts::SourceLink(obsSourceLink));
+    sourceLinks.push_back(sl);
 
     SimHits hits;
     hits.reserve(m_trackHitsLocal->size());
@@ -228,7 +229,7 @@ ProcessCode RootSimClusterReader::read(const AlgorithmContext& ctx) {
                       m_parentTrackId->at(i),     m_runId->at(i)};
       hits.push_back(trackHit);
     }
-    SimCluster cluster{obsSourceLink, hits, static_cast<bool>(m_isSignal)};
+    SimCluster cluster{sl, hits, static_cast<bool>(m_isSignal)};
     simClusters.push_back(cluster);
   }
 

@@ -92,7 +92,7 @@ ProcessCode RootSimSeedWriter::write(const AlgorithmContext& ctx) {
 
     for (const auto& hit : cluster.truthHits) {
       trackIds[{hit.trackId, hit.parentTrackId, hit.runId}].insert(
-          cluster.sourceLink.geometryId());
+          cluster.sourceLink.get<SimpleSourceLink>().geometryId());
     }
   }
 

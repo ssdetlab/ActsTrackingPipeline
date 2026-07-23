@@ -12,8 +12,6 @@
 #include <memory>
 #include <vector>
 
-#include "TrackingPipeline/EventData/SimpleSourceLink.hpp"
-
 ///-----------------------------------------------
 /// Sim data containers
 
@@ -38,7 +36,7 @@ using SimHits = std::vector<SimHit>;
 /// @brief Cluster with truth information
 struct SimCluster {
   /// Observable parameters
-  SimpleSourceLink sourceLink;
+  Acts::SourceLink sourceLink;
   /// Truth parameters
   SimHits truthHits;
   /// Is Signal flag

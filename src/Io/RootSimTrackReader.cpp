@@ -40,8 +40,42 @@ RootSimTrackReader::RootSimTrackReader(const Config& config,
     m_tree = dynamic_cast<TTree*>(m_chainOwner);
   }
 
+  // Set event Id branch
+  m_tree->SetBranchAddress("eventId", &m_eventId);
+  if (m_tree->GetBranch("eventId") == nullptr) {
+    throw std::invalid_argument("Missing eventId SetbranchAddress");
+  }
+  auto nEntries = static_cast<std::size_t>(m_tree->GetEntries());
+
+  if (!m_cfg.mergeIntoOneEvent) {
+    // Add the first entry
+    m_tree->GetEntry(0);
+    m_eventMap.emplace_back(m_eventId, 0, 0);
+
+    for (std::size_t i = 0; i < nEntries; ++i) {
+      m_tree->GetEntry(i);
+      if (m_eventId != std::get<0>(m_eventMap.back())) {
+        std::get<2>(m_eventMap.back()) = i;
+        m_eventMap.emplace_back(m_eventId, i, i);
+      }
+      if (i == nEntries - 1) {
+        std::get<2>(m_eventMap.back()) = nEntries;
+      }
+    }
+  } else {
+    m_eventMap = {{0, 0, nEntries}};
+  }
+
+  // Sort by event id
+  std::ranges::sort(m_eventMap, [](const auto& a, const auto& b) {
+    return std::get<0>(a) < std::get<0>(b);
+  });
+
+  ACTS_DEBUG("Event range: " << availableEvents().first << " - "
+                             << availableEvents().second);
+
   //------------------------------------------------------------------
-  // Tree branches
+  // Set the rest of the branches
 
   // True hits
   m_tree->SetBranchAddress("trueTrackHitsGlobal", &m_trueTrackHitsGlobal);
@@ -140,9 +174,6 @@ RootSimTrackReader::RootSimTrackReader(const Config& config,
   m_tree->SetBranchAddress("parentTrackId", &m_parentTrackId);
   m_tree->SetBranchAddress("runId", &m_runId);
 
-  // Event ID
-  m_tree->SetBranchAddress("eventId", &m_eventId);
-
   // True track size
   m_tree->SetBranchAddress("trueTrackSize", &m_trueTrackSize);
   m_tree->SetBranchAddress("capturedTrackSize", &m_capturedTrackSize);
@@ -152,40 +183,6 @@ RootSimTrackReader::RootSimTrackReader(const Config& config,
 
   // Charge
   m_tree->SetBranchAddress("charge", &m_charge);
-
-  // Disable all branches and only enable event-id for a first scan of the
-  // file
-  m_tree->SetBranchStatus("*", false);
-  if (m_tree->GetBranch("eventId") == nullptr) {
-    throw std::invalid_argument("Missing eventId SetbranchAddress");
-  }
-  m_tree->SetBranchStatus("eventId", true);
-  auto nEntries = static_cast<std::size_t>(m_tree->GetEntries());
-
-  // Go through all entries and store the position of the events
-  m_tree->GetEntry(0);
-  m_eventMap.emplace_back(m_eventId, 0, 0);
-  if (!m_cfg.mergeIntoOneEvent) {
-    for (std::size_t i = 0; i < nEntries; ++i) {
-      m_tree->GetEntry(i);
-      if (m_eventId != std::get<0>(m_eventMap.back())) {
-        std::get<2>(m_eventMap.back()) = i;
-        m_eventMap.emplace_back(m_eventId, i, i);
-      }
-    }
-  }
-
-  // Sort by event id
-  std::ranges::sort(m_eventMap, [](const auto& a, const auto& b) {
-    return std::get<0>(a) < std::get<0>(b);
-  });
-
-  std::get<2>(m_eventMap.back()) = nEntries;
-
-  // Re-Enable all branches
-  m_tree->SetBranchStatus("*", true);
-  ACTS_DEBUG("Event range: " << availableEvents().first << " - "
-                             << availableEvents().second);
 
   // Initialize the data handles
   m_outputSourceLinks.initialize(m_cfg.outputSourceLinks);
@@ -310,8 +307,9 @@ ProcessCode RootSimTrackReader::read(const AlgorithmContext& ctx) {
       geoId.setSensitive(m_geometryIds->at(i));
       SimpleSourceLink obsSourceLink(trackHitLocal, trackHitGlobal, trackHitCov,
                                      geoId, eventId, sourceLinks.size());
+      Acts::SourceLink sl(obsSourceLink);
       trackSourceLinkIndices.push_back(sourceLinks.size());
-      sourceLinks.push_back(Acts::SourceLink(obsSourceLink));
+      sourceLinks.push_back(sl);
 
       Acts::BoundVector truthParameters;
       truthParameters[Acts::eBoundLoc0] = m_trueTrackHitsLocal->at(i).X();
@@ -331,8 +329,7 @@ ProcessCode RootSimTrackReader::read(const AlgorithmContext& ctx) {
                  static_cast<int>(m_stateTrackId->at(i)),
                  static_cast<int>(m_stateParentTrackId->at(i)),
                  static_cast<int>(m_stateRunId->at(i))};
-      SimCluster cluster{
-          obsSourceLink, {hit}, static_cast<bool>(m_isSignal->at(i))};
+      SimCluster cluster{sl, {hit}, static_cast<bool>(m_isSignal->at(i))};
       simClusters.push_back(cluster);
     }
 
