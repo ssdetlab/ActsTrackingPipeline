@@ -21,23 +21,21 @@ ClusterSizeBasedDigitizer::ClusterSizeBasedDigitizer(const Config& config)
       m_clSizeProbs.push_back(0);
     }
   }
+
+  m_discrete = std::discrete_distribution<std::size_t>(m_clSizeProbs.begin(),
+                                                       m_clSizeProbs.end());
 }
 
 std::pair<Acts::Vector2, Acts::SquareMatrix2>
 ClusterSizeBasedDigitizer::digitize(RandomEngine& rng,
-                                      const Acts::GeometryIdentifier& /*geoId*/,
-                                      const Acts::Vector2& pos) const {
-  std::discrete_distribution<std::size_t> discrete(m_clSizeProbs.begin(),
-                                                   m_clSizeProbs.end());
-
-  std::size_t clSize = discrete(rng);
-
-  std::normal_distribution<double> normal(0., 1.);
+                                    const Acts::GeometryIdentifier& /*geoId*/,
+                                    const Acts::Vector2& pos) const {
+  std::size_t clSize = m_discrete(rng);
 
   double resolutionX = std::get<1>(m_cfg.clSizeProbsStdDevs.at(clSize));
   double resolutionY = std::get<2>(m_cfg.clSizeProbsStdDevs.at(clSize));
   Acts::Vector2 stdDev = {resolutionX, resolutionY};
   Acts::Vector2 digLocal =
-      pos + stdDev.cwiseProduct(Acts::Vector2(normal(rng), normal(rng)));
+      pos + stdDev.cwiseProduct(Acts::Vector2(m_normal(rng), m_normal(rng)));
   return {digLocal, stdDev.cwiseProduct(stdDev).asDiagonal()};
 }
