@@ -5,6 +5,7 @@
 #include <stdexcept>
 #include <vector>
 
+#include "TrackingPipeline/EventData/SimpleSourceLink.hpp"
 #include "TrackingPipeline/Utilities/ConcatVectorView.hpp"
 
 namespace {
@@ -17,9 +18,13 @@ struct AlignmentFunctionImpl : public AlignmentAlgorithm::AlignmentFunction {
   AlignmentResult operator()(
       const AlignmentAlgorithm::SourceLinkContainer& sourceLinks,
       const AlignmentAlgorithm::TrackParametersContainer& initialParameters,
+      const AlignmentAlgorithm::MagneticFieldParametersContainer&
+          magFieldParameters,
       const ActsAlignment::AlignmentOptions<KFFitterOptions>& options)
       override {
-    return align.align(sourceLinks, initialParameters, options).value();
+    return align
+        .align(sourceLinks, initialParameters, magFieldParameters, options)
+        .value();
   }
 };
 
@@ -64,6 +69,7 @@ AlignmentAlgorithm::AlignmentAlgorithm(const Config& cfg,
   m_inputSourceLinks.initialize(m_cfg.inputSourceLinks);
   m_inputTrackCandidates.initialize(m_cfg.inputTrackCandidates);
   m_inputTrackParameters.initialize(m_cfg.inputTrackParameters);
+  m_inputMagneticFieldParameters.initialize(m_cfg.inputMagneticFieldParameters);
 
   m_outputAlignmentParameters.initialize(m_cfg.outputAlignmentParameters);
   m_outputTrackParameters.initialize(m_cfg.outputTrackParameters);
@@ -77,6 +83,8 @@ ProcessCode AlignmentAlgorithm::execute(const AlgorithmContext& ctx) const {
 
   // NOTE: this copy is intentional -- stores updated track parameters
   auto inputTrackParameters = m_inputTrackParameters(ctx);
+
+  const auto& inputMagFieldParameters = m_inputMagneticFieldParameters(ctx);
 
   if (inputTrackCandidates.empty()) {
     m_outputAlignmentParameters(ctx, {});
@@ -146,7 +154,8 @@ ProcessCode AlignmentAlgorithm::execute(const AlgorithmContext& ctx) const {
 
     ACTS_INFO("Staring alignment iteration " << i);
     auto result = (*m_cfg.alignmentFunction)(
-        sourceLinkContainer, trackParametersContainer, alignOptions);
+        sourceLinkContainer, trackParametersContainer, inputMagFieldParameters,
+        alignOptions);
     ACTS_INFO("Alignment iteration " << i
                                      << ", deltaChi2 = " << result.deltaChi2);
 
