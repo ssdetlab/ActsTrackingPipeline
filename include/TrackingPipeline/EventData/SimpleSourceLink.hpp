@@ -14,13 +14,15 @@
 #include <array>
 #include <cassert>
 
-/// @brief A minimal source link implementation
-/// that is easy to convert to the Measurement
+/// @brief Simple source link holding the particle hits
+/// in the track coordinate system
 class SimpleSourceLink {
  public:
-  static constexpr std::size_t localSubspaceSize = 2;
-  static constexpr std::size_t globalSubspaceSize = 3;
+  /// Subspace sizes
+  static constexpr const std::size_t localSubspaceSize = 2;
+  static constexpr const std::size_t globalSubspaceSize = 3;
 
+  /// @brief Surface accessor struct
   struct SurfaceAccessor {
     const Acts::Experimental::Detector* detector = nullptr;
 
@@ -30,7 +32,14 @@ class SimpleSourceLink {
     }
   };
 
-  /// Construct a 2d source link
+  /// @brief Constructor
+  ///
+  /// @param paramsLoc particle hit in the track coordinate system
+  /// @param paramsGlob particle hit in the global frame
+  /// @param cov covariance of the measurement in the track coordinate system
+  /// @param gid geometry ID of the measurement surface
+  /// @param eid event ID
+  /// @param idx user-assigned index for fast-sim fast access
   SimpleSourceLink(const Acts::ActsVector<localSubspaceSize>& paramsLoc,
                    const Acts::ActsVector<globalSubspaceSize>& paramsGlob,
                    const Acts::ActsSquareMatrix<localSubspaceSize>& cov,
@@ -42,13 +51,14 @@ class SimpleSourceLink {
         m_parametersGlob(paramsGlob),
         m_covariance(cov) {}
 
-  /// Default-construct an invalid source link to satisfy SourceLinkConcept.
+  /// Delete default-construct to satisfy SourceLinkConcept.
   SimpleSourceLink() = delete;
   SimpleSourceLink(const SimpleSourceLink&) = default;
   SimpleSourceLink(SimpleSourceLink&&) = default;
   SimpleSourceLink& operator=(const SimpleSourceLink&) = default;
   SimpleSourceLink& operator=(SimpleSourceLink&&) = default;
 
+  /// @brief Equality operator
   bool operator==(const SimpleSourceLink& rhs) const {
     return (m_geometryId == rhs.geometryId()) && (m_eventId == rhs.eventId()) &&
            (m_indices == rhs.indices()) &&
@@ -56,34 +66,60 @@ class SimpleSourceLink {
            (m_covariance == rhs.covariance());
   }
 
+  /// @brief Inequality operator
   bool operator!=(const SimpleSourceLink& rhs) const { return !(*this == rhs); }
 
+  /// @brief Get source link measurement indices
+  ///
+  /// @return array with indices indicating the measurement axes
   std::array<Acts::BoundIndices, localSubspaceSize> indices() const {
     return m_indices;
   }
 
+  /// @brief Get user-assigned index
+  ///
+  /// @return user-assigned index
   int index() const { return m_index; }
 
+  /// @brief Get event ID
+  ///
+  /// @return event ID
   int eventId() const { return m_eventId; }
 
+  /// @brief Get geometry ID
+  ///
+  /// @return geometry ID
   Acts::GeometryIdentifier geometryId() const { return m_geometryId; }
 
+  /// @brief Get source link parameters in the track frame
+  ///
+  /// @return source link parameters in the track frame
   Acts::Vector2 parametersLoc() const { return m_parametersLoc; }
 
+  /// @brief Get source link parameters in the global frame
+  ///
+  /// @return source link parameters in the global frame
   Acts::Vector3 parametersGlob() const { return m_parametersGlob; }
 
+  /// @brief Get source link covariance in the track frame
+  ///
+  /// @return source link covariance in the track frame
   Acts::SquareMatrix2 covariance() const {
     return m_covarianceAnnealingFactor * m_covariance;
   }
 
+  /// @brief Set source link user-assigned index
   void setIndex(int idx) { m_index = idx; }
 
+  /// @brief Set source link event ID
   void setEventId(int eid) { m_eventId = eid; }
 
+  /// @brief Set annealing factor for the covariance
   void setCovarianceAnnealingFactor(double alpha) {
     m_covarianceAnnealingFactor = alpha;
   }
 
+  /// @brief Set source link covariance
   void setCovariance(const Acts::SquareMatrix2& cov) { m_covariance = cov; }
 
  private:
@@ -113,6 +149,12 @@ class SimpleSourceLink {
   Acts::ActsSquareMatrix<localSubspaceSize> m_covariance;
 };
 
+/// Extract the measurement from a SimpleSourceLink.
+///
+/// @param gctx unused
+/// @param cctx unused
+/// @param sourceLink source link with the measurement
+/// @param trackState TrackState to be calibrated
 template <typename trajectory_t>
 void simpleSourceLinkCalibratorReturn(
     const Acts::GeometryContext& /*gctx*/,
@@ -136,6 +178,13 @@ void simpleSourceLinkCalibratorReturn(
           std::array{indices[0], indices[1]})
           .projector<double>());
 }
+
+/// Extract the measurement from a SimpleSourceLink.
+///
+/// @param gctx unused
+/// @param cctx unused
+/// @param sourceLink source link with the measurement
+/// @param trackState TrackState to be calibrated
 template <typename trajectory_t>
 void simpleSourceLinkCalibrator(
     const Acts::GeometryContext& gctx, const Acts::CalibrationContext& cctx,
