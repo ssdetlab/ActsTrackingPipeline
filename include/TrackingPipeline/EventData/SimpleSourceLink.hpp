@@ -14,6 +14,8 @@
 #include <array>
 #include <cassert>
 
+#include "TrackingPipeline/EventData/ExtendedSourceLink.hpp"
+
 /// @brief Simple source link holding the particle hits
 /// in the track coordinate system
 class SimpleSourceLink {
@@ -57,6 +59,31 @@ class SimpleSourceLink {
   SimpleSourceLink(SimpleSourceLink&&) = default;
   SimpleSourceLink& operator=(const SimpleSourceLink&) = default;
   SimpleSourceLink& operator=(SimpleSourceLink&&) = default;
+
+  /// Constructors from the ExtendedSourceLink
+  explicit SimpleSourceLink(const ExtendedSourceLink& esl) {
+    SimpleSourceLink(esl.parametersLoc().head(2), esl.parametersGlob().head(3),
+                     esl.covariance().topLeftCorner(2, 2), esl.geometryId(),
+                     esl.eventId(), esl.index());
+  }
+
+  explicit SimpleSourceLink(ExtendedSourceLink& esl) {
+    SimpleSourceLink(esl.parametersLoc().head(2), esl.parametersGlob().head(3),
+                     esl.covariance().topLeftCorner(2, 2), esl.geometryId(),
+                     esl.eventId(), esl.index());
+  }
+
+  explicit SimpleSourceLink(const ExtendedSourceLink&& esl) {
+    SimpleSourceLink(esl.parametersLoc().head(2), esl.parametersGlob().head(3),
+                     esl.covariance().topLeftCorner(2, 2), esl.geometryId(),
+                     esl.eventId(), esl.index());
+  }
+
+  explicit SimpleSourceLink(ExtendedSourceLink&& esl) {
+    SimpleSourceLink(esl.parametersLoc().head(2), esl.parametersGlob().head(3),
+                     esl.covariance().topLeftCorner(2, 2), esl.geometryId(),
+                     esl.eventId(), esl.index());
+  }
 
   /// @brief Equality operator
   bool operator==(const SimpleSourceLink& rhs) const {
