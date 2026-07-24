@@ -274,14 +274,17 @@ ProcessCode E320RootSimClusterReader::read(const AlgorithmContext& ctx) {
           vertex, ipDirection, m_charge->at(i) / m_originMomentum->at(i).P(),
           ipCov, hypothesis);
 
+      TLorentzVector onSurfaceMomentumTruth = m_onSurfaceMomentumTruth->at(i);
+      if (m_cfg.backwards) {
+        onSurfaceMomentumTruth.SetVect(-onSurfaceMomentumTruth.Vect());
+      }
       Acts::BoundVector truthParameters;
       truthParameters[Acts::eBoundLoc0] = m_trackHitsLocal->at(i).X();
       truthParameters[Acts::eBoundLoc1] = m_trackHitsLocal->at(i).Y();
-      truthParameters[Acts::eBoundPhi] = m_onSurfaceMomentumTruth->at(i).Phi();
-      truthParameters[Acts::eBoundTheta] =
-          m_onSurfaceMomentumTruth->at(i).Theta();
+      truthParameters[Acts::eBoundPhi] = onSurfaceMomentumTruth.Phi();
+      truthParameters[Acts::eBoundTheta] = onSurfaceMomentumTruth.Theta();
       truthParameters[Acts::eBoundQOverP] =
-          m_charge->at(i) / m_onSurfaceMomentumTruth->at(i).P();
+          m_charge->at(i) / onSurfaceMomentumTruth.P();
 
       Acts::Vector3 trueTrackHitGlobal(m_trackHitsGlobal->at(i).X(),
                                        m_trackHitsGlobal->at(i).Y(),
