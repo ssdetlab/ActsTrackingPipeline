@@ -579,87 +579,60 @@ ProcessCode E320::E320RootSimTrackWriter::write(const AlgorithmContext& ctx) {
         continue;
       }
 
-      bool extended = (state.getUncalibratedSourceLink().type() ==
-                       typeid(ExtendedSourceLink));
+      Acts::SourceLink stateSourceLink = state.getUncalibratedSourceLink();
+      bool extended = (stateSourceLink.type() == typeid(ExtendedSourceLink));
 
-      // Get the measurements source link
-      SimpleSourceLink ssl(Acts::Vector2::Zero(), Acts::Vector3::Zero(),
-                           Acts::SquareMatrix2::Zero(),
-                           Acts::GeometryIdentifier(), 0, 0);
-      if (state.getUncalibratedSourceLink().type() ==
-          typeid(SimpleSourceLink)) {
-        ssl = state.getUncalibratedSourceLink().get<SimpleSourceLink>();
-      } else if (state.getUncalibratedSourceLink().type() ==
-                 typeid(ExtendedSourceLink)) {
-        auto esl = state.getUncalibratedSourceLink().get<ExtendedSourceLink>();
+      // Get the state reference surface
+      const auto& referenceSurface = state.referenceSurface();
 
-        ssl = SimpleSourceLink(esl.parametersLoc().head(2),
-                               esl.parametersGlob().head(3),
-                               esl.covariance().topLeftCorner(2, 2),
-                               esl.geometryId(), esl.eventId(), esl.index());
-      }
+      // Get the source link index and flags
+      std::size_t sourceLinkIdx =
+          extended ? SimpleSourceLink(stateSourceLink.get<ExtendedSourceLink>())
+                         .index()
+                   : stateSourceLink.get<SimpleSourceLink>().index();
+      bool backwards =
+          extended ? stateSourceLink.get<ExtendedSourceLink>().isBackwards()
+                   : false;
 
-      m_geometryIds.push_back(ssl.geometryId().sensitive());
+      m_geometryIds.push_back(referenceSurface.geometryId().sensitive());
 
-      const auto& cluster = inputTruthClusters.at(ssl.index());
+      const auto& cluster = inputTruthClusters.at(sourceLinkIdx);
       m_isSignal.push_back(static_cast<int>(cluster.isSignal));
 
       // Get the true hit info
-      Acts::Vector2 trueTrackHit;
-      Acts::Vector2 trueTrackAngle;
+      Acts::ActsDynamicVector calibratedPars = state.effectiveCalibrated();
+
       TrackID currentTrackId;
-      TLorentzVector onSurfaceMomTruth;
+      Acts::BoundVector onSurfaceTruthParameters;
       if (cluster.truthHits.size() == 0 || !cluster.isSignal) {
         // No signal tracks in the cluster
-        trueTrackHit = state.effectiveCalibrated().head(2);
-        trueTrackAngle = Acts::Vector2::Zero();
-        onSurfaceMomTruth.SetPxPyPzE(0, 0, 0, 0);
         currentTrackId = std::make_tuple(-1, -1, -1);
 
-        m_onSurfaceMomentumTruth.push_back(onSurfaceMomTruth);
+        onSurfaceTruthParameters = Acts::BoundVector::Zero();
+        onSurfaceTruthParameters.head(2) = calibratedPars.head(2);
+        onSurfaceTruthParameters(Acts::eBoundQOverP) = -1;
       } else {
         // Found signal track in the cluster
         auto sig = std::ranges::find_if(cluster.truthHits, [](const auto& hit) {
           return (hit.trackId == 1);
         });
-        Acts::BoundVector onSurfaceTruthParameters = sig->truthParameters;
-        trueTrackHit = onSurfaceTruthParameters.head(2);
-        trueTrackAngle = onSurfaceTruthParameters.segment(2, 2);
-
+        onSurfaceTruthParameters = sig->truthParameters;
         currentTrackId =
             std::make_tuple(sig->trackId, sig->parentTrackId, sig->runId);
-
-        double phi = trueTrackAngle(0);
-        double theta = trueTrackAngle(1);
-
-        double trueOnSurfaceAbsMom =
-            std::abs(1. / onSurfaceTruthParameters[Acts::eBoundQOverP]);
-        onSurfaceMomTruth.SetPxPyPzE(
-            trueOnSurfaceAbsMom * std::sin(theta) * std::cos(phi),
-            trueOnSurfaceAbsMom * std::sin(theta) * std::sin(phi),
-            trueOnSurfaceAbsMom * std::cos(theta),
-            std::hypot(trueOnSurfaceAbsMom, particleMass));
-
-        m_onSurfaceMomentumTruth.push_back(onSurfaceMomTruth);
       }
+      trackStateIds[currentTrackId].push_back(sourceLinkIdx);
 
+      // Get true local track hit
+      Acts::Vector2 trueTrackHit = onSurfaceTruthParameters.head(2);
+
+      // Transform the hits to the global coordinates
       Acts::Vector3 trueHitGlobal =
           m_cfg.surfaceAccessor(cluster.sourceLink)
               ->localToGlobal(ctx.geoContext, trueTrackHit,
                               Acts::Vector3(1, 0, 0));
 
-      trackStateIds[currentTrackId].push_back(ssl.index());
-
-      m_stateTrackId.push_back(std::get<0>(currentTrackId));
-      m_stateParentTrackId.push_back(std::get<1>(currentTrackId));
-      m_stateRunId.push_back(std::get<2>(currentTrackId));
-
-      // Store the true local hits
-      m_trueTrackHitsLocal.emplace_back(trueTrackHit.x(), trueTrackHit.y());
-
-      // Store the true global hits
-      m_trueTrackHitsGlobal.emplace_back(trueHitGlobal.x(), trueHitGlobal.y(),
-                                         trueHitGlobal.z());
+      // Get true local track angles
+      Acts::Vector2 trueTrackAngle = onSurfaceTruthParameters.segment(2, 2);
 
       // ---------------------------------------------
       // Track hit info
@@ -668,7 +641,7 @@ ProcessCode E320::E320RootSimTrackWriter::write(const AlgorithmContext& ctx) {
       Acts::Vector2 measHit = state.effectiveCalibrated().head(2);
 
       // Transform the hits to the global coordinates
-      Acts::Vector3 measHitGlobal = state.referenceSurface().localToGlobal(
+      Acts::Vector3 measHitGlobal = referenceSurface.localToGlobal(
           ctx.geoContext, measHit, Acts::Vector3(1, 0, 0));
 
       // Get the measurement angles
@@ -729,7 +702,7 @@ ProcessCode E320::E320RootSimTrackWriter::write(const AlgorithmContext& ctx) {
       Acts::Vector2 predictedHit = predictedMeas.head(2);
 
       // Transform the predicted hits to the global coordinates
-      Acts::Vector3 predictedHitGlobal = state.referenceSurface().localToGlobal(
+      Acts::Vector3 predictedHitGlobal = referenceSurface.localToGlobal(
           ctx.geoContext, predictedHit, Acts::Vector3(1, 0, 0));
 
       // Get the predicted angles and momentum
@@ -738,7 +711,18 @@ ProcessCode E320::E320RootSimTrackWriter::write(const AlgorithmContext& ctx) {
         predictedAngle = predictedMeas.tail(2);
       }
       double predictedOnSurfaceAbsMom =
-          std::abs(1.0 / predictedPars[Acts::eBoundQOverP]);
+          std::abs(1.0 / predictedPars(Acts::eBoundQOverP));
+
+      // Apply phi correction to the truth info
+      if (backwards && m_cfg.applyPhiCorrection) {
+        double phiDiff = trueTrackAngle(0) - predictedAngle(0);
+        if (phiDiff < 0 && std::abs(phiDiff) > M_PI) {
+          trueTrackAngle(0) += 2 * M_PI;
+        }
+        if (phiDiff > M_PI) {
+          trueTrackAngle(0) -= 2 * M_PI;
+        }
+      }
 
       // Get the residuals between the true and the predicted hits
       Acts::Vector2 truePredictedHitResidual = trueTrackHit - predictedHit;
@@ -871,9 +855,8 @@ ProcessCode E320::E320RootSimTrackWriter::write(const AlgorithmContext& ctx) {
         Acts::Vector2 filteredHit = filteredMeas.head(2);
 
         // Transform the filtered hits to the global coordinates
-        Acts::Vector3 filteredHitGlobal =
-            state.referenceSurface().localToGlobal(ctx.geoContext, filteredHit,
-                                                   Acts::Vector3(1, 0, 0));
+        Acts::Vector3 filteredHitGlobal = referenceSurface.localToGlobal(
+            ctx.geoContext, filteredHit, Acts::Vector3(1, 0, 0));
 
         // Get the filtered angles and momentum
         Acts::Vector2 filteredAngle = Acts::Vector2::Zero();
@@ -1016,9 +999,8 @@ ProcessCode E320::E320RootSimTrackWriter::write(const AlgorithmContext& ctx) {
         Acts::Vector2 smoothedHit = smoothedMeas.head(2);
 
         // Transform the smoothed hits to the global coordinates
-        Acts::Vector3 smoothedHitGlobal =
-            state.referenceSurface().localToGlobal(ctx.geoContext, smoothedHit,
-                                                   Acts::Vector3(1, 0, 0));
+        Acts::Vector3 smoothedHitGlobal = referenceSurface.localToGlobal(
+            ctx.geoContext, smoothedHit, Acts::Vector3(1, 0, 0));
 
         // Get the smoothed angles and momentum
         Acts::Vector2 smoothedAngle = Acts::Vector2::Zero();
@@ -1148,6 +1130,31 @@ ProcessCode E320::E320RootSimTrackWriter::write(const AlgorithmContext& ctx) {
         m_chi2Smoothed += smoothedHitPull.dot(smoothedHitPull) +
                           smoothedAnglePull.dot(smoothedAnglePull);
       }
+
+      // Store the true local hits
+      m_trueTrackHitsLocal.emplace_back(trueTrackHit.x(), trueTrackHit.y());
+
+      // Store the true global hits
+      m_trueTrackHitsGlobal.emplace_back(trueHitGlobal.x(), trueHitGlobal.y(),
+                                         trueHitGlobal.z());
+
+      // Store true on surface momentum
+      TLorentzVector onSurfaceMomTruth;
+      double trueOnSurfaceAbsMom =
+          std::abs(1. / onSurfaceTruthParameters(Acts::eBoundQOverP));
+      onSurfaceMomTruth.SetPxPyPzE(
+          trueOnSurfaceAbsMom * std::sin(trueTrackAngle(1)) *
+              std::cos(trueTrackAngle(0)),
+          trueOnSurfaceAbsMom * std::sin(trueTrackAngle(1)) *
+              std::sin(trueTrackAngle(0)),
+          trueOnSurfaceAbsMom * std::cos(trueTrackAngle(1)),
+          std::hypot(trueOnSurfaceAbsMom, particleMass));
+      m_onSurfaceMomentumTruth.emplace_back(onSurfaceMomTruth);
+
+      // Store state track ID
+      m_stateTrackId.push_back(std::get<0>(currentTrackId));
+      m_stateParentTrackId.push_back(std::get<1>(currentTrackId));
+      m_stateRunId.push_back(std::get<2>(currentTrackId));
     }
 
     // Matching degree is computed with respect

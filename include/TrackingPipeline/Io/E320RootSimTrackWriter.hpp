@@ -45,6 +45,8 @@ class E320RootSimTrackWriter : public IWriter {
     std::string treeName;
     /// Output file path
     std::string filePath;
+    /// Phi correction flag for backwards propagation
+    bool applyPhiCorrection;
   };
 
   E320RootSimTrackWriter(const E320RootSimTrackWriter &) = delete;
