@@ -53,6 +53,9 @@ class E320RootSimTrackWriter : public IWriter {
   E320RootSimTrackWriter(const E320RootSimTrackWriter &&) = delete;
 
   /// @brief constructor
+  ///
+  /// @param config configuration struct
+  /// @param level logging level
   E320RootSimTrackWriter(const Config &config, Acts::Logging::Level level);
 
   /// @brief finalize method
