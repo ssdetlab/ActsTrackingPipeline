@@ -223,12 +223,12 @@ void extendedSourceLinkBackwardsPhiCorrectionCalibratorReturn(
   Acts::ActsVector<ExtendedSourceLink::localSubspaceSize> loc =
       sl.parametersLoc();
   if (sl.isBackwards()) {
-    double currentDiff =
+    double phiDiff =
         loc(Acts::eBoundPhi) - trackState.predicted()(Acts::eBoundPhi);
-    if (currentDiff < 0 && std::abs(currentDiff) > M_PI) {
+    if (phiDiff < 0 && std::abs(phiDiff) > M_PI) {
       loc(Acts::eBoundPhi) += 2 * M_PI;
     }
-    if (currentDiff > M_PI) {
+    if (phiDiff > M_PI) {
       loc(Acts::eBoundPhi) -= 2 * M_PI;
     }
   }
