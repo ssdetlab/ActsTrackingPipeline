@@ -1,0 +1,273 @@
+[GeneralParameters]
+# Geometry binning directions
+# 0 == binX, 1 == binY, 2 == binZ
+primaryBinValue = 0
+longBinValue = 1
+shortBinValue = 2
+
+# Volume geometry ID prefactors
+magVolumeIdPrefactor = 60
+gapVolumeIdPrefactor = 70
+
+# World volume transverse size [m]
+worldHalfLong = 2
+worldHalfShort = 2
+
+# Rotation of the plane surfaces into the global frame
+# specified in units of M_PI_2
+toWorldAngleX = 0
+toWorldAngleY = -1
+toWorldAngleZ = 1
+
+[BPMParameters]
+# Surface dimensions in local coordinates [mm]
+bpmHalfX = 2000
+bpmHalfY = 2000
+
+# Surface thickness [mm]
+bpmThickness = 1
+
+# Surface placement [mm]
+bpm0CenterPrimary = -1515  # 3156
+bpm1CenterPrimary = 4944   # 3218
+bpm2CenterPrimary = 7168   # 3265
+bpm3CenterPrimary = 9393   # 3315
+
+bpm0CenterLong = 0.056 
+bpm1CenterLong = -0.055
+bpm2CenterLong = -0.164
+bpm3CenterLong = 0.042
+
+bpm0CenterShort = -1.621
+bpm1CenterShort = -3.7
+bpm2CenterShort = -2.542
+bpm3CenterShort = -3.346
+
+# Surface geometry identifier
+bpm0GeometryId = 30
+bpm1GeometryId = 31
+bpm2GeometryId = 32
+bpm3GeometryId = 33
+
+[BeWindowParameters]
+# Surface dimensions in local coordinates [mm]
+beWindowHalfX = 2000
+beWindowHalfY = 2000
+
+# Surface thickness [mm]
+beWindowThickness = 1
+
+# Surface placement [mm]
+beWindowCenterPrimary = -845
+beWindowCenterLong = 0
+beWindowCenterShort = 0
+
+# Surface geometry identifier
+beWindowGeometryId = 40
+
+[IPSurfaceParameters]
+# Surface dimensions in local coordinates [mm]
+ipSurfaceHalfX = 2000
+ipSurfaceHalfY = 2000
+
+# Surface thickness [mm]
+ipSurfaceThickness = 1
+
+# Surface placement [mm]
+ipSurfaceCenterPrimary = 0
+# ipSurfaceCenterPrimary = 13113 - 457.2 - 20
+# ipSurfaceCenterPrimary = 16674.4 - 50
+ipSurfaceCenterLong = 0
+ipSurfaceCenterShort = 0
+
+# Surface geometry identifier
+ipSurfaceGeometryId = 8
+
+[PDCWindowSurfaceParameters]
+
+# Surface dimensions in local coordinates [mm]
+pdcWindowHalfX = 60
+pdcWindowHalfY = 25
+
+# Surface thickness [mm]
+pdcWindowThickness = 0.51
+
+# Surface material binning in local coordinates [N bins]
+pdcWindowMaterialBinningX = 1
+pdcWindowMaterialBinningY = 1
+
+# Surface placement [mm]
+pdcWindowCenterPrimary = 16545
+pdcWindowCenterLong = 118
+pdcWindowCenterShort = 0
+
+# Surface geometry identifier
+pdcWindowGeometryId = 50
+
+[TrackingChamberParameters]
+# --------------------------------------------------------------
+# Parameters of the tracking chambers
+
+# Chip dimensions in local coordinates [mm]
+chipHalfX = 14.97088
+chipHalfY = 6.88128
+
+# Chip pixel dimensions in local coordinates [um]
+pixelHalfX = 14.62
+pixelHalfY = 13.44
+
+# Chip pixel thickness [um]
+pixelThickness = 25
+
+# Volume spacing around the chips [mm]
+chipVolumeHalfSpacing = 1
+
+# Distance between the chips [mm]
+interChipDistance = 20
+tcWindowToFirstChipDistance = 8.9
+tcWindowToLastChipDistance = 8.7
+
+# Chip material binning in local coordinates [N bins]
+chipMaterialBinningX = 256
+chipMaterialBinningY = 128
+
+# Placement [mm]
+ipTcDistance = 16674.4
+
+tcCenterLong = 93.775
+tcCenterShort = -0.61872
+
+# Surface geometry identifier
+chip0GeometryId = 10
+chip1GeometryId = 12
+chip2GeometryId = 14
+chip3GeometryId = 16
+chip4GeometryId = 18
+
+[Magnets]
+# --------------------------------------------------------------
+# Parameters of the composite field
+
+# ID for context keeping
+compositeMagFieldId = 10
+
+# --------------------------------------------------------------
+# Parameters of the quads
+
+# ID for context keeping
+quad1Id = 1
+quad2Id = 2
+quad3Id = 3
+
+# Dimensions [mm]
+quad3HalfPrimary = 486.664
+quad3HalfLong = 32.33
+quad3HalfShort = 32.33
+
+quad2HalfPrimary = 486.664
+quad2HalfLong = 32.33
+quad2HalfShort = 32.33
+
+quad1HalfPrimary = 486.664
+quad1HalfLong = 32.33
+quad1HalfShort = 32.33
+
+# Placement [mm]
+quad0CenterPrimary = -1900
+quad0CenterLong = 0.056
+# quad0CenterLong = 0
+quad0CenterShort = -1.821
+# quad0CenterShort = 0
+
+quad1CenterPrimary = 4157
+quad1CenterLong = -0.055
+# quad1CenterLong = 0
+quad1CenterShort = -3.5
+# quad1CenterShort = 0
+
+quad2CenterPrimary = 6382
+quad2CenterLong = -0.164
+# quad2CenterLong = 0
+quad2CenterShort = -2.642
+# quad2CenterShort = 0
+
+quad3CenterPrimary = 8606
+quad3CenterLong = 0.042
+# quad3CenterLong = 0
+quad3CenterShort = -3.546
+# quad3CenterShort = 0
+
+# Quad gradients [T/m]
+# quad1Gradient = -2.406  # 2.0 GeV
+quad1Gradient = -4.36  # 3.5 GeV
+
+# quad2Gradient = 3.656  # 2.0 GeV
+quad2Gradient = 6.46  # 3.5 GeV
+
+# quad3Gradient = -2.406  # 2.0 GeV
+quad3Gradient = -4.36  # 3.5 GeV
+
+# --------------------------------------------------------------
+# Parameters of the x-corrector
+
+# ID for context keeping
+xCorrectorId = 4
+
+# XCOR dimensions [mm]
+xCorrectorHalfPrimary = 116.84
+xCorrectorHalfLong = 40
+xCorrectorHalfShort = 40
+
+# Placement [mm]
+# xCorrectorCenterPrimary = 9994.63 # Old XCOR position
+xCorrectorCenterPrimary = 10970  # New XCOR position
+xCorrectorCenterLong = 0
+xCorrectorCenterShort = 0
+
+# XCOR field strength [T]
+
+# Local alignment
+# xCorrectorFieldStrength = 0.026 # Bottom
+# xCorrectorFieldStrength = 0 # Center
+# xCorrectorFieldStrength = -0.02 # Top
+
+# Global alignment 2.0 GeV
+# xCorrectorFieldStrength = -0.02 # Center
+
+# Global alignment 3.5 GeV
+# xCorrectorFieldStrength = 0.01 # Bottom
+xCorrectorFieldStrength = -0.03  # Center
+# xCorrectorFieldStrength = -0.06 # Top
+
+# --------------------------------------------------------------
+# Parameters of the dipole
+
+# ID for context keeping
+dipoleId = 5
+
+# Dipole dimensions [mm]
+dipoleHalfPrimary = 457.2
+dipoleHalfLong = 50.927
+dipoleHalfShort = 22.352
+
+# Placement [mm]
+dipoleCenterPrimary = 13113
+dipoleCenterLong = 0
+dipoleCenterShort = 0
+
+# Dipole field strength [T]
+
+# Local alignment
+# dipoleFieldStrength = -0.1651 # Bottom
+# dipoleFieldStrength = -0.1851 # Center
+# dipoleFieldStrength = -0.2051 # Top
+
+# Global alignment 2.0 GeV
+# dipoleFieldStrength = -0.1651 # Bottom
+# dipoleFieldStrength = -0.1851 # Center
+# dipoleFieldStrength = -0.2051 # Top
+
+# Global alignment 3.5 GeV
+# dipoleFieldStrength = -0.2851 # Bottom
+dipoleFieldStrength = -0.3251  # Center
+# dipoleFieldStrength = -0.3651 # Top
