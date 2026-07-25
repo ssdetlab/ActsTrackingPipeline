@@ -21,7 +21,7 @@
 #include <unistd.h>
 
 #include "TrackingPipeline/Alignment/AlignableDetectorElement.hpp"
-#include "TrackingPipeline/Geometry/E320GeometryConstraints.hpp"
+#include "TrackingPipeline/Geometry/E320GeometryOptions.hpp"
 #include "TrackingPipeline/Geometry/detail/GeometryConstructionUtils.hpp"
 #include "TrackingPipeline/MagneticField/CompositeMagField.hpp"
 #include "TrackingPipeline/MagneticField/ConstantMagField.hpp"
@@ -73,7 +73,7 @@ std::shared_ptr<const Acts::Experimental::Detector> buildDetector(
   auto siSurfMaterial =
       std::make_shared<Acts::HomogeneousSurfaceMaterial>(siliconSlab);
 
-  Acts::MaterialSlab thinSlab(silicon, 0_um);
+  Acts::MaterialSlab thinSlab(silicon, 1_um);
   auto thinSurfMaterial =
       std::make_shared<Acts::HomogeneousSurfaceMaterial>(thinSlab);
 
@@ -179,7 +179,7 @@ std::shared_ptr<const Acts::Experimental::Detector> buildDetector(
   auto bpmBounds =
       std::make_shared<Acts::RectangleBounds>(goInst.bpmHalfX, goInst.bpmHalfY);
   auto bpm0Surface = constructE320Surface(goInst.bpm0Parameters, bpmBounds);
-  bpm0Surface->assignSurfaceMaterial(thinSurfMaterial);
+  // bpm0Surface->assignSurfaceMaterial(thinSurfMaterial);
   Acts::GeometryIdentifier bpm0GeoId;
   bpm0GeoId.setSensitive(goInst.bpm0Parameters.geoId);
   bpm0Surface->assignGeometryId(bpm0GeoId);
@@ -208,6 +208,7 @@ std::shared_ptr<const Acts::Experimental::Detector> buildDetector(
       goInst.ipSurfaceHalfX, goInst.ipSurfaceHalfY);
   auto ipSurface =
       constructE320Surface(goInst.ipSurfaceParameters, ipSurfaceBounds);
+  ipSurface->assignSurfaceMaterial(thinSurfMaterial);
   Acts::GeometryIdentifier ipSurfaceGeoId;
   ipSurfaceGeoId.setSensitive(goInst.ipSurfaceParameters.geoId);
   ipSurface->assignGeometryId(ipSurfaceGeoId);
@@ -223,7 +224,7 @@ std::shared_ptr<const Acts::Experimental::Detector> buildDetector(
 
   // BPM 1
   auto bpm1Surface = constructE320Surface(goInst.bpm1Parameters, bpmBounds);
-  bpm1Surface->assignSurfaceMaterial(thinSurfMaterial);
+  // bpm1Surface->assignSurfaceMaterial(thinSurfMaterial);
   Acts::GeometryIdentifier bpm1GeoId;
   bpm1GeoId.setSensitive(goInst.bpm1Parameters.geoId);
   bpm1Surface->assignGeometryId(bpm1GeoId);
@@ -239,7 +240,7 @@ std::shared_ptr<const Acts::Experimental::Detector> buildDetector(
 
   // BPM 2
   auto bpm2Surface = constructE320Surface(goInst.bpm2Parameters, bpmBounds);
-  bpm2Surface->assignSurfaceMaterial(thinSurfMaterial);
+  // bpm2Surface->assignSurfaceMaterial(thinSurfMaterial);
   Acts::GeometryIdentifier bpm2GeoId;
   bpm2GeoId.setSensitive(goInst.bpm2Parameters.geoId);
   bpm2Surface->assignGeometryId(bpm2GeoId);
@@ -255,7 +256,7 @@ std::shared_ptr<const Acts::Experimental::Detector> buildDetector(
 
   // BPM 3
   auto bpm3Surface = constructE320Surface(goInst.bpm3Parameters, bpmBounds);
-  bpm3Surface->assignSurfaceMaterial(thinSurfMaterial);
+  // bpm3Surface->assignSurfaceMaterial(thinSurfMaterial);
   Acts::GeometryIdentifier bpm3GeoId;
   bpm3GeoId.setSensitive(goInst.bpm3Parameters.geoId);
   bpm3Surface->assignGeometryId(bpm3GeoId);
