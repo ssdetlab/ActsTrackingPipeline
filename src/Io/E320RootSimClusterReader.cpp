@@ -15,7 +15,7 @@
 #include "TrackingPipeline/EventData/DataContainers.hpp"
 #include "TrackingPipeline/EventData/ExtendedSourceLink.hpp"
 #include "TrackingPipeline/EventData/SimpleSourceLink.hpp"
-#include "TrackingPipeline/Geometry/E320GeometryConstraints.hpp"
+#include "TrackingPipeline/Geometry/E320GeometryOptions.hpp"
 #include "TrackingPipeline/Infrastructure/ProcessCode.hpp"
 
 using namespace Acts::UnitLiterals;

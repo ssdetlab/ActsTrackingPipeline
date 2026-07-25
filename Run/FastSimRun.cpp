@@ -8,25 +8,32 @@
 #include <Acts/Surfaces/PlaneSurface.hpp>
 #include <Acts/Surfaces/RectangleBounds.hpp>
 
+#include <cstddef>
 #include <memory>
 #include <string>
 #include <vector>
 
 #include "TrackingPipeline/Alignment/AlignmentContext.hpp"
 #include "TrackingPipeline/Alignment/detail/AlignmentStoreBuilders.hpp"
+#include "TrackingPipeline/EventData/SimpleSourceLink.hpp"
 #include "TrackingPipeline/Geometry/E320Geometry.hpp"
-#include "TrackingPipeline/Geometry/E320GeometryConstraints.hpp"
+#include "TrackingPipeline/Geometry/E320GeometryOptions.hpp"
 #include "TrackingPipeline/Geometry/GeometryContextDecorator.hpp"
+#include "TrackingPipeline/Geometry/detail/SurfaceParameters.hpp"
 #include "TrackingPipeline/Infrastructure/Sequencer.hpp"
 #include "TrackingPipeline/Infrastructure/TypeDefinitions.hpp"
 #include "TrackingPipeline/Io/DummyReader.hpp"
 #include "TrackingPipeline/Io/E320MagneticFieldWriter.hpp"
-#include "TrackingPipeline/Io/RootSimClusterWriter.hpp"
+#include "TrackingPipeline/Io/E320RootSimClusterWriter.hpp"
 #include "TrackingPipeline/Simulation/ClusterSizeBasedDigitizer.hpp"
+#include "TrackingPipeline/Simulation/ConvergingBeamGenerator.hpp"
+#include "TrackingPipeline/Simulation/ExtendedSourceLinkCreator.hpp"
 #include "TrackingPipeline/Simulation/GaussianVertexGenerator.hpp"
 #include "TrackingPipeline/Simulation/MeasurementsCreator.hpp"
 #include "TrackingPipeline/Simulation/MeasurementsEmbeddingAlgorithm.hpp"
+#include "TrackingPipeline/Simulation/RootVertexMomentumReaderGenerator.hpp"
 #include "TrackingPipeline/Simulation/SimpleDigitizer.hpp"
+#include "TrackingPipeline/Simulation/SimpleSourceLinkCreator.hpp"
 #include "TrackingPipeline/Simulation/SphericalMomentumGenerator.hpp"
 #include "TrackingPipeline/Simulation/SurfaceRangedDigitizer.hpp"
 #include "TrackingPipeline/Simulation/UniformBackgroundCreator.hpp"
@@ -69,45 +76,31 @@ int main() {
       }
     }
   }
+  std::vector<SurfaceParameters> constraintSurfaceParameters{
+      goInst.ipSurfaceParameters, goInst.beWindowParameters,
+      goInst.bpm0Parameters,      goInst.bpm1Parameters,
+      goInst.bpm2Parameters,      goInst.bpm3Parameters};
 
   // --------------------------------------------------------------
   // Alignment setup
-  Acts::Vector3 globalShiftMean(0, 0_mm, 0_mm);
-  Acts::Vector3 globalShiftStdErr(0, 0_mm, 0_mm);
-
+  Acts::Vector3 globalShiftMean(0, 10_mm, -5_mm);
   std::unordered_map<int, Acts::Vector3> localShiftsMean{
       {10, Acts::Vector3(0_mm, 0_um, 0_um)},
       {12, Acts::Vector3(0_mm, 0_um, 0_um)},
       {14, Acts::Vector3(0_mm, 0_um, 0_um)},
       {16, Acts::Vector3(0_mm, 0_um, 0_um)},
       {18, Acts::Vector3(0_mm, 0_um, 0_um)}};
-  std::unordered_map<int, Acts::Vector3> localShiftsStdErr{
-      {10, Acts::Vector3(0_mm, 0_um, 0_um)},
-      {12, Acts::Vector3(0_mm, 0_um, 0_um)},
-      {14, Acts::Vector3(0_mm, 0_um, 0_um)},
-      {16, Acts::Vector3(0_mm, 0_um, 0_um)},
-      {18, Acts::Vector3(0_mm, 0_um, 0_um)}};
-
-  Acts::Vector3 globalAnglesMean(0_rad, 0_rad, 0_rad);
-  Acts::Vector3 globalAnglesStdErr(0_rad, 0_rad, 0_rad);
-
+  Acts::Vector3 globalAnglesMean(0_rad, 0_rad, -2e-3_rad);
   std::unordered_map<int, Acts::Vector3> localAnglesMean{
       {10, Acts::Vector3(0_rad, 0_rad, 0_rad)},
       {12, Acts::Vector3(0_rad, 0_rad, 0_rad)},
       {14, Acts::Vector3(0_rad, 0_rad, 0_rad)},
       {16, Acts::Vector3(0_rad, 0_rad, 0_rad)},
       {18, Acts::Vector3(0_rad, 0_rad, 0_rad)}};
-  std::unordered_map<int, Acts::Vector3> localAnglesStdErr{
-      {10, Acts::Vector3(0_rad, 0_rad, 0_rad)},
-      {12, Acts::Vector3(0_rad, 0_rad, 0_rad)},
-      {14, Acts::Vector3(0_rad, 0_rad, 0_rad)},
-      {16, Acts::Vector3(0_rad, 0_rad, 0_rad)},
-      {18, Acts::Vector3(0_rad, 0_rad, 0_rad)}};
 
-  auto aStore = detail::makeAlignmentStore(
-      gctx, detector.get(), globalShiftMean, globalAnglesStdErr,
-      localShiftsMean, localShiftsStdErr, globalAnglesMean, globalAnglesStdErr,
-      localAnglesMean, localAnglesStdErr);
+  auto aStore = detail::makeAlignmentStore(gctx, detector.get(),
+                                           globalShiftMean, localShiftsMean,
+                                           globalAnglesMean, localAnglesMean);
   AlignmentContext alignCtx(aStore);
 
   // Print alignment parameters
@@ -145,6 +138,8 @@ int main() {
       }
     }
   }
+
+  // return 0;
 
   // --------------------------------------------------------------
   // The magnetic field setup
@@ -186,7 +181,7 @@ int main() {
   // Setup the sequencer
   Sequencer::Config seqCfg;
   seqCfg.numThreads = 1;
-  seqCfg.skip = 0;
+  seqCfg.skip = 0 * 2.5e4;
   seqCfg.trackFpes = false;
   seqCfg.logLevel = logLevel;
   Sequencer sequencer(seqCfg);
@@ -200,8 +195,7 @@ int main() {
   dummyReaderCfg.outputSourceLinks = "SimMeasurements";
   dummyReaderCfg.outputSimClusters = "SimClusters";
   dummyReaderCfg.outputSourceLinkIndices = "SimMeasurementIndices";
-  dummyReaderCfg.nEvents = 1e5;
-  // dummyReaderCfg.nEvents = 3e3;
+  dummyReaderCfg.nEvents = 1 * 2.5e4;
 
   sequencer.addReader(std::make_shared<DummyReader>(dummyReaderCfg));
 
@@ -222,47 +216,105 @@ int main() {
   Propagator measCreatorPropagator(std::move(measCreatorStepper),
                                    std::move(measCreatorNavigator));
 
-  // Digitizer
+  // Digitizers
+  SurfaceRangedDigitizer::Config trackHitDigitizerCfg;
+  for (const auto& pars : constraintSurfaceParameters) {
+    trackHitDigitizerCfg.resolutions.insert({pars.geoId, {50_um, 50_um}});
+  }
+  for (const auto& pars : goInst.tcParameters) {
+    trackHitDigitizerCfg.resolutions.insert({pars.geoId, {5_um, 5_um}});
+  }
+  auto trackHitDigitizer =
+      std::make_shared<SurfaceRangedDigitizer>(trackHitDigitizerCfg);
 
-  SimpleDigitizer::Config digitizerCfg;
-  digitizerCfg.resolution = {5_um, 5_um};
-  auto digitizer = std::make_shared<SimpleDigitizer>(digitizerCfg);
-
-  // ClusterSizeBasedDigitizer::Config digitizerCfg;
-  // digitizerCfg.clSizeProbsStdDevs = {{1, {0.168115, 0.00333208, 0.00395262}},
-  //                                    {2, {0.284536, 0.00473498, 0.00444654}},
-  //                                    {3, {0.217946, 0.00431227, 0.00417356}},
-  //                                    {4, {0.329402, 0.00490848,
-  //                                    0.00509384}}};
-  // auto digitizer = std::make_shared<ClusterSizeBasedDigitizer>(digitizerCfg);
+  SimpleDigitizer::Config angleDigitizerCfg;
+  angleDigitizerCfg.resolution = {1e-3_rad, 1e-3_rad};
+  auto angleDigitizer = std::make_shared<SimpleDigitizer>(angleDigitizerCfg);
 
   // Vertex generator
   GaussianVertexGenerator::Config vertexGenCfg;
-  vertexGenCfg.mean = 
-    // Acts::Vector3(goInst.bpm0CenterPrimary - 5_mm, 0, 1_mm);
-    Acts::Vector3(goInst.ipSurfaceCenterPrimary - 0.1_mm, 0, 1_mm);
+  vertexGenCfg.mean =
+      // Acts::Vector3(goInst.bpm0CenterPrimary - 5_mm, 0, 0_mm);
+      Acts::Vector3(goInst.ipSurfaceCenterPrimary - 0.1_mm, 0, 0);
   vertexGenCfg.cov = Acts::SquareMatrix3::Identity() * 30_um * 30_um;
   auto vertexGen = std::make_shared<GaussianVertexGenerator>(vertexGenCfg);
 
   SphericalMomentumGenerator::Config momGenCfg;
-  momGenCfg.pRange = {3.0_GeV, 5.0_GeV};
-  // momGenCfg.pRange = {2.0_GeV, 3.0_GeV};
-  // momGenCfg.pRange = {1.9_GeV, 2.1_GeV};
+  momGenCfg.pRange = {3.0_GeV, 4.0_GeV};
   momGenCfg.phiRange = {-1e-3_rad, 1e-3_rad};
   momGenCfg.thetaRange = {M_PI_2 - 1e-3_rad, M_PI_2 + 1e-3_rad};
 
   auto momGen = std::make_shared<SphericalMomentumGenerator>(momGenCfg);
 
+  // // Beam generator
+  // ConvergingBeamGenerator::Config beamGenCfg;
+  // beamGenCfg.primaryIdx = goInst.primaryIdx;
+  // beamGenCfg.longIdx = goInst.longIdx;
+  // beamGenCfg.shortIdx = goInst.shortIdx;
+  // beamGenCfg.referencePositionPrimary = goInst.bpm0CenterPrimary - 5_mm;
+  // beamGenCfg.waistPosition =
+  //     Acts::Vector3(goInst.ipSurfaceCenterPrimary - 0.1_mm, 0, 0_mm);
+  // beamGenCfg.waistSigmaLong = 30_um;
+  // beamGenCfg.waistSigmaShort = 30_um;
+  // beamGenCfg.waistMeanThetaLong = 0_rad;
+  // beamGenCfg.waistMeanThetaShort = 0_rad;
+  // beamGenCfg.waistSigmaThetaLong = 1e-3_rad;
+  // beamGenCfg.waistSigmaThetaShort = 1e-3_rad;
+  // beamGenCfg.beamEnergy = 10_GeV;
+  // auto beamGen = std::make_shared<ConvergingBeamGenerator>(beamGenCfg);
+
+  // // Beam positrons generator
+  // RootVertexMomentumReaderGenerator::Config beamGenCfg;
+  // beamGenCfg.filePaths = {
+  //     "/home/romanurmanov/work/E320/E320Prototype/"
+  //     "E320Prototype_dataInRootFormat/sim/alignment/global/"
+  //     "ip_data_aligned_beamline/fitted-beam-sim-test.root"};
+  // beamGenCfg.treeName = "fitted-beam";
+  // beamGenCfg.vertexBranch = "originPositionTruth";
+  // beamGenCfg.directionBranch = "originMomentumTruth";
+  // beamGenCfg.absMomentumMin = 3.0_GeV;
+  // beamGenCfg.absMomentumMax = 4.0_GeV;
+  // beamGenCfg.startIdx = 5 * 2.5e4;
+  // auto beamGen =
+  //     std::make_shared<RootVertexMomentumReaderGenerator>(beamGenCfg);
+
+  // Source link creators
+  SimpleSourceLinkCreator::Config simpleSourceLinkCreatorCfg;
+  simpleSourceLinkCreatorCfg.hitDigitizer = trackHitDigitizer;
+  SimpleSourceLinkCreator simpleSourceLinkCreator(simpleSourceLinkCreatorCfg);
+
+  ExtendedSourceLinkCreator::Config extendedSourceLinkCreatorCfg;
+  extendedSourceLinkCreatorCfg.hitDigitizer = trackHitDigitizer;
+  extendedSourceLinkCreatorCfg.angleDigitizer = angleDigitizer;
+  ExtendedSourceLinkCreator extendedSourceLinkCreator(
+      extendedSourceLinkCreatorCfg);
+
   // Measurement creator
   MeasurementsCreator::Config measCreatorCfg{
       .vertexGenerator = vertexGen,
       .momentumGenerator = momGen,
-      .hitDigitizer = digitizer,
       .referenceSurface = refSurface.get(),
       .maxSteps = 1000,
       .isSignal = true,
       .hypothesis = Acts::ParticleHypothesis::electron(),
-      .charge = -1_e};
+      .charge = 1_e};
+
+  for (const auto& pars : constraintSurfaceParameters) {
+    if (pars.geoId != goInst.ipSurfaceParameters.geoId) {
+      measCreatorCfg.sourceLinkCreators[pars.geoId]
+          .connect<&SimpleSourceLinkCreator::operator()>(
+              &simpleSourceLinkCreator);
+    } else {
+      measCreatorCfg.sourceLinkCreators[pars.geoId]
+          .connect<&ExtendedSourceLinkCreator::operator()>(
+              &extendedSourceLinkCreator);
+    }
+  }
+  for (const auto& pars : goInst.tcParameters) {
+    measCreatorCfg.sourceLinkCreators[pars.geoId]
+        .connect<&SimpleSourceLinkCreator::operator()>(
+            &simpleSourceLinkCreator);
+  }
 
   std::unordered_map<Acts::GeometryIdentifier, MeasurementsCreator::Constraints>
       measCreatorConstraints;
@@ -271,7 +323,7 @@ int main() {
     const auto& geoId = surface.geometryId();
     if (geoId.sensitive() >= goInst.bpm0Parameters.geoId &&
         geoId.sensitive() <= goInst.bpm3Parameters.geoId) {
-      measCreatorConstraints.insert({geoId, {-3e4, 3e4, -3e4, 3e4}});
+      measCreatorConstraints.insert({geoId, {-3e1, 3e1, -3e1, 3e1}});
     }
   }
   measCreatorCfg.constraints = measCreatorConstraints;
@@ -324,7 +376,7 @@ int main() {
   // Event write out
 
   // Sim cluster writer
-  auto clusterWriterCfgSig = RootSimClusterWriter::Config();
+  auto clusterWriterCfgSig = E320::E320RootSimClusterWriter::Config();
   clusterWriterCfgSig.inputClusters = "Clusters";
   clusterWriterCfgSig.treeName = "clusters";
   clusterWriterCfgSig.filePath =
@@ -332,8 +384,8 @@ int main() {
       "E320Prototype_dataInRootFormat/sim/"
       "clusters.root";
 
-  sequencer.addWriter(
-      std::make_shared<RootSimClusterWriter>(clusterWriterCfgSig, logLevel));
+  sequencer.addWriter(std::make_shared<E320::E320RootSimClusterWriter>(
+      clusterWriterCfgSig, logLevel));
 
   // Magnetic field writer
   auto magFieldWriterCfg = E320::E320MagneticFieldWriter::Config();

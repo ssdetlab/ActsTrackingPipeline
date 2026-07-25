@@ -22,8 +22,9 @@
 #include <unistd.h>
 
 #include "TrackingPipeline/Alignment/detail/AlignmentStoreBuilders.hpp"
+#include "TrackingPipeline/EventData/SimpleSourceLink.hpp"
 #include "TrackingPipeline/Geometry/E320Geometry.hpp"
-#include "TrackingPipeline/Geometry/E320GeometryConstraints.hpp"
+#include "TrackingPipeline/Geometry/E320GeometryOptions.hpp"
 #include "TrackingPipeline/Geometry/GeometryContextDecorator.hpp"
 #include "TrackingPipeline/Infrastructure/Sequencer.hpp"
 #include "TrackingPipeline/Infrastructure/TypeDefinitions.hpp"
@@ -108,8 +109,7 @@ int main() {
   AlignmentParametersProvider::Config alignmentProviderCfg;
   alignmentProviderCfg.filePath =
       "/home/romanurmanov/work/E320/E320Prototype/E320Prototype_analysis/data/"
-      "alignment/local_march_2026_data/sig/feb_data_procedure/test/aligned/"
-      "alignment-parameters.root";
+      "alignment/local_2026_data/big_shifts/aligned/alignment-parameters.root";
   alignmentProviderCfg.treeName = "alignment-parameters";
   AlignmentParametersProvider alignmentProvider(alignmentProviderCfg);
   aStore = alignmentProvider.getAlignmentStore();
@@ -154,6 +154,7 @@ int main() {
   }
   std::cout << "ALIGNMENT COVARIANCE:\n" << aStore->covariance << "\n";
   gctx = Acts::GeometryContext{alignCtx};
+  return 0;
 
   // --------------------------------------------------------------
   // The magnetic field setup
@@ -164,11 +165,7 @@ int main() {
   magFieldProviderCfg.treeName = "magnets";
   std::vector<std::string> inDirs = {
       "/home/romanurmanov/work/E320/E320Prototype/"
-      "E320Prototype_dataInRootFormat/E320Shift_June_2026_positrons/processed/"
-      "positron_runs/june_23/combined"};
-  // "/home/romanurmanov/work/E320/E320Prototype/"
-  // "E320Prototype_dataInRootFormat/E320Shift_June_2026_positrons/processed/"
-  // "positron_runs/june_23/even"};
+      "E320Prototype_dataInRootFormat/local_alignment_data/processed/sig"};
 
   // Get the paths to the files in the directory
   for (const auto& dir : inDirs) {
@@ -242,8 +239,8 @@ int main() {
 
   // Setup the sequencer
   Sequencer::Config seqCfg;
-  // seqCfg.events = 10;
-  // seqCfg.skip = 57500;
+  // seqCfg.events = 2000;
+  // seqCfg.skip = 20000;
   seqCfg.numThreads = 1;
   seqCfg.trackFpes = false;
   seqCfg.logLevel = logLevel;
@@ -262,6 +259,9 @@ int main() {
   readerCfg.outputEventMetaData = "EventMetaData";
   readerCfg.treeName = "data";
   readerCfg.eventKey = "event";
+  readerCfg.requireEpicsParity = true;
+  readerCfg.requiredEpicsParity = E320::E320RootDataReader::EpicsParity::Odd;
+  readerCfg.maxOccupancy = 200 * 5;
   readerCfg.minGeoId = goInst.tcParameters.front().geoId;
   readerCfg.maxGeoId = goInst.tcParameters.back().geoId;
   readerCfg.surfaceMap = surfaceMap;

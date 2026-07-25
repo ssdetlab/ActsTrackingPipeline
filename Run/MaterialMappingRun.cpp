@@ -7,7 +7,7 @@
 #include "TrackingPipeline/Alignment/AlignmentContext.hpp"
 #include "TrackingPipeline/Alignment/detail/AlignmentStoreBuilders.hpp"
 #include "TrackingPipeline/Geometry/E320Geometry.hpp"
-#include "TrackingPipeline/Geometry/E320GeometryConstraints.hpp"
+#include "TrackingPipeline/Geometry/E320GeometryOptions.hpp"
 #include "TrackingPipeline/Infrastructure/Sequencer.hpp"
 #include "TrackingPipeline/Io/JsonMaterialWriter.hpp"
 #include "TrackingPipeline/Io/RootMaterialTrackReader.hpp"

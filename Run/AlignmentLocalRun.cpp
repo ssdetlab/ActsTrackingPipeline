@@ -12,6 +12,7 @@
 #include "Acts/TrackFitting/KalmanFitter.hpp"
 #include "Acts/Utilities/Logger.hpp"
 
+#include <algorithm>
 #include <filesystem>
 #include <iostream>
 #include <memory>
@@ -29,14 +30,14 @@
 #include "TrackingPipeline/Alignment/detail/AlignmentStoreBuilders.hpp"
 #include "TrackingPipeline/EventData/SimpleSourceLink.hpp"
 #include "TrackingPipeline/Geometry/E320Geometry.hpp"
-#include "TrackingPipeline/Geometry/E320GeometryConstraints.hpp"
+#include "TrackingPipeline/Geometry/E320GeometryOptions.hpp"
 #include "TrackingPipeline/Geometry/GeometryContextDecorator.hpp"
 #include "TrackingPipeline/Infrastructure/Sequencer.hpp"
 #include "TrackingPipeline/Infrastructure/TypeDefinitions.hpp"
 #include "TrackingPipeline/Io/AlignmentParametersWriter.hpp"
 #include "TrackingPipeline/Io/E320MagneticFieldParametersProvider.hpp"
+#include "TrackingPipeline/Io/E320RootTrackReader.hpp"
 #include "TrackingPipeline/Io/RootSeedWriter.hpp"
-#include "TrackingPipeline/Io/RootTrackReader.hpp"
 #include "TrackingPipeline/Io/RootTrackWriter.hpp"
 #include "TrackingPipeline/MagneticField/MagneticFieldContextDecorator.hpp"
 #include "TrackingPipeline/TrackFinding/E320TrackParametersEstimator.hpp"
@@ -150,28 +151,6 @@ int main() {
 
   auto field = E320::buildMagField(gctx);
 
-  // E320::E320MagneticFieldParametersProvider::Config magFieldProviderCfg;
-  // magFieldProviderCfg.treeName = "magnets";
-  // std::vector<std::string> inDirs = {
-  //     "/home/romanurmanov/work/E320/E320Prototype/E320Prototype_analysis/data/"
-  //     "alignment/local_march_2026_data/sig/magnets"};
-
-  // // Get the paths to the files in the directory
-  // for (const auto& dir : inDirs) {
-  //   for (const auto& entry : std::filesystem::directory_iterator(dir)) {
-  //     if (!entry.is_regular_file() || entry.path().extension() != ".root") {
-  //       continue;
-  //     }
-  //     std::string pathToFile = entry.path();
-  //     magFieldProviderCfg.filePaths.push_back(pathToFile);
-  //   }
-  // }
-  // E320::E320MagneticFieldParametersProvider magFieldProvider(
-  //     magFieldProviderCfg);
-
-  // auto magFieldCollection =
-  // magFieldProvider.getMagneticFieldStoreCollection();
-
   // --------------------------------------------------------------
   // Event reading
   SimpleSourceLink::SurfaceAccessor surfaceAccessor{detector.get()};
@@ -186,23 +165,86 @@ int main() {
 
   sequencer.addContextDecorator(
       std::make_shared<GeometryContextDecorator>(aStore));
-  // sequencer.addContextDecorator(
-  //     std::make_shared<MagneticFieldContextDecorator>(magFieldCollection));
 
   // Add the sim data reader
-  RootTrackReader::Constraints readerConstraints{};
-  readerConstraints.minChi2 = 0;
-  readerConstraints.maxChi2 = 40;
-  readerConstraints.minVertexEstLong = -2000;
-  readerConstraints.maxVertexEstLong = 2000;
+  E320::E320RootTrackReader::Constraints readerConstraints{};
+  // ----------
+  // Big shifts
 
-  readerConstraints.minVertexEstShort = -2000;
-  readerConstraints.maxVertexEstShort = 2000;
+  // // Test
+  // readerConstraints.minChi2Predicted = 0;
+  // readerConstraints.maxChi2Predicted = 1e9;
+  // readerConstraints.minChi2Smoothed = 0;
+  // readerConstraints.maxChi2Smoothed = 100;
+
+  // readerConstraints.minVertexEstLong = -1e9;
+  // readerConstraints.maxVertexEstLong = 1e9;
+  // readerConstraints.minVertexEstShort = -1e9;
+  // readerConstraints.maxVertexEstShort = 1e9;
+
+  // readerConstraints.minAbsMomentumEst = 0_GeV;
+  // readerConstraints.maxAbsMomentumEst = 10_GeV;
+
+  // // Big shifts, step 1
+  // readerConstraints.minChi2Predicted = 1300;
+  // readerConstraints.maxChi2Predicted = 2500;
+  // readerConstraints.minChi2Smoothed = 1200;
+  // readerConstraints.maxChi2Smoothed = 2200;
+
+  // readerConstraints.minVertexEstLong = -25;
+  // readerConstraints.maxVertexEstLong = -10;
+  // readerConstraints.minVertexEstShort = -23;
+  // readerConstraints.maxVertexEstShort = -10;
+
+  // readerConstraints.minAbsMomentumEst = 0_GeV;
+  // readerConstraints.maxAbsMomentumEst = 10_GeV;
+
+  // Big shifts, step 2
+  readerConstraints.minChi2Predicted = 0;
+  readerConstraints.maxChi2Predicted = 1e9;
+  readerConstraints.minChi2Smoothed = 0;
+  readerConstraints.maxChi2Smoothed = 200;
+
+  readerConstraints.minVertexEstLong = -1e6;
+  readerConstraints.maxVertexEstLong = 1e6;
+  readerConstraints.minVertexEstShort = -1e6;
+  readerConstraints.maxVertexEstShort = 1e6;
 
   readerConstraints.minAbsMomentumEst = 0_GeV;
   readerConstraints.maxAbsMomentumEst = 10_GeV;
 
-  RootTrackReader::Config readerCfg;
+  // ----------
+  // Small shifts
+
+  // // Small shifts, step 1
+  // readerConstraints.minChi2Predicted = 0;
+  // readerConstraints.maxChi2Predicted = 1500;
+  // readerConstraints.minChi2Smoothed = 300;
+  // readerConstraints.maxChi2Smoothed = 1000;
+
+  // readerConstraints.minVertexEstLong = -25;
+  // readerConstraints.maxVertexEstLong = -13;
+  // readerConstraints.minVertexEstShort = -23;
+  // readerConstraints.maxVertexEstShort = -10;
+
+  // readerConstraints.minAbsMomentumEst = 0_GeV;
+  // readerConstraints.maxAbsMomentumEst = 10_GeV;
+
+  // // Small shifts, step 2
+  // readerConstraints.minChi2Predicted = 0;
+  // readerConstraints.maxChi2Predicted = 1e9;
+  // readerConstraints.minChi2Smoothed = 0;
+  // readerConstraints.maxChi2Smoothed = 100;
+
+  // readerConstraints.minVertexEstLong = -22;
+  // readerConstraints.maxVertexEstLong = -10;
+  // readerConstraints.minVertexEstShort = -20;
+  // readerConstraints.maxVertexEstShort = -7;
+
+  // readerConstraints.minAbsMomentumEst = 0_GeV;
+  // readerConstraints.maxAbsMomentumEst = 1e9_GeV;
+
+  E320::E320RootTrackReader::Config readerCfg;
   readerCfg.treeName = "fitted-tracks";
   readerCfg.outputSourceLinks = "SourceLinks";
   readerCfg.outputSeedsGuess = "SeedsGuess";
@@ -214,8 +256,7 @@ int main() {
 
   std::string pathToDir =
       "/home/romanurmanov/work/E320/E320Prototype/E320Prototype_analysis/data/"
-      "alignment/local_march_2026_data/sig/5um_errors/"
-      "it2/filtered";
+      "alignment/local_2026_data/big_shifts/step2";
 
   // Get the paths to the files in the directory
   for (const auto& entry : std::filesystem::directory_iterator(pathToDir)) {
@@ -227,7 +268,8 @@ int main() {
   }
 
   // Add the reader to the sequencer
-  sequencer.addReader(std::make_shared<RootTrackReader>(readerCfg, logLevel));
+  sequencer.addReader(
+      std::make_shared<E320::E320RootTrackReader>(readerCfg, logLevel));
 
   // --------------------------------------------------------------
   // Reference surface for sampling the track
@@ -328,17 +370,18 @@ int main() {
 
   // Alignment parameters solver
 
-  LocalAlignmentParametersSolverConstraints::Config alignmentSolverCfg{};
-  alignmentSolverCfg.alignmentMask = alignmentMask;
-  LocalAlignmentParametersSolverConstraints alignmentSolver(alignmentSolverCfg,
-                                                            logLevel);
-
-  // LocalAlignmentParametersSolverSVD::Config alignmentSolverCfg{};
+  // LocalAlignmentParametersSolverConstraints::Config alignmentSolverCfg{};
   // alignmentSolverCfg.alignmentMask = alignmentMask;
-  // alignmentSolverCfg.maxSingularValueTol = 1e-4;
-  // alignmentSolverCfg.singularValueGapTol = 9e-1;
-  // LocalAlignmentParametersSolverSVD alignmentSolver(alignmentSolverCfg,
-  //                                                   logLevel);
+  // LocalAlignmentParametersSolverConstraints
+  // alignmentSolver(alignmentSolverCfg,
+  //                                                           logLevel);
+
+  LocalAlignmentParametersSolverSVD::Config alignmentSolverCfg{};
+  alignmentSolverCfg.alignmentMask = alignmentMask;
+  alignmentSolverCfg.maxSingularValueTol = 1e-5;
+  alignmentSolverCfg.singularValueGapTol = 9e-1;
+  LocalAlignmentParametersSolverSVD alignmentSolver(alignmentSolverCfg,
+                                                    logLevel);
 
   // Alignment transform updater
   LocalAlignmentTransformUpdater::Config alignmentUpdaterCfg{};
@@ -351,8 +394,8 @@ int main() {
 
   // Annealing scheduler
   LinearAnnealingScheduler::Config annealingSchedulerCfg{};
-  annealingSchedulerCfg.alphaStart = 1e3;
-  annealingSchedulerCfg.alphaEnd = 1e3;
+  annealingSchedulerCfg.alphaStart = 1e0;
+  annealingSchedulerCfg.alphaEnd = 1e0;
   annealingSchedulerCfg.nIt = nRefittingIt;
 
   auto annealingScheduler =
@@ -407,7 +450,7 @@ int main() {
       .trackParametersEstimator = trackParametersEstimator};
 
   alignmentCfg.alignmentParametersSolver.connect<
-      &LocalAlignmentParametersSolverConstraints::calculateAlignmentParameters>(
+      &LocalAlignmentParametersSolverSVD::calculateAlignmentParameters>(
       &alignmentSolver);
 
   alignmentCfg.alignmentTransformUpdater
@@ -417,7 +460,7 @@ int main() {
   for (auto& det : detector->detectorElements()) {
     const auto& surface = det->surface();
     const auto& geoId = surface.geometryId().sensitive();
-    if (surface.geometryId().sensitive() > goInst.tcParameters.front().geoId &&
+    if (surface.geometryId().sensitive() >= goInst.tcParameters.front().geoId &&
         surface.geometryId().sensitive() <= goInst.tcParameters.back().geoId) {
       alignmentCfg.alignedDetElements.push_back(det.get());
     }

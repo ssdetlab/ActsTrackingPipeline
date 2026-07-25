@@ -20,13 +20,13 @@ struct SurfaceParameters {
     toWorldTranslation[detail::binningValueToIndex(std::get<0>(tShort))] =
         std::get<1>(tShort);
   }
-  SurfaceParameters() = delete;
+  SurfaceParameters() = default;
 
-  Acts::Vector3 toWorldTranslation;
+  Acts::Vector3 toWorldTranslation = Acts::Vector3::Zero();
 
-  double toWorldAnglePrimary;
-  double toWorldAngleLong;
-  double toWorldAngleShort;
+  double toWorldAnglePrimary = 0;
+  double toWorldAngleLong = 0;
+  double toWorldAngleShort = 0;
 
-  int geoId;
+  int geoId = 0;
 };

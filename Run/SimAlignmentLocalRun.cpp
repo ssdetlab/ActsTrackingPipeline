@@ -29,7 +29,7 @@
 #include "TrackingPipeline/Alignment/detail/AlignmentStoreBuilders.hpp"
 #include "TrackingPipeline/EventData/SimpleSourceLink.hpp"
 #include "TrackingPipeline/Geometry/E320Geometry.hpp"
-#include "TrackingPipeline/Geometry/E320GeometryConstraints.hpp"
+#include "TrackingPipeline/Geometry/E320GeometryOptions.hpp"
 #include "TrackingPipeline/Geometry/GeometryContextDecorator.hpp"
 #include "TrackingPipeline/Infrastructure/Sequencer.hpp"
 #include "TrackingPipeline/Infrastructure/TypeDefinitions.hpp"
@@ -152,7 +152,7 @@ int main() {
   magFieldProviderCfg.treeName = "magnets";
   std::vector<std::string> inDirs = {
       "/home/romanurmanov/work/E320/E320Prototype/E320Prototype_analysis/sim/"
-      "alignment/local/magnets"};
+      "alignment/local/shifts_angles/misaligned/magnets"};
 
   // Get the paths to the files in the directory
   for (const auto& dir : inDirs) {
@@ -212,7 +212,7 @@ int main() {
 
   std::string pathToDir =
       "/home/romanurmanov/work/E320/E320Prototype/E320Prototype_analysis/sim/"
-      "alignment/local/filtered";
+      "alignment/local/shifts_angles/misaligned/fitted_tracks";
 
   // Get the paths to the files in the directory
   for (const auto& entry : std::filesystem::directory_iterator(pathToDir)) {
@@ -317,17 +317,17 @@ int main() {
 
   // Alignment parameters solver
 
-  LocalAlignmentParametersSolverConstraints::Config alignmentSolverCfg{};
-  alignmentSolverCfg.alignmentMask = alignmentMask;
-  LocalAlignmentParametersSolverConstraints alignmentSolver(alignmentSolverCfg,
-                                                            logLevel);
-
-  // LocalAlignmentParametersSolverSVD::Config alignmentSolverCfg{};
+  // LocalAlignmentParametersSolverConstraints::Config alignmentSolverCfg{};
   // alignmentSolverCfg.alignmentMask = alignmentMask;
-  // alignmentSolverCfg.maxSingularValueTol = 1e-4;
-  // alignmentSolverCfg.singularValueGapTol = 9e-1;
-  // LocalAlignmentParametersSolverSVD alignmentSolver(alignmentSolverCfg,
-  //                                                   logLevel);
+  // LocalAlignmentParametersSolverConstraints alignmentSolver(alignmentSolverCfg,
+  //                                                           logLevel);
+
+  LocalAlignmentParametersSolverSVD::Config alignmentSolverCfg{};
+  alignmentSolverCfg.alignmentMask = alignmentMask;
+  alignmentSolverCfg.maxSingularValueTol = 1e-5;
+  alignmentSolverCfg.singularValueGapTol = 9e-1;
+  LocalAlignmentParametersSolverSVD alignmentSolver(alignmentSolverCfg,
+                                                    logLevel);
 
   // Alignment transform updater
   LocalAlignmentTransformUpdater::Config alignmentUpdaterCfg{};
@@ -396,7 +396,7 @@ int main() {
       .trackParametersEstimator = trackParametersEstimator};
 
   alignmentCfg.alignmentParametersSolver.connect<
-      &LocalAlignmentParametersSolverConstraints::calculateAlignmentParameters>(
+      &LocalAlignmentParametersSolverSVD::calculateAlignmentParameters>(
       &alignmentSolver);
 
   alignmentCfg.alignmentTransformUpdater
@@ -407,7 +407,7 @@ int main() {
     const auto& surface = det->surface();
     const auto& geoId = surface.geometryId().sensitive();
     if (geoId != 0u &&
-        surface.geometryId().sensitive() > goInst.tcParameters.front().geoId &&
+        surface.geometryId().sensitive() >= goInst.tcParameters.front().geoId &&
         surface.geometryId().sensitive() <= goInst.tcParameters.back().geoId) {
       alignmentCfg.alignedDetElements.push_back(det.get());
     }

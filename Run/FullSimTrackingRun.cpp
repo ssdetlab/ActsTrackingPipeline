@@ -11,6 +11,7 @@
 #include "Acts/TrackFitting/GainMatrixUpdater.hpp"
 #include "Acts/TrackFitting/KalmanFitter.hpp"
 #include "Acts/Utilities/Logger.hpp"
+#include <Acts/Definitions/TrackParametrization.hpp>
 #include <Acts/Geometry/GeometryContext.hpp>
 
 #include <cmath>
@@ -23,8 +24,12 @@
 #include <unistd.h>
 
 #include "TrackingPipeline/Alignment/detail/AlignmentStoreBuilders.hpp"
+#include "TrackingPipeline/EventData/ExtendedSourceLink.hpp"
+#include "TrackingPipeline/EventData/MixedSourceLinkCalibrator.hpp"
+#include "TrackingPipeline/EventData/MixedSourceLinkSurfaceAccessor.hpp"
+#include "TrackingPipeline/EventData/SimpleSourceLink.hpp"
 #include "TrackingPipeline/Geometry/E320Geometry.hpp"
-#include "TrackingPipeline/Geometry/E320GeometryConstraints.hpp"
+#include "TrackingPipeline/Geometry/E320GeometryOptions.hpp"
 #include "TrackingPipeline/Geometry/GeometryContextDecorator.hpp"
 #include "TrackingPipeline/Infrastructure/Sequencer.hpp"
 #include "TrackingPipeline/Infrastructure/TypeDefinitions.hpp"
@@ -32,13 +37,9 @@
 #include "TrackingPipeline/Io/E320MagneticFieldParametersProvider.hpp"
 #include "TrackingPipeline/Io/E320MagneticFieldWriter.hpp"
 #include "TrackingPipeline/Io/E320RootSimClusterReader.hpp"
+#include "TrackingPipeline/Io/E320RootSimTrackWriter.hpp"
 #include "TrackingPipeline/Io/RootSimSeedWriter.hpp"
-#include "TrackingPipeline/Io/RootSimTrackWriter.hpp"
-#include "TrackingPipeline/MagneticField/ConstantMagField.hpp"
-#include "TrackingPipeline/MagneticField/IdealQuadrupoleMagField.hpp"
 #include "TrackingPipeline/MagneticField/MagneticFieldContextDecorator.hpp"
-#include "TrackingPipeline/MagneticField/MagneticFieldStore.hpp"
-#include "TrackingPipeline/MagneticField/MagneticFieldStoreCollection.hpp"
 #include "TrackingPipeline/TrackFinding/E320SeedingAlgorithm.hpp"
 #include "TrackingPipeline/TrackFinding/E320TrackParametersEstimator.hpp"
 #include "TrackingPipeline/TrackFinding/HoughTransformSeeder.hpp"
@@ -81,7 +82,7 @@ int main() {
       logLevel);
 
   // Construct detector
-  auto detector = E320::buildDetector(gctx, materialDecorator);
+  auto detector = E320::buildDetector(gctx, nullptr);
 
   // Set up surface maps for later use
   std::unordered_map<Acts::GeometryIdentifier, const Acts::Surface*> surfaceMap;
@@ -116,6 +117,24 @@ int main() {
   // alignmentProviderCfg.treeName = "alignment-parameters";
   // AlignmentParametersProvider alignmentProvider(alignmentProviderCfg);
   // aStore = alignmentProvider.getAlignmentStore();
+
+  Acts::Vector3 globalShiftMean(0_mm, 0_mm, 0_mm);
+  std::unordered_map<int, Acts::Vector3> localShiftsMean{
+      {10, Acts::Vector3(0_mm, 0_um, 0_um)},
+      {12, Acts::Vector3(0_mm, 0_um, 0_um)},
+      {14, Acts::Vector3(0_mm, 0_um, 0_um)},
+      {16, Acts::Vector3(0_mm, 0_um, 0_um)},
+      {18, Acts::Vector3(0_mm, 0_um, 0_um)}};
+  Acts::Vector3 globalAnglesMean(0_rad, 0_rad, 0_rad);
+  std::unordered_map<int, Acts::Vector3> localAnglesMean{
+      {10, Acts::Vector3(0_rad, 0_rad, 0_rad)},
+      {12, Acts::Vector3(0_rad, 0_rad, 0_rad)},
+      {14, Acts::Vector3(0_rad, 0_rad, 0_rad)},
+      {16, Acts::Vector3(0_rad, 0_rad, 0_rad)},
+      {18, Acts::Vector3(0_rad, 0_rad, 0_rad)}};
+  aStore = detail::makeAlignmentStore(gctx, detector.get(), globalShiftMean,
+                                      localShiftsMean, globalAnglesMean,
+                                      localAnglesMean);
 
   // Initialize alignment context
   AlignmentContext alignCtx(aStore);
@@ -155,6 +174,7 @@ int main() {
       }
     }
   }
+  // throw std::runtime_error("ERR");
 
   // --------------------------------------------------------------
   // The magnetic field setup
@@ -164,8 +184,11 @@ int main() {
   E320::E320MagneticFieldParametersProvider::Config magFieldProviderCfg;
   magFieldProviderCfg.treeName = "magnets";
   std::vector<std::string> inDirs = {
+      // "/home/romanurmanov/work/E320/E320Prototype/"
+      // "E320Prototype_dataInRootFormat/sim/alignment/global/beam_positrons/"
+      // "magnets"};
       "/home/romanurmanov/work/E320/E320Prototype/"
-      "E320Prototype_dataInRootFormat/sim/alignment/local_sig_misaligned/"
+      "E320Prototype_dataInRootFormat/sim/alignment/global/test/"
       "magnets"};
 
   // Get the paths to the files in the directory
@@ -201,9 +224,9 @@ int main() {
   // Seeding reference surface
   Acts::Transform3 seedingRefSurfTransform = Acts::Transform3::Identity();
   seedingRefSurfTransform.translation() =
-      Acts::Vector3(goInst.ipTcDistance - 0.1_mm, 0, 0);
-  // Acts::Vector3(goInst.ipTcDistance + 2 * goInst.tcHalfPrimary + 0.1_mm, 0,
-  //               0);
+      // Acts::Vector3(goInst.ipTcDistance - 0.1_mm, 0, 0);
+      Acts::Vector3(goInst.ipTcDistance + 2 * goInst.tcHalfPrimary + 0.1_mm, 0,
+                    0);
   seedingRefSurfTransform.rotate(refSurfToWorldRotationX);
   seedingRefSurfTransform.rotate(refSurfToWorldRotationY);
   seedingRefSurfTransform.rotate(refSurfToWorldRotationZ);
@@ -219,10 +242,10 @@ int main() {
   // Tracking reference surface
   Acts::Transform3 trackingRefSurfTransform = Acts::Transform3::Identity();
   trackingRefSurfTransform.translation() =
-      // Acts::Vector3(goInst.bpm0CenterPrimary - 0.1_mm, 0, 0);
-      Acts::Vector3(
-          goInst.dipoleCenterPrimary + goInst.dipoleHalfPrimary + 0.01_mm, 0,
-          0);
+      Acts::Vector3(goInst.ipSurfaceCenterPrimary - 0.1_mm, 0, 0);
+  // Acts::Vector3(
+  //     goInst.dipoleCenterPrimary + goInst.dipoleHalfPrimary + 0.01_mm, 0,
+  //     0);
   trackingRefSurfTransform.rotate(refSurfToWorldRotationX);
   trackingRefSurfTransform.rotate(refSurfToWorldRotationY);
   trackingRefSurfTransform.rotate(refSurfToWorldRotationZ);
@@ -237,11 +260,27 @@ int main() {
 
   // --------------------------------------------------------------
   // Event reading
-  SimpleSourceLink::SurfaceAccessor surfaceAccessor{detector.get()};
+
+  // Mixed surface accessor
+  SimpleSourceLink::SurfaceAccessor simpleSurfaceAccessor{detector.get()};
+  ExtendedSourceLink::SurfaceAccessor extendedSurfaceAccessor{detector.get()};
+  MixedSourceLinkSurfaceAccessor mixedSurfaceAccessor;
+  mixedSurfaceAccessor.connect<&SimpleSourceLink::SurfaceAccessor::operator(),
+                               SimpleSourceLink>(&simpleSurfaceAccessor);
+  mixedSurfaceAccessor.connect<&ExtendedSourceLink::SurfaceAccessor::operator(),
+                               ExtendedSourceLink>(&extendedSurfaceAccessor);
+
+  // Mixed calibrator
+  MixedSourceLinkCalibrator<KFFitterTrajectory> mixedCalibrator;
+  mixedCalibrator.connect<&simpleSourceLinkCalibrator<KFFitterTrajectory>,
+                          SimpleSourceLink>();
+  mixedCalibrator.connect<
+      &extendedSourceLinkBackwardsPhiCorrectionCalibrator<KFFitterTrajectory>,
+      ExtendedSourceLink>();
 
   // Setup the sequencer
   Sequencer::Config seqCfg;
-  // seqCfg.events = 1;
+  // seqCfg.events = 10;
   // seqCfg.skip = 1000;
   seqCfg.numThreads = 1;
   seqCfg.trackFpes = false;
@@ -258,18 +297,21 @@ int main() {
   readerCfg.outputSourceLinks = "SourceLinks";
   readerCfg.outputSimClusters = "SimClusters";
   readerCfg.outputDetSourceLinkIndices = "DetSourceLinkIndices";
-  readerCfg.outputBpmSourceLinkIndices = "BpmSourceLinkIndices";
+  readerCfg.outputConstraintSourceLinkIndices = "BpmSourceLinkIndices";
   readerCfg.treeName = "clusters";
-  readerCfg.minGeoId = goInst.tcParameters.front().geoId;
-  // readerCfg.minGeoId = goInst.bpm0Parameters.geoId;
+  // readerCfg.minGeoId = goInst.tcParameters.front().geoId;
+  readerCfg.minGeoId = goInst.ipSurfaceParameters.geoId;
   readerCfg.maxGeoId = goInst.tcParameters.back().geoId;
-  // readerCfg.maxGeoId = goInst.bpm3Parameters.geoId;
   readerCfg.surfaceLocalToGlobal = true;
   readerCfg.surfaceMap = surfaceMap;
+  readerCfg.backwards = true;
 
   std::string pathToDir =
+      // "/home/romanurmanov/work/E320/E320Prototype/"
+      // "E320Prototype_dataInRootFormat/sim/alignment/global/beam_positrons/"
+      // "clusters_merged_misaligned_beamline";
       "/home/romanurmanov/work/E320/E320Prototype/"
-      "E320Prototype_dataInRootFormat/sim/alignment/local_sig_misaligned/"
+      "E320Prototype_dataInRootFormat/sim/alignment/global/test/"
       "clusters";
 
   // Get the paths to the files in the directory
@@ -342,7 +384,7 @@ int main() {
   trackParametersEstimatorCfg.originCov =
       trackOriginStdDevPrior.cwiseProduct(trackOriginStdDevPrior).asDiagonal();
   trackParametersEstimatorCfg.propDirection =
-      E320::E320TrackParametersEstimator::PropagationDirection::forward;
+      E320::E320TrackParametersEstimator::PropagationDirection::backward;
 
   auto trackParametersEstimator =
       std::make_shared<E320::E320TrackParametersEstimator>(
@@ -373,7 +415,8 @@ int main() {
   Acts::KalmanFitterExtensions<KFFitterTrajectory> kfExtensions;
   // Add calibrator
   kfExtensions.calibrator
-      .connect<&simpleSourceLinkCalibrator<KFFitterTrajectory>>();
+      .connect<&MixedSourceLinkCalibrator<KFFitterTrajectory>::operator()>(
+          &mixedCalibrator);
   // Add the updater
   kfExtensions.updater
       .connect<&KFFitterGainUpdater::operator()<KFFitterTrajectory>>(
@@ -384,8 +427,8 @@ int main() {
           &kfSmoother);
   // Add the surface accessor
   kfExtensions.surfaceAccessor
-      .connect<&SimpleSourceLink::SurfaceAccessor::operator()>(
-          &surfaceAccessor);
+      .connect<&MixedSourceLinkSurfaceAccessor::operator()>(
+          &mixedSurfaceAccessor);
 
   Navigator::Config cfg;
   cfg.detector = detector.get();
@@ -421,25 +464,11 @@ int main() {
   // --------------------------------------------------------------
   // Event write out
 
-  // Seed writer
-  RootSimSeedWriter::Config seedWriterCfg;
-  seedWriterCfg.inputSeeds = "Seeds";
-  seedWriterCfg.inputTrackParameters = "TrackParameters";
-  seedWriterCfg.inputSimClusters = "SimClusters";
-  seedWriterCfg.inputSourceLinks = "SourceLinks";
-  seedWriterCfg.treeName = "seeds";
-  seedWriterCfg.filePath =
-      "/home/romanurmanov/work/E320/E320Prototype/E320Prototype_analysis/sim/"
-      "seeds.root";
-
-  sequencer.addWriter(
-      std::make_shared<RootSimSeedWriter>(seedWriterCfg, logLevel));
-
   // Fitted track writer
-  RootSimTrackWriter::Config trackWriterCfg;
+  E320::E320RootSimTrackWriter::Config trackWriterCfg;
   trackWriterCfg.surfaceAccessor
-      .connect<&SimpleSourceLink::SurfaceAccessor::operator()>(
-          &surfaceAccessor);
+      .connect<&MixedSourceLinkSurfaceAccessor::operator()>(
+          &mixedSurfaceAccessor);
   trackWriterCfg.referenceSurface = trackingRefSurface.get();
   trackWriterCfg.inputTrackContainer = "TrackContainer";
   trackWriterCfg.inputTracks = "Tracks";
@@ -449,9 +478,10 @@ int main() {
   trackWriterCfg.filePath =
       "/home/romanurmanov/work/E320/E320Prototype/E320Prototype_analysis/sim/"
       "fitted-tracks.root";
+  trackWriterCfg.applyPhiCorrection = true;
 
   sequencer.addWriter(
-      std::make_shared<RootSimTrackWriter>(trackWriterCfg, logLevel));
+      std::make_shared<E320::E320RootSimTrackWriter>(trackWriterCfg, logLevel));
 
   // Magnetic field writer
   auto magFieldWriterCfg = E320::E320MagneticFieldWriter::Config();
