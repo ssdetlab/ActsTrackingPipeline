@@ -7,8 +7,6 @@ IdealQuadrupoleMagField::IdealQuadrupoleMagField(
     const Acts::RotationMatrix3& rotation)
     : m_id(id), m_gradient(gradient), m_origin(origin), m_rotation(rotation) {};
 
-IdealQuadrupoleMagField::~IdealQuadrupoleMagField() = default;
-
 Acts::Result<Acts::Vector3> IdealQuadrupoleMagField::getField(
     const Acts::Vector3& position, MagneticFieldProvider::Cache& cache) const {
   const auto& quadCache = cache.as<Cache>();
