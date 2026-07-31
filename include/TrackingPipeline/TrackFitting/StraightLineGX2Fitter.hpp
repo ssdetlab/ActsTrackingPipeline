@@ -12,10 +12,9 @@
 
 /// @brief simple global chi2 fitter for intermediate estimations
 ///
-/// The class performs a simple chi2 fit of a particle track
-/// accounting for multiple scattering effects. The layers
-/// of the tracking detector are assumed to be evenly spaced.
-/// The fitter relies on the initial estimate of the track's direction.
+/// The class performs a simple chi2 fit of a particle track accounting for
+/// multiple scattering effects. The fitter relies on the initial estimate of
+/// the track's direction.
 class StraightLineGX2Fitter {
  public:
   /// @brief config struct
@@ -24,7 +23,7 @@ class StraightLineGX2Fitter {
     std::size_t primaryIdx;
     std::size_t longIdx;
     std::size_t shortIdx;
-    /// Layer ids
+    /// Layer id range
     std::size_t firstLayerGeoId;
     std::size_t lastLayerGeoId;
     /// Surface map
@@ -32,16 +31,31 @@ class StraightLineGX2Fitter {
         surfaceMap;
   };
 
+  /// Fitter covariance shorthand
   static const std::size_t covarianceDim = 6;
   using Covariance = Acts::ActsSquareMatrix<covarianceDim>;
 
+  /// Enum with the dimension indices
+  enum GX2FreeIndices : std::size_t {
+    eFreePos0 = 0,
+    eFreePos1 = 1,
+    eFreePos2 = 2,
+    eFreeDir0 = 3,
+    eFreeDir1 = 4,
+    eFreeDir2 = 5
+  };
+
   /// @brief constructor
+  ///
+  /// @param cfg configuration struct
   explicit StraightLineGX2Fitter(const Config& cfg);
 
   /// @brief perform global chi2 fit
   ///
   /// @param gctx geometry context
-  /// @param sourceLinks measurements participating in the fit
+  /// @param sourceLinks source links container
+  /// @param sourceLinks source links indices container
+  /// @param thetaMcsRms rms scattering angle in the layers
   /// @param pos track position estimate to be updated
   /// @param dir track direction estimate to be updated
   /// @param cov track covariance estimate to be updated
@@ -54,7 +68,15 @@ class StraightLineGX2Fitter {
                 Covariance& cov);
 
  private:
-  /// @brief global covariance construction
+  /// @brief global measurement covariance construction
+  ///
+  /// @param interSurfaceDistanceSums inter-surface distance dependent sums
+  /// @param sourceLinks source links container
+  /// @param sourceLinks source links indices container
+  /// @param dir track direction estimate to be updated
+  /// @param thetaMcsRms rms scattering angle in the layers
+  ///
+  /// @return global measurement covariance
   Acts::ActsDynamicMatrix constructCov(
       const std::unordered_map<std::pair<std::uint32_t, std::uint32_t>, double,
                                detail::PairHash>& interSurfaceDistanceSums,
@@ -62,10 +84,14 @@ class StraightLineGX2Fitter {
       const std::vector<std::size_t>& sourceLinksIndices,
       const Acts::Vector3& dir, double thetaMcsRms);
 
+  /// Configuration
   Config m_cfg;
 
+  /// Measurement surfaces map
   std::vector<std::pair<Acts::GeometryIdentifier, const Acts::Surface*>>
       m_surfaces;
+
+  /// Measurement surfaces geometry ID range
   Acts::GeometryIdentifier m_firstLayerGeoId;
   Acts::GeometryIdentifier m_lastLayerGeoId;
 };
