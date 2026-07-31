@@ -113,19 +113,19 @@ double StraightLineGX2Fitter::gx2Fit(
   dir.normalize();
   double denom = std::pow(1 + tLong * tLong + tShort * tShort, 1.5);
 
-  Acts::ActsMatrix<6, 4> jacToGlob;
+  Acts::ActsMatrix<eFreeSize, eEstimateSize> jacToGlob;
   jacToGlob.setZero();
-  jacToGlob(1, 0) = 1;
-  jacToGlob(2, 1) = 1;
+  jacToGlob(eFreePos1, ePos0) = 1;
+  jacToGlob(eFreePos2, ePos1) = 1;
 
-  jacToGlob(3, 2) = -tLong / denom;
-  jacToGlob(3, 3) = -tShort / denom;
+  jacToGlob(eFreeDir0, eDir0) = -tLong / denom;
+  jacToGlob(eFreeDir0, eDir1) = -tShort / denom;
 
-  jacToGlob(4, 2) = (1 + tShort * tShort) / denom;
-  jacToGlob(4, 3) = -tLong * tShort / denom;
+  jacToGlob(eFreeDir1, eDir0) = (1 + tShort * tShort) / denom;
+  jacToGlob(eFreeDir1, eDir1) = -tLong * tShort / denom;
 
-  jacToGlob(5, 2) = -tLong * tShort / denom;
-  jacToGlob(5, 3) = (1 + tLong * tLong) / denom;
+  jacToGlob(eFreeDir2, eDir0) = -tLong * tShort / denom;
+  jacToGlob(eFreeDir2, eDir1) = (1 + tLong * tLong) / denom;
 
   cov = jacToGlob * B.inverse() * jacToGlob.transpose();
   return (X - G * estimates).transpose() * ldltD.solve(X - G * estimates);

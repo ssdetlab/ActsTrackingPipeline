@@ -31,19 +31,28 @@ class StraightLineGX2Fitter {
         surfaceMap;
   };
 
-  /// Fitter covariance shorthand
-  static const std::size_t covarianceDim = 6;
-  using Covariance = Acts::ActsSquareMatrix<covarianceDim>;
+  /// Enum with the GX2 estimate dimension indices
+  enum GX2EstimateIndices : std::size_t {
+    ePos0 = 0,
+    ePos1 = 1,
+    eDir0 = 2,
+    eDir1 = 3,
+    eEstimateSize = 4
+  };
 
-  /// Enum with the dimension indices
+  /// Enum with the free dimension indices
   enum GX2FreeIndices : std::size_t {
     eFreePos0 = 0,
     eFreePos1 = 1,
     eFreePos2 = 2,
     eFreeDir0 = 3,
     eFreeDir1 = 4,
-    eFreeDir2 = 5
+    eFreeDir2 = 5,
+    eFreeSize = 6
   };
+
+  /// Fitter covariance shorthand
+  using Covariance = Acts::ActsSquareMatrix<eFreeSize>;
 
   /// @brief constructor
   ///
