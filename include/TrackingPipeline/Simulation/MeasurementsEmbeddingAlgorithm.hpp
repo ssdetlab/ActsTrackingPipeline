@@ -7,8 +7,9 @@
 #include "TrackingPipeline/Infrastructure/IAlgorithm.hpp"
 #include "TrackingPipeline/Simulation/IMeasurementGenerator.hpp"
 
-using namespace Acts::UnitLiterals;
-
+/// @brief Algorithm performing fast simulation of a particle
+/// propagation and creating measurements on the geometry surfaces according to
+/// the measurement generator implementation
 class MeasurementsEmbeddingAlgorithm : public IAlgorithm {
  public:
   /// @brief The nested configuration struct
@@ -34,18 +35,25 @@ class MeasurementsEmbeddingAlgorithm : public IAlgorithm {
   };
 
   /// @brief Constructor
+  ///
+  /// @param config configuration struct
+  /// @param level logging level
   MeasurementsEmbeddingAlgorithm(const Config& config,
                                  Acts::Logging::Level level);
 
   /// @brief The execute method
+  ///
+  /// @param ctx current algorithm context
   ProcessCode execute(const AlgorithmContext& ctx) const override;
 
-  /// Get readonly access to the config parameters
+  /// @brief Get readonly access to the config parameters
   const Config& config() const { return m_cfg; }
 
  private:
+  /// Configuration
   Config m_cfg;
 
+  /// Read data handles
   ReadDataHandle<std::vector<Acts::SourceLink>> m_inputSourceLinks{
       this, "InputSourceLinks"};
 
@@ -54,6 +62,7 @@ class MeasurementsEmbeddingAlgorithm : public IAlgorithm {
   ReadDataHandle<std::vector<std::size_t>> m_inputSourceLinksIndices{
       this, "InputSourceLinkIndices"};
 
+  /// Write data handles
   WriteDataHandle<std::vector<Acts::SourceLink>> m_outputSourceLinks{
       this, "OutputSourceLinks"};
 
