@@ -44,6 +44,8 @@ class MeasurementsEmbeddingAlgorithm : public IAlgorithm {
   /// @brief The execute method
   ///
   /// @param ctx current algorithm context
+  ///
+  /// @return algorithm process code
   ProcessCode execute(const AlgorithmContext& ctx) const override;
 
   /// @brief Get readonly access to the config parameters
