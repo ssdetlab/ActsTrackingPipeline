@@ -24,8 +24,10 @@ using namespace Acts::UnitLiterals;
 /// multiple scattering and energy loss processes, if the surfaces
 /// has material assigned
 struct MeasurementsCreatorAction {
+  /// Result type definition
   using result_type = std::vector<Acts::BoundTrackParameters>;
 
+  /// User-speficied ID
   int sourceId = 0;
 
   /// @brief Operator that is callable by an ActionList. The function
@@ -35,8 +37,11 @@ struct MeasurementsCreatorAction {
   /// @tparam stepper_t Type of the stepper
   /// @tparam navigator_t Type of the navigator
   ///
-  /// @param [out] result Vector of matching surfaces
-  /// @param [in] state State of the propagator
+  /// @param state current propagation state
+  /// @param stepper stepper instance
+  /// @param navigator navigator instance
+  /// @param result result container reference
+  /// @param logger logging instance
   template <typename propagator_state_t, typename stepper_t,
             typename navigator_t>
   void operator()(propagator_state_t &state, const stepper_t &stepper,
