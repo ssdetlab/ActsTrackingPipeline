@@ -8,7 +8,6 @@
 #include "Acts/Material/ProtoSurfaceMaterial.hpp"
 #include "Acts/Utilities/Logger.hpp"
 #include "ActsFatras/Physics/ElectroMagnetic/BetheBloch.hpp"
-#include "ActsFatras/Physics/ElectroMagnetic/BetheHeitler.hpp"
 #include "ActsFatras/Physics/ElectroMagnetic/Scattering.hpp"
 #include <Acts/Definitions/Common.hpp>
 
@@ -105,14 +104,12 @@ struct MeasurementsCreatorAction {
         throw std::runtime_error("Unsupported surface material encountered");
       }
 
-      auto scattering = ActsFatras::GaussianMixtureScattering();
+      auto scattering = ActsFatras::HighlandScattering();
       ActsFatras::BetheBloch BBProcess;
-      ActsFatras::BetheHeitler BHProcess;
 
       // Apply the scattering and energy loss processes
       scattering(gen, material, simParticle);
       BBProcess(gen, material, simParticle);
-      BHProcess(gen, material, simParticle);
 
       scatteredParameters[Acts::eBoundQOverP] =
           simParticle.charge() / simParticle.absoluteMomentum();
