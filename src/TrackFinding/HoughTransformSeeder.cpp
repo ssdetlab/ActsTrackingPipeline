@@ -267,7 +267,7 @@ std::vector<HoughTransformSeeder::HTSeed> HoughTransformSeeder::findSeeds(
     Acts::Vector3 point;
     point(primaryIdx) = 0;
     point(longIdx) = bLong;
-    point(primaryIdx) = bShort;
+    point(shortIdx) = bShort;
     point += shift;
 
     seeds.emplace_back(std::move(point), std::move(dir),
