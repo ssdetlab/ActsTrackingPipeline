@@ -1,6 +1,6 @@
 #include "TrackingPipeline/Simulation/ConvergingBeamGenerator.hpp"
 
-#include <Acts/Definitions/Algebra.hpp>
+#include "Acts/Definitions/Algebra.hpp"
 
 #include <cmath>
 
@@ -43,13 +43,13 @@ Acts::Vector3 ConvergingBeamGenerator::getMomentumMean() const {
 
 void ConvergingBeamGenerator::internalUpdate(RandomEngine& rng) const {
   // Sample phase space at the waist
-  double waistLong = m_cfg.waistSigmaLong * m_unitNormal(rng);
-  double waistShort = m_cfg.waistSigmaShort * m_unitNormal(rng);
+  double waistLong = m_cfg.waistSigmaLong * m_normal(rng);
+  double waistShort = m_cfg.waistSigmaShort * m_normal(rng);
 
   double waistThetaLong =
-      m_cfg.waistMeanThetaLong + m_cfg.waistSigmaThetaLong * m_unitNormal(rng);
-  double waistThetaShort = m_cfg.waistMeanThetaShort +
-                           m_cfg.waistSigmaThetaShort * m_unitNormal(rng);
+      m_cfg.waistMeanThetaLong + m_cfg.waistSigmaThetaLong * m_normal(rng);
+  double waistThetaShort =
+      m_cfg.waistMeanThetaShort + m_cfg.waistSigmaThetaShort * m_normal(rng);
 
   double deltaPrimary =
       m_cfg.waistPosition(m_cfg.primaryIdx) - m_cfg.referencePositionPrimary;
@@ -73,7 +73,11 @@ void ConvergingBeamGenerator::internalUpdate(RandomEngine& rng) const {
   direction(m_cfg.shortIdx) = waistThetaShort;
   direction.normalize();
 
+  // Energy
+  double E = m_cfg.beamEnergyMin +
+             (m_cfg.beamEnergyMax - m_cfg.beamEnergyMin) * m_uniform(rng);
+
   m_state->vertex = position;
-  m_state->momentum = m_cfg.beamEnergy * direction;
+  m_state->momentum = E * direction;
   m_state->genState = {true, true};
 }
