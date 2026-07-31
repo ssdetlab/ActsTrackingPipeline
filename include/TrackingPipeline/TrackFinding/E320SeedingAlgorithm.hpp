@@ -12,13 +12,19 @@
 
 namespace E320 {
 
+/// @brief e320-specific seeding algorithm
+///
+/// Seeding algorithm performing the Hough Transform + Try All track candidate
+/// costruction pattern recongnition. The track candidate parameters are
+/// estimated with a dedicated e320-specific estimator relying on the fast
+/// global chi2 fit + dipole-field-based q/P estimation.
 class E320SeedingAlgorithm : public IAlgorithm {
  public:
   /// @brief The nested configuration struct
   struct Config {
-    /// HT seeder
+    /// Hough Transform seeder
     std::shared_ptr<HoughTransformSeeder> htSeeder;
-    /// HT seeder options
+    /// Hough Transform  seeder options
     HoughTransformSeeder::Options htOptions;
     /// Input detector source links
     std::string inputSourceLinks;
@@ -39,6 +45,9 @@ class E320SeedingAlgorithm : public IAlgorithm {
   };
 
   /// @brief Constructor
+  ///
+  /// @param config configuration struct
+  /// @param level logging level
   E320SeedingAlgorithm(const Config& config, Acts::Logging::Level level);
 
   /// @brief Execute method
