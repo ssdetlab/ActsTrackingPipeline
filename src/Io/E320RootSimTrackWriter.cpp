@@ -3,12 +3,15 @@
 #include "Acts/Definitions/Algebra.hpp"
 #include "Acts/Definitions/TrackParametrization.hpp"
 #include "Acts/EventData/TransformationHelpers.hpp"
+#include <Acts/Utilities/MathHelpers.hpp>
 #include <Acts/Utilities/UnitVectors.hpp>
 
 #include <algorithm>
 #include <cstddef>
 #include <ranges>
 #include <stdexcept>
+
+#include <Eigen/src/Core/util/Constants.h>
 
 #include "TrackingPipeline/EventData/ExtendedSourceLink.hpp"
 #include "TrackingPipeline/EventData/SimpleSourceLink.hpp"
@@ -713,17 +716,6 @@ ProcessCode E320::E320RootSimTrackWriter::write(const AlgorithmContext& ctx) {
       double predictedOnSurfaceAbsMom =
           std::abs(1.0 / predictedPars(Acts::eBoundQOverP));
 
-      // Apply phi correction to the truth info
-      if (backwards && m_cfg.applyPhiCorrection) {
-        double phiDiff = trueTrackAngle(0) - predictedAngle(0);
-        if (phiDiff < 0 && std::abs(phiDiff) > M_PI) {
-          trueTrackAngle(0) += 2 * M_PI;
-        }
-        if (phiDiff > M_PI) {
-          trueTrackAngle(0) -= 2 * M_PI;
-        }
-      }
-
       // Get the residuals between the true and the predicted hits
       Acts::Vector2 truePredictedHitResidual = trueTrackHit - predictedHit;
 
@@ -751,7 +743,7 @@ ProcessCode E320::E320RootSimTrackWriter::write(const AlgorithmContext& ctx) {
 
       // Covariance with respect to the measurement hits
       Acts::ActsDynamicMatrix predictedMeasCov =
-          predictedMeasCovTruth - measCov;
+          measCov - predictedMeasCovTruth;
 
       Acts::SquareMatrix2 predictedHitCov =
           predictedMeasCov.topLeftCorner(2, 2);
@@ -893,7 +885,7 @@ ProcessCode E320::E320RootSimTrackWriter::write(const AlgorithmContext& ctx) {
 
         // Covariance with respect to the measurement hits
         Acts::ActsDynamicMatrix filteredMeasCov =
-            filteredMeasCovTruth - measCov;
+            measCov - filteredMeasCovTruth;
 
         Acts::SquareMatrix2 filteredHitCov =
             filteredMeasCov.topLeftCorner(2, 2);
@@ -1037,7 +1029,7 @@ ProcessCode E320::E320RootSimTrackWriter::write(const AlgorithmContext& ctx) {
 
         // Covariance with respect to the measurement hits
         Acts::ActsDynamicMatrix smoothedMeasCov =
-            smoothedMeasCovTruth - measCov;
+            measCov - smoothedMeasCovTruth;
 
         Acts::SquareMatrix2 smoothedHitCov =
             smoothedMeasCov.topLeftCorner(2, 2);
