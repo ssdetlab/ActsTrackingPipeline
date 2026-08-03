@@ -24,7 +24,10 @@ target_sources(
     E320MagneticFieldParametersProvider.cpp
     E320MagneticFieldWriter.cpp
     E320RootDataReader.cpp
+    E320RootSimClusterWriter.cpp
     E320RootSimClusterReader.cpp
     E320RootTrackWriter.cpp
     E320RootTrackReader.cpp
+    E320RootSimTrackWriter.cpp
+    E320RootSimTrackReader.cpp
 )
