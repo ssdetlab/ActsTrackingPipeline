@@ -13,6 +13,7 @@
 
 #include <array>
 #include <cassert>
+#include <cmath>
 #include <cstddef>
 
 /// @brief Extended source link holding the particle hits
@@ -202,7 +203,6 @@ void extendedSourceLinkCalibrator(
     const Acts::GeometryContext& gctx, const Acts::CalibrationContext& cctx,
     const Acts::SourceLink& sourceLink,
     typename trajectory_t::TrackStateProxy trackState) {
-  // std::cout << "EXTENDED SL CALIBRATOR CALL\n";
   extendedSourceLinkCalibratorReturn<trajectory_t>(gctx, cctx, sourceLink,
                                                    trackState);
 }
@@ -223,8 +223,9 @@ void extendedSourceLinkBackwardsPhiCorrectionCalibratorReturn(
   Acts::ActsVector<ExtendedSourceLink::localSubspaceSize> loc =
       sl.parametersLoc();
   if (sl.isBackwards()) {
-    double phiDiff =
-        loc(Acts::eBoundPhi) - trackState.predicted()(Acts::eBoundPhi);
+    double measPhi = loc(Acts::eBoundPhi);
+    double trackPhi = trackState.predicted()(Acts::eBoundPhi);
+    double phiDiff = measPhi - trackPhi;
     if (phiDiff < 0 && std::abs(phiDiff) > M_PI) {
       loc(Acts::eBoundPhi) += 2 * M_PI;
     }
