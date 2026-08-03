@@ -7,6 +7,7 @@
 E320::GeometryOptions::GeometryOptions() {
   const std::string pathToCfg =
       "/home/romanurmanov/work/TrackingPipeline/ActsTrackingPipeline/conf/"
+      "geometry/"
       "E320PrototypeGeometryConfig.toml";
   auto cfg = toml::parse_file(pathToCfg);
 
@@ -27,12 +28,12 @@ E320::GeometryOptions::GeometryOptions() {
   // General parameters
 
   // Detector binning directions
-  primaryBinValue = detail::indexToBinningValue(
-      getEntrySizeT("GeneralParameters", "primaryBinValue"));
-  longBinValue = detail::indexToBinningValue(
-      getEntrySizeT("GeneralParameters", "longBinValue"));
-  shortBinValue = detail::indexToBinningValue(
-      getEntrySizeT("GeneralParameters", "shortBinValue"));
+  primaryBinValue =
+      detail::indexToBinningValue(getEntrySizeT("General", "primaryBinValue"));
+  longBinValue =
+      detail::indexToBinningValue(getEntrySizeT("General", "longBinValue"));
+  shortBinValue =
+      detail::indexToBinningValue(getEntrySizeT("General", "shortBinValue"));
 
   primaryIdx = detail::binningValueToIndex(primaryBinValue);
   longIdx = detail::binningValueToIndex(longBinValue);
@@ -43,49 +44,43 @@ E320::GeometryOptions::GeometryOptions() {
   shortDir = detail::binningValueToDirection(shortBinValue);
 
   // Volume geometry ID prefactors
-  magVolumeIdPrefactor =
-      getEntrySizeT("GeneralParameters", "magVolumeIdPrefactor");
-  gapVolumeIdPrefactor =
-      getEntrySizeT("GeneralParameters", "gapVolumeIdPrefactor");
+  magVolumeIdPrefactor = getEntrySizeT("General", "magVolumeIdPrefactor");
+  gapVolumeIdPrefactor = getEntrySizeT("General", "gapVolumeIdPrefactor");
 
-  worldHalfLong = getEntryDouble("GeneralParameters", "worldHalfLong") * 1_m;
-  worldHalfShort = getEntryDouble("GeneralParameters", "worldHalfShort") * 1_m;
+  worldHalfLong = getEntryDouble("General", "worldHalfLong") * 1_m;
+  worldHalfShort = getEntryDouble("General", "worldHalfShort") * 1_m;
 
   // Rotation of the plane surfaces into the global frame
-  toWorldAngleX = M_PI_2 * getEntryDouble("GeneralParameters", "toWorldAngleX");
-  toWorldAngleY = M_PI_2 * getEntryDouble("GeneralParameters", "toWorldAngleY");
-  toWorldAngleZ = M_PI_2 * getEntryDouble("GeneralParameters", "toWorldAngleZ");
+  toWorldAngleX = M_PI_2 * getEntryDouble("General", "toWorldAngleX");
+  toWorldAngleY = M_PI_2 * getEntryDouble("General", "toWorldAngleY");
+  toWorldAngleZ = M_PI_2 * getEntryDouble("General", "toWorldAngleZ");
 
   // --------------------------------------------------------------
   // Parameters of the BPMs
 
-  bpmHalfX = getEntryDouble("BPMParameters", "bpmHalfX") * 1_mm;
-  bpmHalfY = getEntryDouble("BPMParameters", "bpmHalfY") * 1_mm;
-  bpmThickness = getEntryDouble("BPMParameters", "bpmThickness") * 1_mm;
+  bpmHalfX = getEntryDouble("BPMs", "bpmHalfX") * 1_mm;
+  bpmHalfY = getEntryDouble("BPMs", "bpmHalfY") * 1_mm;
+  bpmThickness = getEntryDouble("BPMs", "bpmThickness") * 1_mm;
 
-  bpm0CenterPrimary =
-      getEntryDouble("BPMParameters", "bpm0CenterPrimary") * 1_mm;
-  bpm1CenterPrimary =
-      getEntryDouble("BPMParameters", "bpm1CenterPrimary") * 1_mm;
-  bpm2CenterPrimary =
-      getEntryDouble("BPMParameters", "bpm2CenterPrimary") * 1_mm;
-  bpm3CenterPrimary =
-      getEntryDouble("BPMParameters", "bpm3CenterPrimary") * 1_mm;
+  bpm0CenterPrimary = getEntryDouble("BPMs", "bpm0CenterPrimary") * 1_mm;
+  bpm1CenterPrimary = getEntryDouble("BPMs", "bpm1CenterPrimary") * 1_mm;
+  bpm2CenterPrimary = getEntryDouble("BPMs", "bpm2CenterPrimary") * 1_mm;
+  bpm3CenterPrimary = getEntryDouble("BPMs", "bpm3CenterPrimary") * 1_mm;
 
-  bpm0CenterLong = getEntryDouble("BPMParameters", "bpm0CenterLong") * 1_mm;
-  bpm1CenterLong = getEntryDouble("BPMParameters", "bpm1CenterLong") * 1_mm;
-  bpm2CenterLong = getEntryDouble("BPMParameters", "bpm2CenterLong") * 1_mm;
-  bpm3CenterLong = getEntryDouble("BPMParameters", "bpm3CenterLong") * 1_mm;
+  bpm0CenterLong = getEntryDouble("BPMs", "bpm0CenterLong") * 1_mm;
+  bpm1CenterLong = getEntryDouble("BPMs", "bpm1CenterLong") * 1_mm;
+  bpm2CenterLong = getEntryDouble("BPMs", "bpm2CenterLong") * 1_mm;
+  bpm3CenterLong = getEntryDouble("BPMs", "bpm3CenterLong") * 1_mm;
 
-  bpm0CenterShort = getEntryDouble("BPMParameters", "bpm0CenterShort") * 1_mm;
-  bpm1CenterShort = getEntryDouble("BPMParameters", "bpm1CenterShort") * 1_mm;
-  bpm2CenterShort = getEntryDouble("BPMParameters", "bpm2CenterShort") * 1_mm;
-  bpm3CenterShort = getEntryDouble("BPMParameters", "bpm3CenterShort") * 1_mm;
+  bpm0CenterShort = getEntryDouble("BPMs", "bpm0CenterShort") * 1_mm;
+  bpm1CenterShort = getEntryDouble("BPMs", "bpm1CenterShort") * 1_mm;
+  bpm2CenterShort = getEntryDouble("BPMs", "bpm2CenterShort") * 1_mm;
+  bpm3CenterShort = getEntryDouble("BPMs", "bpm3CenterShort") * 1_mm;
 
-  int bpm0GeometryId = getEntryInt("BPMParameters", "bpm0GeometryId");
-  int bpm1GeometryId = getEntryInt("BPMParameters", "bpm1GeometryId");
-  int bpm2GeometryId = getEntryInt("BPMParameters", "bpm2GeometryId");
-  int bpm3GeometryId = getEntryInt("BPMParameters", "bpm3GeometryId");
+  int bpm0GeometryId = getEntryInt("BPMs", "bpm0GeometryId");
+  int bpm1GeometryId = getEntryInt("BPMs", "bpm1GeometryId");
+  int bpm2GeometryId = getEntryInt("BPMs", "bpm2GeometryId");
+  int bpm3GeometryId = getEntryInt("BPMs", "bpm3GeometryId");
 
   bpm0Parameters =
       SurfaceParameters{{primaryBinValue, bpm0CenterPrimary, toWorldAngleX},
@@ -111,18 +106,15 @@ E320::GeometryOptions::GeometryOptions() {
   // --------------------------------------------------------------
   // Parameters of the Be window
 
-  beWindowHalfX = getEntryDouble("BeWindowParameters", "beWindowHalfX") * 1_mm;
-  beWindowHalfY = getEntryDouble("BeWindowParameters", "beWindowHalfY") * 1_mm;
-  beWindowThickness =
-      getEntryDouble("BeWindowParameters", "beWindowThickness") * 1_mm;
+  beWindowHalfX = getEntryDouble("BeWindow", "beWindowHalfX") * 1_mm;
+  beWindowHalfY = getEntryDouble("BeWindow", "beWindowHalfY") * 1_mm;
+  beWindowThickness = getEntryDouble("BeWindow", "beWindowThickness") * 1_mm;
   beWindowCenterPrimary =
-      getEntryDouble("BeWindowParameters", "beWindowCenterPrimary") * 1_mm;
-  beWindowCenterLong =
-      getEntryDouble("BeWindowParameters", "beWindowCenterLong") * 1_mm;
+      getEntryDouble("BeWindow", "beWindowCenterPrimary") * 1_mm;
+  beWindowCenterLong = getEntryDouble("BeWindow", "beWindowCenterLong") * 1_mm;
   beWindowCenterShort =
-      getEntryDouble("BeWindowParameters", "beWindowCenterShort") * 1_mm;
-  int beWindowGeometryId =
-      getEntryInt("BeWindowParameters", "beWindowGeometryId");
+      getEntryDouble("BeWindow", "beWindowCenterShort") * 1_mm;
+  int beWindowGeometryId = getEntryInt("BeWindow", "beWindowGeometryId");
 
   beWindowParameters =
       SurfaceParameters{{primaryBinValue, beWindowCenterPrimary, toWorldAngleX},
@@ -133,20 +125,16 @@ E320::GeometryOptions::GeometryOptions() {
   // --------------------------------------------------------------
   // Parameters of the IP surface
 
-  ipSurfaceHalfX =
-      getEntryDouble("IPSurfaceParameters", "ipSurfaceHalfX") * 1_mm;
-  ipSurfaceHalfY =
-      getEntryDouble("IPSurfaceParameters", "ipSurfaceHalfY") * 1_mm;
-  ipSurfaceThickness =
-      getEntryDouble("IPSurfaceParameters", "ipSurfaceThickness") * 1_mm;
+  ipSurfaceHalfX = getEntryDouble("IPSurface", "ipSurfaceHalfX") * 1_mm;
+  ipSurfaceHalfY = getEntryDouble("IPSurface", "ipSurfaceHalfY") * 1_mm;
+  ipSurfaceThickness = getEntryDouble("IPSurface", "ipSurfaceThickness") * 1_mm;
   ipSurfaceCenterPrimary =
-      getEntryDouble("IPSurfaceParameters", "ipSurfaceCenterPrimary") * 1_mm;
+      getEntryDouble("IPSurface", "ipSurfaceCenterPrimary") * 1_mm;
   ipSurfaceCenterLong =
-      getEntryDouble("IPSurfaceParameters", "ipSurfaceCenterLong") * 1_mm;
+      getEntryDouble("IPSurface", "ipSurfaceCenterLong") * 1_mm;
   ipSurfaceCenterShort =
-      getEntryDouble("IPSurfaceParameters", "ipSurfaceCenterShort") * 1_mm;
-  int ipSurfaceGeometryId =
-      getEntryInt("IPSurfaceParameters", "ipSurfaceGeometryId");
+      getEntryDouble("IPSurface", "ipSurfaceCenterShort") * 1_mm;
+  int ipSurfaceGeometryId = getEntryInt("IPSurface", "ipSurfaceGeometryId");
 
   ipSurfaceParameters = SurfaceParameters{
       {primaryBinValue, ipSurfaceCenterPrimary, toWorldAngleX},
@@ -157,36 +145,31 @@ E320::GeometryOptions::GeometryOptions() {
   // --------------------------------------------------------------
   // Parameters of the PDC window
 
-  pdcWindowHalfX =
-      getEntryDouble("PDCWindowSurfaceParameters", "pdcWindowHalfX") * 1_mm;
-  pdcWindowHalfY =
-      getEntryDouble("PDCWindowSurfaceParameters", "pdcWindowHalfY") * 1_mm;
+  pdcWindowHalfX = getEntryDouble("PDCWindowSurface", "pdcWindowHalfX") * 1_mm;
+  pdcWindowHalfY = getEntryDouble("PDCWindowSurface", "pdcWindowHalfY") * 1_mm;
 
   pdcWindowThickness =
-      getEntryDouble("PDCWindowSurfaceParameters", "pdcWindowThickness") * 1_mm;
+      getEntryDouble("PDCWindowSurface", "pdcWindowThickness") * 1_mm;
 
   std::size_t pdcWindowMaterialNBinsX =
-      getEntrySizeT("PDCWindowSurfaceParameters", "pdcWindowMaterialBinningX");
+      getEntrySizeT("PDCWindowSurface", "pdcWindowMaterialBinningX");
   pdcWindowMaterialBinningX =
       Acts::BinUtility(pdcWindowMaterialNBinsX, -pdcWindowHalfX, pdcWindowHalfX,
                        Acts::closed, Acts::BinningValue::binX);
   std::size_t pdcWindowMaterialNBinsY =
-      getEntrySizeT("PDCWindowSurfaceParameters", "pdcWindowMaterialBinningY");
+      getEntrySizeT("PDCWindowSurface", "pdcWindowMaterialBinningY");
   pdcWindowMaterialBinningY =
       Acts::BinUtility(pdcWindowMaterialNBinsY, -pdcWindowHalfY, pdcWindowHalfY,
                        Acts::closed, Acts::BinningValue::binY);
 
   pdcWindowCenterPrimary =
-      getEntryDouble("PDCWindowSurfaceParameters", "pdcWindowCenterPrimary") *
-      1_mm;
+      getEntryDouble("PDCWindowSurface", "pdcWindowCenterPrimary") * 1_mm;
   pdcWindowCenterLong =
-      getEntryDouble("PDCWindowSurfaceParameters", "pdcWindowCenterLong") *
-      1_mm;
+      getEntryDouble("PDCWindowSurface", "pdcWindowCenterLong") * 1_mm;
   pdcWindowCenterShort =
-      getEntryDouble("PDCWindowSurfaceParameters", "pdcWindowCenterShort") *
-      1_mm;
+      getEntryDouble("PDCWindowSurface", "pdcWindowCenterShort") * 1_mm;
   int pdcWindowGeometryId =
-      getEntryInt("PDCWindowSurfaceParameters", "pdcWindowGeometryId");
+      getEntryInt("PDCWindowSurface", "pdcWindowGeometryId");
 
   pdcWindowParameters = SurfaceParameters{
       {primaryBinValue, pdcWindowCenterPrimary, toWorldAngleX},
@@ -198,65 +181,52 @@ E320::GeometryOptions::GeometryOptions() {
   // Parameters of the tracking chambers
 
   // Chip size in chips's local coordinates
-  chipHalfX = getEntryDouble("TrackingChamberParameters", "chipHalfX") * 1_mm;
-  chipHalfY = getEntryDouble("TrackingChamberParameters", "chipHalfY") * 1_mm;
+  chipHalfX = getEntryDouble("TrackingChamber", "chipHalfX") * 1_mm;
+  chipHalfY = getEntryDouble("TrackingChamber", "chipHalfY") * 1_mm;
 
-  pixelHalfX = getEntryDouble("TrackingChamberParameters", "pixelHalfX") * 1_um;
-  pixelHalfY = getEntryDouble("TrackingChamberParameters", "pixelHalfY") * 1_um;
+  pixelHalfX = getEntryDouble("TrackingChamber", "pixelHalfX") * 1_um;
+  pixelHalfY = getEntryDouble("TrackingChamber", "pixelHalfY") * 1_um;
 
-  pixelThickness =
-      getEntryDouble("TrackingChamberParameters", "pixelThickness") * 1_um;
+  pixelThickness = getEntryDouble("TrackingChamber", "pixelThickness") * 1_um;
 
   // Volume spacing around the chips
   chipVolumeHalfSpacing =
-      getEntryDouble("TrackingChamberParameters", "chipVolumeHalfSpacing") *
-      1_mm;
+      getEntryDouble("TrackingChamber", "chipVolumeHalfSpacing") * 1_mm;
 
   // Distance between the chips
-  interChipDistance = cfg["TrackingChamberParameters"]["interChipDistance"]
-                          .value<double>()
-                          .value() *
-                      1_mm;
-  tcWindowToFirstChipDistance = getEntryDouble("TrackingChamberParameters",
-                                               "tcWindowToFirstChipDistance") *
-                                1_mm;
-  tcWindowToLastChipDistance = getEntryDouble("TrackingChamberParameters",
-                                              "tcWindowToLastChipDistance") *
-                               1_mm;
+  interChipDistance =
+      cfg["TrackingChamber"]["interChipDistance"].value<double>().value() *
+      1_mm;
+  tcWindowToFirstChipDistance =
+      getEntryDouble("TrackingChamber", "tcWindowToFirstChipDistance") * 1_mm;
+  tcWindowToLastChipDistance =
+      getEntryDouble("TrackingChamber", "tcWindowToLastChipDistance") * 1_mm;
 
   // Transverse volume parameters
   tcHalfLong = chipHalfX;
   tcHalfShort = chipHalfY;
 
   std::size_t chipMaterialNBinsX =
-      getEntrySizeT("TrackingChamberParameters", "chipMaterialBinningX");
+      getEntrySizeT("TrackingChamber", "chipMaterialBinningX");
   chipMaterialBinningX =
       Acts::BinUtility(chipMaterialNBinsX, -chipHalfX, chipHalfX, Acts::closed,
                        Acts::BinningValue::binX);
   std::size_t chipMaterialNBinsY =
-      getEntrySizeT("TrackingChamberParameters", "chipMaterialBinningY");
+      getEntrySizeT("TrackingChamber", "chipMaterialBinningY");
   chipMaterialBinningY =
       Acts::BinUtility(chipMaterialNBinsY, -chipHalfY, chipHalfY, Acts::closed,
                        Acts::BinningValue::binY);
 
   // Placement
-  ipTcDistance =
-      getEntryDouble("TrackingChamberParameters", "ipTcDistance") * 1_mm;
-  tcCenterLong =
-      getEntryDouble("TrackingChamberParameters", "tcCenterLong") * 1_mm;
-  tcCenterShort =
-      getEntryDouble("TrackingChamberParameters", "tcCenterShort") * 1_mm;
+  ipTcDistance = getEntryDouble("TrackingChamber", "ipTcDistance") * 1_mm;
+  tcCenterLong = getEntryDouble("TrackingChamber", "tcCenterLong") * 1_mm;
+  tcCenterShort = getEntryDouble("TrackingChamber", "tcCenterShort") * 1_mm;
 
-  int chip0GeometryId =
-      getEntryInt("TrackingChamberParameters", "chip0GeometryId");
-  int chip1GeometryId =
-      getEntryInt("TrackingChamberParameters", "chip1GeometryId");
-  int chip2GeometryId =
-      getEntryInt("TrackingChamberParameters", "chip2GeometryId");
-  int chip3GeometryId =
-      getEntryInt("TrackingChamberParameters", "chip3GeometryId");
-  int chip4GeometryId =
-      getEntryInt("TrackingChamberParameters", "chip4GeometryId");
+  int chip0GeometryId = getEntryInt("TrackingChamber", "chip0GeometryId");
+  int chip1GeometryId = getEntryInt("TrackingChamber", "chip1GeometryId");
+  int chip2GeometryId = getEntryInt("TrackingChamber", "chip2GeometryId");
+  int chip3GeometryId = getEntryInt("TrackingChamber", "chip3GeometryId");
+  int chip4GeometryId = getEntryInt("TrackingChamber", "chip4GeometryId");
 
   tcParameters = std::vector<SurfaceParameters>{
       SurfaceParameters{{primaryBinValue, ipTcDistance + 0 * interChipDistance,
