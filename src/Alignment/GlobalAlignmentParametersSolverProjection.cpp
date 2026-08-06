@@ -1,7 +1,8 @@
-#include "TrackingPipeline/Alignment/GlobalAlignmentParametersSolver.hpp"
+#include "TrackingPipeline/Alignment/GlobalAlignmentParametersSolverProjection.hpp"
 
-GlobalAlignmentParametersSolver::GlobalAlignmentParametersSolver(
-    const Config& cfg, Acts::Logging::Level level)
+GlobalAlignmentParametersSolverProjection::
+    GlobalAlignmentParametersSolverProjection(const Config& cfg,
+                                              Acts::Logging::Level level)
     : m_cfg(cfg),
       m_logger(
           Acts::getDefaultLogger("GlobalAlignmentParametersSolver", level)) {
@@ -38,7 +39,7 @@ GlobalAlignmentParametersSolver::GlobalAlignmentParametersSolver(
   }
 };
 
-void GlobalAlignmentParametersSolver::calculateAlignmentParameters(
+void GlobalAlignmentParametersSolverProjection::calculateAlignmentParameters(
     const Acts::GeometryContext& gctx, ActsAlignment::AlignmentResult& alignRes,
     const Acts::ActsDynamicVector& sumChi2Derivative,
     const Acts::ActsDynamicMatrix& sumChi2SecondDerivative) const {
