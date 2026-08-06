@@ -1,0 +1,24 @@
+[General]
+# Logging level
+# VERBOSE = 0
+# DEBUG = 1
+# INFO = 2
+# WARNING = 3
+# ERROR = 4
+# FATAL = 5
+logLevel = 2
+
+[Sequencer]
+# Event skip
+skip = 0
+
+# Number of events
+events = 1000000
+
+[GeometryParameters]
+# Alignment shifts [mm]
+globalShiftY = 10
+globalShiftZ = -5
+
+# Alignment angles [mrad]
+globalAngleZ = -2

@@ -1,0 +1,41 @@
+[Sequencer]
+# Event skip
+skip = 0
+# skip = 10000
+# skip = 20000
+# skip = 30000
+# skip = 40000
+# skip = 50000
+
+# Number of events
+events = 10000
+# events = 20000
+# events = 30000
+# events = 40000
+# events = 50000
+# events = 60000
+
+[Geometry]
+# Alignment shifts [mm]
+globalShiftY = 10
+globalShiftZ = -5
+
+# Alignment angles [mrad]
+globalAngleZ = -2 
+
+[GaussianVertexGenerator]
+# Vertex resolution [um]
+vertexResolution = 0
+
+[SphericalMomentumGenerator]
+# Absolute momentum range [GeV]
+minAbsoluteMomentum = 3.0
+maxAbsoluteMomentum = 4.0
+
+# Phi angle range [mrad]
+minPhi = -1 
+maxPhi = 1
+
+# Theta angle range with respect to M_PI_2 [mrad]
+minTheta = -1
+maxTheta = 1
