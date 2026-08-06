@@ -114,8 +114,8 @@ ProcessCode AlignmentAlgorithm::execute(const AlgorithmContext& ctx) const {
   ACTS_INFO(
       "Alignment finished with chi2/ndf = " << alignmentResult.averageChi2ONdf);
 
-  // TODO: remove
-  auto outputTrackParameters = inputTrackParameters;
+  // Collect updated track states
+  auto outputTrackParameters = alignmentResult.updatedInitialTrackStates;
 
   // Add alignment parameters to event store
   m_outputAlignmentParameters(ctx, std::move(alignmentResult));

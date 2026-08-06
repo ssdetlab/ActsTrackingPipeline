@@ -2,7 +2,11 @@
 
 #include "Acts/MagneticField/MagneticFieldProvider.hpp"
 
+#include <cstddef>
+
 #include "TrackingPipeline/Alignment/AlignmentAlgorithm.hpp"
+#include "TrackingPipeline/Infrastructure/TypeDefinitions.hpp"
+#include "TrackingPipeline/TrackFinding/ITrackParametersEstimator.hpp"
 
 /// @brief Alignment function calling Acts-implemented alignment machinery
 /// for chi2 minimization
@@ -34,6 +38,10 @@ class ActsAlignmentFunction : public AlignmentAlgorithm::AlignmentFunction {
     std::size_t maxAlignmentFitNumIt;
     /// Alignment mask
     ActsAlignment::AlignmentMask alignmentMask;
+    /// Number of re-fitting iterations
+    std::size_t nRefittingIt;
+    /// Track parameters estimator
+    std::shared_ptr<ITrackParametersEstimator> trackParametersEstimator;
   };
 
   /// @brief Constructor
@@ -51,7 +59,7 @@ class ActsAlignmentFunction : public AlignmentAlgorithm::AlignmentFunction {
   /// @param magFieldParameters track-specific magnetic field configurations
   ///
   /// @return struct containing the results of the alignment procedure
-  AlignmentResult operator()(
+  AlignmentAlgorithm::AlignmentResult operator()(
       const Acts::GeometryContext& gctx, const Acts::MagneticFieldContext& mctx,
       const Acts::CalibrationContext& cctx,
       const AlignmentAlgorithm::SourceLinkContainer& alignmentFitSourceLinks,
@@ -66,5 +74,5 @@ class ActsAlignmentFunction : public AlignmentAlgorithm::AlignmentFunction {
   Config m_cfg;
 
   /// Acts alignment instance
-  std::unique_ptr<Alignment> m_align;
+  std::unique_ptr<ActsAligner> m_align;
 };
