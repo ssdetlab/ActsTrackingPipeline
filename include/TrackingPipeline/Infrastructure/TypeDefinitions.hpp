@@ -51,5 +51,5 @@ using KFFitter = Acts::KalmanFitter<Propagator, KFFitterTrajectory>;
 /// -----------------------------------------------
 /// Alignment fitter definitions
 
-using Alignment = ActsAlignment::Alignment<KFFitter>;
-using AlignmentResult = ActsAlignment::AlignmentResult;
+using ActsAligner = ActsAlignment::Alignment<KFFitter>;
+using ActsAlignmentResult = ActsAlignment::AlignmentResult;
