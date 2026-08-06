@@ -54,7 +54,9 @@ class ActsAlignmentFunction : public AlignmentAlgorithm::AlignmentFunction {
   /// @param gctx current geometry context
   /// @param mctx current magnetic field context
   /// @param cctx current calibration context
-  /// @param sourceLinks source link container
+  /// @param trackFitSourceLinks source links participating in the alignment fit
+  /// @param initialTrackStateFitSourceLinks source links participating in
+  /// the initial track state fit
   /// @param initialParameters initial track parameters
   /// @param magFieldParameters track-specific magnetic field configurations
   ///
