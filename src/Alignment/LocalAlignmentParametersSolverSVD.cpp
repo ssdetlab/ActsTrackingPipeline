@@ -1,5 +1,7 @@
 #include "TrackingPipeline/Alignment/LocalAlignmentParametersSolverSVD.hpp"
 
+#include "Acts/Utilities/Logger.hpp"
+
 LocalAlignmentParametersSolverSVD::LocalAlignmentParametersSolverSVD(
     const Config& cfg, Acts::Logging::Level level)
     : m_cfg(cfg),
@@ -99,4 +101,9 @@ void LocalAlignmentParametersSolverSVD::calculateAlignmentParameters(
   // Chi2 change
   alignRes.deltaChi2 =
       0.5 * sumChi2Derivative.dot(alignRes.deltaAlignmentParameters);
+
+  ACTS_INFO("Alignment parameters covariance:\n"
+            << alignRes.alignmentCovariance);
+  ACTS_INFO("Number of degrees of freedom " << alignRes.alignmentDof);
+  ACTS_INFO("Delta chi2 " << alignRes.deltaChi2);
 }
