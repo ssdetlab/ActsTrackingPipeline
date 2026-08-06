@@ -38,10 +38,10 @@ class MinuitGlobalAlignmentFunction
     struct Options {
       /// Source links used in the track fit optimization
       const AlignmentAlgorithm::SourceLinkContainer&
-          trackFitSourceLinkContainer;
+          alignmentFitSourceLinkContainer;
       /// Source links used in the inital track state estimation
       const AlignmentAlgorithm::SourceLinkContainer&
-          trackParametersFitSourceLinkContainer;
+          initialTrackStateFitSourceLinkContainer;
       /// Initial track parameters estimates
       const AlignmentAlgorithm::TrackParametersContainer& trackParameters;
       /// Track-specific magnetic fields configuration
@@ -76,7 +76,9 @@ class MinuitGlobalAlignmentFunction
   AlignmentResult operator()(
       const Acts::GeometryContext& gctx, const Acts::MagneticFieldContext& mctx,
       const Acts::CalibrationContext& cctx,
-      const AlignmentAlgorithm::SourceLinkContainer& sourceLinks,
+      const AlignmentAlgorithm::SourceLinkContainer& alignmentFitSourceLinks,
+      const AlignmentAlgorithm::SourceLinkContainer&
+          initialTrackStateFitSourceLinks,
       const AlignmentAlgorithm::TrackParametersContainer& initialParameters,
       const AlignmentAlgorithm::MagneticFieldParametersContainer&
           magFieldParameters) override;

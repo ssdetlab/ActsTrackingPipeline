@@ -54,7 +54,9 @@ class ActsAlignmentFunction : public AlignmentAlgorithm::AlignmentFunction {
   AlignmentResult operator()(
       const Acts::GeometryContext& gctx, const Acts::MagneticFieldContext& mctx,
       const Acts::CalibrationContext& cctx,
-      const AlignmentAlgorithm::SourceLinkContainer& sourceLinks,
+      const AlignmentAlgorithm::SourceLinkContainer& alignmentFitSourceLinks,
+      const AlignmentAlgorithm::SourceLinkContainer&
+          initialTrackStateFitSourceLinks,
       const AlignmentAlgorithm::TrackParametersContainer& initialParameters,
       const AlignmentAlgorithm::MagneticFieldParametersContainer&
           magFieldParameters) override;

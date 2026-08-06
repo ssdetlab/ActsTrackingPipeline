@@ -20,10 +20,14 @@ ActsAlignmentFunction::ActsAlignmentFunction(const Config& cfg) : m_cfg(cfg) {
 AlignmentResult ActsAlignmentFunction::operator()(
     const Acts::GeometryContext& gctx, const Acts::MagneticFieldContext& mctx,
     const Acts::CalibrationContext& cctx,
-    const AlignmentAlgorithm::SourceLinkContainer& sourceLinks,
+    const AlignmentAlgorithm::SourceLinkContainer& alignmentFitSourceLinks,
+    const AlignmentAlgorithm::SourceLinkContainer&
+    /*initialTrackStateFitSourceLinks*/,
     const AlignmentAlgorithm::TrackParametersContainer& initialParameters,
     const AlignmentAlgorithm::MagneticFieldParametersContainer&
         magFieldParameters) {
+  // TODO: add initial track state estimation loop
+
   // Initialize KF options
   auto propOptions = KFFitterPropagatorOptions(gctx, mctx);
   propOptions.maxSteps = m_cfg.maxKFSteps;
@@ -42,6 +46,7 @@ AlignmentResult ActsAlignmentFunction::operator()(
 
   // Run alignment
   return m_align
-      ->align(sourceLinks, initialParameters, magFieldParameters, alignOptions)
+      ->align(alignmentFitSourceLinks, initialParameters, magFieldParameters,
+              alignOptions)
       .value();
 }

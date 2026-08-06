@@ -4,7 +4,6 @@
 #include "Minuit2/MnUserParameters.h"
 #include "TrackingPipeline/Alignment/AlignmentContext.hpp"
 #include "TrackingPipeline/Alignment/detail/AlignmentStoreBuilders.hpp"
-#include "TrackingPipeline/EventData/ExtendedSourceLink.hpp"
 
 MinuitGlobalAlignmentFunction::MinuitAlignmentFunctionImpl::
     MinuitAlignmentFunctionImpl(const Options& opt)
@@ -59,11 +58,11 @@ double MinuitGlobalAlignmentFunction::MinuitAlignmentFunctionImpl::operator()(
   // Estimate the track parameters
   std::vector<Acts::GenericCurvilinearTrackParameters<Acts::ParticleHypothesis>>
       trackParameters;
-  trackParameters.reserve(m_opt.trackParametersFitSourceLinkContainer.size());
+  trackParameters.reserve(m_opt.initialTrackStateFitSourceLinkContainer.size());
   for (std::size_t j = 0;
-       j < m_opt.trackParametersFitSourceLinkContainer.size(); j++) {
+       j < m_opt.initialTrackStateFitSourceLinkContainer.size(); j++) {
     const auto& candidateSourceLinks =
-        m_opt.trackParametersFitSourceLinkContainer.at(j);
+        m_opt.initialTrackStateFitSourceLinkContainer.at(j);
     const auto& originParameters = m_opt.trackParameters.at(j);
     Acts::MagneticFieldContext mctxCurrent(m_opt.magFieldParameters.at(j));
 
@@ -86,9 +85,9 @@ double MinuitGlobalAlignmentFunction::MinuitAlignmentFunctionImpl::operator()(
 
   double chi2Smoothed = 0;
   std::cout << "STARTING FIT\n";
-  for (unsigned int iTraj = 0; iTraj < m_opt.trackFitSourceLinkContainer.size();
-       iTraj++) {
-    const auto& sls = m_opt.trackFitSourceLinkContainer.at(iTraj);
+  for (unsigned int iTraj = 0;
+       iTraj < m_opt.alignmentFitSourceLinkContainer.size(); iTraj++) {
+    const auto& sls = m_opt.alignmentFitSourceLinkContainer.at(iTraj);
     const auto& sParameters = trackParameters.at(iTraj);
     const auto& mParameters = m_opt.magFieldParameters.at(iTraj);
 
@@ -136,7 +135,8 @@ double MinuitGlobalAlignmentFunction::MinuitAlignmentFunctionImpl::operator()(
   }
 
   std::cout << "CHI2 PER TRACK "
-            << chi2Smoothed / m_opt.trackFitSourceLinkContainer.size() << "\n";
+            << chi2Smoothed / m_opt.alignmentFitSourceLinkContainer.size()
+            << "\n";
   std::cout << "--------------------------------------------------\n";
   int dummy = 0;
   return chi2Smoothed;
@@ -148,7 +148,9 @@ MinuitGlobalAlignmentFunction::MinuitGlobalAlignmentFunction(const Config& cfg)
 AlignmentResult MinuitGlobalAlignmentFunction::operator()(
     const Acts::GeometryContext& gctx, const Acts::MagneticFieldContext& mctx,
     const Acts::CalibrationContext& cctx,
-    const AlignmentAlgorithm::SourceLinkContainer& sourceLinks,
+    const AlignmentAlgorithm::SourceLinkContainer& alignmentFitSourceLinks,
+    const AlignmentAlgorithm::SourceLinkContainer&
+        initialTrackStateFitSourceLinks,
     const AlignmentAlgorithm::TrackParametersContainer& initialParameters,
     const AlignmentAlgorithm::MagneticFieldParametersContainer&
         magFieldParameters) {
@@ -166,38 +168,10 @@ AlignmentResult MinuitGlobalAlignmentFunction::operator()(
       std::move(propagator),
       Acts::getDefaultLogger("AlignmentKalmanFilter", Acts::Logging::INFO));
 
-  auto typeRange = sourceLinks.front().getTypeRange();
-  std::vector<std::vector<std::size_t>> idxRanges;
-
-  AlignmentAlgorithm::SourceLinkContainer tfSourceLinks;
-  tfSourceLinks.reserve(sourceLinks.size());
-  for (const auto& slc : sourceLinks) {
-    // std::cout << "------------------------------------------------------------\n";
-    std::vector<std::size_t> sourceLinksIndices = slc.getIndexRange();
-    std::vector<std::size_t> filteredSourceLinksIndices;
-    filteredSourceLinksIndices.reserve(5);
-    // std::cout << "INITIAL: " << sourceLinksIndices.size() << "\n";
-    for (std::size_t i = 0; i < sourceLinksIndices.size(); i++) {
-      std::size_t idx = sourceLinksIndices.at(i);
-      // std::cout << "IDX: " << i << " -- " << idx << "\n";
-      if (slc.at(i).type() == typeid(ExtendedSourceLink)) {
-        continue;
-      }
-      // std::cout << "ACCEPTED\n";
-      filteredSourceLinksIndices.push_back(idx);
-    }
-    // std::cout << "FILTERED: " << filteredSourceLinksIndices.size() << "\n";
-    // --------------------------------------------------
-
-    idxRanges.push_back(filteredSourceLinksIndices);
-  }
-  for (const auto& range : idxRanges) {
-    tfSourceLinks.emplace_back(typeRange, range);
-  }
-
   MinuitAlignmentFunctionImpl::Options alignmentFunctionCfg{
-      .trackFitSourceLinkContainer = sourceLinks,
-      .trackParametersFitSourceLinkContainer = tfSourceLinks,
+      .alignmentFitSourceLinkContainer = alignmentFitSourceLinks,
+      .initialTrackStateFitSourceLinkContainer =
+          initialTrackStateFitSourceLinks,
       .trackParameters = initialParameters,
       .magFieldParameters = magFieldParameters,
       .fitter = trackFitter,

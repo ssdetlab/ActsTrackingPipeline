@@ -5,6 +5,7 @@
 #include "Acts/Utilities/CalibrationContext.hpp"
 
 #include <memory>
+#include <unordered_set>
 #include <vector>
 
 #include "TrackingPipeline/EventData/DataContainers.hpp"
@@ -34,7 +35,9 @@ class AlignmentAlgorithm final : public IAlgorithm {
     /// @param gctx current geometry context
     /// @param mctx current magnetic field context
     /// @param cctx current calibration context
-    /// @param sourceLinks source link container
+    /// @param trackFitSourceLinks source links participating in the alignment fit
+    /// @param initialTrackStateFitSourceLinks source links participating in
+    /// the initial track state fit
     /// @param initialParameters initial track parameters
     /// @param magFieldParameters track-specific magnetic field configurations
     ///
@@ -43,7 +46,9 @@ class AlignmentAlgorithm final : public IAlgorithm {
         const Acts::GeometryContext& gctx,
         const Acts::MagneticFieldContext& mctx,
         const Acts::CalibrationContext& cctx,
-        const AlignmentAlgorithm::SourceLinkContainer& sourceLinks,
+        const AlignmentAlgorithm::SourceLinkContainer& alignmentFitSourceLinks,
+        const AlignmentAlgorithm::SourceLinkContainer&
+            initialTrackStateFitSourceLinks,
         const AlignmentAlgorithm::TrackParametersContainer& initialParameters,
         const AlignmentAlgorithm::MagneticFieldParametersContainer&
             magFieldParameters) = 0;
@@ -63,8 +68,12 @@ class AlignmentAlgorithm final : public IAlgorithm {
     std::string outputAlignmentParameters;
     /// Output updated track parameters
     std::string outputTrackParameters;
-    /// Type erased fitter function.
+    /// Type erased alignment fit function
     std::shared_ptr<AlignmentFunction> alignmentFunction;
+    /// Range of surfaces used for the track fit
+    std::unordered_set<Acts::GeometryIdentifier> alignmentFitSurfaces;
+    /// Range of surfaces used for the initial track state fit
+    std::unordered_set<Acts::GeometryIdentifier> initialTrackStateFitSurfaces;
   };
 
   /// @brief Constructor
@@ -94,7 +103,7 @@ class AlignmentAlgorithm final : public IAlgorithm {
   ReadDataHandle<std::vector<Acts::CurvilinearTrackParameters>>
       m_inputTrackParameters{this, "InputTrackParameters"};
 
-  ReadDataHandle<MagneticFieldParametersContainer>
+  ReadDataHandle<std::vector<std::shared_ptr<MagneticFieldStore>>>
       m_inputMagneticFieldParameters{this, "InputMagneticFieldParameters"};
 
   /// Write data handles

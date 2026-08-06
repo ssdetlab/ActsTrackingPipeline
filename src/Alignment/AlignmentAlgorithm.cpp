@@ -5,6 +5,8 @@
 #include <stdexcept>
 #include <vector>
 
+#include "TrackingPipeline/EventData/SimpleSourceLink.hpp"
+
 AlignmentAlgorithm::AlignmentAlgorithm(const Config& cfg,
                                        Acts::Logging::Level lvl)
     : IAlgorithm("AlignmentAlgorithm", lvl), m_cfg(cfg) {
@@ -40,28 +42,75 @@ ProcessCode AlignmentAlgorithm::execute(const AlgorithmContext& ctx) const {
 
   std::size_t nCandidates = inputTrackCandidates.size();
 
-  // Prepare the input track collection
-  SourceLinkContainer sourceLinkContainer;
-  sourceLinkContainer.reserve(nCandidates);
+  // Prepare indices containers
+  std::vector<std::vector<std::size_t>> trackFitIndicesContainer;
+  trackFitIndicesContainer.reserve(nCandidates);
+
+  std::vector<std::vector<std::size_t>> initialTrackStateFitIndicesContainer;
+  initialTrackStateFitIndicesContainer.reserve(nCandidates);
 
   std::vector<std::size_t> trackParametersIndicesContainer;
   trackParametersIndicesContainer.reserve(nCandidates);
+
+  std::vector<std::size_t> magFieldIndicesContainer;
+  magFieldIndicesContainer.reserve(nCandidates);
   for (std::size_t i = 0; i < nCandidates; ++i) {
-    // The list of hits and the initial start parameters
     const auto& candidate = inputTrackCandidates.at(i);
 
-    sourceLinkContainer.emplace_back(inputSourceLinks,
-                                     candidate.sourceLinkIndices);
+    std::vector<std::size_t> trackFitIndices;
+    trackFitIndices.reserve(candidate.sourceLinkIndices.size());
+
+    std::vector<std::size_t> initialTrackStateFitIndices;
+    initialTrackStateFitIndices.reserve(candidate.sourceLinkIndices.size());
+
+    for (std::size_t idx : candidate.sourceLinkIndices) {
+      const auto& geometryId =
+          (inputSourceLinks.at(idx).type() == typeid(SimpleSourceLink))
+              ? inputSourceLinks.at(idx).get<SimpleSourceLink>().geometryId()
+              : inputSourceLinks.at(idx).get<ExtendedSourceLink>().geometryId();
+
+      if (m_cfg.alignmentFitSurfaces.contains(geometryId)) {
+        trackFitIndices.push_back(idx);
+      }
+      if (m_cfg.initialTrackStateFitSurfaces.contains(geometryId)) {
+        initialTrackStateFitIndices.push_back(idx);
+      }
+    }
+
+    trackFitIndicesContainer.push_back(std::move(trackFitIndices));
+    initialTrackStateFitIndicesContainer.push_back(
+        std::move(initialTrackStateFitIndices));
     trackParametersIndicesContainer.push_back(candidate.originParametersIndex);
+    magFieldIndicesContainer.push_back(i);
   }
+
+  // Initialize source link containers
+  SourceLinkContainer trackFitSourceLinkContainer;
+  trackFitSourceLinkContainer.reserve(nCandidates);
+  for (const auto& indices : trackFitIndicesContainer) {
+    trackFitSourceLinkContainer.emplace_back(inputSourceLinks, indices);
+  }
+
+  SourceLinkContainer initialTrackStateFitSourceLinkContainer;
+  initialTrackStateFitSourceLinkContainer.reserve(nCandidates);
+  for (const auto& indices : initialTrackStateFitIndicesContainer) {
+    initialTrackStateFitSourceLinkContainer.emplace_back(inputSourceLinks,
+                                                         indices);
+  }
+
   TrackParametersContainer trackParametersContainer(
       inputTrackParameters, trackParametersIndicesContainer);
 
+  MagneticFieldParametersContainer magFieldContainer(inputMagFieldParameters,
+                                                     magFieldIndicesContainer);
+
+  // Run alignment
   ACTS_DEBUG("Invoke track-based alignment with " << nCandidates
                                                   << " input tracks");
   AlignmentResult alignmentResult = (*m_cfg.alignmentFunction)(
       ctx.geoContext, ctx.magFieldContext, ctx.calibContext,
-      sourceLinkContainer, trackParametersContainer, inputMagFieldParameters);
+      trackFitSourceLinkContainer, initialTrackStateFitSourceLinkContainer,
+      trackParametersContainer, magFieldContainer);
   ACTS_INFO(
       "Alignment finished with chi2/ndf = " << alignmentResult.averageChi2ONdf);
 
