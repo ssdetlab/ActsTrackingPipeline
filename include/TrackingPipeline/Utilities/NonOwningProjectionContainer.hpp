@@ -31,6 +31,8 @@ class NonOwningProjectionContainer {
     return *(begin() + i);
   }
 
+  iterator::difference_type size() const { return m_indexRange->size(); }
+
  private:
   const container_t* m_typeRange;
   const std::vector<std::size_t>* m_indexRange;
