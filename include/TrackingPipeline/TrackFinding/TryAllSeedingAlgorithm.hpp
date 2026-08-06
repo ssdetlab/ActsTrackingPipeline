@@ -9,6 +9,8 @@
 #include "TrackingPipeline/Infrastructure/IAlgorithm.hpp"
 #include "TrackingPipeline/TrackFinding/ITrackParametersEstimator.hpp"
 
+/// @brief seeding algorithm constructing candidates out of all 
+/// possible measurements connections
 class TryAllSeedingAlgorithm : public IAlgorithm {
  public:
   /// @brief The nested configuration struct
@@ -30,9 +32,16 @@ class TryAllSeedingAlgorithm : public IAlgorithm {
   };
 
   /// @brief Constructor
-  TryAllSeedingAlgorithm(Config config, Acts::Logging::Level level);
+  ///
+  /// @param config configuration struct
+  /// @level logging level
+  TryAllSeedingAlgorithm(const Config& config, Acts::Logging::Level level);
 
   /// @brief The execute method
+  ///
+  /// @param ctx current algorithm context
+  ///
+  /// @return algorithm process code
   ProcessCode execute(const AlgorithmContext& ctx) const override;
 
   /// Get readonly access to the config parameters

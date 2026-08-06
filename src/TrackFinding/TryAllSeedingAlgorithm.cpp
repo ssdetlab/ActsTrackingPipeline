@@ -3,10 +3,9 @@
 #include "TrackingPipeline/EventData/SimpleSourceLink.hpp"
 #include "TrackingPipeline/Utilities/IdxTree.hpp"
 
-TryAllSeedingAlgorithm::TryAllSeedingAlgorithm(Config config,
+TryAllSeedingAlgorithm::TryAllSeedingAlgorithm(const Config& config,
                                                Acts::Logging::Level level)
-    : IAlgorithm("TryAllTrackSeedingAlgorithm", level),
-      m_cfg(std::move(config)) {
+    : IAlgorithm("TryAllTrackSeedingAlgorithm", level), m_cfg(config) {
   m_inputSourceLinks.initialize(m_cfg.inputSourceLinks);
   m_inputSourceLinkIndices.initialize(m_cfg.inputSourceLinkIndices);
 
@@ -14,7 +13,6 @@ TryAllSeedingAlgorithm::TryAllSeedingAlgorithm(Config config,
   m_outputTrackParameters.initialize(m_cfg.outputTrackParameters);
 }
 
-/// @brief The execute method
 ProcessCode TryAllSeedingAlgorithm::execute(const AlgorithmContext& ctx) const {
   const auto& inputSourceLinks = m_inputSourceLinks(ctx);
   const auto& inputSourceLinkIndices = m_inputSourceLinkIndices(ctx);
@@ -70,10 +68,12 @@ ProcessCode TryAllSeedingAlgorithm::execute(const AlgorithmContext& ctx) const {
         continue;
       }
 
+      detail::NonOwningProjectionContainer seedSourceLinkContainer(
+          inputSourceLinks, seedIdxs);
       auto trackParametersResult =
           m_cfg.trackParametersEstimator->estimateParameters(
-              ctx.geoContext, ctx.magFieldContext, inputSourceLinks, seedIdxs,
-              dir, point);
+              ctx.geoContext, ctx.magFieldContext, seedSourceLinkContainer, dir,
+              point);
 
       if (!trackParametersResult.ok()) {
         continue;
@@ -100,7 +100,6 @@ ProcessCode TryAllSeedingAlgorithm::execute(const AlgorithmContext& ctx) const {
   return ProcessCode::SUCCESS;
 }
 
-/// Get readonly access to the config parameters
 const TryAllSeedingAlgorithm::Config& TryAllSeedingAlgorithm::config() const {
   return m_cfg;
 }

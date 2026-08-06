@@ -9,7 +9,6 @@
 
 #include <cmath>
 #include <cstddef>
-#include <vector>
 
 #include "TrackingPipeline/Geometry/E320GeometryOptions.hpp"
 #include "TrackingPipeline/MagneticField/ConstantMagField.hpp"
@@ -110,8 +109,7 @@ Acts::BoundMatrix E320TrackParametersEstimator::transportCovToReference(
 E320TrackParametersEstimator::Result
 E320TrackParametersEstimator::estimateParameters(
     const Acts::GeometryContext& gctx, const Acts::MagneticFieldContext& mctx,
-    const std::vector<Acts::SourceLink>& sourceLinks,
-    const std::vector<std::size_t>& sourceLinkIndices, const Acts::Vector3& dir,
+    const SourceLinkContainer& sourceLinkContainer, const Acts::Vector3& dir,
     const Acts::Vector3& point) const {
   Acts::Vector3 newDir = dir;
   Acts::Vector3 newPoint = point;
@@ -133,8 +131,8 @@ E320TrackParametersEstimator::estimateParameters(
     double thetaRms = detail::getMcpThetaRmsSi(m_sensorThickness, absMom,
                                                std::abs(m_particleCharge));
 
-    chi2 = m_cfg.gx2Fitter->gx2Fit(gctx, sourceLinks, sourceLinkIndices,
-                                   thetaRms, newPoint, newDir, newCov);
+    chi2 = m_cfg.gx2Fitter->gx2Fit(gctx, sourceLinkContainer, thetaRms,
+                                   newPoint, newDir, newCov);
 
     thetaY = std::atan(newDir.y() / newDir.x());
     absMom = std::abs(dipoleFieldStrength * m_dipoleLength / thetaY);

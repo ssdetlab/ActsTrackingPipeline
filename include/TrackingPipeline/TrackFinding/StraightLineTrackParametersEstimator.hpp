@@ -3,13 +3,17 @@
 #include "Acts/Definitions/Algebra.hpp"
 #include "Acts/Definitions/TrackParametrization.hpp"
 #include "Acts/EventData/ParticleHypothesis.hpp"
-#include "Acts/EventData/SourceLink.hpp"
 
 #include <cstddef>
 
 #include "TrackingPipeline/TrackFinding/ITrackParametersEstimator.hpp"
 #include "TrackingPipeline/TrackFitting/StraightLineGX2Fitter.hpp"
 
+/// @brief Track parameters estimator performing a straing line track estimation
+///
+/// The estimator performs a global chi2 fit of the measurements to infer the
+/// position and the direction of the track at the reference surface. The
+/// momentum assigned to the track is specified by the user
 class StraightLineTrackParametersEstimator : public ITrackParametersEstimator {
  public:
   /// @brief The nested configuration struct
@@ -35,13 +39,22 @@ class StraightLineTrackParametersEstimator : public ITrackParametersEstimator {
   };
 
   /// @brief Constructor
+  ///
+  /// @param config configuration struct
   explicit StraightLineTrackParametersEstimator(const Config& config);
 
-  /// @brief Execute method
+  /// @brief perform track parameters estimation
+  ///
+  /// @param gctx current geometry context
+  /// @param mctx current magnetic field context
+  /// @param sourceLinksContainer event source links collection
+  /// @param dir initial guess for the track direction
+  /// @param point initial guess for the track passing point
+  ///
+  /// @return esimtated track parameters in a Result wrapper
   Result estimateParameters(const Acts::GeometryContext& gctx,
                             const Acts::MagneticFieldContext& mctx,
-                            const std::vector<Acts::SourceLink>& sourceLinks,
-                            const std::vector<std::size_t>& sourceLinkIndices,
+                            const SourceLinkContainer& sourceLinkContainer,
                             const Acts::Vector3& dir,
                             const Acts::Vector3& point) const override;
 

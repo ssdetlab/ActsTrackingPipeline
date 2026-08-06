@@ -2,7 +2,6 @@
 
 #include "Acts/Definitions/Algebra.hpp"
 #include "Acts/Definitions/TrackParametrization.hpp"
-#include "Acts/EventData/SourceLink.hpp"
 #include "Acts/MagneticField/MagneticFieldContext.hpp"
 
 #include <cstddef>
@@ -50,16 +49,14 @@ class E320TrackParametersEstimator : public ITrackParametersEstimator {
   ///
   /// @param gctx current geometry context
   /// @param mctx current magnetic field context
-  /// @param sourceLinks event source links collection
-  /// @param sourceLinkIndices event source link indices collection
+  /// @param sourceLinksContainer event source links collection
   /// @param dir initial guess for the track direction
   /// @param point initial guess for the track passing point
   ///
   /// @return esimtated track parameters in a Result wrapper
   Result estimateParameters(const Acts::GeometryContext& gctx,
                             const Acts::MagneticFieldContext& mctx,
-                            const std::vector<Acts::SourceLink>& sourceLinks,
-                            const std::vector<std::size_t>& sourceLinkIndices,
+                            const SourceLinkContainer& sourceLinkContainer,
                             const Acts::Vector3& dir,
                             const Acts::Vector3& point) const override;
 
