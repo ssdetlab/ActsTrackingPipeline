@@ -1,16 +1,16 @@
 #pragma once
 
-#include "ActsAlignment/Kernel/Alignment.hpp"
-
 #include "TFile.h"
 #include "TMatrixD.h"
 #include "TTree.h"
 #include "TVector3.h"
+#include "TrackingPipeline/Alignment/AlignmentAlgorithm.hpp"
 #include "TrackingPipeline/Infrastructure/AlgorithmContext.hpp"
 #include "TrackingPipeline/Infrastructure/DataHandle.hpp"
 #include "TrackingPipeline/Infrastructure/IWriter.hpp"
 #include "TrackingPipeline/Infrastructure/ProcessCode.hpp"
 
+/// @brief writer of the alignment parameters from the alignment algorithm
 class AlignmentParametersWriter : public IWriter {
  public:
   /// @brief The nested configuration struct
@@ -29,30 +29,37 @@ class AlignmentParametersWriter : public IWriter {
   /// @brief Constructor
   ///
   /// @param config The Configuration struct
+  /// @param level logging level
   AlignmentParametersWriter(const Config &config, Acts::Logging::Level level);
 
   /// @brief Finalize method
   ProcessCode finalize() override;
 
-  /// Writer name() method
+  /// @brief Writer name() method
   std::string name() const override { return "AlignmentParametersWriter"; }
 
-  /// Write out data to the input stream
+  /// @brief Write out data to the input stream
+  ///
+  /// @param ctx current algorithm context
+  ///
+  /// @return algorithm process code
   ProcessCode write(const AlgorithmContext &ctx) override;
 
-  /// Readonly access to the config
+  /// @brief Readonly access to the config
   const Config &config() const { return m_cfg; }
 
  private:
-  /// Private access to the logging instance
+  /// @brief Private access to the logging instance
   const Acts::Logger &logger() const { return *m_logger; }
 
-  /// The config class
+  /// Configuration
   Config m_cfg;
 
-  ReadDataHandle<ActsAlignment::AlignmentResult> m_alignmentResults{
+  /// Read data handle
+  ReadDataHandle<AlignmentAlgorithm::AlignmentResult> m_alignmentResults{
       this, "InputAlignmentResults"};
 
+  /// Logging instance
   std::unique_ptr<const Acts::Logger> m_logger;
 
   /// The output file
@@ -76,6 +83,7 @@ class AlignmentParametersWriter : public IWriter {
   /// Number of alignment d.o.fs
   std::size_t m_alignmentDof = 0;
 
+  /// Alignment parameters covariance
   TMatrixD m_alignmentCov;
 
   /// Mutex to protect the tree filling
