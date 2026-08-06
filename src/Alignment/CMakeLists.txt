@@ -5,9 +5,11 @@ target_sources(
     LinearAnnealingScheduler.cpp
     LocalAlignmentParametersSolverConstraints.cpp
     LocalAlignmentParametersSolverSVD.cpp
-    GlobalAlignmentParametersSolver.cpp
+    GlobalAlignmentParametersSolverProjection.cpp
+    GlobalAlignmentParametersSolverConstraints.cpp
     LocalAlignmentTransformUpdater.cpp
     GlobalAlignmentTransformUpdater.cpp
+    ActsAlignmentFunction.cpp
+    MinuitGlobalAlignmentFunction.cpp
     detail/AlignmentStoreBuilders.cpp
 )
-    
