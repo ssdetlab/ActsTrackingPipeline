@@ -44,6 +44,7 @@ ProcessCode KFTrackFittingAlgorithm::execute(
   auto trackStateContainer = std::make_shared<KFFitterTrajectory>();
   Acts::TrackContainer trackContainer(trackContainerBackend,
                                       trackStateContainer);
+  trackContainer.container().reserve(inputTrackCandidates.size());
 
   IndexTracks tracks;
   tracks.reserve(inputTrackCandidates.size());
