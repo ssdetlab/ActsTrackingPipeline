@@ -3,15 +3,11 @@
 #include "Acts/Definitions/Algebra.hpp"
 #include "Acts/Definitions/TrackParametrization.hpp"
 #include "Acts/EventData/TransformationHelpers.hpp"
-#include <Acts/Utilities/MathHelpers.hpp>
-#include <Acts/Utilities/UnitVectors.hpp>
 
 #include <algorithm>
 #include <cstddef>
 #include <ranges>
 #include <stdexcept>
-
-#include <Eigen/src/Core/util/Constants.h>
 
 #include "TrackingPipeline/EventData/ExtendedSourceLink.hpp"
 #include "TrackingPipeline/EventData/SimpleSourceLink.hpp"
@@ -718,6 +714,18 @@ ProcessCode E320::E320RootSimTrackWriter::write(const AlgorithmContext& ctx) {
 
       // Get the residuals between the true and the predicted hits
       Acts::Vector2 truePredictedHitResidual = trueTrackHit - predictedHit;
+
+      // if (m_cfg.applyPhiCorrection) {
+      //   double measPhi = trueTrackAngle(0);
+      //   double trackPhi = predictedPars(Acts::eBoundPhi);
+      //   double phiDiff = measPhi - trackPhi;
+      //   if (phiDiff < 0 && std::abs(phiDiff) > M_PI) {
+      //     trueTrackAngle(0) += 2 * M_PI;
+      //   }
+      //   if (phiDiff > M_PI) {
+      //     trueTrackAngle(0) -= 2 * M_PI;
+      //   }
+      // }
 
       // Get the residuals between the true and the predicted angles
       Acts::Vector2 truePredictedAngleResidual =
