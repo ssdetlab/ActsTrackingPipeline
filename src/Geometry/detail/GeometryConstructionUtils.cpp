@@ -19,7 +19,7 @@ std::shared_ptr<Acts::Experimental::DetectorVolume> constructVolume(
   std::cout << "-----------------------------------------------\n";
   std::cout << namePrefix + std::to_string(id) << "\n";
 
-  std::array<double, 3> volBoundsArray;
+  std::array<double, 3> volBoundsArray{};
   volBoundsArray.at(primaryIdx) = halfPrimary;
   volBoundsArray.at(longIdx) = halfLong;
   volBoundsArray.at(shortIdx) = halfShort;
