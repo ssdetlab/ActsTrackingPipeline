@@ -84,7 +84,7 @@ class AlignmentAlgorithm final : public IAlgorithm {
             initialTrackStateFitSourceLinks,
         const AlignmentAlgorithm::TrackParametersContainer& initialParameters,
         const AlignmentAlgorithm::MagneticFieldParametersContainer&
-            magFieldParameters) = 0;
+            magFieldParameters) const = 0;
   };
 
   /// @brief nested configuration struct

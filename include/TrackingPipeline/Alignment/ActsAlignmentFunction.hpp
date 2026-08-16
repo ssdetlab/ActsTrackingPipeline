@@ -69,7 +69,7 @@ class ActsAlignmentFunction : public AlignmentAlgorithm::AlignmentFunction {
           initialTrackStateFitSourceLinks,
       const AlignmentAlgorithm::TrackParametersContainer& initialParameters,
       const AlignmentAlgorithm::MagneticFieldParametersContainer&
-          magFieldParameters) override;
+          magFieldParameters) const override;
 
  private:
   /// Configuration

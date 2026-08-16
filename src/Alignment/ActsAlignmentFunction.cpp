@@ -29,7 +29,7 @@ AlignmentAlgorithm::AlignmentResult ActsAlignmentFunction::operator()(
         initialTrackStateFitSourceLinks,
     const AlignmentAlgorithm::TrackParametersContainer& initialParameters,
     const AlignmentAlgorithm::MagneticFieldParametersContainer&
-        magFieldParameters) {
+        magFieldParameters) const {
   // Initialize KF options
   auto propOptions = KFFitterPropagatorOptions(gctx, mctx);
   propOptions.maxSteps = m_cfg.maxKFSteps;
