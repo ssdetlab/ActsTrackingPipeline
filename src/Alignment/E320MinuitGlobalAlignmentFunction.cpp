@@ -13,6 +13,7 @@
 #include "Minuit2/MnMinos.h"
 #include "Minuit2/MnUserParameters.h"
 #include "TrackingPipeline/Alignment/AlignmentContext.hpp"
+#include "TrackingPipeline/Geometry/E320GeometryOptions.hpp"
 
 E320::E320MinuitGlobalAlignmentFunction::MinuitAlignmentFunctionImpl::
     MinuitAlignmentFunctionImpl(const Options& opt, Acts::Logging::Level level)
@@ -38,6 +39,10 @@ E320::E320MinuitGlobalAlignmentFunction::MinuitAlignmentFunctionImpl::
   auto nominalAlignmentStore = *m_opt.functionCfg.alignmentStore;
   m_nominalGctx = Acts::GeometryContext(AlignmentContext(
       std::make_shared<AlignmentStore>(nominalAlignmentStore)));
+
+  // Initialize constraint surfaces geometry ids
+  const auto& goInst = *GeometryOptions::instance();
+  m_ensembleCovSurfaceGeoId = goInst.ipSurfaceParameters.geoId;
 }
 
 const E320::E320MinuitGlobalAlignmentFunction::MinuitAlignmentFunctionImpl::
@@ -169,7 +174,8 @@ operator()(const std::vector<double>& pars) const {
       if (!state.hasProjector()) {
         continue;
       }
-      if (state.referenceSurface().geometryId().sensitive() == 8) {
+      if (state.referenceSurface().geometryId().sensitive() ==
+          m_ensembleCovSurfaceGeoId) {
         Acts::Vector4 meas = state.effectiveCalibrated();
         Acts::Vector4 smoothedState =
             state.effectiveProjector() * state.smoothed();
@@ -204,12 +210,8 @@ operator()(const std::vector<double>& pars) const {
   matEXY /= nTracks;
   vecEX /= nTracks;
   Acts::SquareMatrix4 ensembleCov = matEXY - vecEX * vecEX.transpose();
-  std::cout << "EXY:\n" << matEXY << "\n";
-  std::cout << "VEC EX:\n" << vecEX.transpose() << "\n";
-  std::cout << "INITIAL CHI2: " << chi2Smoothed << "\n";
-  std::cout << "ENSEMBLE COV:\n" << ensembleCov << "\n";
+  ACTS_INFO("Ensemble covariance:\n" << ensembleCov);
   Acts::SquareMatrix4 ensembleCovInv = ensembleCov.inverse();
-  std::cout << "ENSEMBLE COV INV:\n" << ensembleCovInv << "\n";
   for (const Acts::Vector4& res : ipRes) {
     chi2Smoothed += res.transpose() * ensembleCovInv * res;
   }
