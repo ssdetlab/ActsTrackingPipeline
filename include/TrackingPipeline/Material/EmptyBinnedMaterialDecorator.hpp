@@ -6,22 +6,26 @@
 
 #include <unordered_map>
 
-class NoMaterialDecorator : public Acts::IMaterialDecorator {
+/// @brief Material decorator assigning surfaces with binned empty material
+///
+/// The decorator assignes binned material to the surfaces with empty material 
+/// contents. This binned material is further filled by the material mapping 
+/// algorithm. The binned material decoration is requred since the default 
+/// geometry construction assumes homogenous surface material
+class EmptyBinnedMaterialDecorator : public Acts::IMaterialDecorator {
  public:
   /// @brief Nested configuration struct
   struct Config {
     /// The surface binnings
     std::unordered_map<Acts::GeometryIdentifier, Acts::BinUtility>
         surfaceBinnings;
-    /// Vetos for the material provider
-    std::vector<Acts::GeometryIdentifier> vetos;
   };
 
   /// @brief Default destructor
-  ~NoMaterialDecorator() override = default;
+  ~EmptyBinnedMaterialDecorator() override = default;
 
   /// @brief Constructor
-  NoMaterialDecorator(const Config& cfg);
+  explicit EmptyBinnedMaterialDecorator(const Config& cfg);
 
   /// @brief Decorate a surface
   ///
@@ -34,6 +38,6 @@ class NoMaterialDecorator : public Acts::IMaterialDecorator {
   void decorate(Acts::TrackingVolume& volume) const override;
 
  private:
-  /// Private access to the configuration
+  /// Configuration
   Config m_cfg;
 };
