@@ -8,168 +8,129 @@
 #include <cstdint>
 #include <mutex>
 #include <string>
-#include <unordered_map>
 #include <utility>
 #include <vector>
 
+#include "TFile.h"
+#include "TTree.h"
 #include "TrackingPipeline/Infrastructure/DataHandle.hpp"
 #include "TrackingPipeline/Infrastructure/IWriter.hpp"
 #include "TrackingPipeline/Infrastructure/ProcessCode.hpp"
 
-class TFile;
-class TTree;
-
-namespace Acts {
-
-// Using some short hands for Recorded Material
-using RecordedMaterial = MaterialInteractor::result_type;
-// And recorded material track
-// - this is start:  position, start momentum
-//   and the Recorded material
-using RecordedMaterialTrack =
-    std::pair<std::pair<Acts::Vector3, Acts::Vector3>, RecordedMaterial>;
-
-}  // namespace Acts
-
-/// @class RootMaterialTrackWriter
-///
-/// @brief Writes out MaterialTrack collections to a root file
+/// @brief Class writing out MaterialTrack collections to a root file
 class RootMaterialTrackWriter : public IWriter {
  public:
-  struct Config {
-    /// material collection to write
-    std::string inputMaterialTracks;
-    /// path of the output file
-    std::string filePath;
-    /// file access mode
-    std::string fileMode;
-    /// name of the output tree
-    std::string treeName;
+  /// Recorded material shorthand
+  using RecordedMaterial = Acts::MaterialInteractor::result_type;
+  /// Material track shorthand {[originPos, originMom], RecordedMaterial}
+  using RecordedMaterialTrack =
+      std::pair<std::pair<Acts::Vector3, Acts::Vector3>, RecordedMaterial>;
 
-    /// Re-calculate total values from individual steps (for cross-checks)
-    bool recalculateTotals;
-    /// Write aut pre and post step (for G4), otherwise central step position
-    bool prePostStep;
-    /// Write the surface to which the material step correpond
-    bool storeSurface;
-    /// Write the volume to which the material step correpond
-    bool storeVolume;
-    /// Collapse consecutive interactions of a single surface into a single
-    /// interaction
-    bool collapseInteractions;
+  /// @brief nested configuration struct
+  struct Config {
+    /// Material collection to write
+    std::string inputMaterialTracks;
+    /// Output file path
+    std::string filePath;
+    /// Output tree name
+    std::string treeName;
   };
 
-  /// Constructor with
+  /// @brief Constructor
+  ///
   /// @param config configuration struct
   /// @param level logging level
   RootMaterialTrackWriter(const Config& config, Acts::Logging::Level level);
 
-  /// Virtual destructor
-  ~RootMaterialTrackWriter() override;
-
-  /// Framework initialize method
+  /// @brief Framework initialize method
   ProcessCode finalize() override;
 
+  /// @brief get algorithm name
   std::string name() const override { return "RootMaterialTrackWriter"; };
 
-  /// Readonly access to the config
+  /// @brief Readonly access to the config
   const Config& config() const { return m_cfg; }
 
-  ProcessCode write(const AlgorithmContext& context) override;
+  /// @brief Framework write method
+  ProcessCode write(const AlgorithmContext& ctx) override;
 
  private:
   /// The config class
   Config m_cfg;
-  /// mutex used to protect multi-threaded writes
-  std::mutex m_writeMutex;
-  /// The output file name
-  TFile* m_outputFile = nullptr;
-  /// The output tree name
-  TTree* m_outputTree = nullptr;
 
-  /// Event identifier.
-  uint32_t m_eventId = 0;
+  /// Mutex used to protect multi-threaded writes
+  std::mutex m_mutex;
 
-  /// start global x
-  float m_v_x = 0;
-  /// start global y
-  float m_v_y = 0;
-  /// start global z
-  float m_v_z = 0;
-  /// start global momentum x
-  float m_v_px = 0;
-  /// start global momentum y
-  float m_v_py = 0;
-  /// start global momentum z
-  float m_v_pz = 0;
-  /// start phi direction
-  float m_v_phi = 0;
-  /// start eta direction
-  float m_v_eta = 0;
-  /// thickness in X0/L0
-  float m_tX0 = 0;
-  /// thickness in X0/L0
-  float m_tL0 = 0;
-
-  /// step x (start) position (optional)
-  std::vector<float> m_step_sx;
-  /// step y (start) position (optional)
-  std::vector<float> m_step_sy;
-  /// step z (start) position (optional)
-  std::vector<float> m_step_sz;
-  /// step x position
-  std::vector<float> m_step_x;
-  /// step y position
-  std::vector<float> m_step_y;
-  /// step z position
-  std::vector<float> m_step_z;
-  /// step x (end) position (optional)
-  std::vector<float> m_step_ex;
-  /// step y (end) position (optional)
-  std::vector<float> m_step_ey;
-  /// step z (end) position (optional)
-  std::vector<float> m_step_ez;
-  /// step x direction
-  std::vector<float> m_step_dx;
-  /// step y direction
-  std::vector<float> m_step_dy;
-  /// step z direction
-  std::vector<float> m_step_dz;
-  /// step length
-  std::vector<float> m_step_length;
-  /// step material x0
-  std::vector<float> m_step_X0;
-  /// step material l0
-  std::vector<float> m_step_L0;
-  /// step material A
-  std::vector<float> m_step_A;
-  /// step material Z
-  std::vector<float> m_step_Z;
-  /// step material rho
-  std::vector<float> m_step_rho;
-
-  /// ID of the surface associated with the step
-  std::vector<std::uint64_t> m_sur_id;
-  /// Type of the surface associated with the step
-  std::vector<int32_t> m_sur_type;
-  /// x position of the center of the surface associated with the step
-  std::vector<float> m_sur_x;
-  /// y position of the center of the surface associated with the step
-  std::vector<float> m_sur_y;
-  /// z position of the center of the surface associated with the step
-  std::vector<float> m_sur_z;
-  /// path correction when associating material to the given surface
-  std::vector<float> m_sur_pathCorrection;
-  /// Min range of the surface associated with the step
-  std::vector<float> m_sur_range_min;
-  /// Max range of the surface associated with the step
-  std::vector<float> m_sur_range_max;
-
-  /// ID of the volume associated with the step
-  std::vector<std::uint64_t> m_vol_id;
-
+  /// Logging instance
   std::unique_ptr<const Acts::Logger> m_logger;
 
-  ReadDataHandle<std::unordered_map<std::size_t, Acts::RecordedMaterialTrack>>
+  /// The output file
+  TFile* m_file = nullptr;
+
+  /// The output tree
+  TTree* m_tree = nullptr;
+
+  ReadDataHandle<std::vector<Acts::RecordedMaterialTrack>>
       m_inputMaterialTracks{this, "InputMaterialTracks"};
+
+ protected:
+  /// Event identifier
+  std::size_t m_eventId = 0;
+
+  /// Start global x
+  double m_originPosX = 0;
+  /// Start global y
+  double m_originPosY = 0;
+  /// Start global z
+  double m_originPosZ = 0;
+  /// Start global momentum x
+  double m_originDirX = 0;
+  /// Start global momentum y
+  double m_originDirY = 0;
+  /// Start global momentum z
+  double m_originDirZ = 0;
+  /// Start phi direction
+  double m_originPhi = 0;
+  /// Start eta direction
+  double m_originTheta = 0;
+  /// Total track thickness in X0
+  double m_thicknessX0 = 0;
+
+  /// Step x position
+  std::vector<double> m_stepPosX;
+  /// Step y position
+  std::vector<double> m_stepPosY;
+  /// Step z position
+  std::vector<double> m_stepPosZ;
+  /// Step x direction
+  std::vector<double> m_stepDirX;
+  /// Step y direction
+  std::vector<double> m_stepDirY;
+  /// Step z direction
+  std::vector<double> m_stepDirZ;
+  /// Step length
+  std::vector<double> m_stepLength;
+  /// Step material X0
+  std::vector<double> m_stepX0;
+  /// Step thickness X0
+  std::vector<double> m_stepThicknessX0;
+  /// Step material A
+  std::vector<double> m_stepA;
+  /// Step material Z
+  std::vector<double> m_stepZ;
+  /// Step material rho
+  std::vector<double> m_stepRho;
+
+  /// ID of the surface associated with the step
+  std::vector<std::uint64_t> m_surfaceId;
+  /// Type of the surface associated with the step
+  std::vector<int32_t> m_surfaceType;
+  /// x position of the center of the surface associated with the step
+  std::vector<double> m_surfaceX;
+  /// y position of the center of the surface associated with the step
+  std::vector<double> m_surfaceY;
+  /// z position of the center of the surface associated with the step
+  std::vector<double> m_surfaceZ;
+  /// Path correction when associating material to the given surface
+  std::vector<double> m_surfacePathCorrection;
 };
