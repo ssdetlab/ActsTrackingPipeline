@@ -8,8 +8,6 @@
 #include "TrackingPipeline/Infrastructure/ProcessCode.hpp"
 #include "TrackingPipeline/Material/IMaterialWriter.hpp"
 
-/// @class CoreMaterialMapping
-///
 /// @brief Initiates and executes material mapping using the MaterialMapper
 /// from the core component of ACTS
 ///
@@ -20,7 +18,7 @@
 ///
 /// It therefore saves the mapping state/cache as a private member variable
 /// and is designed to be executed in a single threaded mode.
-class CoreMaterialMapping : public IAlgorithm {
+class MaterialMappingAlgorithm : public IAlgorithm {
  public:
   /// @class nested Config class
   /// of the MaterialMapping algorithm
@@ -43,31 +41,37 @@ class CoreMaterialMapping : public IAlgorithm {
   ///
   /// @param cfg The configuration struct carrying the used tools
   /// @param level The output logging level
-  CoreMaterialMapping(const Config& cfg, Acts::Logging::Level level);
+  MaterialMappingAlgorithm(const Config& cfg, Acts::Logging::Level level);
 
   /// Destructor
   /// - it also writes out the file
-  ~CoreMaterialMapping() override;
+  ~MaterialMappingAlgorithm() override;
 
   /// Framework execute method
   ///
-  /// @param context The algorithm context for event consistency
-  ProcessCode execute(const AlgorithmContext& context) const override;
+  /// @param ctx The algorithm context for event consistency
+  ///
+  /// @return algorithm process code
+  ProcessCode execute(const AlgorithmContext& ctx) const override;
 
   /// Readonly access to the config
   const Config& config() const { return m_cfg; }
 
  private:
+  /// Configuration
   Config m_cfg;
 
+  /// Material mapping state
   std::unique_ptr<Acts::MaterialMapper::State> m_mappingState{nullptr};
 
-  ReadDataHandle<std::unordered_map<std::size_t, Acts::RecordedMaterialTrack>>
+  /// Read data handles
+  ReadDataHandle<std::vector<Acts::RecordedMaterialTrack>>
       m_inputMaterialTracks{this, "InputMaterialTracks"};
 
-  WriteDataHandle<std::unordered_map<std::size_t, Acts::RecordedMaterialTrack>>
+  /// Write data handles
+  WriteDataHandle<std::vector<Acts::RecordedMaterialTrack>>
       m_outputMappedMaterialTracks{this, "OutputMappedMaterialTracks"};
 
-  WriteDataHandle<std::unordered_map<std::size_t, Acts::RecordedMaterialTrack>>
+  WriteDataHandle<std::vector<Acts::RecordedMaterialTrack>>
       m_outputUnmappedMaterialTracks{this, "OutputUnmappedMaterialTracks"};
 };
