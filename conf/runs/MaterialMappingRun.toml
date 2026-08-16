@@ -1,0 +1,101 @@
+[General]
+# Logging level
+# VERBOSE = 0
+# DEBUG = 1
+# INFO = 2
+# WARNING = 3
+# ERROR = 4
+# FATAL = 5
+logLevel = 2
+
+[Sequencer]
+# Event skip
+skip = 0
+
+# Number of events
+events = 100000000
+
+[RootMaterialTrackReader]
+# Path to the input data directory
+filePath = """
+/home/romanurmanov/work/E320/E320Prototype/\
+E320Prototype_material/\
+Uniform_DirectZ_Tracker_PDCWindow_test/\
+geant4-material-tracks-recording.root\
+"""
+
+# Input tree name
+treeName = "material-tracks"
+
+# WhiteBoard name of the output tracks
+outputMaterialTracks = "MaterialTracks"
+
+# Read surface information from the 
+# material tracks file
+readCachedSurfaceInformation = false
+
+[BinnedSurfaceMaterialAccumulater]
+# Apply material interpolation to the 
+# empty material bins
+emptyBinCorrection = true
+
+[MaterialMapper]
+# Maximum distance from a material interaction 
+# to the material surface [mm]
+maxAssignmentDownstreamDistance = 10
+maxAssignmentUpstreamDistance = 15
+
+[MaterialMapJsonConverter]
+# Material mapping options
+processSensitives = true
+processApproaches = true
+processRepresenting = true
+processBoundaries = true
+processVolumes = true
+processDenseVolumes = false
+processNonMaterial = false
+
+[JsonMaterialWriter]
+# Path to the output file
+filePath = """
+/home/romanurmanov/work/E320/E320Prototype/\
+E320Prototype_material/\
+material.json\
+"""
+
+[MaterialMappingAlgorithm]
+# WhiteBoard name of the input tracks
+inputMaterialTracks = "MaterialTracks"
+
+# WhiteBoard name of the output mapped tracks
+mappedMaterialTracks = "MappedMaterialTracks"
+
+# WhiteBoard name of the output unmapped tracks
+unmappedMaterialTracks = "UnmappedMaterialTracks"
+
+[RootMaterialTrackWriter]
+# Output file path for the mapped tracks
+filePathMapped = """
+/home/romanurmanov/work/E320/E320Prototype/\
+E320Prototype_material/\
+mapped-material-tracks.root\
+"""
+
+# Mapped material tracks tree name
+treeNameMapped = "mapped-material-tracks"
+
+# Output file path for the unmapped tracks
+filePathUnmapped = """
+/home/romanurmanov/work/E320/E320Prototype/\
+E320Prototype_material/\
+unmapped-material-tracks.root\
+"""
+
+# Unapped material tracks tree name
+treeNameUnmapped = "unmapped-material-tracks"
+
+# WhiteBoard name of the input mapped tracks
+inputMaterialTracksMapped = "MappedMaterialTracks"
+
+# WhiteBoard name of the input unmapped tracks
+inputMaterialTracksUnmapped = "UnmappedMaterialTracks"
