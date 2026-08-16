@@ -10,77 +10,112 @@
 #include <mutex>
 #include <stdexcept>
 
-#include "TChain.h"
 #include "TrackingPipeline/Infrastructure/AlgorithmContext.hpp"
-#include "TrackingPipeline/Io/RootUtility.hpp"
 
 RootMaterialTrackReader::RootMaterialTrackReader(const Config& config,
                                                  Acts::Logging::Level level)
     : IReader(),
       m_logger(Acts::getDefaultLogger(name(), level)),
       m_cfg(config) {
-  if (m_cfg.fileList.empty()) {
-    throw std::invalid_argument{"No input files given"};
+  if (m_cfg.filePaths.empty()) {
+    throw std::invalid_argument("Missing filename");
+  }
+  if (m_cfg.treeName.empty()) {
+    throw std::invalid_argument("Missing tree name");
   }
 
-  m_inputChain = new TChain(m_cfg.treeName.c_str());
+  if (m_cfg.filePaths.size() == 1) {
+    m_file = new TFile(m_cfg.filePaths.at(0).c_str());
+    m_tree = m_file->Get<TTree>(m_cfg.treeName.c_str());
+  } else {
+    m_chainOwner = new TChain(m_cfg.treeName.c_str());
+    // Add the files to the chain
+    for (const auto& path : m_cfg.filePaths) {
+      m_chainOwner->Add(path.c_str());
+    }
+    m_tree = dynamic_cast<TTree*>(m_chainOwner);
+  }
+  // Set event Id branch
+  m_tree->SetBranchAddress("event_id", &m_eventId);
+  if (m_tree->GetBranch("event_id") == nullptr) {
+    throw std::invalid_argument("Missing eventId branch");
+  }
+  auto nEntries = static_cast<std::size_t>(m_tree->GetEntries());
 
-  // loop over the input files
-  for (const auto& inputFile : m_cfg.fileList) {
-    // add file to the input chain
-    m_inputChain->Add(inputFile.c_str());
-    ACTS_DEBUG("Adding File " << inputFile << " to tree '" << m_cfg.treeName
-                              << "'.");
+  // Add the first entry
+  m_tree->GetEntry(0);
+  m_eventMap.emplace_back(m_eventId, 0, 0);
+
+  for (std::size_t i = 0; i < nEntries; ++i) {
+    m_tree->GetEntry(i);
+    if (m_eventId != std::get<0>(m_eventMap.back())) {
+      std::get<2>(m_eventMap.back()) = i;
+      m_eventMap.emplace_back(m_eventId, i, i);
+    }
+    if (i == nEntries - 1) {
+      std::get<2>(m_eventMap.back()) = nEntries;
+    }
   }
 
-  // get the number of entries, which also loads the tree
-  std::size_t nentries = m_inputChain->GetEntries();
+  // Sort by event id
+  std::ranges::sort(m_eventMap, [](const auto& a, const auto& b) {
+    return std::get<0>(a) < std::get<0>(b);
+  });
 
-  m_inputChain->SetBranchAddress("event_id", &m_eventId);
-  m_inputChain->SetBranchAddress("v_x", &m_v_x);
-  m_inputChain->SetBranchAddress("v_y", &m_v_y);
-  m_inputChain->SetBranchAddress("v_z", &m_v_z);
-  m_inputChain->SetBranchAddress("v_px", &m_v_px);
-  m_inputChain->SetBranchAddress("v_py", &m_v_py);
-  m_inputChain->SetBranchAddress("v_pz", &m_v_pz);
-  m_inputChain->SetBranchAddress("v_phi", &m_v_phi);
-  m_inputChain->SetBranchAddress("v_eta", &m_v_eta);
-  m_inputChain->SetBranchAddress("t_X0", &m_tX0);
-  m_inputChain->SetBranchAddress("t_L0", &m_tL0);
-  m_inputChain->SetBranchAddress("mat_x", &m_step_x);
-  m_inputChain->SetBranchAddress("mat_y", &m_step_y);
-  m_inputChain->SetBranchAddress("mat_z", &m_step_z);
-  m_inputChain->SetBranchAddress("mat_dx", &m_step_dx);
-  m_inputChain->SetBranchAddress("mat_dy", &m_step_dy);
-  m_inputChain->SetBranchAddress("mat_dz", &m_step_dz);
-  m_inputChain->SetBranchAddress("mat_step_length", &m_step_length);
-  m_inputChain->SetBranchAddress("mat_X0", &m_step_X0);
-  m_inputChain->SetBranchAddress("mat_L0", &m_step_L0);
-  m_inputChain->SetBranchAddress("mat_A", &m_step_A);
-  m_inputChain->SetBranchAddress("mat_Z", &m_step_Z);
-  m_inputChain->SetBranchAddress("mat_rho", &m_step_rho);
-  if (m_cfg.readCachedSurfaceInformation) {
-    m_inputChain->SetBranchAddress("sur_id", &m_sur_id);
-    m_inputChain->SetBranchAddress("sur_x", &m_sur_x);
-    m_inputChain->SetBranchAddress("sur_y", &m_sur_y);
-    m_inputChain->SetBranchAddress("sur_z", &m_sur_z);
-    m_inputChain->SetBranchAddress("sur_pathCorrection", &m_sur_pathCorrection);
-  }
+  ACTS_DEBUG("Event range: " << availableEvents().first << " - "
+                             << availableEvents().second);
 
-  m_events = static_cast<std::size_t>(m_inputChain->GetMaximum("event_id") + 1);
-  m_batchSize = nentries / m_events;
-  ACTS_DEBUG("The full chain has "
-             << nentries << " entries for " << m_events
-             << " events this corresponds to a batch size of: " << m_batchSize);
+  //------------------------------------------------------------------
+  // Set the rest of the branches
 
-  // Sort the entry numbers of the events
-  {
-    m_entryNumbers.resize(nentries);
-    m_inputChain->Draw("event_id", "", "goff");
-    stableSort(m_inputChain->GetEntries(), m_inputChain->GetV1(),
-               m_entryNumbers.data(), false);
-  }
+  // Start global x
+  m_tree->SetBranchAddress("v_x", &m_v_x);
+  // Start global y
+  m_tree->SetBranchAddress("v_y", &m_v_y);
+  // Start global z
+  m_tree->SetBranchAddress("v_z", &m_v_z);
+  // Start global momentum x
+  m_tree->SetBranchAddress("v_px", &m_v_px);
+  // Start global momentum y
+  m_tree->SetBranchAddress("v_py", &m_v_py);
+  // Start global momentum z
+  m_tree->SetBranchAddress("v_pz", &m_v_pz);
+  // Start phi direction
+  m_tree->SetBranchAddress("v_phi", &m_v_phi);
+  // Start eta direction
+  m_tree->SetBranchAddress("v_eta", &m_v_eta);
+  // Thickness in X0/L0
+  m_tree->SetBranchAddress("t_X0", &m_tX0);
+  // Thickness in X0/L0
+  m_tree->SetBranchAddress("t_L0", &m_tL0);
 
+  // Step x position
+  m_tree->SetBranchAddress("mat_x", &m_step_x);
+  // Step y position
+  m_tree->SetBranchAddress("mat_y", &m_step_y);
+  // Step z position
+  m_tree->SetBranchAddress("mat_z", &m_step_z);
+  // Step x direction
+  m_tree->SetBranchAddress("mat_dx", &m_step_dx);
+  // Step y direction
+  m_tree->SetBranchAddress("mat_dy", &m_step_dy);
+  // Step z direction
+  m_tree->SetBranchAddress("mat_dz", &m_step_dz);
+  // Step length
+  m_tree->SetBranchAddress("mat_step_length", &m_step_length);
+  // Step material x0
+  m_tree->SetBranchAddress("mat_X0", &m_step_X0);
+  // Step material l0
+  m_tree->SetBranchAddress("mat_L0", &m_step_L0);
+  // Step material A
+  m_tree->SetBranchAddress("mat_A", &m_step_A);
+  // Step material Z
+  m_tree->SetBranchAddress("mat_Z", &m_step_Z);
+  // Step material rho
+  m_tree->SetBranchAddress("mat_rho", &m_step_rho);
+
+  //------------------------------------------------------------------
+  // Initialize the data handles
   m_outputMaterialTracks.initialize(m_cfg.outputMaterialTracks);
 }
 
@@ -90,106 +125,104 @@ std::string RootMaterialTrackReader::name() const {
 
 std::pair<std::size_t, std::size_t> RootMaterialTrackReader::availableEvents()
     const {
-  return {0u, m_events};
+  return {std::get<0>(m_eventMap.front()), std::get<0>(m_eventMap.back()) + 1};
 }
 
-ProcessCode RootMaterialTrackReader::read(const AlgorithmContext& context) {
-  ACTS_DEBUG("Trying to read recorded material from tracks.");
+ProcessCode RootMaterialTrackReader::read(const AlgorithmContext& ctx) {
+  auto it = std::ranges::find_if(m_eventMap, [&](const auto& a) {
+    return std::get<0>(a) == ctx.eventNumber;
+  });
 
-  if (m_inputChain == nullptr || context.eventNumber >= m_events) {
+  if (it == m_eventMap.end()) {
+    // Explicitly warn if it happens for the first or last event as that might
+    // indicate a human error
+    if ((ctx.eventNumber == availableEvents().first) &&
+        (ctx.eventNumber == availableEvents().second - 1)) {
+      ACTS_WARNING("Reading empty event: " << ctx.eventNumber);
+    } else {
+      ACTS_DEBUG("Reading empty event: " << ctx.eventNumber);
+    }
+
+    m_outputMaterialTracks(ctx, {});
+
+    // Return success flag
     return ProcessCode::SUCCESS;
   }
 
-  // lock the mutex
-  std::scoped_lock lock{m_read_mutex};
-  // now read
+  // Lock the mutex
+  std::lock_guard<std::mutex> lock(m_mutex);
 
-  // The collection to be written
-  std::unordered_map<std::size_t, Acts::RecordedMaterialTrack> mtrackCollection;
+  ACTS_DEBUG("Reading event: " << std::get<0>(*it)
+                               << " stored in entries: " << std::get<1>(*it)
+                               << " - " << std::get<2>(*it));
 
-  Acts::Transform3 transform = m_cfg.toWorldTransform.inverse();
+  // Initialize collection
+  std::vector<Acts::RecordedMaterialTrack> mTrackCollection;
 
   // Loop over the entries for this event
-  for (std::size_t ib = 0; ib < m_batchSize; ++ib) {
-    // Read the correct entry: startEntry + ib
-    auto entry = m_batchSize * context.eventNumber + ib;
-    entry = m_entryNumbers.at(entry);
-    ACTS_VERBOSE("Reading event: " << context.eventNumber
-                                   << " with stored entry: " << entry);
-    m_inputChain->GetEntry(entry);
+  for (auto entry = std::get<1>(*it); entry < std::get<2>(*it); entry++) {
+    m_tree->GetEntry(entry);
 
     Acts::RecordedMaterialTrack rmTrack;
+
     // Fill the position and momentum
     rmTrack.first.first =
         m_cfg.toWorldTransform * Acts::Vector3(m_v_x, m_v_y, m_v_z);
     rmTrack.first.second =
         m_cfg.toWorldTransform * Acts::Vector3(m_v_px, m_v_py, m_v_pz);
 
-    ACTS_VERBOSE("Track vertex:  " << rmTrack.first.first);
-    ACTS_VERBOSE("Track momentum:" << rmTrack.first.second);
-
     // Fill the individual steps
-    std::size_t msteps = m_step_length->size();
-    ACTS_VERBOSE("Reading " << msteps << " material steps.");
-    rmTrack.second.materialInteractions.reserve(msteps);
+    std::size_t mSteps = m_step_length->size();
+    rmTrack.second.materialInteractions.reserve(mSteps);
     rmTrack.second.materialInX0 = 0.;
     rmTrack.second.materialInL0 = 0.;
 
-    for (std::size_t is = 0; is < msteps; ++is) {
-      ACTS_VERBOSE("====================");
-      ACTS_VERBOSE("[" << is + 1 << "/" << msteps << "] STEP INFORMATION: ");
-
-      double s = (*m_step_length)[is];
+    for (std::size_t is = 0; is < mSteps; ++is) {
+      double s = m_step_length->at(is);
       if (s == 0) {
-        ACTS_VERBOSE("invalid step length... skipping!");
         continue;
       }
 
-      double mX0 = (*m_step_X0)[is];
-      double mL0 = (*m_step_L0)[is];
+      double mX0 = m_step_X0->at(is);
+      double mL0 = m_step_L0->at(is);
 
       rmTrack.second.materialInX0 += s / mX0;
       rmTrack.second.materialInL0 += s / mL0;
-      /// Fill the position & the material
+
+      // Fill the position & the material
       Acts::MaterialInteraction mInteraction;
       mInteraction.position =
           m_cfg.toWorldTransform *
-          Acts::Vector3((*m_step_x)[is], (*m_step_y)[is], (*m_step_z)[is]);
-      ACTS_VERBOSE("POSITION : " << (*m_step_x)[is] << ", " << (*m_step_y)[is]
-                                 << ", " << (*m_step_z)[is]);
+          Acts::Vector3(m_step_x->at(is), m_step_y->at(is), m_step_z->at(is));
       mInteraction.direction =
-          m_cfg.toWorldTransform *
-          Acts::Vector3((*m_step_dx)[is], (*m_step_dy)[is], (*m_step_dz)[is]);
-      ACTS_VERBOSE("DIRECTION: " << (*m_step_dx)[is] << ", " << (*m_step_dy)[is]
-                                 << ", " << (*m_step_dz)[is]);
+          m_cfg.toWorldTransform * Acts::Vector3(m_step_dx->at(is),
+                                                 m_step_dy->at(is),
+                                                 m_step_dz->at(is));
       mInteraction.materialSlab = Acts::MaterialSlab(
-          Acts::Material::fromMassDensity(mX0, mL0, (*m_step_A)[is],
-                                          (*m_step_Z)[is], (*m_step_rho)[is]),
+          Acts::Material::fromMassDensity(mX0, mL0, m_step_A->at(is),
+                                          m_step_Z->at(is), m_step_rho->at(is)),
           s);
-      ACTS_VERBOSE("MATERIAL: " << mX0 << ", " << mL0 << ", " << (*m_step_A)[is]
-                                << ", " << (*m_step_Z)[is] << ", "
-                                << (*m_step_rho)[is]);
-      ACTS_VERBOSE("====================");
 
       if (m_cfg.readCachedSurfaceInformation) {
-        // add the surface information to the interaction this allows the
+        // Add the surface information to the interaction this allows the
         // mapping to be speed up
-        mInteraction.intersectionID = Acts::GeometryIdentifier((*m_sur_id)[is]);
+        mInteraction.intersectionID =
+            Acts::GeometryIdentifier(m_sur_id->at(is));
         mInteraction.intersection =
             m_cfg.toWorldTransform *
-            Acts::Vector3((*m_sur_x)[is], (*m_sur_y)[is], (*m_sur_z)[is]);
-        mInteraction.pathCorrection = (*m_sur_pathCorrection)[is];
+            Acts::Vector3(m_sur_x->at(is), m_sur_y->at(is), m_sur_z->at(is));
+        mInteraction.pathCorrection = m_sur_pathCorrection->at(is);
       } else {
         mInteraction.intersectionID = Acts::GeometryIdentifier();
         mInteraction.intersection = Acts::Vector3(0, 0, 0);
       }
       rmTrack.second.materialInteractions.push_back(std::move(mInteraction));
     }
-    mtrackCollection[ib] = (std::move(rmTrack));
+    mTrackCollection.push_back(std::move(rmTrack));
   }
 
   // Write to the collection to the EventStore
-  m_outputMaterialTracks(context, std::move(mtrackCollection));
+  m_outputMaterialTracks(ctx, std::move(mTrackCollection));
 
   // Return success flag
   return ProcessCode::SUCCESS;

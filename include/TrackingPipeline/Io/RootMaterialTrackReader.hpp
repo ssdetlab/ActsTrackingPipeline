@@ -1,26 +1,24 @@
 #pragma once
 
+#include "Acts/Definitions/Algebra.hpp"
 #include "Acts/Material/MaterialInteraction.hpp"
 #include "Acts/Utilities/Logger.hpp"
-#include <Acts/Definitions/Algebra.hpp>
 
 #include <cstddef>
 #include <cstdint>
 #include <memory>
 #include <mutex>
 #include <string>
-#include <unordered_map>
 #include <utility>
 #include <vector>
 
+#include "TChain.h"
+#include "TFile.h"
+#include "TTree.h"
 #include "TrackingPipeline/Infrastructure/DataHandle.hpp"
 #include "TrackingPipeline/Infrastructure/IReader.hpp"
 #include "TrackingPipeline/Infrastructure/ProcessCode.hpp"
 
-class TChain;
-
-/// @class RootMaterialTrackReader
-///
 /// @brief Reads in MaterialTrack information from a root file
 /// and fills it into a format to be understood by the MaterialMapping
 /// algorithm
@@ -28,19 +26,20 @@ class RootMaterialTrackReader : public IReader {
  public:
   /// @brief The nested configuration struct
   struct Config {
-    /// material collection to read
+    /// Material collection to read
     std::string outputMaterialTracks;
-    /// name of the output tree
+    /// Name of the input tree
     std::string treeName;
     /// List of input files
-    std::vector<std::string> fileList;
+    std::vector<std::string> filePaths;
     /// Transform to Acts coordinate system
     Acts::Transform3 toWorldTransform;
-    /// Read surface information for the root file
+    /// Read surface information from the root file
     bool readCachedSurfaceInformation;
   };
 
   /// Constructor
+  ///
   /// @param config The Configuration struct
   /// @param level The log level
   RootMaterialTrackReader(const Config& config, Acts::Logging::Level level);
@@ -56,8 +55,10 @@ class RootMaterialTrackReader : public IReader {
 
   /// Read out data from the input stream
   ///
-  /// @param context The algorithm context
-  ProcessCode read(const AlgorithmContext& context) override;
+  /// @param ctx The algorithm context
+  ///
+  /// @return algorithm process code
+  ProcessCode read(const AlgorithmContext& ctx) override;
 
   /// Readonly access to the config
   const Config& config() const { return m_cfg; }
@@ -72,82 +73,81 @@ class RootMaterialTrackReader : public IReader {
   /// The config class
   Config m_cfg;
 
-  WriteDataHandle<std::unordered_map<std::size_t, Acts::RecordedMaterialTrack>>
+  /// Write data handle
+  WriteDataHandle<std::vector<Acts::RecordedMaterialTrack>>
       m_outputMaterialTracks{this, "OutputMaterialTracks"};
 
-  /// mutex used to protect multi-threaded reads
-  std::mutex m_read_mutex;
+  /// Mutex used to protect multi-threaded reads
+  std::mutex m_mutex;
 
-  /// The number of events
-  std::size_t m_events = 0;
+  /// Vector of {eventNr, entryMin, entryMax}
+  std::vector<std::tuple<std::size_t, std::size_t, std::size_t>> m_eventMap;
 
-  /// The batch size (number of track per events)
-  std::size_t m_batchSize = 0;
+  /// The IO handles
+  TFile* m_file = nullptr;
+  TTree* m_tree = nullptr;
+  TChain* m_chainOwner = nullptr;
 
-  /// The input tree name
-  TChain* m_inputChain = nullptr;
+ protected:
+  /// NOTE: the naming convention here is external
 
   /// Event identifier.
   uint32_t m_eventId = 0;
 
-  /// The entry numbers for accessing events in increased order (there could be
-  /// multiple entries corresponding to one event number)
-  std::vector<long long> m_entryNumbers = {};
-
-  /// start global x
+  /// Start global x
   float m_v_x = 0;
-  /// start global y
+  /// Start global y
   float m_v_y = 0;
-  /// start global z
+  /// Start global z
   float m_v_z = 0;
-  /// start global momentum x
+  /// Start global momentum x
   float m_v_px = 0;
-  /// start global momentum y
+  /// Start global momentum y
   float m_v_py = 0;
-  /// start global momentum z
+  /// Start global momentum z
   float m_v_pz = 0;
-  /// start phi direction
+  /// Start phi direction
   float m_v_phi = 0;
-  /// start eta direction
+  /// Start eta direction
   float m_v_eta = 0;
-  /// thickness in X0/L0
+  /// Thickness in X0
   float m_tX0 = 0;
-  /// thickness in X0/L0
+  /// Thickness in L0
   float m_tL0 = 0;
 
-  /// step x position
-  std::vector<float>* m_step_x = new std::vector<float>;
-  /// step y position
-  std::vector<float>* m_step_y = new std::vector<float>;
-  /// step z position
-  std::vector<float>* m_step_z = new std::vector<float>;
-  /// step x direction
-  std::vector<float>* m_step_dx = new std::vector<float>;
-  /// step y direction
-  std::vector<float>* m_step_dy = new std::vector<float>;
-  /// step z direction
-  std::vector<float>* m_step_dz = new std::vector<float>;
-  /// step length
-  std::vector<float>* m_step_length = new std::vector<float>;
-  /// step material x0
-  std::vector<float>* m_step_X0 = new std::vector<float>;
-  /// step material l0
-  std::vector<float>* m_step_L0 = new std::vector<float>;
-  /// step material A
-  std::vector<float>* m_step_A = new std::vector<float>;
-  /// step material Z
-  std::vector<float>* m_step_Z = new std::vector<float>;
-  /// step material rho
-  std::vector<float>* m_step_rho = new std::vector<float>;
+  /// Step x position
+  std::vector<float>* m_step_x = nullptr;
+  /// Step y position
+  std::vector<float>* m_step_y = nullptr;
+  /// Step z position
+  std::vector<float>* m_step_z = nullptr;
+  /// Step x direction
+  std::vector<float>* m_step_dx = nullptr;
+  /// Step y direction
+  std::vector<float>* m_step_dy = nullptr;
+  /// Step z direction
+  std::vector<float>* m_step_dz = nullptr;
+  /// Step length
+  std::vector<float>* m_step_length = nullptr;
+  /// Step material X0
+  std::vector<float>* m_step_X0 = nullptr;
+  /// Step material L0
+  std::vector<float>* m_step_L0 = nullptr;
+  /// Step material A
+  std::vector<float>* m_step_A = nullptr;
+  /// Step material Z
+  std::vector<float>* m_step_Z = nullptr;
+  /// Step material rho
+  std::vector<float>* m_step_rho = nullptr;
 
   /// ID of the surface associated with the step
-  std::vector<std::uint64_t>* m_sur_id = new std::vector<std::uint64_t>;
+  std::vector<std::uint64_t>* m_sur_id = nullptr;
   /// x position of the center of the surface associated with the step
-  std::vector<float>* m_sur_x = new std::vector<float>;
+  std::vector<float>* m_sur_x = nullptr;
   /// y position of the center of the surface associated with the step
-  std::vector<float>* m_sur_y = new std::vector<float>;
+  std::vector<float>* m_sur_y = nullptr;
   /// z position of the center of the surface associated with the step
-  std::vector<float>* m_sur_z = new std::vector<float>;
-  /// path correction when associating material to the given surface
-  std::vector<float>* m_sur_pathCorrection = new std::vector<float>;
+  std::vector<float>* m_sur_z = nullptr;
+  /// Path correction when associating material to the given surface
+  std::vector<float>* m_sur_pathCorrection = nullptr;
 };
