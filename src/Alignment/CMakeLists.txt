@@ -10,6 +10,6 @@ target_sources(
     LocalAlignmentTransformUpdater.cpp
     GlobalAlignmentTransformUpdater.cpp
     ActsAlignmentFunction.cpp
-    MinuitGlobalAlignmentFunction.cpp
+    E320MinuitGlobalAlignmentFunction.cpp
     detail/AlignmentStoreBuilders.cpp
 )
