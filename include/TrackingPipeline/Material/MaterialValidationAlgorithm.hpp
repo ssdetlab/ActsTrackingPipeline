@@ -9,18 +9,22 @@
 #include "TrackingPipeline/Infrastructure/ProcessCode.hpp"
 #include "TrackingPipeline/Infrastructure/RandomNumbers.hpp"
 
-/// @class MaterialValidation
+/// @brief Algorithm performing track propagation and material recording
 ///
-class MaterialValidation : public IAlgorithm {
+/// The algorithm takes external material tracks (obtained from the material
+/// recording procedure), extracts the initial track states (position,
+/// momentum), initializes propagation with these parameters and performs the
+/// propagation through the geometry, recording material interactions at the
+/// material surfaces
+class MaterialValidationAlgorithm : public IAlgorithm {
  public:
-  /// @class nested Config class
-  /// of the MaterialMapping algorithm
+  /// @brief nested configuration struct
   struct Config {
-    // Input file with validation tracks
+    // Input material tracks
     std::string inputMaterialTracks;
-    // The validater
+    // Material validater
     std::shared_ptr<Acts::MaterialValidater> materialValidater;
-    /// Output collection name
+    /// Output material tracks
     std::string outputMaterialTracks;
   };
 
@@ -28,17 +32,14 @@ class MaterialValidation : public IAlgorithm {
   ///
   /// @param cfg The configuration struct carrying the used tools
   /// @param level The output logging level
-  MaterialValidation(const Config& cfg,
-                     Acts::Logging::Level level = Acts::Logging::INFO);
-
-  /// Destructor
-  /// - it also writes out the file
-  ~MaterialValidation() override = default;
+  MaterialValidationAlgorithm(const Config& cfg, Acts::Logging::Level level);
 
   /// Framework execute method
   ///
   /// @param context The algorithm context for event consistency
-  ProcessCode execute(const AlgorithmContext& context) const override;
+  ///
+  /// @return algorithm process code
+  ProcessCode execute(const AlgorithmContext& ctx) const override;
 
   /// Readonly access to the config
   const Config& config() const { return m_cfg; }
@@ -47,9 +48,11 @@ class MaterialValidation : public IAlgorithm {
   /// Configuraion
   Config m_cfg;
 
-  ReadDataHandle<std::unordered_map<std::size_t, Acts::RecordedMaterialTrack>>
+  /// Read data handles
+  ReadDataHandle<std::vector<Acts::RecordedMaterialTrack>>
       m_inputMaterialTracks{this, "InputMaterialTracks"};
 
-  WriteDataHandle<std::unordered_map<std::size_t, Acts::RecordedMaterialTrack>>
+  /// Write data handles
+  WriteDataHandle<std::vector<Acts::RecordedMaterialTrack>>
       m_outputMaterialTracks{this, "OutputMaterialTracks"};
 };
