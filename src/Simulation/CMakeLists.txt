@@ -11,6 +11,8 @@ target_sources(
     SphericalMomentumGenerator.cpp
     StationaryMomentumGenerator.cpp
     ConvergingBeamGenerator.cpp
+    SimpleSourceLinkCreator.cpp
+    ExtendedSourceLinkCreator.cpp
     IdealDigitizer.cpp
     SimpleDigitizer.cpp
     SurfaceRangedDigitizer.cpp
