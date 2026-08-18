@@ -7,3 +7,92 @@
 # ERROR = 4
 # FATAL = 5
 logLevel = 2
+
+[Geometry]
+# Global alignment shifts [mm]
+globalShiftY = 0
+globalShiftZ = 0
+
+# Global alignment angles [mrad]
+globalAngleZ = 0
+
+# Local alignment shifts [um]
+localShiftY10 = 0
+localShiftY12 = 0
+localShiftY14 = 0
+localShiftY16 = 0
+localShiftY18 = 0
+
+localShiftZ10 = 0
+localShiftZ12 = 0
+localShiftZ14 = 0
+localShiftZ16 = 0
+localShiftZ18 = 0
+
+# Local alignment angles [mrad]
+localAngleZ10 = 0
+localAngleZ12 = 0
+localAngleZ14 = 0
+localAngleZ16 = 0
+localAngleZ18 = 0
+
+# # Global alignment shifts [mm]
+# globalShiftY = 0
+# globalShiftZ = 0
+# 
+# # Global alignment angles [mrad]
+# globalAngleZ = 0
+
+# # Local alignment shifts [um]
+# localShiftY10 = 30
+# localShiftY12 = -40
+# localShiftY14 = -40
+# localShiftY16 = 30
+# localShiftY18 = 20
+# 
+# localShiftZ10 = -20
+# localShiftZ12 = 50
+# localShiftZ14 = 40
+# localShiftZ16 = -40
+# localShiftZ18 = -30
+# 
+# # Local alignment angles [mrad]
+# localAngleZ10 = 1
+# localAngleZ12 = -1
+# localAngleZ14 = -2
+# localAngleZ16 = 1
+# localAngleZ18 = 1
+
+[E320MinuitGlobalAlignmentFunction]
+# Initial Y parameter value [mm]
+initialAlignmentParsY = 10
+# Initial Y parameter step size [mm]
+initialAlignmentParStepsY = 5
+# Low Y parameter boundary [mm]
+alignmentParLowBoundsY = -20
+# High Y parameter boundary [mm]
+alignmentParHighBoundsY = 20
+
+# Initial Z parameter value [mm]
+initialAlignmentParsZ = -5
+# Initial Z parameter step size [mm]
+initialAlignmentParStepsZ = 5
+# Low Z parameter boundary [mm]
+alignmentParLowBoundsZ = -20
+# High Z parameter boundary [mm]
+alignmentParHighBoundsZ = 20
+
+# Initial Theta parameter value [mrad]
+initialAlignmentParsTheta = -2
+# Initial Theta parameter step size [mrad]
+initialAlignmentParStepsTheta = 2
+# Low Theta parameter boundary [mrad]
+alignmentParLowBoundsTheta = -5
+# High Theta parameter boundary [mrad]
+alignmentParHighBoundsTheta = 5
+
+# Maximum number of KF steps
+maxKFSteps = 100000
+
+# MINUIT UP level
+upLevel = 1

@@ -1,0 +1,233 @@
+[General]
+# Logging level
+# VERBOSE = 0
+# DEBUG = 1
+# INFO = 2
+# WARNING = 3
+# ERROR = 4
+# FATAL = 5
+logLevel = 2
+
+[MaterialMapJsonConverter]
+# Material mapping options
+processSensitives = true
+processApproaches = true
+processRepresenting = true
+processBoundaries = true
+processVolumes = true
+processDenseVolumes = false
+processNonMaterial = false
+
+[JsonMaterialDecorator]
+# Material map path
+materialPath = """
+/home/romanurmanov/work/E320/E320Prototype/\
+E320Prototype_material/\
+Uniform_DirectZ_Tracker_PDCWindow_256x128_1e6/material.json\
+"""
+
+[Geometry]
+# Use material decorator for the 
+# material description
+materialDecorator = true
+
+[Sequencer]
+# Event skip
+skip = 0
+
+# Number of events
+events = 1000
+
+# Number of threads
+numThreads = 1
+
+# FPE tracking
+trackFpes = false
+
+[E320MagneticFieldParametersProvider]
+inDirMagnets = """
+/home/romanurmanov/work/E320/E320Prototype/\
+E320Prototype_dataInRootFormat/local_alignment_data/processed/\
+sig\
+"""
+
+treeName = "magnets"
+
+[E320RootDataReader]
+inDirClusters = """
+/home/romanurmanov/work/E320/E320Prototype/\
+E320Prototype_dataInRootFormat/local_alignment_data/processed/\
+sig\
+"""
+
+# WhiteBoard name of the output source links
+outputSourceLinks = "SourceLinks"
+
+# WhiteBoard name of the output detector source link indices
+outputDetSourceLinkIndices = "DetSourceLinkIndices"
+
+# WhiteBoard name of the output constraint source link indices
+outputBpmSourceLinkIndices = "BpmSourceLinkIndices"
+
+# WhiteBoard name of the output event meta data
+outputEventMetaData = "EventMetaData"
+
+# Input tree name
+treeName = "data"
+
+# Tree event branch name
+eventKey = "event"
+
+# Read event of only specific EPICS parity
+requireEpicsParity = true
+
+# Required EPICS parity 
+# Even = 0
+# Odd = 1
+requiredEpicsParity = 1
+
+# Cut on the maximum tracker occupancy
+maxOccupancy = 1000
+
+[E320TrackParametersEstimator]
+# Number of GX2 fit iterations
+nIterations = 2
+
+# Max GX2 chi2 cut
+maxChi2 = 100000000
+# maxChi2 = 100
+
+# Propagation direction
+# forward = 0
+# backward = 1
+propDirection = 0
+
+[HoughTransformSeeder]
+# Number of HT bins along theta short axis
+nCellsThetaShort = 500
+
+# Number of HT bins along rho short axis
+# nCellsRhoShort = 500
+nCellsRhoShort = 2000
+
+# Number of HT bins along theta long axis
+nCellsThetaLong = 500
+
+# Number of HT bins along rho long axis
+nCellsRhoLong = 500
+# nCellsRhoLong = 2000
+
+# Cut on the minimum number of intersections
+# in a HT cell
+minXCount = 5
+
+[E320SeedingAlgorithm]
+# WhiteBoard name of the input source links
+inputSourceLinks = "SourceLinks"
+
+# WhiteBoard name of the input detector source link indices
+inputDetSourceLinkIndices = "DetSourceLinkIndices"
+
+# WhiteBoard name of the input BPM source link indices
+inputBpmSourceLinkIndices = "BpmSourceLinkIndices"
+
+# WhiteBoard name of the output seeds
+outputSeeds = "Seeds"
+
+# WhiteBoard name of the output track parameters
+outputTrackParameters = "TrackParameters"
+
+# Cut on the minimum number of tracking layers
+# in a seed
+minLayers = 5
+
+# Cut on the maximum number of tracking layers
+# in a seed
+maxLayers = 5
+
+[KFTrackFittingAlgorithm]
+# WhiteBoard name of the input track candidates
+inputTrackCandidates = "Seeds"
+
+# WhiteBoard name of the input track parameters
+inputTrackParameters = "TrackParameters"
+
+# WhiteBoard name of the input source links
+inputSourceLinks = "SourceLinks"
+
+# WhiteBoard name of the output track container
+outputTrackContainer = "TrackContainer"
+
+# WhiteBoard name of the output tracks
+outputTracks = "Tracks"
+
+# Cut on the maximum number of KF steps
+maxSteps = 100000
+
+[RootMeasurementWriter]
+# WhiteBoard name of the input source links
+inputSourceLinks = "SourceLinks"
+
+# Output tree name
+treeName = "measurements"
+
+# Output file path
+filePath = """
+/home/romanurmanov/work/E320/E320Prototype/E320Prototype_analysis/\
+data/\
+measurements.root\
+"""
+
+[RootSeedWriter]
+# WhiteBoard name of the input seeds
+inputSeeds = "Seeds"
+
+# WhiteBoard name of the input track parameters
+inputTrackParameters = "TrackParameters"
+
+# WhiteBoard name of the input source links
+inputSourceLinks = "SourceLinks"
+
+# Output tree name
+treeName = "seeds"
+
+# Output file path
+filePath = """
+/home/romanurmanov/work/E320/E320Prototype/E320Prototype_analysis/\
+data/\
+seeds.root\
+"""
+
+[E320RootTrackWriter]
+# WhiteBoard name of the input track container
+inputTrackContainer = "TrackContainer"
+
+# WhiteBoard name of the input tracks
+inputTracks = "Tracks"
+
+# WhiteBoard name of the input track parameters
+inputTrackParametersGuesses = "TrackParameters"
+
+# WhiteBoard name of the input event meta data
+inputEventMetaData = "EventMetaData"
+
+# Output tree name
+treeName = "fitted-tracks"
+
+# Output file path
+filePath = """
+/home/romanurmanov/work/E320/E320Prototype/E320Prototype_analysis/\
+data/\
+fitted-tracks.root\
+"""
+
+[E320MagneticFieldWriter]
+# Output tree name
+treeName = "magnets"
+
+# Output file path
+filePath = """
+/home/romanurmanov/work/E320/E320Prototype/E320Prototype_analysis/\
+data/\
+magnets.root\
+"""

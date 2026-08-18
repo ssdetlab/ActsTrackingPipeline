@@ -49,562 +49,564 @@ std::unique_ptr<const E320::GeometryOptions> E320::GeometryOptions::m_instance =
     nullptr;
 
 int main() {
-  const auto& goInst = *E320::GeometryOptions::instance();
+  // const auto& goInst = *E320::GeometryOptions::instance();
 
-  // Set the log level
-  Acts::Logging::Level logLevel = Acts::Logging::DEBUG;
+  // // Set the log level
+  // Acts::Logging::Level logLevel = Acts::Logging::DEBUG;
 
-  // Initialize contexts
-  Acts::GeometryContext gctx;
-  Acts::MagneticFieldContext mctx;
-  Acts::CalibrationContext cctx;
+  // // Initialize contexts
+  // Acts::GeometryContext gctx;
+  // Acts::MagneticFieldContext mctx;
+  // Acts::CalibrationContext cctx;
 
-  // --------------------------------------------------------------
-  // Detector setup
+  // // --------------------------------------------------------------
+  // // Detector setup
 
-  // Material decorator
-  Acts::MaterialMapJsonConverter::Config jsonMaterialConverterCfg;
-  jsonMaterialConverterCfg.context = gctx;
-  jsonMaterialConverterCfg.processSensitives = true;
-  jsonMaterialConverterCfg.processApproaches = true;
-  jsonMaterialConverterCfg.processRepresenting = true;
-  jsonMaterialConverterCfg.processBoundaries = true;
-  jsonMaterialConverterCfg.processVolumes = true;
-  jsonMaterialConverterCfg.processDenseVolumes = false;
-  jsonMaterialConverterCfg.processNonMaterial = false;
+  // // Material decorator
+  // Acts::MaterialMapJsonConverter::Config jsonMaterialConverterCfg;
+  // jsonMaterialConverterCfg.context = gctx;
+  // jsonMaterialConverterCfg.processSensitives = true;
+  // jsonMaterialConverterCfg.processApproaches = true;
+  // jsonMaterialConverterCfg.processRepresenting = true;
+  // jsonMaterialConverterCfg.processBoundaries = true;
+  // jsonMaterialConverterCfg.processVolumes = true;
+  // jsonMaterialConverterCfg.processDenseVolumes = false;
+  // jsonMaterialConverterCfg.processNonMaterial = false;
 
-  auto materialDecorator = std::make_shared<Acts::JsonMaterialDecorator>(
-      jsonMaterialConverterCfg,
-      "/home/romanurmanov/work/E320/E320Prototype/E320Prototype_material/"
-      "Uniform_DirectZ_Tracker_PDCWindow_256x128_1e6/material.json",
-      logLevel);
+  // auto materialDecorator = std::make_shared<Acts::JsonMaterialDecorator>(
+  //     jsonMaterialConverterCfg,
+  //     "/home/romanurmanov/work/E320/E320Prototype/E320Prototype_material/"
+  //     "Uniform_DirectZ_Tracker_PDCWindow_256x128_1e6/material.json",
+  //     logLevel);
 
-  // Construct detector
-  auto detector = E320::buildDetector(gctx, materialDecorator);
+  // // Construct detector
+  // auto detector = E320::buildDetector(gctx, materialDecorator);
 
-  // Set up surface maps for later use
-  std::unordered_map<Acts::GeometryIdentifier, const Acts::Surface*>
-      gx2FitterSurfaceMap;
-  for (const auto& vol : detector->volumes()) {
-    std::cout << "------------------------------------------\n";
-    std::cout << vol->name() << "\n";
-    std::cout << vol->extent(gctx);
-    std::cout << "Surfaces:\n";
-    for (const auto& surf : vol->surfaces()) {
-      std::cout << surf->geometryId() << "\n";
-      std::cout << surf->center(gctx) << "\n";
-      std::cout << surf->polyhedronRepresentation(gctx, 1000).extent() << "\n";
-      if (surf->geometryId().sensitive() >= goInst.tcParameters.front().geoId &&
-          surf->geometryId().sensitive() <= goInst.tcParameters.back().geoId) {
-        gx2FitterSurfaceMap[surf->geometryId()] = surf;
-      }
-    }
-  }
+  // // Set up surface maps for later use
+  // std::unordered_map<Acts::GeometryIdentifier, const Acts::Surface*>
+  //     gx2FitterSurfaceMap;
+  // for (const auto& vol : detector->volumes()) {
+  //   std::cout << "------------------------------------------\n";
+  //   std::cout << vol->name() << "\n";
+  //   std::cout << vol->extent(gctx);
+  //   std::cout << "Surfaces:\n";
+  //   for (const auto& surf : vol->surfaces()) {
+  //     std::cout << surf->geometryId() << "\n";
+  //     std::cout << surf->center(gctx) << "\n";
+  //     std::cout << surf->polyhedronRepresentation(gctx, 1000).extent() << "\n";
+  //     if (surf->geometryId().sensitive() >= goInst.tcParameters.front().geoId &&
+  //         surf->geometryId().sensitive() <= goInst.tcParameters.back().geoId) {
+  //       gx2FitterSurfaceMap[surf->geometryId()] = surf;
+  //     }
+  //   }
+  // }
 
-  // Initialize alignment store
-  auto aStore = detail::makeAlignmentStore(gctx, detector.get());
+  // // Initialize alignment store
+  // auto aStore = detail::makeAlignmentStore(gctx, detector.get());
 
-  // Initialize alignment context
-  AlignmentContext alignCtx(aStore);
+  // // Initialize alignment context
+  // AlignmentContext alignCtx(aStore);
 
-  // Print alignment parameters
-  Acts::GeometryContext defaultGctx;
-  Acts::GeometryContext testCtx{alignCtx};
-  for (auto& v : detector->volumes()) {
-    for (auto& s : v->surfaces()) {
-      if (s->geometryId().sensitive() != 0u) {
-        std::cout << "-----------------------------------\n";
-        std::cout << "SURFACE " << s->geometryId() << "\n";
-        std::cout << "CENTER " << s->center(testCtx).transpose() << " -- "
-                  << s->center(defaultGctx).transpose() << "\n";
-        std::cout << "DELTA "
-                  << (s->center(testCtx) - s->center(defaultGctx)).transpose() *
-                         1e3
-                  << "\n";
-        std::cout << "NORMAL "
-                  << s->normal(testCtx, s->center(testCtx),
-                               Acts::Vector3::UnitY())
-                         .transpose()
-                  << " -- "
-                  << s->normal(testCtx, s->center(defaultGctx),
-                               Acts::Vector3::UnitY())
-                         .transpose()
-                  << "\n";
-        std::cout << "ROTATION \n"
-                  << s->transform(testCtx).rotation() << " -- \n"
-                  << "\n"
-                  << s->transform(defaultGctx).rotation() << "\n";
+  // // Print alignment parameters
+  // Acts::GeometryContext defaultGctx;
+  // Acts::GeometryContext testCtx{alignCtx};
+  // for (auto& v : detector->volumes()) {
+  //   for (auto& s : v->surfaces()) {
+  //     if (s->geometryId().sensitive() != 0u) {
+  //       std::cout << "-----------------------------------\n";
+  //       std::cout << "SURFACE " << s->geometryId() << "\n";
+  //       std::cout << "CENTER " << s->center(testCtx).transpose() << " -- "
+  //                 << s->center(defaultGctx).transpose() << "\n";
+  //       std::cout << "DELTA "
+  //                 << (s->center(testCtx) - s->center(defaultGctx)).transpose() *
+  //                        1e3
+  //                 << "\n";
+  //       std::cout << "NORMAL "
+  //                 << s->normal(testCtx, s->center(testCtx),
+  //                              Acts::Vector3::UnitY())
+  //                        .transpose()
+  //                 << " -- "
+  //                 << s->normal(testCtx, s->center(defaultGctx),
+  //                              Acts::Vector3::UnitY())
+  //                        .transpose()
+  //                 << "\n";
+  //       std::cout << "ROTATION \n"
+  //                 << s->transform(testCtx).rotation() << " -- \n"
+  //                 << "\n"
+  //                 << s->transform(defaultGctx).rotation() << "\n";
 
-        std::cout << "EXTENT "
-                  << s->polyhedronRepresentation(testCtx, 1000).extent()
-                  << "\n -- \n"
-                  << s->polyhedronRepresentation(defaultGctx, 1000).extent()
-                  << "\n";
-      }
-    }
-  }
-  // Add alignment context to the geometry context
-  gctx = Acts::GeometryContext{alignCtx};
+  //       std::cout << "EXTENT "
+  //                 << s->polyhedronRepresentation(testCtx, 1000).extent()
+  //                 << "\n -- \n"
+  //                 << s->polyhedronRepresentation(defaultGctx, 1000).extent()
+  //                 << "\n";
+  //     }
+  //   }
+  // }
+  // // Add alignment context to the geometry context
+  // gctx = Acts::GeometryContext{alignCtx};
 
-  // --------------------------------------------------------------
-  // The magnetic field setup
+  // // --------------------------------------------------------------
+  // // The magnetic field setup
 
-  auto field = E320::buildMagField(gctx);
+  // auto field = E320::buildMagField(gctx);
 
-  // --------------------------------------------------------------
-  // Event reading
-  SimpleSourceLink::SurfaceAccessor surfaceAccessor{detector.get()};
+  // // --------------------------------------------------------------
+  // // Event reading
+  // SimpleSourceLink::SurfaceAccessor surfaceAccessor{detector.get()};
 
-  // Setup the sequencer
-  Sequencer::Config seqCfg;
-  // seqCfg.events = 1e1;
-  seqCfg.numThreads = 1;
-  seqCfg.skip = 0;
-  seqCfg.trackFpes = false;
-  Sequencer sequencer(seqCfg);
+  // // Setup the sequencer
+  // Sequencer::Config seqCfg;
+  // // seqCfg.events = 1e1;
+  // seqCfg.numThreads = 1;
+  // seqCfg.skip = 0;
+  // seqCfg.trackFpes = false;
+  // Sequencer sequencer(seqCfg);
 
-  sequencer.addContextDecorator(
-      std::make_shared<GeometryContextDecorator>(aStore));
+  // sequencer.addContextDecorator(
+  //     std::make_shared<GeometryContextDecorator>(aStore));
 
-  // Add the sim data reader
-  E320::E320RootTrackReader::Constraints readerConstraints{};
-  // ----------
-  // Big shifts
+  // // Add the sim data reader
+  // E320::E320RootTrackReader::Constraints readerConstraints{};
+  // // ----------
+  // // Big shifts
 
-  // // Test
+  // // // Test
+  // // readerConstraints.minChi2Predicted = 0;
+  // // readerConstraints.maxChi2Predicted = 1e9;
+  // // readerConstraints.minChi2Smoothed = 0;
+  // // readerConstraints.maxChi2Smoothed = 100;
+
+  // // readerConstraints.minVertexEstLong = -1e9;
+  // // readerConstraints.maxVertexEstLong = 1e9;
+  // // readerConstraints.minVertexEstShort = -1e9;
+  // // readerConstraints.maxVertexEstShort = 1e9;
+
+  // // readerConstraints.minAbsMomentumEst = 0_GeV;
+  // // readerConstraints.maxAbsMomentumEst = 10_GeV;
+
+  // // // Big shifts, step 1
+  // // readerConstraints.minChi2Predicted = 1300;
+  // // readerConstraints.maxChi2Predicted = 2500;
+  // // readerConstraints.minChi2Smoothed = 1200;
+  // // readerConstraints.maxChi2Smoothed = 2200;
+
+  // // readerConstraints.minVertexEstLong = -25;
+  // // readerConstraints.maxVertexEstLong = -10;
+  // // readerConstraints.minVertexEstShort = -23;
+  // // readerConstraints.maxVertexEstShort = -10;
+
+  // // readerConstraints.minAbsMomentumEst = 0_GeV;
+  // // readerConstraints.maxAbsMomentumEst = 10_GeV;
+
+  // // Big shifts, step 2
   // readerConstraints.minChi2Predicted = 0;
   // readerConstraints.maxChi2Predicted = 1e9;
   // readerConstraints.minChi2Smoothed = 0;
-  // readerConstraints.maxChi2Smoothed = 100;
+  // readerConstraints.maxChi2Smoothed = 200;
 
-  // readerConstraints.minVertexEstLong = -1e9;
-  // readerConstraints.maxVertexEstLong = 1e9;
-  // readerConstraints.minVertexEstShort = -1e9;
-  // readerConstraints.maxVertexEstShort = 1e9;
-
-  // readerConstraints.minAbsMomentumEst = 0_GeV;
-  // readerConstraints.maxAbsMomentumEst = 10_GeV;
-
-  // // Big shifts, step 1
-  // readerConstraints.minChi2Predicted = 1300;
-  // readerConstraints.maxChi2Predicted = 2500;
-  // readerConstraints.minChi2Smoothed = 1200;
-  // readerConstraints.maxChi2Smoothed = 2200;
-
-  // readerConstraints.minVertexEstLong = -25;
-  // readerConstraints.maxVertexEstLong = -10;
-  // readerConstraints.minVertexEstShort = -23;
-  // readerConstraints.maxVertexEstShort = -10;
+  // readerConstraints.minVertexEstLong = -1e6;
+  // readerConstraints.maxVertexEstLong = 1e6;
+  // readerConstraints.minVertexEstShort = -1e6;
+  // readerConstraints.maxVertexEstShort = 1e6;
 
   // readerConstraints.minAbsMomentumEst = 0_GeV;
   // readerConstraints.maxAbsMomentumEst = 10_GeV;
 
-  // Big shifts, step 2
-  readerConstraints.minChi2Predicted = 0;
-  readerConstraints.maxChi2Predicted = 1e9;
-  readerConstraints.minChi2Smoothed = 0;
-  readerConstraints.maxChi2Smoothed = 200;
+  // // ----------
+  // // Small shifts
 
-  readerConstraints.minVertexEstLong = -1e6;
-  readerConstraints.maxVertexEstLong = 1e6;
-  readerConstraints.minVertexEstShort = -1e6;
-  readerConstraints.maxVertexEstShort = 1e6;
+  // // // Small shifts, step 1
+  // // readerConstraints.minChi2Predicted = 0;
+  // // readerConstraints.maxChi2Predicted = 1500;
+  // // readerConstraints.minChi2Smoothed = 300;
+  // // readerConstraints.maxChi2Smoothed = 1000;
 
-  readerConstraints.minAbsMomentumEst = 0_GeV;
-  readerConstraints.maxAbsMomentumEst = 10_GeV;
+  // // readerConstraints.minVertexEstLong = -25;
+  // // readerConstraints.maxVertexEstLong = -13;
+  // // readerConstraints.minVertexEstShort = -23;
+  // // readerConstraints.maxVertexEstShort = -10;
 
-  // ----------
-  // Small shifts
+  // // readerConstraints.minAbsMomentumEst = 0_GeV;
+  // // readerConstraints.maxAbsMomentumEst = 10_GeV;
 
-  // // Small shifts, step 1
-  // readerConstraints.minChi2Predicted = 0;
-  // readerConstraints.maxChi2Predicted = 1500;
-  // readerConstraints.minChi2Smoothed = 300;
-  // readerConstraints.maxChi2Smoothed = 1000;
+  // // // Small shifts, step 2
+  // // readerConstraints.minChi2Predicted = 0;
+  // // readerConstraints.maxChi2Predicted = 1e9;
+  // // readerConstraints.minChi2Smoothed = 0;
+  // // readerConstraints.maxChi2Smoothed = 100;
 
-  // readerConstraints.minVertexEstLong = -25;
-  // readerConstraints.maxVertexEstLong = -13;
-  // readerConstraints.minVertexEstShort = -23;
-  // readerConstraints.maxVertexEstShort = -10;
+  // // readerConstraints.minVertexEstLong = -22;
+  // // readerConstraints.maxVertexEstLong = -10;
+  // // readerConstraints.minVertexEstShort = -20;
+  // // readerConstraints.maxVertexEstShort = -7;
 
-  // readerConstraints.minAbsMomentumEst = 0_GeV;
-  // readerConstraints.maxAbsMomentumEst = 10_GeV;
+  // // readerConstraints.minAbsMomentumEst = 0_GeV;
+  // // readerConstraints.maxAbsMomentumEst = 1e9_GeV;
 
-  // // Small shifts, step 2
-  // readerConstraints.minChi2Predicted = 0;
-  // readerConstraints.maxChi2Predicted = 1e9;
-  // readerConstraints.minChi2Smoothed = 0;
-  // readerConstraints.maxChi2Smoothed = 100;
+  // E320::E320RootTrackReader::Config readerCfg;
+  // readerCfg.treeName = "fitted-tracks";
+  // readerCfg.outputSourceLinks = "SourceLinks";
+  // readerCfg.outputSeedsGuess = "SeedsGuess";
+  // readerCfg.outputTrackParametersGuess = "TrackParametersGuess";
+  // readerCfg.outputSeedsEst = "SeedsEst";
+  // readerCfg.outputTrackParametersEst = "TrackParametersEst";
+  // readerCfg.constraints = readerConstraints;
+  // readerCfg.mergeIntoOneEvent = true;
 
-  // readerConstraints.minVertexEstLong = -22;
-  // readerConstraints.maxVertexEstLong = -10;
-  // readerConstraints.minVertexEstShort = -20;
-  // readerConstraints.maxVertexEstShort = -7;
+  // std::string pathToDir =
+  //     "/home/romanurmanov/work/E320/E320Prototype/E320Prototype_analysis/data/"
+  //     "alignment/local_2026_data/big_shifts/step2";
 
-  // readerConstraints.minAbsMomentumEst = 0_GeV;
-  // readerConstraints.maxAbsMomentumEst = 1e9_GeV;
+  // // Get the paths to the files in the directory
+  // for (const auto& entry : std::filesystem::directory_iterator(pathToDir)) {
+  //   if (!entry.is_regular_file() || entry.path().extension() != ".root") {
+  //     continue;
+  //   }
+  //   std::string pathToFile = entry.path();
+  //   readerCfg.filePaths.push_back(pathToFile);
+  // }
 
-  E320::E320RootTrackReader::Config readerCfg;
-  readerCfg.treeName = "fitted-tracks";
-  readerCfg.outputSourceLinks = "SourceLinks";
-  readerCfg.outputSeedsGuess = "SeedsGuess";
-  readerCfg.outputTrackParametersGuess = "TrackParametersGuess";
-  readerCfg.outputSeedsEst = "SeedsEst";
-  readerCfg.outputTrackParametersEst = "TrackParametersEst";
-  readerCfg.constraints = readerConstraints;
-  readerCfg.mergeIntoOneEvent = true;
+  // // Add the reader to the sequencer
+  // sequencer.addReader(
+  //     std::make_shared<E320::E320RootTrackReader>(readerCfg, logLevel));
 
-  std::string pathToDir =
-      "/home/romanurmanov/work/E320/E320Prototype/E320Prototype_analysis/data/"
-      "alignment/local_2026_data/big_shifts/step2";
+  // // --------------------------------------------------------------
+  // // Reference surface for sampling the track
+  // double halfX = std::numeric_limits<double>::max();
+  // double halfY = std::numeric_limits<double>::max();
 
-  // Get the paths to the files in the directory
-  for (const auto& entry : std::filesystem::directory_iterator(pathToDir)) {
-    if (!entry.is_regular_file() || entry.path().extension() != ".root") {
-      continue;
-    }
-    std::string pathToFile = entry.path();
-    readerCfg.filePaths.push_back(pathToFile);
-  }
+  // Acts::RotationMatrix3 refSurfToWorldRotationX =
+  //     Acts::AngleAxis3(goInst.toWorldAngleX, Acts::Vector3::UnitX())
+  //         .toRotationMatrix();
+  // Acts::RotationMatrix3 refSurfToWorldRotationY =
+  //     Acts::AngleAxis3(goInst.toWorldAngleY, Acts::Vector3::UnitY())
+  //         .toRotationMatrix();
+  // Acts::RotationMatrix3 refSurfToWorldRotationZ =
+  //     Acts::AngleAxis3(goInst.toWorldAngleZ, Acts::Vector3::UnitZ())
+  //         .toRotationMatrix();
 
-  // Add the reader to the sequencer
-  sequencer.addReader(
-      std::make_shared<E320::E320RootTrackReader>(readerCfg, logLevel));
+  // // Reestimation reference surface
+  // Acts::Transform3 reestimationRefSurfTransform = Acts::Transform3::Identity();
+  // reestimationRefSurfTransform.translation() =
+  //     Acts::Vector3(goInst.ipTcDistance - 0.3_mm, 0, 0);
+  // reestimationRefSurfTransform.rotate(refSurfToWorldRotationX);
+  // reestimationRefSurfTransform.rotate(refSurfToWorldRotationY);
+  // reestimationRefSurfTransform.rotate(refSurfToWorldRotationZ);
 
-  // --------------------------------------------------------------
-  // Reference surface for sampling the track
-  double halfX = std::numeric_limits<double>::max();
-  double halfY = std::numeric_limits<double>::max();
+  // auto reestimationRefSurface = Acts::Surface::makeShared<Acts::PlaneSurface>(
+  //     reestimationRefSurfTransform,
+  //     std::make_shared<Acts::RectangleBounds>(halfX, halfY));
 
-  Acts::RotationMatrix3 refSurfToWorldRotationX =
-      Acts::AngleAxis3(goInst.toWorldAngleX, Acts::Vector3::UnitX())
-          .toRotationMatrix();
-  Acts::RotationMatrix3 refSurfToWorldRotationY =
-      Acts::AngleAxis3(goInst.toWorldAngleY, Acts::Vector3::UnitY())
-          .toRotationMatrix();
-  Acts::RotationMatrix3 refSurfToWorldRotationZ =
-      Acts::AngleAxis3(goInst.toWorldAngleZ, Acts::Vector3::UnitZ())
-          .toRotationMatrix();
+  // Acts::GeometryIdentifier reestimationRefSurfaceGeoId;
+  // reestimationRefSurfaceGeoId.setExtra(1);
+  // reestimationRefSurface->assignGeometryId(reestimationRefSurfaceGeoId);
 
-  // Reestimation reference surface
-  Acts::Transform3 reestimationRefSurfTransform = Acts::Transform3::Identity();
-  reestimationRefSurfTransform.translation() =
-      Acts::Vector3(goInst.ipTcDistance - 0.3_mm, 0, 0);
-  reestimationRefSurfTransform.rotate(refSurfToWorldRotationX);
-  reestimationRefSurfTransform.rotate(refSurfToWorldRotationY);
-  reestimationRefSurfTransform.rotate(refSurfToWorldRotationZ);
+  // // Tracking reference surface
+  // Acts::Transform3 trackingRefSurfaceTransform = Acts::Transform3::Identity();
+  // trackingRefSurfaceTransform.translation() = Acts::Vector3(
+  //     goInst.dipoleCenterPrimary + goInst.dipoleHalfPrimary + 0.01_mm, 0, 0);
+  // trackingRefSurfaceTransform.rotate(refSurfToWorldRotationX);
+  // trackingRefSurfaceTransform.rotate(refSurfToWorldRotationY);
+  // trackingRefSurfaceTransform.rotate(refSurfToWorldRotationZ);
 
-  auto reestimationRefSurface = Acts::Surface::makeShared<Acts::PlaneSurface>(
-      reestimationRefSurfTransform,
-      std::make_shared<Acts::RectangleBounds>(halfX, halfY));
+  // auto trackingRefSurface = Acts::Surface::makeShared<Acts::PlaneSurface>(
+  //     trackingRefSurfaceTransform,
+  //     std::make_shared<Acts::RectangleBounds>(halfX, halfY));
 
-  Acts::GeometryIdentifier reestimationRefSurfaceGeoId;
-  reestimationRefSurfaceGeoId.setExtra(1);
-  reestimationRefSurface->assignGeometryId(reestimationRefSurfaceGeoId);
+  // Acts::GeometryIdentifier trackingRefSurfaceGeoId;
+  // trackingRefSurfaceGeoId.setExtra(2);
+  // trackingRefSurface->assignGeometryId(trackingRefSurfaceGeoId);
 
-  // Tracking reference surface
-  Acts::Transform3 trackingRefSurfaceTransform = Acts::Transform3::Identity();
-  trackingRefSurfaceTransform.translation() = Acts::Vector3(
-      goInst.dipoleCenterPrimary + goInst.dipoleHalfPrimary + 0.01_mm, 0, 0);
-  trackingRefSurfaceTransform.rotate(refSurfToWorldRotationX);
-  trackingRefSurfaceTransform.rotate(refSurfToWorldRotationY);
-  trackingRefSurfaceTransform.rotate(refSurfToWorldRotationZ);
+  // // --------------------------------------------------------------
+  // // Alignment
 
-  auto trackingRefSurface = Acts::Surface::makeShared<Acts::PlaneSurface>(
-      trackingRefSurfaceTransform,
-      std::make_shared<Acts::RectangleBounds>(halfX, halfY));
+  // // Initialize track fitter extensions
+  // KFFitterGainUpdater alignmentKFUpdater;
+  // KFFitterGainSmoother alignmentKFSmoother;
 
-  Acts::GeometryIdentifier trackingRefSurfaceGeoId;
-  trackingRefSurfaceGeoId.setExtra(2);
-  trackingRefSurface->assignGeometryId(trackingRefSurfaceGeoId);
+  // Acts::KalmanFitterExtensions<KFFitterTrajectory> alignmentExtensions;
+  // // Add calibrator
+  // alignmentExtensions.calibrator
+  //     .connect<&simpleSourceLinkCalibrator<KFFitterTrajectory>>();
+  // // Add the updater
+  // alignmentExtensions.updater
+  //     .connect<&KFFitterGainUpdater::operator()<KFFitterTrajectory>>(
+  //         &alignmentKFUpdater);
+  // // Add the smoother
+  // alignmentExtensions.smoother
+  //     .connect<&KFFitterGainSmoother::operator()<KFFitterTrajectory>>(
+  //         &alignmentKFSmoother);
+  // // Add the surface accessor
+  // alignmentExtensions.surfaceAccessor
+  //     .connect<&SimpleSourceLink::SurfaceAccessor::operator()>(
+  //         &surfaceAccessor);
 
-  // --------------------------------------------------------------
-  // Alignment
+  // auto alignmentPropOptions = KFFitterPropagatorOptions(gctx, mctx);
 
-  // Initialize track fitter extensions
-  KFFitterGainUpdater alignmentKFUpdater;
-  KFFitterGainSmoother alignmentKFSmoother;
+  // alignmentPropOptions.maxSteps = 1000;
 
-  Acts::KalmanFitterExtensions<KFFitterTrajectory> alignmentExtensions;
-  // Add calibrator
-  alignmentExtensions.calibrator
-      .connect<&simpleSourceLinkCalibrator<KFFitterTrajectory>>();
-  // Add the updater
-  alignmentExtensions.updater
-      .connect<&KFFitterGainUpdater::operator()<KFFitterTrajectory>>(
-          &alignmentKFUpdater);
-  // Add the smoother
-  alignmentExtensions.smoother
-      .connect<&KFFitterGainSmoother::operator()<KFFitterTrajectory>>(
-          &alignmentKFSmoother);
-  // Add the surface accessor
-  alignmentExtensions.surfaceAccessor
-      .connect<&SimpleSourceLink::SurfaceAccessor::operator()>(
-          &surfaceAccessor);
+  // auto alignmentKFOptions = KFFitterOptions(
+  //     gctx, mctx, cctx, alignmentExtensions, alignmentPropOptions);
 
-  auto alignmentPropOptions = KFFitterPropagatorOptions(gctx, mctx);
+  // alignmentKFOptions.referenceSurface = trackingRefSurface.get();
 
-  alignmentPropOptions.maxSteps = 1000;
+  // // Initial track state covariance matrix
+  // Acts::BoundVector trackOriginStdDevPrior;
+  // trackOriginStdDevPrior[Acts::eBoundLoc0] = 100_mm;
+  // trackOriginStdDevPrior[Acts::eBoundLoc1] = 100_mm;
+  // trackOriginStdDevPrior[Acts::eBoundTime] = 25_ns;
+  // trackOriginStdDevPrior[Acts::eBoundPhi] = 10_rad;
+  // trackOriginStdDevPrior[Acts::eBoundTheta] = 10_rad;
+  // trackOriginStdDevPrior[Acts::eBoundQOverP] = 1 / 0.01_GeV;
+  // Acts::BoundMatrix trackOriginCov =
+  //     trackOriginStdDevPrior.cwiseProduct(trackOriginStdDevPrior).asDiagonal();
 
-  auto alignmentKFOptions = KFFitterOptions(
-      gctx, mctx, cctx, alignmentExtensions, alignmentPropOptions);
+  // // Alignment mask
+  // ActsAlignment::AlignmentMask alignmentMask =
+  //     (ActsAlignment::AlignmentMask::Center1 |
+  //      ActsAlignment::AlignmentMask::Center2 |
+  //      ActsAlignment::AlignmentMask::Rotation2);
 
-  alignmentKFOptions.referenceSurface = trackingRefSurface.get();
+  // // Alignment parameters solver
 
-  // Initial track state covariance matrix
-  Acts::BoundVector trackOriginStdDevPrior;
-  trackOriginStdDevPrior[Acts::eBoundLoc0] = 100_mm;
-  trackOriginStdDevPrior[Acts::eBoundLoc1] = 100_mm;
-  trackOriginStdDevPrior[Acts::eBoundTime] = 25_ns;
-  trackOriginStdDevPrior[Acts::eBoundPhi] = 10_rad;
-  trackOriginStdDevPrior[Acts::eBoundTheta] = 10_rad;
-  trackOriginStdDevPrior[Acts::eBoundQOverP] = 1 / 0.01_GeV;
-  Acts::BoundMatrix trackOriginCov =
-      trackOriginStdDevPrior.cwiseProduct(trackOriginStdDevPrior).asDiagonal();
+  // // LocalAlignmentParametersSolverConstraints::Config alignmentSolverCfg{};
+  // // alignmentSolverCfg.alignmentMask = alignmentMask;
+  // // LocalAlignmentParametersSolverConstraints
+  // // alignmentSolver(alignmentSolverCfg,
+  // //                                                           logLevel);
 
-  // Alignment mask
-  ActsAlignment::AlignmentMask alignmentMask =
-      (ActsAlignment::AlignmentMask::Center1 |
-       ActsAlignment::AlignmentMask::Center2 |
-       ActsAlignment::AlignmentMask::Rotation2);
-
-  // Alignment parameters solver
-
-  // LocalAlignmentParametersSolverConstraints::Config alignmentSolverCfg{};
+  // LocalAlignmentParametersSolverSVD::Config alignmentSolverCfg{};
   // alignmentSolverCfg.alignmentMask = alignmentMask;
-  // LocalAlignmentParametersSolverConstraints
-  // alignmentSolver(alignmentSolverCfg,
-  //                                                           logLevel);
+  // alignmentSolverCfg.maxSingularValueTol = 1e-5;
+  // alignmentSolverCfg.singularValueGapTol = 9e-1;
+  // LocalAlignmentParametersSolverSVD alignmentSolver(alignmentSolverCfg,
+  //                                                   logLevel);
 
-  LocalAlignmentParametersSolverSVD::Config alignmentSolverCfg{};
-  alignmentSolverCfg.alignmentMask = alignmentMask;
-  alignmentSolverCfg.maxSingularValueTol = 1e-5;
-  alignmentSolverCfg.singularValueGapTol = 9e-1;
-  LocalAlignmentParametersSolverSVD alignmentSolver(alignmentSolverCfg,
-                                                    logLevel);
+  // // Alignment transform updater
+  // LocalAlignmentTransformUpdater::Config alignmentUpdaterCfg{};
+  // alignmentUpdaterCfg.alignmentStore = aStore;
+  // LocalAlignmentTransformUpdater alignmentUpdater(alignmentUpdaterCfg,
+  //                                                 logLevel);
 
-  // Alignment transform updater
-  LocalAlignmentTransformUpdater::Config alignmentUpdaterCfg{};
-  alignmentUpdaterCfg.alignmentStore = aStore;
-  LocalAlignmentTransformUpdater alignmentUpdater(alignmentUpdaterCfg,
-                                                  logLevel);
+  // // Number of refitting iterations
+  // std::size_t nRefittingIt = 1;
 
-  // Number of refitting iterations
-  std::size_t nRefittingIt = 1;
+  // // Annealing scheduler
+  // LinearAnnealingScheduler::Config annealingSchedulerCfg{};
+  // annealingSchedulerCfg.alphaStart = 1e0;
+  // annealingSchedulerCfg.alphaEnd = 1e0;
+  // annealingSchedulerCfg.nIt = nRefittingIt;
 
-  // Annealing scheduler
-  LinearAnnealingScheduler::Config annealingSchedulerCfg{};
-  annealingSchedulerCfg.alphaStart = 1e0;
-  annealingSchedulerCfg.alphaEnd = 1e0;
-  annealingSchedulerCfg.nIt = nRefittingIt;
+  // auto annealingScheduler =
+  //     std::make_shared<LinearAnnealingScheduler>(annealingSchedulerCfg);
 
-  auto annealingScheduler =
-      std::make_shared<LinearAnnealingScheduler>(annealingSchedulerCfg);
+  // // GX2 fitter setup
+  // Acts::GeometryIdentifier gx2StartSurfaceGeoId;
+  // gx2StartSurfaceGeoId.setSensitive(goInst.tcParameters.front().geoId);
 
-  // GX2 fitter setup
-  StraightLineGX2Fitter::Config gx2FitterCfg{};
-  gx2FitterCfg.primaryIdx = goInst.primaryIdx;
-  gx2FitterCfg.longIdx = goInst.longIdx;
-  gx2FitterCfg.shortIdx = goInst.shortIdx;
-  gx2FitterCfg.firstLayerGeoId = goInst.tcParameters.front().geoId;
-  gx2FitterCfg.lastLayerGeoId = goInst.tcParameters.back().geoId;
-  gx2FitterCfg.surfaceMap = gx2FitterSurfaceMap;
+  // StraightLineGX2Fitter::Config gx2FitterCfg{};
+  // gx2FitterCfg.primaryIdx = goInst.primaryIdx;
+  // gx2FitterCfg.longIdx = goInst.longIdx;
+  // gx2FitterCfg.shortIdx = goInst.shortIdx;
+  // gx2FitterCfg.startSurfaceGeoId = gx2StartSurfaceGeoId;
+  // gx2FitterCfg.surfaceMap = gx2FitterSurfaceMap;
 
-  auto gx2Fitter = std::make_shared<StraightLineGX2Fitter>(gx2FitterCfg);
+  // auto gx2Fitter = std::make_shared<StraightLineGX2Fitter>(gx2FitterCfg);
 
-  // Track parameters estimator
-  E320::E320TrackParametersEstimator::Config trackParametersEstimatorCfg{};
-  trackParametersEstimatorCfg.gx2Fitter = gx2Fitter;
-  trackParametersEstimatorCfg.nIterations = 2;
-  trackParametersEstimatorCfg.maxChi2 = std::numeric_limits<double>::max();
-  trackParametersEstimatorCfg.referenceSurface = reestimationRefSurface.get();
-  trackParametersEstimatorCfg.originCov =
-      trackOriginStdDevPrior.cwiseProduct(trackOriginStdDevPrior).asDiagonal();
-  trackParametersEstimatorCfg.propDirection =
-      E320::E320TrackParametersEstimator::PropagationDirection::forward;
+  // // Track parameters estimator
+  // E320::E320TrackParametersEstimator::Config trackParametersEstimatorCfg{};
+  // trackParametersEstimatorCfg.gx2Fitter = gx2Fitter;
+  // trackParametersEstimatorCfg.nIterations = 2;
+  // trackParametersEstimatorCfg.maxChi2 = std::numeric_limits<double>::max();
+  // trackParametersEstimatorCfg.referenceSurface = reestimationRefSurface.get();
+  // trackParametersEstimatorCfg.originCov =
+  //     trackOriginStdDevPrior.cwiseProduct(trackOriginStdDevPrior).asDiagonal();
+  // trackParametersEstimatorCfg.propDirection =
+  //     E320::E320TrackParametersEstimator::PropagationDirection::forward;
 
-  auto trackParametersEstimator =
-      std::make_shared<E320::E320TrackParametersEstimator>(
-          trackParametersEstimatorCfg);
+  // auto trackParametersEstimator =
+  //     std::make_shared<E320::E320TrackParametersEstimator>(
+  //         trackParametersEstimatorCfg);
 
-  // Alignment algorithm
-  AlignmentAlgorithm::Config alignmentCfg{
-      .inputSourceLinks = "SourceLinks",
-      .inputTrackCandidates = "SeedsGuess",
-      .inputTrackParameters = "TrackParametersGuess",
-      .outputAlignmentParameters = "AlignmentParameters",
-      .outputTrackParameters = "UpdatedTrackParameters",
-      .alignmentFunction =
-          AlignmentAlgorithm::makeAlignmentFunction(detector, field),
-      .maxKFSteps = static_cast<std::size_t>(1e5),
-      .kfExtensions = alignmentExtensions,
-      .kfReferenceSurface = trackingRefSurface.get(),
-      .chi2ONdfCutOff = 1e-16,
-      .deltaChi2ONdfCutOff = {10, 1e-5},
-      .maxAlignmentFitNumIt = 200,
-      .alignmentMask = alignmentMask,
-      .originCov = trackOriginCov,
-      .constraints = {},
-      .nRefittingIt = nRefittingIt,
-      .annealingScheduler = annealingScheduler,
-      .trackParametersEstimator = trackParametersEstimator};
+  // // Alignment algorithm
+  // AlignmentAlgorithm::Config alignmentCfg{
+  //     .inputSourceLinks = "SourceLinks",
+  //     .inputTrackCandidates = "SeedsGuess",
+  //     .inputTrackParameters = "TrackParametersGuess",
+  //     .outputAlignmentParameters = "AlignmentParameters",
+  //     .outputTrackParameters = "UpdatedTrackParameters",
+  //     .alignmentFunction =
+  //         AlignmentAlgorithm::makeAlignmentFunction(detector, field),
+  //     .maxKFSteps = static_cast<std::size_t>(1e5),
+  //     .kfExtensions = alignmentExtensions,
+  //     .kfReferenceSurface = trackingRefSurface.get(),
+  //     .chi2ONdfCutOff = 1e-16,
+  //     .deltaChi2ONdfCutOff = {10, 1e-5},
+  //     .maxAlignmentFitNumIt = 200,
+  //     .alignmentMask = alignmentMask,
+  //     .originCov = trackOriginCov,
+  //     .constraints = {},
+  //     .nRefittingIt = nRefittingIt,
+  //     .annealingScheduler = annealingScheduler,
+  //     .trackParametersEstimator = trackParametersEstimator};
 
-  alignmentCfg.alignmentParametersSolver.connect<
-      &LocalAlignmentParametersSolverSVD::calculateAlignmentParameters>(
-      &alignmentSolver);
+  // alignmentCfg.alignmentParametersSolver.connect<
+  //     &LocalAlignmentParametersSolverSVD::calculateAlignmentParameters>(
+  //     &alignmentSolver);
 
-  alignmentCfg.alignmentTransformUpdater
-      .connect<&LocalAlignmentTransformUpdater::updateAlignmentParameters>(
-          &alignmentUpdater);
+  // alignmentCfg.alignmentTransformUpdater
+  //     .connect<&LocalAlignmentTransformUpdater::updateAlignmentParameters>(
+  //         &alignmentUpdater);
 
-  for (auto& det : detector->detectorElements()) {
-    const auto& surface = det->surface();
-    const auto& geoId = surface.geometryId().sensitive();
-    if (surface.geometryId().sensitive() >= goInst.tcParameters.front().geoId &&
-        surface.geometryId().sensitive() <= goInst.tcParameters.back().geoId) {
-      alignmentCfg.alignedDetElements.push_back(det.get());
-    }
-  }
+  // for (auto& det : detector->detectorElements()) {
+  //   const auto& surface = det->surface();
+  //   const auto& geoId = surface.geometryId().sensitive();
+  //   if (surface.geometryId().sensitive() >= goInst.tcParameters.front().geoId &&
+  //       surface.geometryId().sensitive() <= goInst.tcParameters.back().geoId) {
+  //     alignmentCfg.alignedDetElements.push_back(det.get());
+  //   }
+  // }
 
-  auto alignmentAlgorithm =
-      std::make_shared<AlignmentAlgorithm>(alignmentCfg, logLevel);
-  sequencer.addAlgorithm(alignmentAlgorithm);
+  // auto alignmentAlgorithm =
+  //     std::make_shared<AlignmentAlgorithm>(alignmentCfg, logLevel);
+  // sequencer.addAlgorithm(alignmentAlgorithm);
 
-  // --------------------------------------------------------------
-  // Track fitting
-  KFFitterGainUpdater kfUpdater;
-  KFFitterGainSmoother kfSmoother;
+  // // --------------------------------------------------------------
+  // // Track fitting
+  // KFFitterGainUpdater kfUpdater;
+  // KFFitterGainSmoother kfSmoother;
 
-  // Initialize track fitter extensions
-  Acts::KalmanFitterExtensions<KFFitterTrajectory> kfExtensions;
-  // Add calibrator
-  kfExtensions.calibrator
-      .connect<&simpleSourceLinkCalibrator<KFFitterTrajectory>>();
-  // Add the updater
-  kfExtensions.updater
-      .connect<&KFFitterGainUpdater::operator()<KFFitterTrajectory>>(
-          &kfUpdater);
-  // Add the smoother
-  kfExtensions.smoother
-      .connect<&KFFitterGainSmoother::operator()<KFFitterTrajectory>>(
-          &kfSmoother);
-  // Add the surface accessor
-  kfExtensions.surfaceAccessor
-      .connect<&SimpleSourceLink::SurfaceAccessor::operator()>(
-          &surfaceAccessor);
+  // // Initialize track fitter extensions
+  // Acts::KalmanFitterExtensions<KFFitterTrajectory> kfExtensions;
+  // // Add calibrator
+  // kfExtensions.calibrator
+  //     .connect<&simpleSourceLinkCalibrator<KFFitterTrajectory>>();
+  // // Add the updater
+  // kfExtensions.updater
+  //     .connect<&KFFitterGainUpdater::operator()<KFFitterTrajectory>>(
+  //         &kfUpdater);
+  // // Add the smoother
+  // kfExtensions.smoother
+  //     .connect<&KFFitterGainSmoother::operator()<KFFitterTrajectory>>(
+  //         &kfSmoother);
+  // // Add the surface accessor
+  // kfExtensions.surfaceAccessor
+  //     .connect<&SimpleSourceLink::SurfaceAccessor::operator()>(
+  //         &surfaceAccessor);
 
-  Navigator::Config cfg;
-  cfg.detector = detector.get();
-  cfg.resolvePassive = false;
-  cfg.resolveMaterial = true;
-  cfg.resolveSensitive = true;
-  Navigator kfNavigator(cfg,
-                        Acts::getDefaultLogger("DetectorNavigator", logLevel));
+  // Navigator::Config cfg;
+  // cfg.detector = detector.get();
+  // cfg.resolvePassive = false;
+  // cfg.resolveMaterial = true;
+  // cfg.resolveSensitive = true;
+  // Navigator kfNavigator(cfg,
+  //                       Acts::getDefaultLogger("DetectorNavigator", logLevel));
 
-  Acts::EigenStepper<> kfStepper(std::move(field));
-  auto kfPropagator =
-      Propagator(std::move(kfStepper), std::move(kfNavigator),
-                 Acts::getDefaultLogger("Propagator", logLevel));
+  // Acts::EigenStepper<> kfStepper(std::move(field));
+  // auto kfPropagator =
+  //     Propagator(std::move(kfStepper), std::move(kfNavigator),
+  //                Acts::getDefaultLogger("Propagator", logLevel));
 
-  const auto fitter = KFFitter(
-      kfPropagator, Acts::getDefaultLogger("DetectorKalmanFilter", logLevel));
+  // const auto fitter = KFFitter(
+  //     kfPropagator, Acts::getDefaultLogger("DetectorKalmanFilter", logLevel));
 
-  // Add the track fitting algorithm to the sequencer
-  KFTrackFittingAlgorithm::Config fitterCfg{
-      .inputTrackCandidates = "SeedsGuess",
-      .inputTrackParameters = "UpdatedTrackParameters",
-      .inputSourceLinks = "SourceLinks",
-      .outputTrackContainer = "TrackContainer",
-      .outputTracks = "Tracks",
-      .fitter = fitter,
-      .maxSteps = static_cast<size_t>(1e5),
-      .kfExtensions = kfExtensions,
-      .referenceSurface = trackingRefSurface.get()};
+  // // Add the track fitting algorithm to the sequencer
+  // KFTrackFittingAlgorithm::Config fitterCfg{
+  //     .inputTrackCandidates = "SeedsGuess",
+  //     .inputTrackParameters = "UpdatedTrackParameters",
+  //     .inputSourceLinks = "SourceLinks",
+  //     .outputTrackContainer = "TrackContainer",
+  //     .outputTracks = "Tracks",
+  //     .fitter = fitter,
+  //     .maxSteps = static_cast<size_t>(1e5),
+  //     .kfExtensions = kfExtensions,
+  //     .referenceSurface = trackingRefSurface.get()};
 
-  sequencer.addAlgorithm(
-      std::make_shared<KFTrackFittingAlgorithm>(fitterCfg, logLevel));
+  // sequencer.addAlgorithm(
+  //     std::make_shared<KFTrackFittingAlgorithm>(fitterCfg, logLevel));
 
-  // --------------------------------------------------------------
-  // Event write out
+  // // --------------------------------------------------------------
+  // // Event write out
 
-  // Seed writer
-  RootSeedWriter::Config seedWriterCfg;
-  seedWriterCfg.inputSeeds = "SeedsGuess";
-  seedWriterCfg.inputTrackParameters = "UpdatedTrackParameters";
-  seedWriterCfg.inputSourceLinks = "SourceLinks";
-  seedWriterCfg.treeName = "seeds";
-  seedWriterCfg.filePath =
-      "/home/romanurmanov/work/E320/E320Prototype/E320Prototype_analysis/data/"
-      "seeds.root";
+  // // Seed writer
+  // RootSeedWriter::Config seedWriterCfg;
+  // seedWriterCfg.inputSeeds = "SeedsGuess";
+  // seedWriterCfg.inputTrackParameters = "UpdatedTrackParameters";
+  // seedWriterCfg.inputSourceLinks = "SourceLinks";
+  // seedWriterCfg.treeName = "seeds";
+  // seedWriterCfg.filePath =
+  //     "/home/romanurmanov/work/E320/E320Prototype/E320Prototype_analysis/data/"
+  //     "seeds.root";
 
-  sequencer.addWriter(
-      std::make_shared<RootSeedWriter>(seedWriterCfg, logLevel));
+  // sequencer.addWriter(
+  //     std::make_shared<RootSeedWriter>(seedWriterCfg, logLevel));
 
-  // Fitted track writer
-  RootTrackWriter::Config trackWriterCfg;
-  trackWriterCfg.surfaceAccessor
-      .connect<&SimpleSourceLink::SurfaceAccessor::operator()>(
-          &surfaceAccessor);
-  trackWriterCfg.referenceSurface = trackingRefSurface.get();
-  trackWriterCfg.inputTrackContainer = "TrackContainer";
-  trackWriterCfg.inputTracks = "Tracks";
-  trackWriterCfg.inputTrackParametersGuesses = "UpdatedTrackParameters";
-  trackWriterCfg.treeName = "fitted-tracks";
-  trackWriterCfg.filePath =
-      "/home/romanurmanov/work/E320/E320Prototype/E320Prototype_analysis/data/"
-      "fitted-tracks.root";
+  // // Fitted track writer
+  // RootTrackWriter::Config trackWriterCfg;
+  // trackWriterCfg.surfaceAccessor
+  //     .connect<&SimpleSourceLink::SurfaceAccessor::operator()>(
+  //         &surfaceAccessor);
+  // trackWriterCfg.referenceSurface = trackingRefSurface.get();
+  // trackWriterCfg.inputTrackContainer = "TrackContainer";
+  // trackWriterCfg.inputTracks = "Tracks";
+  // trackWriterCfg.inputTrackParametersGuesses = "UpdatedTrackParameters";
+  // trackWriterCfg.treeName = "fitted-tracks";
+  // trackWriterCfg.filePath =
+  //     "/home/romanurmanov/work/E320/E320Prototype/E320Prototype_analysis/data/"
+  //     "fitted-tracks.root";
 
-  sequencer.addWriter(
-      std::make_shared<RootTrackWriter>(trackWriterCfg, logLevel));
+  // sequencer.addWriter(
+  //     std::make_shared<RootTrackWriter>(trackWriterCfg, logLevel));
 
-  // Alignment parameters writer
-  AlignmentParametersWriter::Config alignmentWriterCfg;
-  alignmentWriterCfg.treeName = "alignment-parameters";
-  alignmentWriterCfg.inputAlignmentResults = "AlignmentParameters";
-  alignmentWriterCfg.filePath =
-      "/home/romanurmanov/work/E320/E320Prototype/E320Prototype_analysis/data/"
-      "alignment-parameters.root";
+  // // Alignment parameters writer
+  // AlignmentParametersWriter::Config alignmentWriterCfg;
+  // alignmentWriterCfg.treeName = "alignment-parameters";
+  // alignmentWriterCfg.inputAlignmentResults = "AlignmentParameters";
+  // alignmentWriterCfg.filePath =
+  //     "/home/romanurmanov/work/E320/E320Prototype/E320Prototype_analysis/data/"
+  //     "alignment-parameters.root";
 
-  sequencer.addWriter(std::make_shared<AlignmentParametersWriter>(
-      alignmentWriterCfg, logLevel));
+  // sequencer.addWriter(std::make_shared<AlignmentParametersWriter>(
+  //     alignmentWriterCfg, logLevel));
 
-  sequencer.run();
+  // sequencer.run();
 
-  for (auto& v : detector->volumes()) {
-    for (auto& s : v->surfaces()) {
-      if (s->geometryId().sensitive() != 0u) {
-        std::cout << "-----------------------------------\n";
-        std::cout << "SURFACE " << s->geometryId() << "\n";
-        std::cout << "CENTER " << s->center(gctx).transpose() << " -- "
-                  << s->center(Acts::GeometryContext()).transpose() << "\n";
-        std::cout << "DELTA "
-                  << (s->center(testCtx) - s->center(Acts::GeometryContext()))
-                             .transpose() *
-                         1e3
-                  << "\n";
+  // for (auto& v : detector->volumes()) {
+  //   for (auto& s : v->surfaces()) {
+  //     if (s->geometryId().sensitive() != 0u) {
+  //       std::cout << "-----------------------------------\n";
+  //       std::cout << "SURFACE " << s->geometryId() << "\n";
+  //       std::cout << "CENTER " << s->center(gctx).transpose() << " -- "
+  //                 << s->center(Acts::GeometryContext()).transpose() << "\n";
+  //       std::cout << "DELTA "
+  //                 << (s->center(testCtx) - s->center(Acts::GeometryContext()))
+  //                            .transpose() *
+  //                        1e3
+  //                 << "\n";
 
-        std::cout << "NORMAL "
-                  << s->normal(gctx, s->center(gctx), Acts::Vector3::UnitY())
-                         .transpose()
-                  << " -- "
-                  << s->normal(Acts::GeometryContext(),
-                               s->center(Acts::GeometryContext()),
-                               Acts::Vector3::UnitY())
-                         .transpose()
-                  << "\n";
-        std::cout << "ROTATION \n"
-                  << s->transform(gctx).rotation() << " -- \n"
-                  << "\n"
-                  << s->transform(Acts::GeometryContext()).rotation() << "\n";
-        std::cout << "EXTENT "
-                  << s->polyhedronRepresentation(gctx, 1000).extent()
-                  << "\n -- \n"
-                  << s->polyhedronRepresentation(Acts::GeometryContext(), 1000)
-                         .extent()
-                  << "\n";
-      }
-    }
-  }
+  //       std::cout << "NORMAL "
+  //                 << s->normal(gctx, s->center(gctx), Acts::Vector3::UnitY())
+  //                        .transpose()
+  //                 << " -- "
+  //                 << s->normal(Acts::GeometryContext(),
+  //                              s->center(Acts::GeometryContext()),
+  //                              Acts::Vector3::UnitY())
+  //                        .transpose()
+  //                 << "\n";
+  //       std::cout << "ROTATION \n"
+  //                 << s->transform(gctx).rotation() << " -- \n"
+  //                 << "\n"
+  //                 << s->transform(Acts::GeometryContext()).rotation() << "\n";
+  //       std::cout << "EXTENT "
+  //                 << s->polyhedronRepresentation(gctx, 1000).extent()
+  //                 << "\n -- \n"
+  //                 << s->polyhedronRepresentation(Acts::GeometryContext(), 1000)
+  //                        .extent()
+  //                 << "\n";
+  //     }
+  //   }
+  // }
 
   return 0;
 }

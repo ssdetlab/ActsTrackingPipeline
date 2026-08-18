@@ -22,6 +22,8 @@
 #include <unistd.h>
 
 #include "TrackingPipeline/Alignment/detail/AlignmentStoreBuilders.hpp"
+#include "TrackingPipeline/EventData/MixedSourceLinkCalibrator.hpp"
+#include "TrackingPipeline/EventData/MixedSourceLinkSurfaceAccessor.hpp"
 #include "TrackingPipeline/EventData/SimpleSourceLink.hpp"
 #include "TrackingPipeline/Geometry/E320Geometry.hpp"
 #include "TrackingPipeline/Geometry/E320GeometryOptions.hpp"
@@ -41,6 +43,7 @@
 #include "TrackingPipeline/TrackFinding/HoughTransformSeeder.hpp"
 #include "TrackingPipeline/TrackFitting/KFTrackFittingAlgorithm.hpp"
 #include "TrackingPipeline/TrackFitting/StraightLineGX2Fitter.hpp"
+#include "toml++/toml.hpp"
 
 using namespace Acts::UnitLiterals;
 
@@ -48,15 +51,43 @@ std::unique_ptr<const E320::GeometryOptions> E320::GeometryOptions::m_instance =
     nullptr;
 
 int main() {
+  // Geometry constraints instance
   const auto& goInst = *E320::GeometryOptions::instance();
 
-  // Set the log level
-  Acts::Logging::Level logLevel = Acts::Logging::INFO;
+  // Load configuration
+  const std::string pathToCfg =
+      "/home/romanurmanov/work/TrackingPipeline/ActsTrackingPipeline/conf/"
+      "runs/"
+      "FullTrackingRunConfig.toml";
+  auto runCfg = toml::parse_file(pathToCfg);
 
-  // Dummy context and options
+  auto getEntryDouble = [&runCfg](const std::string& section,
+                                  const std::string& subsection) {
+    return runCfg[section][subsection].value<double>().value();
+  };
+  auto getEntrySizeT = [&runCfg](const std::string& section,
+                                 const std::string& subsection) {
+    return runCfg[section][subsection].value<std::size_t>().value();
+  };
+  auto getEntryInt = [&runCfg](const std::string& section,
+                               const std::string& subsection) {
+    return runCfg[section][subsection].value<int>().value();
+  };
+  auto getEntryBool = [&runCfg](const std::string& section,
+                                const std::string& subsection) {
+    return runCfg[section][subsection].value<bool>().value();
+  };
+  auto getEntryStr = [&runCfg](const std::string& section,
+                               const std::string& subsection) {
+    return runCfg[section][subsection].value<std::string>().value();
+  };
+
+  // Set the log level
+  Acts::Logging::Level logLevel =
+      Acts::Logging::Level(getEntrySizeT("General", "logLevel"));
+
+  // Initialize contexts
   Acts::GeometryContext gctx;
-  Acts::MagneticFieldContext mctx;
-  Acts::CalibrationContext cctx;
 
   // --------------------------------------------------------------
   // Detector setup
@@ -64,55 +95,57 @@ int main() {
   // Material decorator
   Acts::MaterialMapJsonConverter::Config jsonMaterialConverterCfg;
   jsonMaterialConverterCfg.context = gctx;
-  jsonMaterialConverterCfg.processSensitives = true;
-  jsonMaterialConverterCfg.processApproaches = true;
-  jsonMaterialConverterCfg.processRepresenting = true;
-  jsonMaterialConverterCfg.processBoundaries = true;
-  jsonMaterialConverterCfg.processVolumes = true;
-  jsonMaterialConverterCfg.processDenseVolumes = false;
-  jsonMaterialConverterCfg.processNonMaterial = false;
+  jsonMaterialConverterCfg.processSensitives =
+      getEntryBool("MaterialMapJsonConverter", "processSensitives");
+  jsonMaterialConverterCfg.processApproaches =
+      getEntryBool("MaterialMapJsonConverter", "processApproaches");
+  jsonMaterialConverterCfg.processRepresenting =
+      getEntryBool("MaterialMapJsonConverter", "processRepresenting");
+  jsonMaterialConverterCfg.processBoundaries =
+      getEntryBool("MaterialMapJsonConverter", "processBoundaries");
+  jsonMaterialConverterCfg.processVolumes =
+      getEntryBool("MaterialMapJsonConverter", "processVolumes");
+  jsonMaterialConverterCfg.processDenseVolumes =
+      getEntryBool("MaterialMapJsonConverter", "processDenseVolumes");
+  jsonMaterialConverterCfg.processNonMaterial =
+      getEntryBool("MaterialMapJsonConverter", "processNonMaterial");
 
   auto materialDecorator = std::make_shared<Acts::JsonMaterialDecorator>(
       jsonMaterialConverterCfg,
-      "/home/romanurmanov/work/E320/E320Prototype/E320Prototype_material/"
-      "Uniform_DirectZ_Tracker_PDCWindow_256x128_1e6/material.json",
-      logLevel);
+      getEntryStr("JsonMaterialDecorator", "materialPath"), logLevel);
 
-  auto detector = E320::buildDetector(gctx, materialDecorator);
+  // Construct detector
+  auto detector = getEntryBool("Geometry", "materialDecorator")
+                      ? E320::buildDetector(gctx, materialDecorator)
+                      : E320::buildDetector(gctx, nullptr);
 
+  // Set up surface maps for later use
   std::unordered_map<Acts::GeometryIdentifier, const Acts::Surface*> surfaceMap;
   std::unordered_map<Acts::GeometryIdentifier, const Acts::Surface*>
       gx2FitterSurfaceMap;
   for (const auto& vol : detector->volumes()) {
-    std::cout << "------------------------------------------\n";
-    std::cout << vol->name() << "\n";
-    std::cout << vol->extent(gctx);
-    std::cout << "Surfaces:\n";
     for (const auto& surf : vol->surfaces()) {
-      std::cout << surf->geometryId() << "\n";
-      std::cout << surf->center(gctx) << "\n";
-      std::cout << surf->polyhedronRepresentation(gctx, 1000).extent() << "\n";
-      if (surf->geometryId().sensitive() != 0u) {
-        surfaceMap[surf->geometryId()] = surf;
-        if (surf->geometryId().sensitive() >=
-                goInst.tcParameters.front().geoId &&
-            surf->geometryId().sensitive() <=
-                goInst.tcParameters.back().geoId) {
-          gx2FitterSurfaceMap[surf->geometryId()] = surf;
+      const auto& geoId = surf->geometryId();
+      if (geoId.sensitive() != 0u) {
+        surfaceMap[geoId] = surf;
+        if (geoId.sensitive() >= goInst.tcParameters.front().geoId &&
+            geoId.sensitive() <= goInst.tcParameters.back().geoId) {
+          gx2FitterSurfaceMap[geoId] = surf;
         }
       }
     }
   }
 
+  // Initialize alignment store
   auto aStore = detail::makeAlignmentStore(gctx, detector.get());
 
-  AlignmentParametersProvider::Config alignmentProviderCfg;
-  alignmentProviderCfg.filePath =
-      "/home/romanurmanov/work/E320/E320Prototype/E320Prototype_analysis/data/"
-      "alignment/local_2026_data/big_shifts/aligned/alignment-parameters.root";
-  alignmentProviderCfg.treeName = "alignment-parameters";
-  AlignmentParametersProvider alignmentProvider(alignmentProviderCfg);
-  aStore = alignmentProvider.getAlignmentStore();
+  // AlignmentParametersProvider::Config alignmentProviderCfg;
+  // alignmentProviderCfg.filePath =
+  //     "/home/romanurmanov/work/E320/E320Prototype/E320Prototype_analysis/data/"
+  //     "alignment/local_2026_data/big_shifts/aligned/alignment-parameters.root";
+  // alignmentProviderCfg.treeName = "alignment-parameters";
+  // AlignmentParametersProvider alignmentProvider(alignmentProviderCfg);
+  // aStore = alignmentProvider.getAlignmentStore();
 
   AlignmentContext alignCtx(aStore);
   Acts::GeometryContext testCtx{alignCtx};
@@ -152,9 +185,7 @@ int main() {
       }
     }
   }
-  std::cout << "ALIGNMENT COVARIANCE:\n" << aStore->covariance << "\n";
   gctx = Acts::GeometryContext{alignCtx};
-  return 0;
 
   // --------------------------------------------------------------
   // The magnetic field setup
@@ -162,20 +193,18 @@ int main() {
   auto field = E320::buildMagField(gctx);
 
   E320::E320MagneticFieldParametersProvider::Config magFieldProviderCfg;
-  magFieldProviderCfg.treeName = "magnets";
-  std::vector<std::string> inDirs = {
-      "/home/romanurmanov/work/E320/E320Prototype/"
-      "E320Prototype_dataInRootFormat/local_alignment_data/processed/sig"};
+  magFieldProviderCfg.treeName =
+      getEntryStr("E320MagneticFieldParametersProvider", "treeName");
+  std::string inDirMagnets =
+      getEntryStr("E320MagneticFieldParametersProvider", "inDirMagnets");
 
   // Get the paths to the files in the directory
-  for (const auto& dir : inDirs) {
-    for (const auto& entry : std::filesystem::directory_iterator(dir)) {
-      if (!entry.is_regular_file() || entry.path().extension() != ".root") {
-        continue;
-      }
-      std::string pathToFile = entry.path();
-      magFieldProviderCfg.filePaths.push_back(pathToFile);
+  for (const auto& entry : std::filesystem::directory_iterator(inDirMagnets)) {
+    if (!entry.is_regular_file() || entry.path().extension() != ".root") {
+      continue;
     }
+    std::string pathToFile = entry.path();
+    magFieldProviderCfg.filePaths.push_back(pathToFile);
   }
   E320::E320MagneticFieldParametersProvider magFieldProvider(
       magFieldProviderCfg);
@@ -217,7 +246,6 @@ int main() {
   Acts::Transform3 trackingRefSurfTransform = Acts::Transform3::Identity();
   trackingRefSurfTransform.translation() =
       // Acts::Vector3(goInst.beWindowCenterPrimary, 0, 0);
-      // Acts::Vector3(goInst.bpm3CenterPrimary + 0.1_mm, 0, 0);
       Acts::Vector3(
           goInst.dipoleCenterPrimary + goInst.dipoleHalfPrimary + 0.01_mm, 0,
           0);
@@ -235,14 +263,30 @@ int main() {
 
   // --------------------------------------------------------------
   // Event reading
-  SimpleSourceLink::SurfaceAccessor surfaceAccessor{detector.get()};
+
+  // Mixed surface accessor
+  SimpleSourceLink::SurfaceAccessor simpleSurfaceAccessor{detector.get()};
+  ExtendedSourceLink::SurfaceAccessor extendedSurfaceAccessor{detector.get()};
+  MixedSourceLinkSurfaceAccessor mixedSurfaceAccessor;
+  mixedSurfaceAccessor.connect<&SimpleSourceLink::SurfaceAccessor::operator(),
+                               SimpleSourceLink>(&simpleSurfaceAccessor);
+  mixedSurfaceAccessor.connect<&ExtendedSourceLink::SurfaceAccessor::operator(),
+                               ExtendedSourceLink>(&extendedSurfaceAccessor);
+
+  // Mixed calibrator
+  MixedSourceLinkCalibrator<KFFitterTrajectory> mixedCalibrator;
+  mixedCalibrator.connect<&simpleSourceLinkCalibrator<KFFitterTrajectory>,
+                          SimpleSourceLink>();
+  mixedCalibrator.connect<
+      &extendedSourceLinkBackwardsPhiCorrectionCalibrator<KFFitterTrajectory>,
+      ExtendedSourceLink>();
 
   // Setup the sequencer
   Sequencer::Config seqCfg;
-  // seqCfg.events = 2000;
-  // seqCfg.skip = 20000;
-  seqCfg.numThreads = 1;
-  seqCfg.trackFpes = false;
+  seqCfg.skip = getEntrySizeT("Sequencer", "skip");
+  seqCfg.events = getEntrySizeT("Sequencer", "events");
+  seqCfg.numThreads = getEntrySizeT("Sequencer", "numThreads");
+  seqCfg.trackFpes = getEntryBool("Sequencer", "trackFpes");
   seqCfg.logLevel = logLevel;
   Sequencer sequencer(seqCfg);
 
@@ -253,28 +297,35 @@ int main() {
 
   // Add the sim data reader
   E320::E320RootDataReader::Config readerCfg;
-  readerCfg.outputSourceLinks = "SourceLinks";
-  readerCfg.outputDetSourceLinkIndices = "DetSourceLinkIndices";
-  readerCfg.outputBpmSourceLinkIndices = "BpmSourceLinkIndices";
-  readerCfg.outputEventMetaData = "EventMetaData";
-  readerCfg.treeName = "data";
-  readerCfg.eventKey = "event";
-  readerCfg.requireEpicsParity = true;
-  readerCfg.requiredEpicsParity = E320::E320RootDataReader::EpicsParity::Odd;
-  readerCfg.maxOccupancy = 200 * 5;
+  readerCfg.outputSourceLinks =
+      getEntryStr("E320RootDataReader", "outputSourceLinks");
+  readerCfg.outputDetSourceLinkIndices =
+      getEntryStr("E320RootDataReader", "outputDetSourceLinkIndices");
+  readerCfg.outputBpmSourceLinkIndices =
+      getEntryStr("E320RootDataReader", "outputBpmSourceLinkIndices");
+  readerCfg.outputEventMetaData =
+      getEntryStr("E320RootDataReader", "outputEventMetaData");
+  readerCfg.treeName = getEntryStr("E320RootDataReader", "treeName");
+  readerCfg.eventKey = getEntryStr("E320RootDataReader", "eventKey");
+  readerCfg.requireEpicsParity =
+      getEntryBool("E320RootDataReader", "requireEpicsParity");
+  readerCfg.requiredEpicsParity = E320::E320RootDataReader::EpicsParity(
+      getEntrySizeT("E320RootDataReader", "requiredEpicsParity"));
+  readerCfg.maxOccupancy = getEntrySizeT("E320RootDataReader", "maxOccupancy");
   readerCfg.minGeoId = goInst.tcParameters.front().geoId;
   readerCfg.maxGeoId = goInst.tcParameters.back().geoId;
   readerCfg.surfaceMap = surfaceMap;
 
+  std::string inDirClusters =
+      getEntryStr("E320RootDataReader", "inDirClusters");
+
   // Get the paths to the files in the directory
-  for (const auto& dir : inDirs) {
-    for (const auto& entry : std::filesystem::directory_iterator(dir)) {
-      if (!entry.is_regular_file() || entry.path().extension() != ".root") {
-        continue;
-      }
-      std::string pathToFile = entry.path();
-      readerCfg.filePaths.push_back(pathToFile);
+  for (const auto& entry : std::filesystem::directory_iterator(inDirClusters)) {
+    if (!entry.is_regular_file() || entry.path().extension() != ".root") {
+      continue;
     }
+    std::string pathToFile = entry.path();
+    readerCfg.filePaths.push_back(pathToFile);
   }
 
   // Add the reader to the sequencer
@@ -285,15 +336,45 @@ int main() {
   // Seeding setup
 
   // GX2 fitter setup
+  Acts::GeometryIdentifier gx2StartSurfaceGeoId;
+  gx2StartSurfaceGeoId.setSensitive(goInst.tcParameters.front().geoId);
+
   StraightLineGX2Fitter::Config gx2FitterCfg{};
   gx2FitterCfg.primaryIdx = goInst.primaryIdx;
   gx2FitterCfg.longIdx = goInst.longIdx;
   gx2FitterCfg.shortIdx = goInst.shortIdx;
-  gx2FitterCfg.firstLayerGeoId = goInst.tcParameters.front().geoId;
-  gx2FitterCfg.lastLayerGeoId = goInst.tcParameters.back().geoId;
+  gx2FitterCfg.startSurfaceGeoId = gx2StartSurfaceGeoId;
   gx2FitterCfg.surfaceMap = gx2FitterSurfaceMap;
 
   auto gx2Fitter = std::make_shared<StraightLineGX2Fitter>(gx2FitterCfg);
+
+  // Covariance prior
+  Acts::BoundVector trackOriginStdDevPrior;
+  trackOriginStdDevPrior[Acts::eBoundLoc0] = 10_mm;
+  trackOriginStdDevPrior[Acts::eBoundLoc1] = 10_mm;
+  trackOriginStdDevPrior[Acts::eBoundPhi] = 1_rad;
+  trackOriginStdDevPrior[Acts::eBoundTheta] = 1_rad;
+  trackOriginStdDevPrior[Acts::eBoundQOverP] = 1_e / 1_GeV;
+  trackOriginStdDevPrior[Acts::eBoundTime] = 1_fs;
+
+  // Track parameters estimator
+  E320::E320TrackParametersEstimator::Config trackParametersEstimatorCfg{};
+  trackParametersEstimatorCfg.gx2Fitter = gx2Fitter;
+  trackParametersEstimatorCfg.referenceSurface = seedingRefSurface.get();
+  trackParametersEstimatorCfg.originCov =
+      trackOriginStdDevPrior.cwiseProduct(trackOriginStdDevPrior).asDiagonal();
+
+  trackParametersEstimatorCfg.nIterations =
+      getEntrySizeT("E320TrackParametersEstimator", "nIterations");
+  trackParametersEstimatorCfg.maxChi2 =
+      getEntryDouble("E320TrackParametersEstimator", "maxChi2");
+  trackParametersEstimatorCfg.propDirection =
+      E320::E320TrackParametersEstimator::PropagationDirection(
+          getEntryInt("E320TrackParametersEstimator", "propDirection"));
+
+  auto trackParametersEstimator =
+      std::make_shared<E320::E320TrackParametersEstimator>(
+          trackParametersEstimatorCfg);
 
   // HT seeder setup
   HoughTransformSeeder::Config htSeederCfg{};
@@ -302,6 +383,16 @@ int main() {
   htSeederCfg.shortIdx = goInst.shortIdx;
 
   HoughTransformSeeder::Options htSeederOpt;
+  htSeederOpt.nCellsThetaShort =
+      getEntrySizeT("HoughTransformSeeder", "nCellsThetaShort");
+  htSeederOpt.nCellsRhoShort =
+      getEntrySizeT("HoughTransformSeeder", "nCellsRhoShort");
+  htSeederOpt.nCellsThetaLong =
+      getEntrySizeT("HoughTransformSeeder", "nCellsThetaLong");
+  htSeederOpt.nCellsRhoLong =
+      getEntrySizeT("HoughTransformSeeder", "nCellsRhoLong");
+  htSeederOpt.minXCount = getEntrySizeT("HoughTransformSeeder", "minXCount");
+
   htSeederOpt.boundBoxCenterPrimary = goInst.tcCenterPrimary;
   htSeederOpt.boundBoxCenterLong = goInst.tcCenterLong;
   htSeederOpt.boundBoxCenterShort = goInst.tcCenterShort;
@@ -310,52 +401,25 @@ int main() {
   htSeederOpt.boundBoxHalfLong = goInst.tcHalfLong;
   htSeederOpt.boundBoxHalfShort = goInst.tcHalfShort;
 
-  htSeederOpt.nCellsThetaShort = 500;
-  htSeederOpt.nCellsRhoShort = 2000;
-
-  htSeederOpt.nCellsThetaLong = 500;
-  htSeederOpt.nCellsRhoLong = 2000;
-
   htSeederOpt.surfaceMap = surfaceMap;
-
-  htSeederOpt.minXCount = 5;
-
-  // Covariance prior
-  Acts::BoundVector trackOriginStdDevPrior;
-  trackOriginStdDevPrior[Acts::eBoundLoc0] = 100_mm;
-  trackOriginStdDevPrior[Acts::eBoundLoc1] = 100_mm;
-  trackOriginStdDevPrior[Acts::eBoundPhi] = 10_degree;
-  trackOriginStdDevPrior[Acts::eBoundTheta] = 10_degree;
-  trackOriginStdDevPrior[Acts::eBoundQOverP] = 1 / 0.01_GeV;
-  trackOriginStdDevPrior[Acts::eBoundTime] = 1_fs;
-
-  // Track parameters estimator
-  E320::E320TrackParametersEstimator::Config trackParametersEstimatorCfg{};
-  trackParametersEstimatorCfg.gx2Fitter = gx2Fitter;
-  trackParametersEstimatorCfg.nIterations = 2;
-  trackParametersEstimatorCfg.maxChi2 = std::numeric_limits<double>::max();
-  trackParametersEstimatorCfg.referenceSurface = seedingRefSurface.get();
-  trackParametersEstimatorCfg.originCov =
-      trackOriginStdDevPrior.cwiseProduct(trackOriginStdDevPrior).asDiagonal();
-  trackParametersEstimatorCfg.propDirection =
-      E320::E320TrackParametersEstimator::PropagationDirection::forward;
-
-  auto trackParametersEstimator =
-      std::make_shared<E320::E320TrackParametersEstimator>(
-          trackParametersEstimatorCfg);
 
   // Seeding algorithm
   E320::E320SeedingAlgorithm::Config seedingAlgoCfg;
+  seedingAlgoCfg.inputSourceLinks =
+      getEntryStr("E320SeedingAlgorithm", "inputSourceLinks");
+  seedingAlgoCfg.inputDetSourceLinkIndices =
+      getEntryStr("E320SeedingAlgorithm", "inputDetSourceLinkIndices");
+  seedingAlgoCfg.inputBpmSourceLinkIndices =
+      getEntryStr("E320SeedingAlgorithm", "inputBpmSourceLinkIndices");
+  seedingAlgoCfg.outputSeeds =
+      getEntryStr("E320SeedingAlgorithm", "outputSeeds");
+  seedingAlgoCfg.outputTrackParameters =
+      getEntryStr("E320SeedingAlgorithm", "outputTrackParameters");
+  seedingAlgoCfg.minLayers = getEntrySizeT("E320SeedingAlgorithm", "minLayers");
+  seedingAlgoCfg.maxLayers = getEntrySizeT("E320SeedingAlgorithm", "maxLayers");
   seedingAlgoCfg.htSeeder = std::make_shared<HoughTransformSeeder>(htSeederCfg);
   seedingAlgoCfg.htOptions = htSeederOpt;
-  seedingAlgoCfg.inputSourceLinks = "SourceLinks";
-  seedingAlgoCfg.inputDetSourceLinkIndices = "DetSourceLinkIndices";
-  seedingAlgoCfg.inputBpmSourceLinkIndices = "BpmSourceLinkIndices";
-  seedingAlgoCfg.outputSeeds = "Seeds";
-  seedingAlgoCfg.outputTrackParameters = "TrackParameters";
   seedingAlgoCfg.trackParametersEstimator = trackParametersEstimator;
-  seedingAlgoCfg.minLayers = goInst.tcParameters.size();
-  seedingAlgoCfg.maxLayers = goInst.tcParameters.size();
 
   sequencer.addAlgorithm(
       std::make_shared<E320::E320SeedingAlgorithm>(seedingAlgoCfg, logLevel));
@@ -369,7 +433,8 @@ int main() {
   Acts::KalmanFitterExtensions<KFFitterTrajectory> kfExtensions;
   // Add calibrator
   kfExtensions.calibrator
-      .connect<&simpleSourceLinkCalibrator<KFFitterTrajectory>>();
+      .connect<&MixedSourceLinkCalibrator<KFFitterTrajectory>::operator()>(
+          &mixedCalibrator);
   // Add the updater
   kfExtensions.updater
       .connect<&KFFitterGainUpdater::operator()<KFFitterTrajectory>>(
@@ -380,8 +445,8 @@ int main() {
           &kfSmoother);
   // Add the surface accessor
   kfExtensions.surfaceAccessor
-      .connect<&SimpleSourceLink::SurfaceAccessor::operator()>(
-          &surfaceAccessor);
+      .connect<&MixedSourceLinkSurfaceAccessor::operator()>(
+          &mixedSurfaceAccessor);
 
   Navigator::Config cfg;
   cfg.detector = detector.get();
@@ -401,13 +466,17 @@ int main() {
 
   // Add the track fitting algorithm to the sequencer
   KFTrackFittingAlgorithm::Config fitterCfg{
-      .inputTrackCandidates = "Seeds",
-      .inputTrackParameters = "TrackParameters",
-      .inputSourceLinks = "SourceLinks",
-      .outputTrackContainer = "TrackContainer",
-      .outputTracks = "Tracks",
+      .inputTrackCandidates =
+          getEntryStr("KFTrackFittingAlgorithm", "inputTrackCandidates"),
+      .inputTrackParameters =
+          getEntryStr("KFTrackFittingAlgorithm", "inputTrackParameters"),
+      .inputSourceLinks =
+          getEntryStr("KFTrackFittingAlgorithm", "inputSourceLinks"),
+      .outputTrackContainer =
+          getEntryStr("KFTrackFittingAlgorithm", "outputTrackContainer"),
+      .outputTracks = getEntryStr("KFTrackFittingAlgorithm", "outputTracks"),
       .fitter = fitter,
-      .maxSteps = static_cast<size_t>(1e5),
+      .maxSteps = getEntrySizeT("KFTrackFittingAlgorithm", "maxSteps"),
       .kfExtensions = kfExtensions,
       .referenceSurface = trackingRefSurface.get()};
 
@@ -419,26 +488,25 @@ int main() {
 
   // Cluster writer
   RootMeasurementWriter::Config measurementWriterCfg{};
-  measurementWriterCfg.inputSourceLinks = "SourceLinks";
-  measurementWriterCfg.treeName = "measurements";
+  measurementWriterCfg.inputSourceLinks =
+      getEntryStr("RootMeasurementWriter", "inputSourceLinks");
+  measurementWriterCfg.treeName =
+      getEntryStr("RootMeasurementWriter", "treeName");
   measurementWriterCfg.filePath =
-      "/home/romanurmanov/work/E320/E320Prototype/E320Prototype_analysis/"
-      "data/"
-      "measurements.root";
+      getEntryStr("RootMeasurementWriter", "filePath");
 
   sequencer.addWriter(
       std::make_shared<RootMeasurementWriter>(measurementWriterCfg, logLevel));
 
   // Seed writer
   RootSeedWriter::Config seedWriterCfg;
-  seedWriterCfg.inputSeeds = "Seeds";
-  seedWriterCfg.inputTrackParameters = "TrackParameters";
-  seedWriterCfg.inputSourceLinks = "SourceLinks";
-  seedWriterCfg.treeName = "seeds";
-  seedWriterCfg.filePath =
-      "/home/romanurmanov/work/E320/E320Prototype/E320Prototype_analysis/"
-      "data/"
-      "seeds.root";
+  seedWriterCfg.inputSeeds = getEntryStr("RootSeedWriter", "inputSeeds");
+  seedWriterCfg.inputTrackParameters =
+      getEntryStr("RootSeedWriter", "inputTrackParameters");
+  seedWriterCfg.inputSourceLinks =
+      getEntryStr("RootSeedWriter", "inputSourceLinks");
+  seedWriterCfg.treeName = getEntryStr("RootSeedWriter", "treeName");
+  seedWriterCfg.filePath = getEntryStr("RootSeedWriter", "filePath");
 
   sequencer.addWriter(
       std::make_shared<RootSeedWriter>(seedWriterCfg, logLevel));
@@ -446,29 +514,29 @@ int main() {
   // Fitted track writer
   E320::E320RootTrackWriter::Config trackWriterCfg;
   trackWriterCfg.surfaceAccessor
-      .connect<&SimpleSourceLink::SurfaceAccessor::operator()>(
-          &surfaceAccessor);
+      .connect<&MixedSourceLinkSurfaceAccessor::operator()>(
+          &mixedSurfaceAccessor);
   trackWriterCfg.referenceSurface = trackingRefSurface.get();
-  trackWriterCfg.inputTrackContainer = "TrackContainer";
-  trackWriterCfg.inputTracks = "Tracks";
-  trackWriterCfg.inputTrackParametersGuesses = "TrackParameters";
-  trackWriterCfg.inputEventMetaData = "EventMetaData";
-  trackWriterCfg.treeName = "fitted-tracks";
-  trackWriterCfg.filePath =
-      "/home/romanurmanov/work/E320/E320Prototype/E320Prototype_analysis/"
-      "data/"
-      "fitted-tracks.root";
+  trackWriterCfg.inputTrackContainer =
+      getEntryStr("E320RootTrackWriter", "inputTrackContainer");
+  trackWriterCfg.inputTracks =
+      getEntryStr("E320RootTrackWriter", "inputTracks");
+  trackWriterCfg.inputTrackParametersGuesses =
+      getEntryStr("E320RootTrackWriter", "inputTrackParametersGuesses");
+  trackWriterCfg.inputEventMetaData =
+      getEntryStr("E320RootTrackWriter", "inputEventMetaData");
+  trackWriterCfg.treeName = getEntryStr("E320RootTrackWriter", "treeName");
+  trackWriterCfg.filePath = getEntryStr("E320RootTrackWriter", "filePath");
 
   sequencer.addWriter(
       std::make_shared<E320::E320RootTrackWriter>(trackWriterCfg, logLevel));
 
   // Magnetic field writer
-  auto magFieldWriterCfg = E320::E320MagneticFieldWriter::Config();
-  magFieldWriterCfg.treeName = "magnets";
+  E320::E320MagneticFieldWriter::Config magFieldWriterCfg;
+  magFieldWriterCfg.treeName =
+      getEntryStr("E320MagneticFieldWriter", "treeName");
   magFieldWriterCfg.filePath =
-      "/home/romanurmanov/work/E320/E320Prototype/E320Prototype_analysis/"
-      "data/"
-      "magnets.root";
+      getEntryStr("E320MagneticFieldWriter", "filePath");
 
   sequencer.addWriter(std::make_shared<E320::E320MagneticFieldWriter>(
       magFieldWriterCfg, logLevel));

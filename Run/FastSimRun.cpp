@@ -2,9 +2,15 @@
 #include "Acts/EventData/VectorTrackContainer.hpp"
 #include "Acts/Geometry/GeometryIdentifier.hpp"
 #include "Acts/Navigation/DetectorNavigator.hpp"
+#include "Acts/Plugins/Json/JsonMaterialDecorator.hpp"
+#include "Acts/Plugins/Json/MaterialMapJsonConverter.hpp"
 #include "Acts/Propagator/EigenStepper.hpp"
 #include "Acts/Utilities/Logger.hpp"
 #include <Acts/Definitions/Algebra.hpp>
+#include <Acts/Definitions/PdgParticle.hpp>
+#include <Acts/Material/BinnedSurfaceMaterial.hpp>
+#include <Acts/Material/HomogeneousSurfaceMaterial.hpp>
+#include <Acts/Material/Interactions.hpp>
 #include <Acts/Surfaces/PlaneSurface.hpp>
 #include <Acts/Surfaces/RectangleBounds.hpp>
 
@@ -37,6 +43,7 @@
 #include "TrackingPipeline/Simulation/SphericalMomentumGenerator.hpp"
 #include "TrackingPipeline/Simulation/SurfaceRangedDigitizer.hpp"
 #include "TrackingPipeline/Simulation/UniformBackgroundCreator.hpp"
+#include "toml++/toml.hpp"
 
 using namespace Acts::UnitLiterals;
 
@@ -46,8 +53,36 @@ std::unique_ptr<const E320::GeometryOptions> E320::GeometryOptions::m_instance =
 int main() {
   const auto& goInst = *E320::GeometryOptions::instance();
 
+  const std::string pathToCfg =
+      "/home/romanurmanov/work/TrackingPipeline/ActsTrackingPipeline/conf/"
+      "runs/"
+      "FastSimRunConfig.toml";
+  auto runCfg = toml::parse_file(pathToCfg);
+
+  auto getEntryDouble = [&runCfg](const std::string& section,
+                                  const std::string& subsection) {
+    return runCfg[section][subsection].value<double>().value();
+  };
+  auto getEntrySizeT = [&runCfg](const std::string& section,
+                                 const std::string& subsection) {
+    return runCfg[section][subsection].value<std::size_t>().value();
+  };
+  auto getEntryInt = [&runCfg](const std::string& section,
+                               const std::string& subsection) {
+    return runCfg[section][subsection].value<int>().value();
+  };
+  auto getEntryBool = [&runCfg](const std::string& section,
+                                const std::string& subsection) {
+    return runCfg[section][subsection].value<bool>().value();
+  };
+  auto getEntryStr = [&runCfg](const std::string& section,
+                               const std::string& subsection) {
+    return runCfg[section][subsection].value<std::string>().value();
+  };
+
   // Set the log level
-  Acts::Logging::Level logLevel = Acts::Logging::INFO;
+  Acts::Logging::Level logLevel =
+      Acts::Logging::Level(getEntrySizeT("General", "logLevel"));
 
   // Contexts
   Acts::GeometryContext gctx;
@@ -55,7 +90,32 @@ int main() {
   // --------------------------------------------------------------
   // Detector setup
 
-  auto detector = E320::buildDetector(gctx, nullptr);
+  // Material decorator
+  Acts::MaterialMapJsonConverter::Config jsonMaterialConverterCfg;
+  jsonMaterialConverterCfg.context = gctx;
+  jsonMaterialConverterCfg.processSensitives =
+      getEntryBool("MaterialMapJsonConverter", "processSensitives");
+  jsonMaterialConverterCfg.processApproaches =
+      getEntryBool("MaterialMapJsonConverter", "processApproaches");
+  jsonMaterialConverterCfg.processRepresenting =
+      getEntryBool("MaterialMapJsonConverter", "processRepresenting");
+  jsonMaterialConverterCfg.processBoundaries =
+      getEntryBool("MaterialMapJsonConverter", "processBoundaries");
+  jsonMaterialConverterCfg.processVolumes =
+      getEntryBool("MaterialMapJsonConverter", "processVolumes");
+  jsonMaterialConverterCfg.processDenseVolumes =
+      getEntryBool("MaterialMapJsonConverter", "processDenseVolumes");
+  jsonMaterialConverterCfg.processNonMaterial =
+      getEntryBool("MaterialMapJsonConverter", "processNonMaterial");
+
+  auto materialDecorator = std::make_shared<Acts::JsonMaterialDecorator>(
+      jsonMaterialConverterCfg,
+      getEntryStr("JsonMaterialDecorator", "materialPath"), logLevel);
+
+  // Construct detector
+  auto detector = getEntryBool("Geometry", "materialDecorator")
+                      ? E320::buildDetector(gctx, materialDecorator)
+                      : E320::buildDetector(gctx, nullptr);
 
   for (const auto& vol : detector->volumes()) {
     std::cout << "------------------------------------------\n";
@@ -83,24 +143,43 @@ int main() {
 
   // --------------------------------------------------------------
   // Alignment setup
-  Acts::Vector3 globalShiftMean(0, 10_mm, -5_mm);
-  std::unordered_map<int, Acts::Vector3> localShiftsMean{
-      {10, Acts::Vector3(0_mm, 0_um, 0_um)},
-      {12, Acts::Vector3(0_mm, 0_um, 0_um)},
-      {14, Acts::Vector3(0_mm, 0_um, 0_um)},
-      {16, Acts::Vector3(0_mm, 0_um, 0_um)},
-      {18, Acts::Vector3(0_mm, 0_um, 0_um)}};
-  Acts::Vector3 globalAnglesMean(0_rad, 0_rad, -2e-3_rad);
-  std::unordered_map<int, Acts::Vector3> localAnglesMean{
-      {10, Acts::Vector3(0_rad, 0_rad, 0_rad)},
-      {12, Acts::Vector3(0_rad, 0_rad, 0_rad)},
-      {14, Acts::Vector3(0_rad, 0_rad, 0_rad)},
-      {16, Acts::Vector3(0_rad, 0_rad, 0_rad)},
-      {18, Acts::Vector3(0_rad, 0_rad, 0_rad)}};
+  Acts::Vector3 globalShifts(0,
+                             getEntryDouble("Geometry", "globalShiftY") * 1_mm,
+                             getEntryDouble("Geometry", "globalShiftZ") * 1_mm);
+  std::unordered_map<int, Acts::Vector3> localShifts{
+      {10,
+       Acts::Vector3(0_mm, getEntryDouble("Geometry", "localShiftY10") * 1_um,
+                     getEntryDouble("Geometry", "localShiftZ10") * 1_um)},
+      {12,
+       Acts::Vector3(0_mm, getEntryDouble("Geometry", "localShiftY12") * 1_um,
+                     getEntryDouble("Geometry", "localShiftZ12") * 1_um)},
+      {14,
+       Acts::Vector3(0_mm, getEntryDouble("Geometry", "localShiftY14") * 1_um,
+                     getEntryDouble("Geometry", "localShiftZ14") * 1_um)},
+      {16,
+       Acts::Vector3(0_mm, getEntryDouble("Geometry", "localShiftY16") * 1_um,
+                     getEntryDouble("Geometry", "localShiftZ16") * 1_um)},
+      {18,
+       Acts::Vector3(0_mm, getEntryDouble("Geometry", "localShiftY18") * 1_um,
+                     getEntryDouble("Geometry", "localShiftZ18") * 1_um)}};
+  Acts::Vector3 globalAngles(
+      0_rad, 0_rad, getEntryDouble("Geometry", "globalAngleZ") * 1_mrad);
+  std::unordered_map<int, Acts::Vector3> localAngles{
+      {10, Acts::Vector3(0_rad, 0_rad,
+                         getEntryDouble("Geometry", "localAngleZ10") * 1_mrad)},
+      {12, Acts::Vector3(0_rad, 0_rad,
+                         getEntryDouble("Geometry", "localAngleZ12") * 1_mrad)},
+      {14, Acts::Vector3(0_rad, 0_rad,
+                         getEntryDouble("Geometry", "localAngleZ14") * 1_mrad)},
+      {16, Acts::Vector3(0_rad, 0_rad,
+                         getEntryDouble("Geometry", "localAngleZ16") * 1_mrad)},
+      {18,
+       Acts::Vector3(0_rad, 0_rad,
+                     getEntryDouble("Geometry", "localAngleZ18") * 1_mrad)}};
 
-  auto aStore = detail::makeAlignmentStore(gctx, detector.get(),
-                                           globalShiftMean, localShiftsMean,
-                                           globalAnglesMean, localAnglesMean);
+  auto aStore =
+      detail::makeAlignmentStore(gctx, detector.get(), globalShifts,
+                                 localShifts, globalAngles, localAngles);
   AlignmentContext alignCtx(aStore);
 
   // Print alignment parameters
@@ -138,8 +217,6 @@ int main() {
       }
     }
   }
-
-  // return 0;
 
   // --------------------------------------------------------------
   // The magnetic field setup
@@ -181,7 +258,7 @@ int main() {
   // Setup the sequencer
   Sequencer::Config seqCfg;
   seqCfg.numThreads = 1;
-  seqCfg.skip = 0 * 2.5e4;
+  seqCfg.skip = getEntrySizeT("Sequencer", "skip");
   seqCfg.trackFpes = false;
   seqCfg.logLevel = logLevel;
   Sequencer sequencer(seqCfg);
@@ -195,7 +272,7 @@ int main() {
   dummyReaderCfg.outputSourceLinks = "SimMeasurements";
   dummyReaderCfg.outputSimClusters = "SimClusters";
   dummyReaderCfg.outputSourceLinkIndices = "SimMeasurementIndices";
-  dummyReaderCfg.nEvents = 1 * 2.5e4;
+  dummyReaderCfg.nEvents = getEntrySizeT("Sequencer", "events");
 
   sequencer.addReader(std::make_shared<DummyReader>(dummyReaderCfg));
 
@@ -219,49 +296,89 @@ int main() {
   // Digitizers
   SurfaceRangedDigitizer::Config trackHitDigitizerCfg;
   for (const auto& pars : constraintSurfaceParameters) {
-    trackHitDigitizerCfg.resolutions.insert({pars.geoId, {50_um, 50_um}});
+    trackHitDigitizerCfg.resolutions.insert(
+        {pars.geoId,
+         {getEntryDouble("TrackHitDigitizer", "constraintSurfaceResolutionX") *
+              1_um,
+          getEntryDouble("TrackHitDigitizer", "constraintSurfaceResolutionY") *
+              1_um}});
   }
   for (const auto& pars : goInst.tcParameters) {
-    trackHitDigitizerCfg.resolutions.insert({pars.geoId, {5_um, 5_um}});
+    trackHitDigitizerCfg.resolutions.insert(
+        {pars.geoId,
+         {getEntryDouble("TrackHitDigitizer", "trackingSurfaceResolutionX") *
+              1_um,
+          getEntryDouble("TrackHitDigitizer", "trackingSurfaceResolutionY") *
+              1_um}});
   }
   auto trackHitDigitizer =
       std::make_shared<SurfaceRangedDigitizer>(trackHitDigitizerCfg);
 
   SimpleDigitizer::Config angleDigitizerCfg;
-  angleDigitizerCfg.resolution = {1e-3_rad, 1e-3_rad};
+  angleDigitizerCfg.resolution = {
+      getEntryDouble("TrackAngleDigitizer", "constraintSurfaceResolutionPhi") *
+          1_mrad,
+      getEntryDouble("TrackAngleDigitizer",
+                     "constraintSurfaceResolutionTheta") *
+          1_mrad};
   auto angleDigitizer = std::make_shared<SimpleDigitizer>(angleDigitizerCfg);
 
   // Vertex generator
+  double vertexRes =
+      getEntryDouble("GaussianVertexGenerator", "vertexResolution") * 1_um;
+
   GaussianVertexGenerator::Config vertexGenCfg;
-  vertexGenCfg.mean =
-      // Acts::Vector3(goInst.bpm0CenterPrimary - 5_mm, 0, 0_mm);
-      Acts::Vector3(goInst.ipSurfaceCenterPrimary - 0.1_mm, 0, 0);
-  vertexGenCfg.cov = Acts::SquareMatrix3::Identity() * 30_um * 30_um;
+  // vertexGenCfg.mean = Acts::Vector3(goInst.bpm0CenterPrimary - 5_mm, 0, 0);
+  vertexGenCfg.mean = Acts::Vector3(0, 0, 0);
+  // Acts::Vector3(goInst.ipSurfaceCenterPrimary - 0.1_mm, goInst.tcCenterLong,
+  //               goInst.tcCenterShort);
+  vertexGenCfg.cov = Acts::SquareMatrix3::Identity() * vertexRes * vertexRes;
   auto vertexGen = std::make_shared<GaussianVertexGenerator>(vertexGenCfg);
 
+  // Momentum generator
+  double minAbsP =
+      getEntryDouble("SphericalMomentumGenerator", "minAbsoluteMomentum") *
+      1_GeV;
+  double maxAbsP =
+      getEntryDouble("SphericalMomentumGenerator", "maxAbsoluteMomentum") *
+      1_GeV;
+
+  double minPhi =
+      getEntryDouble("SphericalMomentumGenerator", "minPhi") * 1_mrad;
+  double maxPhi =
+      getEntryDouble("SphericalMomentumGenerator", "maxPhi") * 1_mrad;
+
+  double minTheta =
+      getEntryDouble("SphericalMomentumGenerator", "minTheta") * 1_mrad;
+  double maxTheta =
+      getEntryDouble("SphericalMomentumGenerator", "maxTheta") * 1_mrad;
+
   SphericalMomentumGenerator::Config momGenCfg;
-  momGenCfg.pRange = {3.0_GeV, 4.0_GeV};
-  momGenCfg.phiRange = {-1e-3_rad, 1e-3_rad};
-  momGenCfg.thetaRange = {M_PI_2 - 1e-3_rad, M_PI_2 + 1e-3_rad};
+  momGenCfg.pRange = {minAbsP, maxAbsP};
+  momGenCfg.phiRange = {minPhi, maxPhi};
+  momGenCfg.thetaRange = {M_PI_2 + minTheta, M_PI_2 + maxTheta};
 
   auto momGen = std::make_shared<SphericalMomentumGenerator>(momGenCfg);
 
-  // // Beam generator
-  // ConvergingBeamGenerator::Config beamGenCfg;
-  // beamGenCfg.primaryIdx = goInst.primaryIdx;
-  // beamGenCfg.longIdx = goInst.longIdx;
-  // beamGenCfg.shortIdx = goInst.shortIdx;
-  // beamGenCfg.referencePositionPrimary = goInst.bpm0CenterPrimary - 5_mm;
-  // beamGenCfg.waistPosition =
-  //     Acts::Vector3(goInst.ipSurfaceCenterPrimary - 0.1_mm, 0, 0_mm);
-  // beamGenCfg.waistSigmaLong = 30_um;
-  // beamGenCfg.waistSigmaShort = 30_um;
-  // beamGenCfg.waistMeanThetaLong = 0_rad;
-  // beamGenCfg.waistMeanThetaShort = 0_rad;
-  // beamGenCfg.waistSigmaThetaLong = 1e-3_rad;
-  // beamGenCfg.waistSigmaThetaShort = 1e-3_rad;
-  // beamGenCfg.beamEnergy = 10_GeV;
-  // auto beamGen = std::make_shared<ConvergingBeamGenerator>(beamGenCfg);
+  // Beam generator
+  ConvergingBeamGenerator::Config beamGenCfg;
+  beamGenCfg.primaryIdx = goInst.primaryIdx;
+  beamGenCfg.longIdx = goInst.longIdx;
+  beamGenCfg.shortIdx = goInst.shortIdx;
+  beamGenCfg.referencePositionPrimary = goInst.bpm0CenterPrimary - 5_mm;
+  beamGenCfg.waistPosition =
+      Acts::Vector3(goInst.ipSurfaceCenterPrimary - 0.1_mm, 0, 0_mm);
+  beamGenCfg.waistSigmaLong = 30_um;
+  beamGenCfg.waistSigmaShort = 30_um;
+  beamGenCfg.waistMeanThetaLong = 0_rad;
+  beamGenCfg.waistMeanThetaShort = 0_rad;
+  beamGenCfg.waistSigmaThetaLong = 1e-3_rad;
+  beamGenCfg.waistSigmaThetaShort = 1e-3_rad;
+  // beamGenCfg.beamEnergyMin = 3.0_GeV;
+  // beamGenCfg.beamEnergyMax = 4.0_GeV;
+  beamGenCfg.beamEnergyMin = 1.5_GeV;
+  beamGenCfg.beamEnergyMax = 2.5_GeV;
+  auto beamGen = std::make_shared<ConvergingBeamGenerator>(beamGenCfg);
 
   // // Beam positrons generator
   // RootVertexMomentumReaderGenerator::Config beamGenCfg;
@@ -291,6 +408,8 @@ int main() {
 
   // Measurement creator
   MeasurementsCreator::Config measCreatorCfg{
+      // .vertexGenerator = beamGen,
+      // .momentumGenerator = beamGen,
       .vertexGenerator = vertexGen,
       .momentumGenerator = momGen,
       .referenceSurface = refSurface.get(),

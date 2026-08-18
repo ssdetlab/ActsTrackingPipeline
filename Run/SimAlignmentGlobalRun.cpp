@@ -18,15 +18,9 @@
 #include <limits>
 #include <memory>
 
-#include <Eigen/src/Core/ArithmeticSequence.h>
-#include <nlohmann/json.hpp>
-#include <unistd.h>
-
+#include "TrackingPipeline/Alignment/AlignmentAlgorithm.hpp"
 #include "TrackingPipeline/Alignment/AlignmentContext.hpp"
-#include "TrackingPipeline/Alignment/GlobalAlignmentAlgorithm.hpp"
-#include "TrackingPipeline/Alignment/GlobalAlignmentParametersSolverTest.hpp"
-#include "TrackingPipeline/Alignment/GlobalAlignmentTransformUpdater.hpp"
-#include "TrackingPipeline/Alignment/LinearAnnealingScheduler.hpp"
+#include "TrackingPipeline/Alignment/E320MinuitGlobalAlignmentFunction.hpp"
 #include "TrackingPipeline/Alignment/detail/AlignmentStoreBuilders.hpp"
 #include "TrackingPipeline/EventData/ExtendedSourceLink.hpp"
 #include "TrackingPipeline/EventData/MixedSourceLinkCalibrator.hpp"
@@ -38,13 +32,11 @@
 #include "TrackingPipeline/Infrastructure/Sequencer.hpp"
 #include "TrackingPipeline/Infrastructure/TypeDefinitions.hpp"
 #include "TrackingPipeline/Io/AlignmentParametersWriter.hpp"
-#include "TrackingPipeline/Io/E320MagneticFieldParametersProvider.hpp"
 #include "TrackingPipeline/Io/E320RootSimTrackReader.hpp"
-#include "TrackingPipeline/Io/RootSimSeedWriter.hpp"
 #include "TrackingPipeline/Io/RootSimTrackWriter.hpp"
-#include "TrackingPipeline/MagneticField/MagneticFieldContextDecorator.hpp"
 #include "TrackingPipeline/TrackFinding/E320TrackParametersEstimator.hpp"
 #include "TrackingPipeline/TrackFitting/KFTrackFittingAlgorithm.hpp"
+#include "toml++/toml.hpp"
 
 using namespace Acts::UnitLiterals;
 
@@ -54,8 +46,24 @@ std::unique_ptr<const E320::GeometryOptions> E320::GeometryOptions::m_instance =
 int main() {
   const auto& goInst = *E320::GeometryOptions::instance();
 
+  const std::string pathToCfg =
+      "/home/romanurmanov/work/TrackingPipeline/ActsTrackingPipeline/conf/"
+      "runs/"
+      "SimAlignmentGlobalRunConfig.toml";
+  auto runCfg = toml::parse_file(pathToCfg);
+
+  auto getEntryDouble = [&runCfg](const std::string& section,
+                                  const std::string& subsection) {
+    return runCfg[section][subsection].value<double>().value();
+  };
+  auto getEntrySizeT = [&runCfg](const std::string& section,
+                                 const std::string& subsection) {
+    return runCfg[section][subsection].value<std::size_t>().value();
+  };
+
   // Set the log level
-  Acts::Logging::Level logLevel = Acts::Logging::INFO;
+  Acts::Logging::Level logLevel =
+      Acts::Logging::Level(getEntrySizeT("General", "logLevel"));
 
   // Dummy context and options
   Acts::GeometryContext gctx;
@@ -81,23 +89,26 @@ int main() {
       logLevel);
 
   // Construct detector
-  auto detector = E320::buildDetector(gctx, materialDecorator);
+  auto detector = E320::buildDetector(gctx, nullptr);
 
   // Set up surface maps for later use
   std::unordered_map<Acts::GeometryIdentifier, const Acts::Surface*>
       gx2FitterSurfaceMap;
+  std::unordered_set<Acts::GeometryIdentifier> alignmentFitSurfaces;
+  std::unordered_set<Acts::GeometryIdentifier> initialTrackStateFitSurfaces;
   for (const auto& vol : detector->volumes()) {
-    std::cout << "------------------------------------------\n";
-    std::cout << vol->name() << "\n";
-    std::cout << vol->extent(gctx);
-    std::cout << "Surfaces:\n";
     for (const auto& surf : vol->surfaces()) {
-      std::cout << surf->geometryId() << "\n";
-      std::cout << surf->center(gctx) << "\n";
-      std::cout << surf->polyhedronRepresentation(gctx, 1000).extent() << "\n";
-      if (surf->geometryId().sensitive() != 0u &&
-          surf->geometryId().sensitive() < goInst.bpm0Parameters.geoId) {
-        gx2FitterSurfaceMap[surf->geometryId()] = surf;
+      const auto& geoId = surf->geometryId();
+      if (geoId.sensitive() != 0u) {
+        if (geoId.sensitive() >= goInst.tcParameters.front().geoId &&
+            geoId.sensitive() <= goInst.tcParameters.back().geoId) {
+          gx2FitterSurfaceMap[geoId] = surf;
+          initialTrackStateFitSurfaces.insert(geoId);
+        }
+        if (geoId.sensitive() >= goInst.ipSurfaceParameters.geoId &&
+            geoId.sensitive() <= goInst.tcParameters.back().geoId) {
+          alignmentFitSurfaces.insert(geoId);
+        }
       }
     }
   }
@@ -105,29 +116,41 @@ int main() {
   // Initialize alignment store
   auto aStore = detail::makeAlignmentStore(gctx, detector.get());
 
-  // Acts::Vector3 globalShiftMean(0, 0_mm, -10.4336_mm -
-  // goInst.tcCenterShort);
-  Acts::Vector3 globalShiftMean(0, 0_mm, 0_mm);
-  // Acts::Vector3 globalShiftMean(0, 0_mm, 0_mm);
-  std::unordered_map<int, Acts::Vector3> localShiftsMean{
-      {10, Acts::Vector3(0_mm, 0_um, 0_um)},
-      {12, Acts::Vector3(0_mm, 0_um, 0_um)},
-      {14, Acts::Vector3(0_mm, 0_um, 0_um)},
-      {16, Acts::Vector3(0_mm, 0_um, 0_um)},
-      {18, Acts::Vector3(0_mm, 0_um, 0_um)}};
-
-  Acts::Vector3 globalAnglesMean(0_rad, 0_rad, 0_rad);
-  // Acts::Vector3 globalAnglesMean(0_rad, 0_rad, 0_rad);
-  std::unordered_map<int, Acts::Vector3> localAnglesMean{
-      {10, Acts::Vector3(0_rad, 0_rad, 0_rad)},
-      {12, Acts::Vector3(0_rad, 0_rad, 0_rad)},
-      {14, Acts::Vector3(0_rad, 0_rad, 0_rad)},
-      {16, Acts::Vector3(0_rad, 0_rad, 0_rad)},
-      {18, Acts::Vector3(0_rad, 0_rad, 0_rad)}};
-
-  aStore = detail::makeAlignmentStore(gctx, detector.get(), globalShiftMean,
-                                      localShiftsMean, globalAnglesMean,
-                                      localAnglesMean);
+  Acts::Vector3 globalShifts(0,
+                             getEntryDouble("Geometry", "globalShiftY") * 1_mm,
+                             getEntryDouble("Geometry", "globalShiftZ") * 1_mm);
+  std::unordered_map<int, Acts::Vector3> localShifts{
+      {10,
+       Acts::Vector3(0_mm, getEntryDouble("Geometry", "localShiftY10") * 1_um,
+                     getEntryDouble("Geometry", "localShiftZ10") * 1_um)},
+      {12,
+       Acts::Vector3(0_mm, getEntryDouble("Geometry", "localShiftY12") * 1_um,
+                     getEntryDouble("Geometry", "localShiftZ12") * 1_um)},
+      {14,
+       Acts::Vector3(0_mm, getEntryDouble("Geometry", "localShiftY14") * 1_um,
+                     getEntryDouble("Geometry", "localShiftZ14") * 1_um)},
+      {16,
+       Acts::Vector3(0_mm, getEntryDouble("Geometry", "localShiftY16") * 1_um,
+                     getEntryDouble("Geometry", "localShiftZ16") * 1_um)},
+      {18,
+       Acts::Vector3(0_mm, getEntryDouble("Geometry", "localShiftY18") * 1_um,
+                     getEntryDouble("Geometry", "localShiftZ18") * 1_um)}};
+  Acts::Vector3 globalAngles(
+      0_rad, 0_rad, getEntryDouble("Geometry", "globalAngleZ") * 1_mrad);
+  std::unordered_map<int, Acts::Vector3> localAngles{
+      {10, Acts::Vector3(0_rad, 0_rad,
+                         getEntryDouble("Geometry", "localAngleZ10") * 1_mrad)},
+      {12, Acts::Vector3(0_rad, 0_rad,
+                         getEntryDouble("Geometry", "localAngleZ12") * 1_mrad)},
+      {14, Acts::Vector3(0_rad, 0_rad,
+                         getEntryDouble("Geometry", "localAngleZ14") * 1_mrad)},
+      {16, Acts::Vector3(0_rad, 0_rad,
+                         getEntryDouble("Geometry", "localAngleZ16") * 1_mrad)},
+      {18,
+       Acts::Vector3(0_rad, 0_rad,
+                     getEntryDouble("Geometry", "localAngleZ18") * 1_mrad)}};
+  aStore = detail::makeAlignmentStore(gctx, detector.get(), globalShifts,
+                                      localShifts, globalAngles, localAngles);
 
   // Initialize alignment context
   AlignmentContext alignCtx(aStore);
@@ -221,12 +244,13 @@ int main() {
   readerCfg.outputMagneticFieldParameters = "MagFieldPars";
   readerCfg.constraints = readerConstraints;
   readerCfg.mergeIntoOneEvent = true;
+  readerCfg.backwards = true;
 
   std::string pathToDir =
       // "/home/romanurmanov/work/E320/E320Prototype/E320Prototype_analysis/sim/"
       // "alignment/global/misaligned_beamline/misaligned_det";
       "/home/romanurmanov/work/E320/E320Prototype/E320Prototype_analysis/sim/"
-      "alignment/global/test";
+      "alignment/global/test/test";
 
   // Get the paths to the files in the directory
   for (const auto& entry : std::filesystem::directory_iterator(pathToDir)) {
@@ -291,37 +315,6 @@ int main() {
   // --------------------------------------------------------------
   // Alignment
 
-  // Initialize constraints
-  std::vector<Acts::GeometryIdentifier> constraintsSurfaceIds;
-  for (auto& det : detector->detectorElements()) {
-    const auto& surface = det->surface();
-    const auto& geoId = surface.geometryId();
-    if (geoId.sensitive() >= goInst.bpm1Parameters.geoId &&
-        geoId.sensitive() <= goInst.bpm3Parameters.geoId) {
-      constraintsSurfaceIds.push_back(geoId);
-    }
-  }
-
-  std::vector<Acts::SourceLink> alignmentConstraints;
-  for (const auto& geoId : constraintsSurfaceIds) {
-    Acts::ActsVector<SimpleSourceLink::globalSubspaceSize> glob =
-        Acts::ActsVector<SimpleSourceLink::globalSubspaceSize>::Zero();
-    glob(goInst.primaryIdx) =
-        detector->findSurface(geoId)->center(gctx)(goInst.primaryIdx);
-    glob(goInst.longIdx) =
-        detector->findSurface(geoId)->center(gctx)(goInst.longIdx);
-    glob(goInst.shortIdx) =
-        detector->findSurface(geoId)->center(gctx)(goInst.shortIdx);
-
-    Acts::ActsVector<SimpleSourceLink::localSubspaceSize> loc =
-        Acts::ActsVector<SimpleSourceLink::localSubspaceSize>::Zero();
-    Acts::ActsVector<SimpleSourceLink::localSubspaceSize> stdDev = {1_mm, 1_mm};
-    Acts::ActsSquareMatrix<SimpleSourceLink::localSubspaceSize> cov =
-        stdDev.cwiseProduct(stdDev).asDiagonal();
-    alignmentConstraints.emplace_back(
-        SimpleSourceLink(loc, glob, cov, geoId, 0, 0));
-  }
-
   // Initialize track fitter extension
   KFFitterGainUpdater alignmentKFUpdater;
   KFFitterGainSmoother alignmentKFSmoother;
@@ -355,51 +348,25 @@ int main() {
   Acts::BoundVector trackOriginStdDevPrior;
   trackOriginStdDevPrior[Acts::eBoundLoc0] = 100_mm;
   trackOriginStdDevPrior[Acts::eBoundLoc1] = 100_mm;
-  trackOriginStdDevPrior[Acts::eBoundTime] = 25_ns;
-  trackOriginStdDevPrior[Acts::eBoundPhi] = 10_rad;
-  trackOriginStdDevPrior[Acts::eBoundTheta] = 10_rad;
+  trackOriginStdDevPrior[Acts::eBoundPhi] = 10_degree;
+  trackOriginStdDevPrior[Acts::eBoundTheta] = 10_degree;
   trackOriginStdDevPrior[Acts::eBoundQOverP] = 1 / 0.01_GeV;
+  trackOriginStdDevPrior[Acts::eBoundTime] = 1_fs;
   Acts::BoundMatrix trackOriginCov =
       trackOriginStdDevPrior.cwiseProduct(trackOriginStdDevPrior).asDiagonal();
-
-  // Alignment mask
-  ActsAlignment::AlignmentMask alignmentMask =
-      (ActsAlignment::AlignmentMask::Center1 |
-       ActsAlignment::AlignmentMask::Center2 |
-       ActsAlignment::AlignmentMask::Rotation2);
-
-  // Alignment parameters solver
-  GlobalAlignmentParametersSolverTest::Config alignmentSolverCfg{};
-  alignmentSolverCfg.alignmentMask = alignmentMask;
-  alignmentSolverCfg.alpha = 1;
-  GlobalAlignmentParametersSolverTest alignmentSolver(alignmentSolverCfg,
-                                                      logLevel);
-
-  // Alignment transform updater
-  GlobalAlignmentTransformUpdater::Config alignmentUpdaterCfg{};
-  alignmentUpdaterCfg.alignmentStore = aStore;
-  GlobalAlignmentTransformUpdater alignmentUpdater(alignmentUpdaterCfg,
-                                                   logLevel);
 
   // Number of refitting iterations
   std::size_t nRefittingIt = 1;
 
-  // Annealing scheduler
-  LinearAnnealingScheduler::Config annealingSchedulerCfg{};
-  annealingSchedulerCfg.alphaStart = 1e0;
-  annealingSchedulerCfg.alphaEnd = 1e0;
-  annealingSchedulerCfg.nIt = nRefittingIt;
-
-  auto annealingScheduler =
-      std::make_shared<LinearAnnealingScheduler>(annealingSchedulerCfg);
-
   // GX2 fitter setup
+  Acts::GeometryIdentifier gx2StartSurfaceGeoId;
+  gx2StartSurfaceGeoId.setSensitive(goInst.tcParameters.front().geoId);
+
   StraightLineGX2Fitter::Config gx2FitterCfg{};
   gx2FitterCfg.primaryIdx = goInst.primaryIdx;
   gx2FitterCfg.longIdx = goInst.longIdx;
   gx2FitterCfg.shortIdx = goInst.shortIdx;
-  gx2FitterCfg.firstLayerGeoId = goInst.tcParameters.front().geoId;
-  gx2FitterCfg.lastLayerGeoId = goInst.tcParameters.back().geoId;
+  gx2FitterCfg.startSurfaceGeoId = gx2StartSurfaceGeoId;
   gx2FitterCfg.surfaceMap = gx2FitterSurfaceMap;
 
   auto gx2Fitter = std::make_shared<StraightLineGX2Fitter>(gx2FitterCfg);
@@ -419,54 +386,64 @@ int main() {
       std::make_shared<E320::E320TrackParametersEstimator>(
           trackParametersEstimatorCfg);
 
-  Navigator::Config alignmentNavigatorCfg;
-  alignmentNavigatorCfg.detector = detector.get();
-  alignmentNavigatorCfg.resolvePassive = false;
-  alignmentNavigatorCfg.resolveMaterial = true;
-  alignmentNavigatorCfg.resolveSensitive = true;
-  Navigator alignmentNavigator(
-      alignmentNavigatorCfg,
-      Acts::getDefaultLogger("DetectorNavigator", logLevel));
+  // Initial pars
+  Acts::Vector3 initialAlignmentPars(
+      getEntryDouble("E320MinuitGlobalAlignmentFunction",
+                     "initialAlignmentParsY") *
+          1_mm,
+      getEntryDouble("E320MinuitGlobalAlignmentFunction",
+                     "initialAlignmentParsZ") *
+          1_mm,
+      getEntryDouble("E320MinuitGlobalAlignmentFunction",
+                     "initialAlignmentParsTheta") *
+          1_mrad);
+  Acts::Vector3 initialAlignmentParSteps(
+      getEntryDouble("E320MinuitGlobalAlignmentFunction",
+                     "initialAlignmentParStepsY") *
+          1_mm,
+      getEntryDouble("E320MinuitGlobalAlignmentFunction",
+                     "initialAlignmentParStepsZ") *
+          1_mm,
+      getEntryDouble("E320MinuitGlobalAlignmentFunction",
+                     "initialAlignmentParStepsTheta") *
+          1_mrad);
+  Acts::Vector3 alignmentParLowBounds(
+      getEntryDouble("E320MinuitGlobalAlignmentFunction",
+                     "alignmentParLowBoundsY") *
+          1_mm,
+      getEntryDouble("E320MinuitGlobalAlignmentFunction",
+                     "alignmentParLowBoundsZ") *
+          1_mm,
+      getEntryDouble("E320MinuitGlobalAlignmentFunction",
+                     "alignmentParLowBoundsTheta") *
+          1_mrad);
+  Acts::Vector3 alignmentParHighBounds(
+      getEntryDouble("E320MinuitGlobalAlignmentFunction",
+                     "alignmentParHighBoundsY") *
+          1_mm,
+      getEntryDouble("E320MinuitGlobalAlignmentFunction",
+                     "alignmentParHighBoundsZ") *
+          1_mm,
+      getEntryDouble("E320MinuitGlobalAlignmentFunction",
+                     "alignmentParHighBoundsTheta") *
+          1_mrad);
 
-  Acts::EigenStepper<> alignmentStepper(std::move(field));
-  auto alignmentPropagator =
-      Propagator(std::move(alignmentStepper), std::move(alignmentNavigator),
-                 Acts::getDefaultLogger("Propagator", logLevel));
-
-  const auto alignmentFitter =
-      KFFitter(alignmentPropagator,
-               Acts::getDefaultLogger("DetectorKalmanFilter", logLevel));
-
-  // Alignment algorithm
-  GlobalAlignmentAlgorithm::Config alignmentCfg{
-      .fitter = alignmentFitter,
-      .detector = detector.get(),
-      .inputSourceLinks = "SourceLinks",
-      .inputTrackCandidates = "SeedsGuess",
-      .inputTrackParameters = "TrackParametersGuess",
-      .inputMagneticFieldParameters = "MagFieldPars",
-      .outputAlignmentParameters = "AlignmentParameters",
-      .outputTrackParameters = "UpdatedTrackParameters",
-      .maxKFSteps = static_cast<std::size_t>(1e5),
-      .kfExtensions = alignmentExtensions,
-      .kfReferenceSurface = trackingRefSurface.get(),
-      .chi2ONdfCutOff = 1e-16,
-      .deltaChi2ONdfCutOff = {10, 1e-5},
-      .maxAlignmentFitNumIt = 200,
-      .alignmentMask = alignmentMask,
-      .originCov = trackOriginCov,
-      .constraints = alignmentConstraints,
-      .nRefittingIt = nRefittingIt,
-      .annealingScheduler = annealingScheduler,
-      .trackParametersEstimator = trackParametersEstimator};
-
-  alignmentCfg.alignmentParametersSolver.connect<
-      &GlobalAlignmentParametersSolverTest::calculateAlignmentParameters>(
-      &alignmentSolver);
-
-  alignmentCfg.alignmentTransformUpdater
-      .connect<&GlobalAlignmentTransformUpdater::updateAlignmentParameters>(
-          &alignmentUpdater);
+  // Alignment function
+  E320::E320MinuitGlobalAlignmentFunction::Config alignmentFunctionCfg;
+  alignmentFunctionCfg.detector = detector.get();
+  alignmentFunctionCfg.magneticField = field;
+  alignmentFunctionCfg.alignmentStore = aStore;
+  alignmentFunctionCfg.kfExtensions = alignmentExtensions;
+  alignmentFunctionCfg.kfReferenceSurface = trackingRefSurface.get();
+  alignmentFunctionCfg.maxKFSteps =
+      getEntrySizeT("E320MinuitGlobalAlignmentFunction", "maxKFSteps");
+  alignmentFunctionCfg.trackParametersEstimator = trackParametersEstimator;
+  alignmentFunctionCfg.initialPars = initialAlignmentPars;
+  alignmentFunctionCfg.initialParSteps = initialAlignmentParSteps;
+  alignmentFunctionCfg.parLowBounds = alignmentParLowBounds;
+  alignmentFunctionCfg.parHighBounds = alignmentParHighBounds;
+  alignmentFunctionCfg.upLevel =
+      getEntryDouble("E320MinuitGlobalAlignmentFunction", "upLevel");
 
   for (auto& det : detector->detectorElements()) {
     const auto& surface = det->surface();
@@ -474,12 +451,28 @@ int main() {
     if (geoId != 0u &&
         surface.geometryId().sensitive() >= goInst.tcParameters.front().geoId &&
         surface.geometryId().sensitive() <= goInst.tcParameters.back().geoId) {
-      alignmentCfg.alignedDetElements.push_back(det.get());
+      alignmentFunctionCfg.alignedDetElements.push_back(det.get());
     }
   }
 
+  auto alignmentFunction =
+      std::make_shared<E320::E320MinuitGlobalAlignmentFunction>(
+          alignmentFunctionCfg, logLevel);
+
+  // Alignment algorithm
+  AlignmentAlgorithm::Config alignmentCfg;
+  alignmentCfg.inputSourceLinks = "SourceLinks";
+  alignmentCfg.inputTrackCandidates = "SeedsGuess";
+  alignmentCfg.inputTrackParameters = "TrackParametersGuess";
+  alignmentCfg.inputMagneticFieldParameters = "MagFieldPars";
+  alignmentCfg.outputAlignmentParameters = "AlignmentParameters";
+  alignmentCfg.outputTrackParameters = "UpdatedTrackParameters";
+  alignmentCfg.alignmentFunction = alignmentFunction;
+  alignmentCfg.alignmentFitSurfaces = alignmentFitSurfaces;
+  alignmentCfg.initialTrackStateFitSurfaces = initialTrackStateFitSurfaces;
+
   auto alignmentAlgorithm =
-      std::make_shared<GlobalAlignmentAlgorithm>(alignmentCfg, logLevel);
+      std::make_shared<AlignmentAlgorithm>(alignmentCfg, logLevel);
   sequencer.addAlgorithm(alignmentAlgorithm);
 
   // --------------------------------------------------------------
@@ -538,20 +531,6 @@ int main() {
 
   // --------------------------------------------------------------
   // Event write out
-
-  // Seed writer
-  RootSimSeedWriter::Config seedWriterCfg;
-  seedWriterCfg.inputSeeds = "SeedsGuess";
-  seedWriterCfg.inputTrackParameters = "UpdatedTrackParameters";
-  seedWriterCfg.inputSimClusters = "SimClusters";
-  seedWriterCfg.inputSourceLinks = "SourceLinks";
-  seedWriterCfg.treeName = "seeds";
-  seedWriterCfg.filePath =
-      "/home/romanurmanov/work/E320/E320Prototype/E320Prototype_analysis/sim/"
-      "seeds.root";
-
-  sequencer.addWriter(
-      std::make_shared<RootSimSeedWriter>(seedWriterCfg, logLevel));
 
   // Fitted track writer
   RootSimTrackWriter::Config trackWriterCfg;

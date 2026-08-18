@@ -8,17 +8,144 @@
 # FATAL = 5
 logLevel = 2
 
+[MaterialMapJsonConverter]
+# Material mapping options
+processSensitives = true
+processApproaches = true
+processRepresenting = true
+processBoundaries = true
+processVolumes = true
+processDenseVolumes = false
+processNonMaterial = false
+
+[JsonMaterialDecorator]
+# Material map path
+materialPath = """
+/home/romanurmanov/work/E320/E320Prototype/\
+E320Prototype_material/\
+Uniform_DirectZ_Tracker_PDCWindow_256x128_1e6/material.json\
+"""
+
+[Geometry]
+# # Global alignment shifts [mm]
+# globalShiftY = 0
+# globalShiftZ = 0
+# 
+# # Global alignment angles [mrad]
+# globalAngleZ = 0
+
+# Local alignment shifts [um]
+localShiftY10 = 0
+localShiftY12 = 0
+localShiftY14 = 0
+localShiftY16 = 0
+localShiftY18 = 0
+
+localShiftZ10 = 0
+localShiftZ12 = 0
+localShiftZ14 = 0
+localShiftZ16 = 0
+localShiftZ18 = 0
+
+# Local alignment angles [mrad]
+localAngleZ10 = 0
+localAngleZ12 = 0
+localAngleZ14 = 0
+localAngleZ16 = 0
+localAngleZ18 = 0
+
+# Global alignment shifts [mm]
+globalShiftY = 10
+globalShiftZ = -5
+
+# Global alignment angles [mrad]
+globalAngleZ = -2 
+
+# # Local alignment shifts [um]
+# localShiftY10 = 30
+# localShiftY12 = -40
+# localShiftY14 = -40
+# localShiftY16 = 30
+# localShiftY18 = 20
+# 
+# localShiftZ10 = -20
+# localShiftZ12 = 50
+# localShiftZ14 = 40
+# localShiftZ16 = -40
+# localShiftZ18 = -30
+# 
+# # Local alignment angles [mrad]
+# localAngleZ10 = 1
+# localAngleZ12 = -1
+# localAngleZ14 = -2
+# localAngleZ16 = 1
+# localAngleZ18 = 1
+
+# Use material decorator for the 
+# material description
+materialDecorator = false
+
 [Sequencer]
 # Event skip
 skip = 0
 
 # Number of events
-events = 1000000
+events = 100000
 
-[GeometryParameters]
-# Alignment shifts [mm]
-globalShiftY = 10
-globalShiftZ = -5
+# Number of threads
+numThreads = 1
 
-# Alignment angles [mrad]
-globalAngleZ = -2
+# FPE tracking
+trackFpes = false
+
+[E320MagneticFieldParametersProvider]
+inDirMagnets = """
+/home/romanurmanov/work/E320/E320Prototype/\
+E320Prototype_dataInRootFormat/sim/test/\
+magnets\
+"""
+
+treeName = "magnets"
+
+[E320RootSimClusterReader]
+inDirClusters = """
+/home/romanurmanov/work/E320/E320Prototype/\
+E320Prototype_dataInRootFormat/sim/test/\
+clusters\
+"""
+
+# WhiteBoard name of the output source links
+outputSourceLinks = "SourceLinks"
+
+# WhiteBoard name of the output sim clusters
+outputSimClusters = "SimClusters"
+
+# WhiteBoard name of the output detector source link indices
+outputDetSourceLinkIndices = "DetSourceLinkIndices"
+
+# WhiteBoard name of the output constraint source link indices
+outputConstraintSourceLinkIndices = "BpmSourceLinkIndices"
+
+# Input tree name
+treeName = "clusters"
+
+# Convert measurement to global coordinates
+# using surface transforms
+surfaceLocalToGlobal = true
+
+# Propagation direction for extended source link
+# invertion
+backwards = true
+
+[E320TrackParametersEstimator]
+# Number of GX2 fit iterations
+nIterations = 2
+
+# Max GX2 chi2 cut
+maxChi2 = 100000000
+# maxChi2 = 100
+
+# Propagation direction
+# forward = 0
+# backward = 1
+propDirection = 1

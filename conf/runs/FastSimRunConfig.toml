@@ -1,3 +1,88 @@
+[General]
+# Logging level
+# VERBOSE = 0
+# DEBUG = 1
+# INFO = 2
+# WARNING = 3
+# ERROR = 4
+# FATAL = 5
+logLevel = 2
+
+[MaterialMapJsonConverter]
+# Material mapping options
+processSensitives = true
+processApproaches = true
+processRepresenting = true
+processBoundaries = true
+processVolumes = true
+processDenseVolumes = false
+processNonMaterial = false
+
+[JsonMaterialDecorator]
+# Material map path
+materialPath = """
+/home/romanurmanov/work/E320/E320Prototype/\
+E320Prototype_material/\
+Uniform_DirectZ_Tracker_PDCWindow_256x128_1e6/material.json\
+"""
+
+[Geometry]
+# # Global alignment shifts [mm]
+# globalShiftY = 0
+# globalShiftZ = 0
+# 
+# # Global alignment angles [mrad]
+# globalAngleZ = 0
+
+# Local alignment shifts [um]
+localShiftY10 = 0
+localShiftY12 = 0
+localShiftY14 = 0
+localShiftY16 = 0
+localShiftY18 = 0
+
+localShiftZ10 = 0
+localShiftZ12 = 0
+localShiftZ14 = 0
+localShiftZ16 = 0
+localShiftZ18 = 0
+
+# Local alignment angles [mrad]
+localAngleZ10 = 0
+localAngleZ12 = 0
+localAngleZ14 = 0
+localAngleZ16 = 0
+localAngleZ18 = 0
+
+# Global alignment shifts [mm]
+globalShiftY = 10
+globalShiftZ = -5
+
+# Global alignment angles [mrad]
+globalAngleZ = -2 
+
+# # Local alignment shifts [um]
+# localShiftY10 = 30
+# localShiftY12 = -40
+# localShiftY14 = -40
+# localShiftY16 = 30
+# localShiftY18 = 20
+# 
+# localShiftZ10 = -20
+# localShiftZ12 = 50
+# localShiftZ14 = 40
+# localShiftZ16 = -40
+# localShiftZ18 = -30
+# 
+# # Local alignment angles [mrad]
+# localAngleZ10 = 1
+# localAngleZ12 = -1
+# localAngleZ14 = -2
+# localAngleZ16 = 1
+# localAngleZ18 = 1
+
+materialDecorator = false
+
 [Sequencer]
 # Event skip
 skip = 0
@@ -8,34 +93,46 @@ skip = 0
 # skip = 50000
 
 # Number of events
-events = 10000
+events = 100000
 # events = 20000
 # events = 30000
 # events = 40000
 # events = 50000
 # events = 60000
 
-[Geometry]
-# Alignment shifts [mm]
-globalShiftY = 10
-globalShiftZ = -5
-
-# Alignment angles [mrad]
-globalAngleZ = -2 
-
 [GaussianVertexGenerator]
 # Vertex resolution [um]
-vertexResolution = 0
+vertexResolution = 30
 
 [SphericalMomentumGenerator]
 # Absolute momentum range [GeV]
 minAbsoluteMomentum = 3.0
 maxAbsoluteMomentum = 4.0
 
+# minAbsoluteMomentum = 1.5
+# maxAbsoluteMomentum = 2.5
+
 # Phi angle range [mrad]
-minPhi = -1 
+minPhi = -1
 maxPhi = 1
 
 # Theta angle range with respect to M_PI_2 [mrad]
 minTheta = -1
 maxTheta = 1
+
+[TrackHitDigitizer]
+# Gaussian hit smearing resolution
+# for constraint surfaces [um]
+constraintSurfaceResolutionX = 200
+constraintSurfaceResolutionY = 200
+
+# Gaussian hit smearing resolution
+# for tracking detector surfaces [um]
+trackingSurfaceResolutionX = 5
+trackingSurfaceResolutionY = 5
+
+[TrackAngleDigitizer]
+# Gaussian angle smearing resolution
+# for constraint surfaces [mrad]
+constraintSurfaceResolutionPhi = 1
+constraintSurfaceResolutionTheta = 1
