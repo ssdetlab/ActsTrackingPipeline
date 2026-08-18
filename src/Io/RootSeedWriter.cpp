@@ -62,6 +62,11 @@ ProcessCode RootSeedWriter::write(const AlgorithmContext& ctx) {
   const auto& inputTrackParameters = m_inputTrackParameters(ctx);
   const auto& inputSourceLinks = m_inputSourceLinks(ctx);
 
+  ACTS_DEBUG("Received " << inputSeeds.size() << " input seeds");
+  ACTS_DEBUG("Received " << inputTrackParameters.size()
+                         << " input track parameters");
+  ACTS_DEBUG("Received " << inputSourceLinks.size() << " input source links");
+
   if (inputSeeds.empty()) {
     ACTS_DEBUG("Received empty seed vector. Skipping");
     return ProcessCode::SUCCESS;
