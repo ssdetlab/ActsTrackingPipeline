@@ -174,24 +174,24 @@ E320::E320RootSimTrackWriter::E320RootSimTrackWriter(const Config& config,
   m_tree->Branch("boundTrackCovTruth", &m_boundTrackCovTruth, bufSize,
                  splitLvl);
 
-  // Initial guess of the momentum at the IP
+  // Initial guess of the momentum at the origin
   m_tree->Branch("originMomentumGuess", &m_originMomentumGuess, bufSize,
                  splitLvl);
 
-  // Initial guess of the vertex at the IP
+  // Initial guess of the vertex at the origin
   m_tree->Branch("vertexGuess", &m_vertexGuess, bufSize, splitLvl);
 
-  // KF predicted momentum at the IP
+  // KF predicted momentum at the origin
   m_tree->Branch("originMomentumEst", &m_originMomentumEst, bufSize, splitLvl);
 
-  // KF predicted vertex at the IP
+  // KF predicted vertex at the origin
   m_tree->Branch("vertexEst", &m_vertexEst, bufSize, splitLvl);
 
-  // True momentum at the IP
+  // True momentum at the origin
   m_tree->Branch("originMomentumTruth", &m_originMomentumTruth, bufSize,
                  splitLvl);
 
-  // True vertex at the IP
+  // True vertex at the origin
   m_tree->Branch("vertexTruth", &m_vertexTruth, bufSize, splitLvl);
 
   // Chi2 of the track with respect ot the measurement
@@ -490,7 +490,7 @@ ProcessCode E320::E320RootSimTrackWriter::write(const AlgorithmContext& ctx) {
     const auto& originParametersGuess =
         inputTrackParametersGuesses.at(trackIndices.originParametersGuessIndex);
 
-    // Guessed IP momentum
+    // Guessed origin momentum
     const auto& originMomentumGuess = originParametersGuess.momentum();
     double particleMass = originParametersGuess.particleHypothesis().mass();
     m_originMomentumGuess.SetPxPyPzE(
@@ -499,10 +499,10 @@ ProcessCode E320::E320RootSimTrackWriter::write(const AlgorithmContext& ctx) {
         std::hypot(originMomentumGuess.norm(), particleMass));
 
     // Guessed vertex
-    const auto& ipPositionGuess =
+    const auto& originPositionGuess =
         originParametersGuess.position(ctx.geoContext);
-    m_vertexGuess =
-        TVector3(ipPositionGuess.x(), ipPositionGuess.y(), ipPositionGuess.z());
+    m_vertexGuess = TVector3(originPositionGuess.x(), originPositionGuess.y(),
+                             originPositionGuess.z());
 
     // Guessed bound track parameters
     Acts::BoundVector boundTrackParametersGuess =
@@ -528,7 +528,7 @@ ProcessCode E320::E320RootSimTrackWriter::write(const AlgorithmContext& ctx) {
     // ----------------------------------------------
     // Estimated track parameters
 
-    // Estimated IP momentum
+    // Estimated origin momentum
     Acts::Vector3 originMomentumEst = track.momentum();
     m_originMomentumEst.SetPxPyPzE(
         originMomentumEst.x(), originMomentumEst.y(), originMomentumEst.z(),
@@ -1195,7 +1195,7 @@ ProcessCode E320::E320RootSimTrackWriter::write(const AlgorithmContext& ctx) {
       m_parentTrackId = 0;
       m_runId = 0;
     } else {
-      // Get the true IP parameters
+      // Get the true origin parameters
       int refIndex = refTrackId->second.at(0);
       const auto& cluster = inputTruthClusters.at(refIndex);
       auto pivotHit =
@@ -1204,24 +1204,25 @@ ProcessCode E320::E320RootSimTrackWriter::write(const AlgorithmContext& ctx) {
             return (id == refTrackId->first);
           });
 
-      const auto& ipParametersTruth = pivotHit->ipParameters;
+      const auto& originParametersTruth = pivotHit->ipParameters;
 
-      // Truth IP momentum
-      const auto& originMomentumTruth = ipParametersTruth.momentum();
-      double particleMass = ipParametersTruth.particleHypothesis().mass();
+      // Truth origin momentum
+      const auto& originMomentumTruth = originParametersTruth.momentum();
+      double particleMass = originParametersTruth.particleHypothesis().mass();
       m_originMomentumTruth.SetPxPyPzE(
           originMomentumTruth.x(), originMomentumTruth.y(),
           originMomentumTruth.z(),
           std::hypot(originMomentumTruth.norm(), particleMass));
 
       // Truth vertex
-      const auto& ipPositionTruth = ipParametersTruth.position(ctx.geoContext);
-      m_vertexTruth = TVector3(ipPositionTruth.x(), ipPositionTruth.y(),
-                               ipPositionTruth.z());
+      const auto& originPositionTruth =
+          originParametersTruth.position(ctx.geoContext);
+      m_vertexTruth = TVector3(originPositionTruth.x(), originPositionTruth.y(),
+                               originPositionTruth.z());
 
       // Truth bound track parameters
       Acts::BoundVector boundTrackParametersTruth =
-          ipParametersTruth.parameters();
+          originParametersTruth.parameters();
 
       TArrayD boundTrackParsTruthData(Acts::eBoundSize);
       for (std::size_t i = 0; i < Acts::eBoundSize; i++) {
@@ -1232,7 +1233,7 @@ ProcessCode E320::E320RootSimTrackWriter::write(const AlgorithmContext& ctx) {
 
       // Truth bound errors
       Acts::BoundMatrix boundTrackCovTruth =
-          ipParametersTruth.covariance().value();
+          originParametersTruth.covariance().value();
       TArrayD boundTrackCovTruthData(Acts::eBoundSize * Acts::eBoundSize);
       for (std::size_t i = 0; i < Acts::eBoundSize * Acts::eBoundSize; i++) {
         boundTrackCovTruthData[i] = boundTrackCovTruth(i);
