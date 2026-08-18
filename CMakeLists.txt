@@ -30,6 +30,7 @@ find_package(
     ROOT 
     COMPONENTS 
     Core
+    Minuit2
     RIO
     Tree
     Hist
@@ -51,6 +52,11 @@ find_package(
   eudaq_preprocessor
   COMPONENTS
   detector_event
+  REQUIRED
+)
+
+find_package(
+  tomlplusplus
   REQUIRED
 )
 
@@ -106,6 +112,7 @@ target_link_libraries(
     TBB::tbb
     OpenMP::OpenMP_CXX
     ROOT::Core
+    ROOT::Minuit2
     ROOT::RIO
     ROOT::Tree
     ROOT::Physics
@@ -120,6 +127,7 @@ target_link_libraries(
     ActsPluginFpeMonitoring
     ActsAlignment
     eudaq_preprocessor::detector_event
+    tomlplusplus::tomlplusplus
 )
 
 target_include_directories(
