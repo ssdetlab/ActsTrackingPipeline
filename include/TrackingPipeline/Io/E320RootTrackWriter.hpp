@@ -91,66 +91,84 @@ class E320RootTrackWriter : public IWriter {
   TTree *m_tree = nullptr;
 
  protected:
-  /// Event meta data
+  /// EUDAQ trigger ID
   std::size_t m_eudaqTrgN = 0;
+
+  /// EUDAQ DAQ run number
   std::size_t m_eudaqDAQNumber = 0;
+
+  /// EUDAQ DAQ run start timestamp
   std::size_t m_eudaqRunStartTs = 0;
+
+  /// EUDAQ DAQ run end timestamp
   std::size_t m_eudaqRunEndTs = 0;
+
+  /// Event EPICS parity
   std::size_t m_epicsParity = 0;
+
+  /// Event EPICS PID
   std::size_t m_epicsPulseId = 0;
+
+  /// Event EPICS DAQ number
   std::size_t m_epicsDAQNumber = 0;
 
-  /// Measurement hits
-  std::vector<TVector3> m_trackHitsGlobal;
+  /// Magnet configuration as seen by track
+  double m_quad1Grad = 0;
+  double m_quad2Grad = 0;
+  double m_quad3Grad = 0;
+  double m_xCorrectorStrength = 0;
+  double m_dipoleStrength = 0;
+
+  /// Measurement hits in the surface frame
   std::vector<TVector2> m_trackHitsLocal;
+
+  /// Measurement hits in the global frame
+  std::vector<TVector3> m_trackHitsGlobal;
+
+  /// Direction measurements in the track frame
+  std::vector<TVector3> m_onSurfaceTrackDirection;
 
   /// Covariances of the track hits
   std::vector<TMatrixD> m_trackHitCovs;
 
+  /// Covariances of the track agnles
+  std::vector<TMatrixD> m_trackAngleCovs;
+
   /// Geometry ids of the track hits
   std::vector<std::size_t> m_geometryIds;
 
-  /// KF predicted track hits
-  std::vector<TVector3> m_predictedTrackHitsGlobal;
-  std::vector<TVector3> m_filteredTrackHitsGlobal;
-  std::vector<TVector3> m_smoothedTrackHitsGlobal;
-
+  /// KF predicted track hits in the surface frame
   std::vector<TVector2> m_predictedTrackHitsLocal;
   std::vector<TVector2> m_filteredTrackHitsLocal;
   std::vector<TVector2> m_smoothedTrackHitsLocal;
 
+  /// KF predicted track hits in the global frame
+  std::vector<TVector3> m_predictedTrackHitsGlobal;
+  std::vector<TVector3> m_filteredTrackHitsGlobal;
+  std::vector<TVector3> m_smoothedTrackHitsGlobal;
+
+  /// KF predicted on surface momenta in the track frame
+  std::vector<TLorentzVector> m_predictedOnSurfaceMomentum;
+  std::vector<TLorentzVector> m_filteredOnSurfaceMomentum;
+  std::vector<TLorentzVector> m_smoothedOnSurfaceMomentum;
+
   /// KF residuals with respect to the measurements
-  std::vector<TVector2> m_predictedResiduals;
-  std::vector<TVector2> m_filteredResiduals;
-  std::vector<TVector2> m_smoothedResiduals;
+  std::vector<TVector2> m_predictedHitResiduals;
+  std::vector<TVector2> m_filteredHitResiduals;
+  std::vector<TVector2> m_smoothedHitResiduals;
+
+  std::vector<TVector2> m_predictedAngleResiduals;
+  std::vector<TVector2> m_filteredAngleResiduals;
+  std::vector<TVector2> m_smoothedAngleResiduals;
 
   /// KF pulls with respect to the measurements
-  std::vector<TVector2> m_predictedPulls;
-  std::vector<TVector2> m_filteredPulls;
-  std::vector<TVector2> m_smoothedPulls;
+  std::vector<TVector2> m_predictedHitPulls;
+  std::vector<TVector2> m_filteredHitPulls;
+  std::vector<TVector2> m_smoothedHitPulls;
 
-  /// Chi2 of the track
-  /// with respect ot the
-  /// measurement
-  double m_chi2Predicted = 0;
-  double m_chi2Filtered = 0;
-  double m_chi2Smoothed = 0;
-
-  /// Number of degrees of freedom
-  /// of the track
-  std::size_t m_ndf = 0;
-
-  /// TrackId
-  std::size_t m_trackId = 0;
-
-  /// EventId
-  std::size_t m_eventId = 0;
-
-  /// PDG ID
-  int m_pdgId = 0;
-
-  /// Charge
-  int m_charge = 0;
+  std::vector<TVector2> m_predictedAnglePulls;
+  std::vector<TVector2> m_filteredAnglePulls;
+  std::vector<TVector2> m_smoothedAnglePulls;
 
   /// Guessed bound track parameters
   TVectorD m_boundTrackParametersGuess;
@@ -171,6 +189,29 @@ class E320RootTrackWriter : public IWriter {
 
   /// KF predicted vertex at the IP
   TVector3 m_vertexEst;
+
+  /// Chi2 of the track
+  /// with respect ot the
+  /// measurement
+  double m_chi2Predicted = 0;
+  double m_chi2Filtered = 0;
+  double m_chi2Smoothed = 0;
+
+  /// Number of degrees of freedom
+  /// of the track
+  std::size_t m_ndf = 0;
+
+  /// Track ID
+  std::size_t m_trackId = 0;
+
+  /// Event ID
+  std::size_t m_eventId = 0;
+
+  /// PDG ID
+  int m_pdgId = 0;
+
+  /// Charge
+  int m_charge = 0;
 
   /// Mutex to protect the tree filling
   std::mutex m_mutex;
