@@ -33,6 +33,11 @@ bpm1CenterPrimary = 4944   # 3218
 bpm2CenterPrimary = 7168   # 3265
 bpm3CenterPrimary = 9393   # 3315
 
+# bpm0CenterPrimary = 12515.8  # 3156
+# bpm1CenterPrimary = 12545.8  # 3218
+# bpm2CenterPrimary = 12575.8  # 3265
+# bpm3CenterPrimary = 12605.8  # 3315
+
 bpm0CenterLong = 0.056 
 bpm1CenterLong = -0.055
 bpm2CenterLong = -0.164
@@ -43,6 +48,16 @@ bpm1CenterShort = -3.5
 bpm2CenterShort = -2.642
 bpm3CenterShort = -3.546
 
+# bpm0CenterLong = 0
+# bpm1CenterLong = 0
+# bpm2CenterLong = 0
+# bpm3CenterLong = 0
+# 
+# bpm0CenterShort = 0
+# bpm1CenterShort = 0
+# bpm2CenterShort = 0
+# bpm3CenterShort = 0
+ 
 # Surface geometry identifier
 bpm0GeometryId = 30
 bpm1GeometryId = 31
@@ -97,7 +112,7 @@ pdcWindowMaterialBinningX = 1
 pdcWindowMaterialBinningY = 1
 
 # Surface placement [mm]
-pdcWindowCenterPrimary = 16545
+pdcWindowCenterPrimary = 16549.6
 pdcWindowCenterLong = 118
 pdcWindowCenterShort = 0
 
@@ -117,7 +132,7 @@ pixelHalfX = 14.62
 pixelHalfY = 13.44
 
 # Chip pixel thickness [um]
-pixelThickness = 25
+pixelThickness = 50
 
 # Volume spacing around the chips [mm]
 chipVolumeHalfSpacing = 1
