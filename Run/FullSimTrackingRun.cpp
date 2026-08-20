@@ -349,7 +349,6 @@ int main() {
   readerCfg.surfaceLocalToGlobal =
       getEntryBool("E320RootSimClusterReader", "surfaceLocalToGlobal");
   readerCfg.backwards = getEntryBool("E320RootSimClusterReader", "backwards");
-
   readerCfg.minGeoId = goInst.tcParameters.front().geoId;
   // readerCfg.minGeoId = goInst.ipSurfaceParameters.geoId;
   readerCfg.maxGeoId = goInst.tcParameters.back().geoId;
@@ -423,6 +422,16 @@ int main() {
   htSeederCfg.shortIdx = goInst.shortIdx;
 
   HoughTransformSeeder::Options htSeederOpt;
+  htSeederOpt.nCellsThetaShort =
+      getEntrySizeT("HoughTransformSeeder", "nCellsThetaShort");
+  htSeederOpt.nCellsRhoShort =
+      getEntrySizeT("HoughTransformSeeder", "nCellsRhoShort");
+  htSeederOpt.nCellsThetaLong =
+      getEntrySizeT("HoughTransformSeeder", "nCellsThetaLong");
+  htSeederOpt.nCellsRhoLong =
+      getEntrySizeT("HoughTransformSeeder", "nCellsRhoLong");
+  htSeederOpt.minXCount = getEntrySizeT("HoughTransformSeeder", "minXCount");
+
   htSeederOpt.boundBoxCenterPrimary = goInst.tcCenterPrimary;
   htSeederOpt.boundBoxCenterLong = goInst.tcCenterLong;
   htSeederOpt.boundBoxCenterShort = goInst.tcCenterShort;
@@ -431,28 +440,25 @@ int main() {
   htSeederOpt.boundBoxHalfLong = goInst.tcHalfLong;
   htSeederOpt.boundBoxHalfShort = goInst.tcHalfShort;
 
-  htSeederOpt.nCellsThetaShort = 500;
-  htSeederOpt.nCellsRhoShort = 500;
-
-  htSeederOpt.nCellsThetaLong = 500;
-  htSeederOpt.nCellsRhoLong = 500;
-
   htSeederOpt.surfaceMap = surfaceMap;
-
-  htSeederOpt.minXCount = 5;
 
   // Seeding algorithm
   E320::E320SeedingAlgorithm::Config seedingAlgoCfg;
+  seedingAlgoCfg.inputSourceLinks =
+      getEntryStr("E320SeedingAlgorithm", "inputSourceLinks");
+  seedingAlgoCfg.inputDetSourceLinkIndices =
+      getEntryStr("E320SeedingAlgorithm", "inputDetSourceLinkIndices");
+  seedingAlgoCfg.inputBpmSourceLinkIndices =
+      getEntryStr("E320SeedingAlgorithm", "inputBpmSourceLinkIndices");
+  seedingAlgoCfg.outputSeeds =
+      getEntryStr("E320SeedingAlgorithm", "outputSeeds");
+  seedingAlgoCfg.outputTrackParameters =
+      getEntryStr("E320SeedingAlgorithm", "outputTrackParameters");
+  seedingAlgoCfg.minLayers = getEntrySizeT("E320SeedingAlgorithm", "minLayers");
+  seedingAlgoCfg.maxLayers = getEntrySizeT("E320SeedingAlgorithm", "maxLayers");
   seedingAlgoCfg.htSeeder = std::make_shared<HoughTransformSeeder>(htSeederCfg);
   seedingAlgoCfg.htOptions = htSeederOpt;
-  seedingAlgoCfg.inputSourceLinks = "SourceLinks";
-  seedingAlgoCfg.inputDetSourceLinkIndices = "DetSourceLinkIndices";
-  seedingAlgoCfg.inputBpmSourceLinkIndices = "BpmSourceLinkIndices";
-  seedingAlgoCfg.outputSeeds = "Seeds";
-  seedingAlgoCfg.outputTrackParameters = "TrackParameters";
   seedingAlgoCfg.trackParametersEstimator = trackParametersEstimator;
-  seedingAlgoCfg.minLayers = 5;
-  seedingAlgoCfg.maxLayers = 5;
 
   sequencer.addAlgorithm(
       std::make_shared<E320::E320SeedingAlgorithm>(seedingAlgoCfg, logLevel));
@@ -499,13 +505,17 @@ int main() {
 
   // Add the track fitting algorithm to the sequencer
   KFTrackFittingAlgorithm::Config fitterCfg{
-      .inputTrackCandidates = "Seeds",
-      .inputTrackParameters = "TrackParameters",
-      .inputSourceLinks = "SourceLinks",
-      .outputTrackContainer = "TrackContainer",
-      .outputTracks = "Tracks",
+      .inputTrackCandidates =
+          getEntryStr("KFTrackFittingAlgorithm", "inputTrackCandidates"),
+      .inputTrackParameters =
+          getEntryStr("KFTrackFittingAlgorithm", "inputTrackParameters"),
+      .inputSourceLinks =
+          getEntryStr("KFTrackFittingAlgorithm", "inputSourceLinks"),
+      .outputTrackContainer =
+          getEntryStr("KFTrackFittingAlgorithm", "outputTrackContainer"),
+      .outputTracks = getEntryStr("KFTrackFittingAlgorithm", "outputTracks"),
       .fitter = fitter,
-      .maxSteps = static_cast<size_t>(1e5),
+      .maxSteps = getEntrySizeT("KFTrackFittingAlgorithm", "maxSteps"),
       .kfExtensions = kfExtensions,
       .referenceSurface = trackingRefSurface.get()};
 
@@ -521,25 +531,26 @@ int main() {
       .connect<&MixedSourceLinkSurfaceAccessor::operator()>(
           &mixedSurfaceAccessor);
   trackWriterCfg.referenceSurface = trackingRefSurface.get();
-  trackWriterCfg.inputTrackContainer = "TrackContainer";
-  trackWriterCfg.inputTracks = "Tracks";
-  trackWriterCfg.inputTrackParametersGuesses = "TrackParameters";
-  trackWriterCfg.inputSimClusters = "SimClusters";
-  trackWriterCfg.treeName = "fitted-tracks";
-  trackWriterCfg.filePath =
-      "/home/romanurmanov/work/E320/E320Prototype/E320Prototype_analysis/sim/"
-      "fitted-tracks.root";
-  trackWriterCfg.applyPhiCorrection = true;
+  trackWriterCfg.inputTrackContainer =
+      getEntryStr("E320RootSimTrackWriter", "inputTrackContainer");
+  trackWriterCfg.inputTracks =
+      getEntryStr("E320RootSimTrackWriter", "inputTracks");
+  trackWriterCfg.inputTrackParametersGuesses =
+      getEntryStr("E320RootSimTrackWriter", "inputTrackParametersGuesses");
+  trackWriterCfg.inputSimClusters =
+      getEntryStr("E320RootSimTrackWriter", "inputSimClusters");
+  trackWriterCfg.treeName = getEntryStr("E320RootSimTrackWriter", "treeName");
+  trackWriterCfg.filePath = getEntryStr("E320RootSimTrackWriter", "filePath");
 
   sequencer.addWriter(
       std::make_shared<E320::E320RootSimTrackWriter>(trackWriterCfg, logLevel));
 
   // Magnetic field writer
-  auto magFieldWriterCfg = E320::E320MagneticFieldWriter::Config();
-  magFieldWriterCfg.treeName = "magnets";
+  E320::E320MagneticFieldWriter::Config magFieldWriterCfg;
+  magFieldWriterCfg.treeName =
+      getEntryStr("E320MagneticFieldWriter", "treeName");
   magFieldWriterCfg.filePath =
-      "/home/romanurmanov/work/E320/E320Prototype/E320Prototype_analysis/sim/"
-      "magnets.root";
+      getEntryStr("E320MagneticFieldWriter", "filePath");
 
   sequencer.addWriter(std::make_shared<E320::E320MagneticFieldWriter>(
       magFieldWriterCfg, logLevel));

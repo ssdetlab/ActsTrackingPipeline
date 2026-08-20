@@ -149,3 +149,99 @@ maxChi2 = 100000000
 # forward = 0
 # backward = 1
 propDirection = 1
+
+[HoughTransformSeeder]
+# Number of HT bins along theta short axis
+nCellsThetaShort = 500
+
+# Number of HT bins along rho short axis
+nCellsRhoShort = 500
+# nCellsRhoShort = 2000
+
+# Number of HT bins along theta long axis
+nCellsThetaLong = 500
+
+# Number of HT bins along rho long axis
+nCellsRhoLong = 500
+# nCellsRhoLong = 2000
+
+# Cut on the minimum number of intersections
+# in a HT cell
+minXCount = 5
+
+[E320SeedingAlgorithm]
+# WhiteBoard name of the input source links
+inputSourceLinks = "SourceLinks"
+
+# WhiteBoard name of the input detector source link indices
+inputDetSourceLinkIndices = "DetSourceLinkIndices"
+
+# WhiteBoard name of the input BPM source link indices
+inputBpmSourceLinkIndices = "BpmSourceLinkIndices"
+
+# WhiteBoard name of the output seeds
+outputSeeds = "Seeds"
+
+# WhiteBoard name of the output track parameters
+outputTrackParameters = "TrackParameters"
+
+# Cut on the minimum number of tracking layers
+# in a seed
+minLayers = 5
+
+# Cut on the maximum number of tracking layers
+# in a seed
+maxLayers = 5
+
+[KFTrackFittingAlgorithm]
+# WhiteBoard name of the input track candidates
+inputTrackCandidates = "Seeds"
+
+# WhiteBoard name of the input track parameters
+inputTrackParameters = "TrackParameters"
+
+# WhiteBoard name of the input source links
+inputSourceLinks = "SourceLinks"
+
+# WhiteBoard name of the output track container
+outputTrackContainer = "TrackContainer"
+
+# WhiteBoard name of the output tracks
+outputTracks = "Tracks"
+
+# Cut on the maximum number of KF steps
+maxSteps = 100000
+
+[E320RootSimTrackWriter]
+# WhiteBoard name of the input track container
+inputTrackContainer = "TrackContainer"
+
+# WhiteBoard name of the input tracks
+inputTracks = "Tracks"
+
+# WhiteBoard name of the input track parameters
+inputTrackParametersGuesses = "TrackParameters"
+
+# WhiteBoard name of the input event meta data
+inputSimClusters = "SimClusters"
+
+# Output tree name
+treeName = "fitted-tracks"
+
+# Output file path
+filePath = """
+/home/romanurmanov/work/E320/E320Prototype/E320Prototype_analysis/\
+sim/\
+fitted-tracks.root\
+"""
+
+[E320MagneticFieldWriter]
+# Output tree name
+treeName = "magnets"
+
+# Output file path
+filePath = """
+/home/romanurmanov/work/E320/E320Prototype/E320Prototype_analysis/\
+sim/\
+magnets.root\
+"""
