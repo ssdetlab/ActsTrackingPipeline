@@ -56,7 +56,7 @@ E320RootSimClusterReader::E320RootSimClusterReader(const Config& config,
   // Add the first entry
   m_tree->GetEntry(0);
   m_eventMap.emplace_back(m_eventId, 0, 0);
-  for (std::size_t i = 1; i < nEntries; ++i) {
+  for (std::size_t i = 0; i < nEntries; ++i) {
     m_tree->GetEntry(i);
     if (m_eventId != std::get<0>(m_eventMap.back())) {
       std::get<2>(m_eventMap.back()) = i;
