@@ -37,7 +37,6 @@
 #include "TrackingPipeline/Simulation/GaussianVertexGenerator.hpp"
 #include "TrackingPipeline/Simulation/MeasurementsCreator.hpp"
 #include "TrackingPipeline/Simulation/MeasurementsEmbeddingAlgorithm.hpp"
-#include "TrackingPipeline/Simulation/RootVertexMomentumReaderGenerator.hpp"
 #include "TrackingPipeline/Simulation/SimpleDigitizer.hpp"
 #include "TrackingPipeline/Simulation/SimpleSourceLinkCreator.hpp"
 #include "TrackingPipeline/Simulation/SphericalMomentumGenerator.hpp"
@@ -257,9 +256,10 @@ int main() {
 
   // Setup the sequencer
   Sequencer::Config seqCfg;
-  seqCfg.numThreads = 1;
   seqCfg.skip = getEntrySizeT("Sequencer", "skip");
-  seqCfg.trackFpes = false;
+  seqCfg.events = getEntrySizeT("Sequencer", "events");
+  seqCfg.numThreads = getEntrySizeT("Sequencer", "numThreads");
+  seqCfg.trackFpes = getEntryBool("Sequencer", "trackFpes");
   seqCfg.logLevel = logLevel;
   Sequencer sequencer(seqCfg);
 
@@ -269,10 +269,13 @@ int main() {
   // --------------------------------------------------------------
   // Add dummy reader
   DummyReader::Config dummyReaderCfg;
-  dummyReaderCfg.outputSourceLinks = "SimMeasurements";
-  dummyReaderCfg.outputSimClusters = "SimClusters";
-  dummyReaderCfg.outputSourceLinkIndices = "SimMeasurementIndices";
-  dummyReaderCfg.nEvents = getEntrySizeT("Sequencer", "events");
+  dummyReaderCfg.outputSourceLinks =
+      getEntryStr("DummyReader", "outputSourceLinks");
+  dummyReaderCfg.outputSimClusters =
+      getEntryStr("DummyReader", "outputSimClusters");
+  dummyReaderCfg.outputSourceLinkIndices =
+      getEntryStr("DummyReader", "outputSourceLinkIndices");
+  dummyReaderCfg.nEvents = getEntrySizeT("DummyReader", "nEvents");
 
   sequencer.addReader(std::make_shared<DummyReader>(dummyReaderCfg));
 
@@ -360,25 +363,25 @@ int main() {
 
   auto momGen = std::make_shared<SphericalMomentumGenerator>(momGenCfg);
 
-  // Beam generator
-  ConvergingBeamGenerator::Config beamGenCfg;
-  beamGenCfg.primaryIdx = goInst.primaryIdx;
-  beamGenCfg.longIdx = goInst.longIdx;
-  beamGenCfg.shortIdx = goInst.shortIdx;
-  beamGenCfg.referencePositionPrimary = goInst.bpm0CenterPrimary - 5_mm;
-  beamGenCfg.waistPosition =
-      Acts::Vector3(goInst.ipSurfaceCenterPrimary - 0.1_mm, 0, 0_mm);
-  beamGenCfg.waistSigmaLong = 30_um;
-  beamGenCfg.waistSigmaShort = 30_um;
-  beamGenCfg.waistMeanThetaLong = 0_rad;
-  beamGenCfg.waistMeanThetaShort = 0_rad;
-  beamGenCfg.waistSigmaThetaLong = 1e-3_rad;
-  beamGenCfg.waistSigmaThetaShort = 1e-3_rad;
-  // beamGenCfg.beamEnergyMin = 3.0_GeV;
-  // beamGenCfg.beamEnergyMax = 4.0_GeV;
-  beamGenCfg.beamEnergyMin = 1.5_GeV;
-  beamGenCfg.beamEnergyMax = 2.5_GeV;
-  auto beamGen = std::make_shared<ConvergingBeamGenerator>(beamGenCfg);
+  // // Beam generator
+  // ConvergingBeamGenerator::Config beamGenCfg;
+  // beamGenCfg.primaryIdx = goInst.primaryIdx;
+  // beamGenCfg.longIdx = goInst.longIdx;
+  // beamGenCfg.shortIdx = goInst.shortIdx;
+  // beamGenCfg.referencePositionPrimary = goInst.bpm0CenterPrimary - 5_mm;
+  // beamGenCfg.waistPosition =
+  //     Acts::Vector3(goInst.ipSurfaceCenterPrimary - 0.1_mm, 0, 0_mm);
+  // beamGenCfg.waistSigmaLong = 30_um;
+  // beamGenCfg.waistSigmaShort = 30_um;
+  // beamGenCfg.waistMeanThetaLong = 0_rad;
+  // beamGenCfg.waistMeanThetaShort = 0_rad;
+  // beamGenCfg.waistSigmaThetaLong = 1e-3_rad;
+  // beamGenCfg.waistSigmaThetaShort = 1e-3_rad;
+  // // beamGenCfg.beamEnergyMin = 3.0_GeV;
+  // // beamGenCfg.beamEnergyMax = 4.0_GeV;
+  // beamGenCfg.beamEnergyMin = 1.5_GeV;
+  // beamGenCfg.beamEnergyMax = 2.5_GeV;
+  // auto beamGen = std::make_shared<ConvergingBeamGenerator>(beamGenCfg);
 
   // // Beam positrons generator
   // RootVertexMomentumReaderGenerator::Config beamGenCfg;
@@ -408,8 +411,6 @@ int main() {
 
   // Measurement creator
   MeasurementsCreator::Config measCreatorCfg{
-      // .vertexGenerator = beamGen,
-      // .momentumGenerator = beamGen,
       .vertexGenerator = vertexGen,
       .momentumGenerator = momGen,
       .referenceSurface = refSurface.get(),
@@ -451,16 +452,23 @@ int main() {
       measCreatorPropagator, measCreatorCfg);
 
   MeasurementsEmbeddingAlgorithm::Config measCreatorAlgoCfg;
-  measCreatorAlgoCfg.inputSourceLinks = "SimMeasurements";
-  measCreatorAlgoCfg.inputSimClusters = "SimClusters";
-  measCreatorAlgoCfg.inputSourceLinkIndices = "SimMeasurementIndices";
-  measCreatorAlgoCfg.outputSourceLinks = "Measurements";
-  measCreatorAlgoCfg.outputSimClusters = "Clusters";
-  measCreatorAlgoCfg.outputSourceLinkIndices = "MeasurementIndices";
+  measCreatorAlgoCfg.inputSourceLinks =
+      getEntryStr("SigMeasurementsEmbeddingAlgorithm", "inputSourceLinks");
+  measCreatorAlgoCfg.inputSimClusters =
+      getEntryStr("SigMeasurementsEmbeddingAlgorithm", "inputSimClusters");
+  measCreatorAlgoCfg.inputSourceLinkIndices = getEntryStr(
+      "SigMeasurementsEmbeddingAlgorithm", "inputSourceLinkIndices");
+  measCreatorAlgoCfg.outputSourceLinks =
+      getEntryStr("SigMeasurementsEmbeddingAlgorithm", "outputSourceLinks");
+  measCreatorAlgoCfg.outputSimClusters =
+      getEntryStr("SigMeasurementsEmbeddingAlgorithm", "outputSimClusters");
+  measCreatorAlgoCfg.outputSourceLinkIndices = getEntryStr(
+      "SigMeasurementsEmbeddingAlgorithm", "outputSourceLinkIndices");
+  measCreatorAlgoCfg.nMeasurements =
+      getEntrySizeT("SigMeasurementsEmbeddingAlgorithm", "nMeasurements");
   measCreatorAlgoCfg.measurementGenerator = measCreator;
   measCreatorAlgoCfg.randomNumberSvc =
       std::make_shared<RandomNumbers>(RandomNumbers::Config());
-  measCreatorAlgoCfg.nMeasurements = 1;
 
   sequencer.addAlgorithm(std::make_shared<MeasurementsEmbeddingAlgorithm>(
       measCreatorAlgoCfg, logLevel));
@@ -470,23 +478,33 @@ int main() {
 
   // Background creator
   UniformBackgroundCreator::Config bkgCreatorCfg;
-  bkgCreatorCfg.resolution = {5_um, 5_um};
-  bkgCreatorCfg.nMeasurements = 700;
+  bkgCreatorCfg.resolution = {
+      getEntryDouble("UniformBackgroundCreator", "resolutionX") * 1_um,
+      getEntryDouble("UniformBackgroundCreator", "resolutionY") * 1_um};
+  bkgCreatorCfg.nMeasurementsPerSurface =
+      getEntrySizeT("UniformBackgroundCreator", "nMeasurementsPerSurface");
   bkgCreatorCfg.surfaces = detSurfaces;
 
   auto bkgCreator = std::make_shared<UniformBackgroundCreator>(bkgCreatorCfg);
 
   MeasurementsEmbeddingAlgorithm::Config bkgCreatorAlgoCfg;
-  bkgCreatorAlgoCfg.inputSourceLinks = "Measurements1";
-  bkgCreatorAlgoCfg.inputSimClusters = "Clusters1";
-  bkgCreatorAlgoCfg.inputSourceLinkIndices = "MeasurementIndices1";
-  bkgCreatorAlgoCfg.outputSourceLinks = "Measurements";
-  bkgCreatorAlgoCfg.outputSimClusters = "Clusters";
-  bkgCreatorAlgoCfg.outputSourceLinkIndices = "MeasurementIndices";
+  bkgCreatorAlgoCfg.inputSourceLinks =
+      getEntryStr("BkgMeasurementsEmbeddingAlgorithm", "inputSourceLinks");
+  bkgCreatorAlgoCfg.inputSimClusters =
+      getEntryStr("BkgMeasurementsEmbeddingAlgorithm", "inputSimClusters");
+  bkgCreatorAlgoCfg.inputSourceLinkIndices = getEntryStr(
+      "BkgMeasurementsEmbeddingAlgorithm", "inputSourceLinkIndices");
+  bkgCreatorAlgoCfg.outputSourceLinks =
+      getEntryStr("BkgMeasurementsEmbeddingAlgorithm", "outputSourceLinks");
+  bkgCreatorAlgoCfg.outputSimClusters =
+      getEntryStr("BkgMeasurementsEmbeddingAlgorithm", "outputSimClusters");
+  bkgCreatorAlgoCfg.outputSourceLinkIndices = getEntryStr(
+      "BkgMeasurementsEmbeddingAlgorithm", "outputSourceLinkIndices");
+  bkgCreatorAlgoCfg.nMeasurements =
+      getEntrySizeT("BkgMeasurementsEmbeddingAlgorithm", "nMeasurements");
   bkgCreatorAlgoCfg.measurementGenerator = bkgCreator;
   bkgCreatorAlgoCfg.randomNumberSvc =
       std::make_shared<RandomNumbers>(RandomNumbers::Config());
-  bkgCreatorAlgoCfg.nMeasurements = 1;
 
   // sequencer.addAlgorithm(std::make_shared<MeasurementsEmbeddingAlgorithm>(
   //     bkgCreatorAlgoCfg, logLevel));
@@ -495,24 +513,23 @@ int main() {
   // Event write out
 
   // Sim cluster writer
-  auto clusterWriterCfgSig = E320::E320RootSimClusterWriter::Config();
-  clusterWriterCfgSig.inputClusters = "Clusters";
-  clusterWriterCfgSig.treeName = "clusters";
+  E320::E320RootSimClusterWriter::Config clusterWriterCfgSig;
+  clusterWriterCfgSig.inputClusters =
+      getEntryStr("E320RootSimClusterWriter", "inputClusters");
+  clusterWriterCfgSig.treeName =
+      getEntryStr("E320RootSimClusterWriter", "treeName");
   clusterWriterCfgSig.filePath =
-      "/home/romanurmanov/work/E320/E320Prototype/"
-      "E320Prototype_dataInRootFormat/sim/"
-      "clusters.root";
+      getEntryStr("E320RootSimClusterWriter", "filePath");
 
   sequencer.addWriter(std::make_shared<E320::E320RootSimClusterWriter>(
       clusterWriterCfgSig, logLevel));
 
   // Magnetic field writer
-  auto magFieldWriterCfg = E320::E320MagneticFieldWriter::Config();
-  magFieldWriterCfg.treeName = "magnets";
+  E320::E320MagneticFieldWriter::Config magFieldWriterCfg;
+  magFieldWriterCfg.treeName =
+      getEntryStr("E320MagneticFieldWriter", "treeName");
   magFieldWriterCfg.filePath =
-      "/home/romanurmanov/work/E320/E320Prototype/"
-      "E320Prototype_dataInRootFormat/sim/"
-      "magnets.root";
+      getEntryStr("E320MagneticFieldWriter", "filePath");
 
   sequencer.addWriter(std::make_shared<E320::E320MagneticFieldWriter>(
       magFieldWriterCfg, logLevel));
