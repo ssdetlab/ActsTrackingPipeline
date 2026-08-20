@@ -29,7 +29,7 @@ int main() {
   const std::string pathToCfg =
       "/home/romanurmanov/work/TrackingPipeline/ActsTrackingPipeline/conf/"
       "runs/"
-      "MaterialMappingRun.toml";
+      "MaterialMappingRunConfig.toml";
   auto runCfg = toml::parse_file(pathToCfg);
 
   auto getEntryDouble = [&runCfg](const std::string& section,
