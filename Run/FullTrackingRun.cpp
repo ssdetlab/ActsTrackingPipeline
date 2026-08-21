@@ -139,13 +139,15 @@ int main() {
   // Initialize alignment store
   auto aStore = detail::makeAlignmentStore(gctx, detector.get());
 
-  // AlignmentParametersProvider::Config alignmentProviderCfg;
-  // alignmentProviderCfg.filePath =
-  //     "/home/romanurmanov/work/E320/E320Prototype/E320Prototype_analysis/data/"
-  //     "alignment/local_2026_data/big_shifts/aligned/alignment-parameters.root";
-  // alignmentProviderCfg.treeName = "alignment-parameters";
-  // AlignmentParametersProvider alignmentProvider(alignmentProviderCfg);
-  // aStore = alignmentProvider.getAlignmentStore();
+  if (getEntryBool("Geometry", "alignmentProvider")) {
+    AlignmentParametersProvider::Config alignmentProviderCfg;
+    alignmentProviderCfg.treeName =
+        getEntryStr("AlignmentParametersProvider", "treeName");
+    alignmentProviderCfg.filePath =
+        getEntryStr("AlignmentParametersProvider", "filePath");
+    AlignmentParametersProvider alignmentProvider(alignmentProviderCfg);
+    aStore = alignmentProvider.getAlignmentStore();
+  }
 
   AlignmentContext alignCtx(aStore);
   Acts::GeometryContext testCtx{alignCtx};

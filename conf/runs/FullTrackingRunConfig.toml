@@ -26,10 +26,24 @@ E320Prototype_material/\
 Uniform_DirectZ_Tracker_PDCWindow_256x128_1e6/material.json\
 """
 
+[AlignmentParametersProvider]
+# Input tree name
+treeName = "alignment-parameters"
+
+# Input file path
+filePath = """
+/home/romanurmanov/work/E320/E320Prototype/E320Prototype_analysis/data/\
+alignment/local_2026_data/it1/alignment-parameters.root\
+"""
+
 [Geometry]
 # Use material decorator for the 
 # material description
 materialDecorator = true
+
+# Use alignment provider for the 
+# transform initialization
+alignmentProvider = true
 
 [Sequencer]
 # Event skip
@@ -45,15 +59,18 @@ numThreads = 1
 trackFpes = false
 
 [E320MagneticFieldParametersProvider]
+# Directory with the magnet root files
 inDirMagnets = """
 /home/romanurmanov/work/E320/E320Prototype/\
 E320Prototype_dataInRootFormat/local_alignment_data/processed/\
 sig\
 """
 
+# Input tree name
 treeName = "magnets"
 
 [E320RootDataReader]
+# Directory with the data root files
 inDirClusters = """
 /home/romanurmanov/work/E320/E320Prototype/\
 E320Prototype_dataInRootFormat/local_alignment_data/processed/\
