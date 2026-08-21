@@ -77,7 +77,7 @@ AlignmentAlgorithm::AlignmentResult ActsAlignmentFunction::operator()(
   AlignmentAlgorithm::AlignmentResult alignmentResult;
   alignmentResult.deltaAlignmentParameters =
       actsAlignmentResult.deltaAlignmentParameters;
-  alignmentResult.alignedParameters = alignmentResult.alignedParameters;
+  alignmentResult.alignedParameters = actsAlignmentResult.alignedParameters;
   alignmentResult.alignmentCovariance = actsAlignmentResult.alignmentCovariance;
   alignmentResult.averageChi2ONdf = actsAlignmentResult.averageChi2ONdf;
   alignmentResult.deltaChi2 = actsAlignmentResult.deltaChi2;
