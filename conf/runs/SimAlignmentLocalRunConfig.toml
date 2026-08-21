@@ -1,0 +1,235 @@
+[General]
+# Logging level
+# VERBOSE = 0
+# DEBUG = 1
+# INFO = 2
+# WARNING = 3
+# ERROR = 4
+# FATAL = 5
+logLevel = 2
+
+[MaterialMapJsonConverter]
+# Material mapping options
+processSensitives = true
+processApproaches = true
+processRepresenting = true
+processBoundaries = true
+processVolumes = true
+processDenseVolumes = false
+processNonMaterial = false
+
+[JsonMaterialDecorator]
+# Material map path
+materialPath = """
+/home/romanurmanov/work/E320/E320Prototype/\
+E320Prototype_material/\
+Uniform_DirectZ_Tracker_PDCWindow_256x128_1e6/material.json\
+"""
+
+[Geometry]
+# # Global alignment shifts [mm]
+# globalShiftY = 0
+# globalShiftZ = 0
+# 
+# # Global alignment angles [mrad]
+# globalAngleZ = 0
+
+# Local alignment shifts [um]
+localShiftY10 = 0
+localShiftY12 = 0
+localShiftY14 = 0
+localShiftY16 = 0
+localShiftY18 = 0
+
+localShiftZ10 = 0
+localShiftZ12 = 0
+localShiftZ14 = 0
+localShiftZ16 = 0
+localShiftZ18 = 0
+
+# Local alignment angles [mrad]
+localAngleZ10 = 0
+localAngleZ12 = 0
+localAngleZ14 = 0
+localAngleZ16 = 0
+localAngleZ18 = 0
+
+# Global alignment shifts [mm]
+globalShiftY = 10
+globalShiftZ = -5
+
+# Global alignment angles [mrad]
+globalAngleZ = -2 
+
+# # Local alignment shifts [um]
+# localShiftY10 = 30
+# localShiftY12 = -40
+# localShiftY14 = -40
+# localShiftY16 = 30
+# localShiftY18 = 20
+# 
+# localShiftZ10 = -20
+# localShiftZ12 = 50
+# localShiftZ14 = 40
+# localShiftZ16 = -40
+# localShiftZ18 = -30
+# 
+# # Local alignment angles [mrad]
+# localAngleZ10 = 1
+# localAngleZ12 = -1
+# localAngleZ14 = -2
+# localAngleZ16 = 1
+# localAngleZ18 = 1
+
+# Use material decorator for the 
+# material description
+materialDecorator = false
+
+[Sequencer]
+# Event skip
+skip = 0
+
+# Number of events
+events = 1000
+
+# Number of threads
+numThreads = 1
+
+# FPE tracking
+trackFpes = false
+
+[E320RootSimTrackReader]
+# Cut on the tracks smoothed chi2
+minSmoothedChi2 = 0
+maxSmoothedChi2 = 1e9
+
+# Cut on the tracks vertex long coordinate [mm]
+minVertexEstLong = -1e9
+maxVertexEstLong = 1e9
+
+# Cut on the tracks vertex short coordinate [mm]
+minVertexEstShort = -1e9
+maxVertexEstShort = 1e9
+
+# Cut on the tracks energy [GeV]
+minAbsMomentumEst = 0
+maxAbsMomentumEst = 10
+
+inDirTracks = """
+/home/romanurmanov/work/E320/E320Prototype/E320Prototype_analysis/sim/\
+alignment/local/test\
+"""
+
+treeName = "fitted-tracks"
+outputSourceLinks = "SourceLinks"
+outputSimClusters = "SimClusters"
+outputSeedsGuess = "SeedsGuess"
+outputTrackParametersGuess = "TrackParametersGuess"
+outputSeedsEst = "SeedsEst"
+outputTrackParametersEst = "TrackParametersEst"
+outputMagneticFieldParameters = "MagFieldPars"
+mergeIntoOneEvent = true
+backwards = true
+
+[E320TrackParametersEstimator]
+# Number of GX2 fit iterations
+nIterations = 2
+
+# Max GX2 chi2 cut
+maxChi2 = 1e9
+# maxChi2 = 100
+
+# Propagation direction
+# forward = 0
+# backward = 1
+propDirection = 1
+
+[ActsAlignmentFunction]
+# Cut on the number of the KF steps
+maxKFSteps = 100000
+
+# Chi2/ndf triggering the fit stop
+chi2ONdfCutOff = 1e-16
+
+# Chi2/ndf average detla triggering the fit stop
+deltaChi2ONdfCutOffDelta = 1e-5
+
+# Number of steps for averaging chi2/ndf  
+# detla triggering the fit stop
+deltaChi2ONdfCutOffNSteps = 10
+
+# Cut on the maximum number of fit iterations
+maxAlignmentFitNumIt = 200
+
+[AlignmentAlgorithm]
+# WhiteBoard name of the input source links
+inputSourceLinks = "SourceLinks"
+
+# WhiteBoard name of the input track candidates
+inputTrackCandidates = "SeedsGuess"
+
+# WhiteBoard name of the input track parameters
+inputTrackParameters = "TrackParametersGuess"
+
+# WhiteBoard name of the input magnetic field parameters
+inputMagneticFieldParameters = "MagFieldPars"
+
+# WhiteBoard name of the output alignment parameters
+outputAlignmentParameters = "AlignmentParameters"
+
+# WhiteBoard name of the output updated track parameters
+outputTrackParameters = "UpdatedTrackParameters"
+
+[KFTrackFittingAlgorithm]
+# WhiteBoard name of the input track candidates
+inputTrackCandidates = "SeedsGuess"
+
+# WhiteBoard name of the input track parameters
+inputTrackParameters = "UpdatedTrackParameters"
+
+# WhiteBoard name of the input source links
+inputSourceLinks = "SourceLinks"
+
+# WhiteBoard name of the output track container
+outputTrackContainer = "TrackContainer"
+
+# WhiteBoard name of the output tracks
+outputTracks = "Tracks"
+
+# Cut on the maximum number of KF steps
+maxSteps = 100000
+
+[E320RootSimTrackWriter]
+# WhiteBoard name of the input track container
+inputTrackContainer = "TrackContainer"
+
+# WhiteBoard name of the input tracks
+inputTracks = "Tracks"
+
+# WhiteBoard name of the input track parameters
+inputTrackParametersGuesses = "TrackParametersGuess"
+
+# WhiteBoard name of the input event meta data
+inputSimClusters = "SimClusters"
+
+# Output tree name
+treeName = "fitted-tracks"
+
+# Output file path
+filePath = """
+/home/romanurmanov/work/E320/E320Prototype/E320Prototype_analysis/sim/\
+fitted-tracks.root\
+"""
+
+[AlignmentParametersWriter]
+# WhiteBoard name of the input alignment parameters
+inputAlignmentResults = "AlignmentParameters"
+
+# Output tree name
+treeName = "alignment-parameters"
+
+# Output file path
+filePath = """
+/home/romanurmanov/work/E320/E320Prototype/E320Prototype_analysis/sim/\
+alignment-parameters.root\
+"""

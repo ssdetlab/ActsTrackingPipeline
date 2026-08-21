@@ -54,7 +54,7 @@ int main() {
   const std::string pathToCfg =
       "/home/romanurmanov/work/TrackingPipeline/ActsTrackingPipeline/conf/"
       "runs/"
-      "SimAlignmentLocalRun.toml";
+      "SimAlignmentLocalRunConfig.toml";
   auto runCfg = toml::parse_file(pathToCfg);
 
   auto getEntryDouble = [&runCfg](const std::string& section,
@@ -226,10 +226,11 @@ int main() {
 
   // Setup the sequencer
   Sequencer::Config seqCfg;
-  // seqCfg.events = 1e1;
-  seqCfg.numThreads = 1;
-  seqCfg.skip = 0;
-  seqCfg.trackFpes = false;
+  seqCfg.skip = getEntrySizeT("Sequencer", "skip");
+  seqCfg.events = getEntrySizeT("Sequencer", "events");
+  seqCfg.numThreads = getEntrySizeT("Sequencer", "numThreads");
+  seqCfg.trackFpes = getEntryBool("Sequencer", "trackFpes");
+  seqCfg.logLevel = logLevel;
   Sequencer sequencer(seqCfg);
 
   sequencer.addContextDecorator(
@@ -237,36 +238,51 @@ int main() {
 
   // Add the sim data reader
   E320::E320RootSimTrackReader::Constraints readerConstraints{};
-  readerConstraints.minSmoothedChi2 = 0;
-  readerConstraints.maxSmoothedChi2 = 1e9;
-  readerConstraints.minVertexEstLong = -std::numeric_limits<double>::max();
-  readerConstraints.maxVertexEstLong = std::numeric_limits<double>::max();
+  readerConstraints.minSmoothedChi2 =
+      getEntryDouble("E320RootSimTrackReader", "minSmoothedChi2");
+  readerConstraints.maxSmoothedChi2 =
+      getEntryDouble("E320RootSimTrackReader", "maxSmoothedChi2");
+  readerConstraints.minVertexEstLong =
+      getEntryDouble("E320RootSimTrackReader", "minVertexEstLong");
+  readerConstraints.maxVertexEstLong =
+      getEntryDouble("E320RootSimTrackReader", "maxVertexEstLong");
 
-  readerConstraints.minVertexEstShort = -std::numeric_limits<double>::max();
-  readerConstraints.maxVertexEstShort = std::numeric_limits<double>::max();
+  readerConstraints.minVertexEstShort =
+      getEntryDouble("E320RootSimTrackReader", "minVertexEstShort");
+  readerConstraints.maxVertexEstShort =
+      getEntryDouble("E320RootSimTrackReader", "maxVertexEstShort");
 
-  readerConstraints.minAbsMomentumEst = 0_GeV;
-  readerConstraints.maxAbsMomentumEst = 10_GeV;
+  readerConstraints.minAbsMomentumEst =
+      getEntryDouble("E320RootSimTrackReader", "minAbsMomentumEst");
+  readerConstraints.maxAbsMomentumEst =
+      getEntryDouble("E320RootSimTrackReader", "maxAbsMomentumEst");
 
   E320::E320RootSimTrackReader::Config readerCfg;
-  readerCfg.treeName = "fitted-tracks";
-  readerCfg.outputSourceLinks = "SourceLinks";
-  readerCfg.outputSimClusters = "SimClusters";
-  readerCfg.outputSeedsGuess = "SeedsGuess";
-  readerCfg.outputTrackParametersGuess = "TrackParametersGuess";
-  readerCfg.outputSeedsEst = "SeedsEst";
-  readerCfg.outputTrackParametersEst = "TrackParametersEst";
-  readerCfg.outputMagneticFieldParameters = "MagFieldPars";
+  readerCfg.treeName = getEntryStr("E320RootSimTrackReader", "treeName");
+  readerCfg.outputSourceLinks =
+      getEntryStr("E320RootSimTrackReader", "outputSourceLinks");
+  readerCfg.outputSimClusters =
+      getEntryStr("E320RootSimTrackReader", "outputSimClusters");
+  readerCfg.outputSeedsGuess =
+      getEntryStr("E320RootSimTrackReader", "outputSeedsGuess");
+  readerCfg.outputTrackParametersGuess =
+      getEntryStr("E320RootSimTrackReader", "outputTrackParametersGuess");
+  readerCfg.outputSeedsEst =
+      getEntryStr("E320RootSimTrackReader", "outputSeedsEst");
+  readerCfg.outputTrackParametersEst =
+      getEntryStr("E320RootSimTrackReader", "outputTrackParametersEst");
+  readerCfg.outputMagneticFieldParameters =
+      getEntryStr("E320RootSimTrackReader", "outputMagneticFieldParameters");
   readerCfg.constraints = readerConstraints;
-  readerCfg.mergeIntoOneEvent = true;
-  readerCfg.backwards = true;
+  readerCfg.mergeIntoOneEvent =
+      getEntryBool("E320RootSimTrackReader", "mergeIntoOneEvent");
+  readerCfg.backwards = getEntryBool("E320RootSimTrackReader", "backwards");
 
-  std::string pathToDir =
-      "/home/romanurmanov/work/E320/E320Prototype/E320Prototype_analysis/sim/"
-      "alignment/local/test";
+  std::string inDirTracks =
+      getEntryStr("E320RootSimTrackReader", "inDirTracks");
 
   // Get the paths to the files in the directory
-  for (const auto& entry : std::filesystem::directory_iterator(pathToDir)) {
+  for (const auto& entry : std::filesystem::directory_iterator(inDirTracks)) {
     if (!entry.is_regular_file() || entry.path().extension() != ".root") {
       continue;
     }
@@ -349,17 +365,6 @@ int main() {
       .connect<&SimpleSourceLink::SurfaceAccessor::operator()>(
           &surfaceAccessor);
 
-  // Initial track state covariance matrix
-  Acts::BoundVector trackOriginStdDevPrior;
-  trackOriginStdDevPrior[Acts::eBoundLoc0] = 100_mm;
-  trackOriginStdDevPrior[Acts::eBoundLoc1] = 100_mm;
-  trackOriginStdDevPrior[Acts::eBoundPhi] = 10_degree;
-  trackOriginStdDevPrior[Acts::eBoundTheta] = 10_degree;
-  trackOriginStdDevPrior[Acts::eBoundQOverP] = 1 / 0.01_GeV;
-  trackOriginStdDevPrior[Acts::eBoundTime] = 1_fs;
-  Acts::BoundMatrix trackOriginCov =
-      trackOriginStdDevPrior.cwiseProduct(trackOriginStdDevPrior).asDiagonal();
-
   // GX2 fitter setup
   Acts::GeometryIdentifier gx2StartSurfaceGeoId;
   gx2StartSurfaceGeoId.setSensitive(goInst.tcParameters.front().geoId);
@@ -373,16 +378,31 @@ int main() {
 
   auto gx2Fitter = std::make_shared<StraightLineGX2Fitter>(gx2FitterCfg);
 
+  // Covariance prior
+  Acts::BoundVector trackOriginStdDevPrior;
+  trackOriginStdDevPrior[Acts::eBoundLoc0] = 100_mm;
+  trackOriginStdDevPrior[Acts::eBoundLoc1] = 100_mm;
+  trackOriginStdDevPrior[Acts::eBoundPhi] = 10_degree;
+  trackOriginStdDevPrior[Acts::eBoundTheta] = 10_degree;
+  trackOriginStdDevPrior[Acts::eBoundQOverP] = 1 / 0.01_GeV;
+  trackOriginStdDevPrior[Acts::eBoundTime] = 1_fs;
+  Acts::BoundMatrix trackOriginCov =
+      trackOriginStdDevPrior.cwiseProduct(trackOriginStdDevPrior).asDiagonal();
+
   // Track parameters estimator
   E320::E320TrackParametersEstimator::Config trackParametersEstimatorCfg{};
   trackParametersEstimatorCfg.gx2Fitter = gx2Fitter;
-  trackParametersEstimatorCfg.nIterations = 2;
-  trackParametersEstimatorCfg.maxChi2 = std::numeric_limits<double>::max();
   trackParametersEstimatorCfg.referenceSurface = reestimationRefSurface.get();
   trackParametersEstimatorCfg.originCov =
       trackOriginStdDevPrior.cwiseProduct(trackOriginStdDevPrior).asDiagonal();
+
+  trackParametersEstimatorCfg.nIterations =
+      getEntrySizeT("E320TrackParametersEstimator", "nIterations");
+  trackParametersEstimatorCfg.maxChi2 =
+      getEntryDouble("E320TrackParametersEstimator", "maxChi2");
   trackParametersEstimatorCfg.propDirection =
-      E320::E320TrackParametersEstimator::PropagationDirection::backward;
+      E320::E320TrackParametersEstimator::PropagationDirection(
+          getEntryInt("E320TrackParametersEstimator", "propDirection"));
 
   auto trackParametersEstimator =
       std::make_shared<E320::E320TrackParametersEstimator>(
@@ -419,14 +439,19 @@ int main() {
 
   // Alignment function
   ActsAlignmentFunction::Config alignmentFunctionCfg;
+  alignmentFunctionCfg.maxKFSteps =
+      getEntrySizeT("ActsAlignmentFunction", "maxKFSteps");
+  alignmentFunctionCfg.chi2ONdfCutOff =
+      getEntryDouble("ActsAlignmentFunction", "chi2ONdfCutOff");
+  alignmentFunctionCfg.deltaChi2ONdfCutOff = {
+      getEntrySizeT("ActsAlignmentFunction", "deltaChi2ONdfCutOffNSteps"),
+      getEntryDouble("ActsAlignmentFunction", "deltaChi2ONdfCutOffDelta")};
+  alignmentFunctionCfg.maxAlignmentFitNumIt =
+      getEntrySizeT("ActsAlignmentFunction", "maxAlignmentFitNumIt");
   alignmentFunctionCfg.detector = detector.get();
   alignmentFunctionCfg.magneticField = field;
   alignmentFunctionCfg.kfExtensions = alignmentExtensions;
   alignmentFunctionCfg.kfReferenceSurface = trackingRefSurface.get();
-  alignmentFunctionCfg.maxKFSteps = static_cast<std::size_t>(1e5);
-  alignmentFunctionCfg.chi2ONdfCutOff = 1e-16;
-  alignmentFunctionCfg.deltaChi2ONdfCutOff = {10, 1e-5};
-  alignmentFunctionCfg.maxAlignmentFitNumIt = 200;
   alignmentFunctionCfg.alignmentMask = alignmentMask;
   alignmentFunctionCfg.nRefittingIt = nRefittingIt;
   alignmentFunctionCfg.trackParametersEstimator = trackParametersEstimator;
@@ -444,7 +469,9 @@ int main() {
     const auto& geoId = surface.geometryId().sensitive();
     if (geoId != 0u &&
         surface.geometryId().sensitive() > goInst.tcParameters.front().geoId &&
-        surface.geometryId().sensitive() <= goInst.tcParameters.back().geoId) {
+        // surface.geometryId().sensitive() <= goInst.tcParameters.back().geoId)
+        // {
+        surface.geometryId().sensitive() <= goInst.tcParameters.at(2).geoId) {
       alignmentFunctionCfg.alignedDetElements.push_back(det.get());
     }
   }
@@ -454,12 +481,18 @@ int main() {
 
   // Alignment algorithm
   AlignmentAlgorithm::Config alignmentCfg;
-  alignmentCfg.inputSourceLinks = "SourceLinks";
-  alignmentCfg.inputTrackCandidates = "SeedsGuess";
-  alignmentCfg.inputTrackParameters = "TrackParametersGuess";
-  alignmentCfg.inputMagneticFieldParameters = "MagFieldPars";
-  alignmentCfg.outputAlignmentParameters = "AlignmentParameters";
-  alignmentCfg.outputTrackParameters = "UpdatedTrackParameters";
+  alignmentCfg.inputSourceLinks =
+      getEntryStr("AlignmentAlgorithm", "inputSourceLinks");
+  alignmentCfg.inputTrackCandidates =
+      getEntryStr("AlignmentAlgorithm", "inputTrackCandidates");
+  alignmentCfg.inputTrackParameters =
+      getEntryStr("AlignmentAlgorithm", "inputTrackParameters");
+  alignmentCfg.inputMagneticFieldParameters =
+      getEntryStr("AlignmentAlgorithm", "inputMagneticFieldParameters");
+  alignmentCfg.outputAlignmentParameters =
+      getEntryStr("AlignmentAlgorithm", "outputAlignmentParameters");
+  alignmentCfg.outputTrackParameters =
+      getEntryStr("AlignmentAlgorithm", "outputTrackParameters");
   alignmentCfg.alignmentFunction = alignmentFunction;
   alignmentCfg.alignmentFitSurfaces = alignmentFitSurfaces;
   alignmentCfg.initialTrackStateFitSurfaces = initialTrackStateFitSurfaces;
@@ -509,13 +542,17 @@ int main() {
 
   // Add the track fitting algorithm to the sequencer
   KFTrackFittingAlgorithm::Config fitterCfg{
-      .inputTrackCandidates = "SeedsGuess",
-      .inputTrackParameters = "UpdatedTrackParameters",
-      .inputSourceLinks = "SourceLinks",
-      .outputTrackContainer = "TrackContainer",
-      .outputTracks = "Tracks",
+      .inputTrackCandidates =
+          getEntryStr("KFTrackFittingAlgorithm", "inputTrackCandidates"),
+      .inputTrackParameters =
+          getEntryStr("KFTrackFittingAlgorithm", "inputTrackParameters"),
+      .inputSourceLinks =
+          getEntryStr("KFTrackFittingAlgorithm", "inputSourceLinks"),
+      .outputTrackContainer =
+          getEntryStr("KFTrackFittingAlgorithm", "outputTrackContainer"),
+      .outputTracks = getEntryStr("KFTrackFittingAlgorithm", "outputTracks"),
       .fitter = fitter,
-      .maxSteps = static_cast<size_t>(1e5),
+      .maxSteps = getEntrySizeT("KFTrackFittingAlgorithm", "maxSteps"),
       .kfExtensions = kfExtensions,
       .referenceSurface = trackingRefSurface.get()};
 
@@ -531,26 +568,28 @@ int main() {
       .connect<&SimpleSourceLink::SurfaceAccessor::operator()>(
           &surfaceAccessor);
   trackWriterCfg.referenceSurface = trackingRefSurface.get();
-  trackWriterCfg.inputTrackContainer = "TrackContainer";
-  trackWriterCfg.inputTracks = "Tracks";
-  trackWriterCfg.inputTrackParametersGuesses = "TrackParametersGuess";
-  trackWriterCfg.inputSimClusters = "SimClusters";
-  trackWriterCfg.treeName = "fitted-tracks";
-  trackWriterCfg.filePath =
-      "/home/romanurmanov/work/E320/E320Prototype/E320Prototype_analysis/sim/"
-      "fitted-tracks.root";
-  trackWriterCfg.applyPhiCorrection = true;
+  trackWriterCfg.inputTrackContainer =
+      getEntryStr("E320RootSimTrackWriter", "inputTrackContainer");
+  trackWriterCfg.inputTracks =
+      getEntryStr("E320RootSimTrackWriter", "inputTracks");
+  trackWriterCfg.inputTrackParametersGuesses =
+      getEntryStr("E320RootSimTrackWriter", "inputTrackParametersGuesses");
+  trackWriterCfg.inputSimClusters =
+      getEntryStr("E320RootSimTrackWriter", "inputSimClusters");
+  trackWriterCfg.treeName = getEntryStr("E320RootSimTrackWriter", "treeName");
+  trackWriterCfg.filePath = getEntryStr("E320RootSimTrackWriter", "filePath");
 
   sequencer.addWriter(
       std::make_shared<E320::E320RootSimTrackWriter>(trackWriterCfg, logLevel));
 
   // Alignment parameters writer
   AlignmentParametersWriter::Config alignmentWriterCfg;
-  alignmentWriterCfg.treeName = "alignment-parameters";
-  alignmentWriterCfg.inputAlignmentResults = "AlignmentParameters";
+  alignmentWriterCfg.inputAlignmentResults =
+      getEntryStr("AlignmentParametersWriter", "inputAlignmentResults");
+  alignmentWriterCfg.treeName =
+      getEntryStr("AlignmentParametersWriter", "treeName");
   alignmentWriterCfg.filePath =
-      "/home/romanurmanov/work/E320/E320Prototype/E320Prototype_analysis/sim/"
-      "alignment-parameters.root";
+      getEntryStr("AlignmentParametersWriter", "filePath");
 
   sequencer.addWriter(std::make_shared<AlignmentParametersWriter>(
       alignmentWriterCfg, logLevel));
