@@ -1,10 +1,10 @@
 #include "TrackingPipeline/Io/E320RootTrackReader.hpp"
 
 #include "Acts/Definitions/Algebra.hpp"
+#include "Acts/Definitions/PdgParticle.hpp"
 #include "Acts/Definitions/TrackParametrization.hpp"
-#include <Acts/Definitions/PdgParticle.hpp>
-#include <Acts/EventData/TrackParameters.hpp>
-#include <Acts/Utilities/Logger.hpp>
+#include "Acts/EventData/TrackParameters.hpp"
+#include "Acts/Utilities/Logger.hpp"
 
 #include <cstddef>
 #include <stdexcept>
@@ -13,6 +13,9 @@
 #include "TFile.h"
 #include "TrackingPipeline/EventData/DataContainers.hpp"
 #include "TrackingPipeline/EventData/SimpleSourceLink.hpp"
+#include "TrackingPipeline/Geometry/E320GeometryOptions.hpp"
+#include "TrackingPipeline/MagneticField/ConstantMagField.hpp"
+#include "TrackingPipeline/MagneticField/IdealQuadrupoleMagField.hpp"
 
 using namespace Acts::UnitLiterals;
 
@@ -43,7 +46,7 @@ E320::E320RootTrackReader::E320RootTrackReader(const Config& config,
   // Set event Id branch
   m_tree->SetBranchAddress("eventId", &m_eventId);
   if (m_tree->GetBranch("eventId") == nullptr) {
-    throw std::invalid_argument("Missing eventId SetbranchAddress");
+    throw std::invalid_argument("Missing eventId branch");
   }
   auto nEntries = static_cast<std::size_t>(m_tree->GetEntries());
 
@@ -86,17 +89,39 @@ E320::E320RootTrackReader::E320RootTrackReader(const Config& config,
   m_tree->SetBranchAddress("epicsPulseId", &m_epicsPulseId);
   m_tree->SetBranchAddress("epicsDAQNumber", &m_epicsDAQNumber);
 
-  // Measurement hits
-  m_tree->SetBranchAddress("trackHitsGlobal", &m_trackHitsGlobal);
+  // Magnet configuration as seen by track
+  m_tree->SetBranchAddress("quad1Grad", &m_quad1Grad);
+  m_tree->SetBranchAddress("quad2Grad", &m_quad2Grad);
+  m_tree->SetBranchAddress("quad3Grad", &m_quad3Grad);
+  m_tree->SetBranchAddress("xCorrectorStrength", &m_xCorrectorStrength);
+  m_tree->SetBranchAddress("dipoleStrength", &m_dipoleStrength);
+
+  // Measurement hits in the surface frame
   m_tree->SetBranchAddress("trackHitsLocal", &m_trackHitsLocal);
 
+  // Measurement hits in the global frame
+  m_tree->SetBranchAddress("trackHitsGlobal", &m_trackHitsGlobal);
+
+  // Direction measurements in the track frame
+  m_tree->SetBranchAddress("onSurfaceTrackDirection",
+                           &m_onSurfaceTrackDirection);
+
   // Covariances of the track hits
-  m_tree->SetBranchAddress("trackHitsCovs", &m_trackHitCovs);
+  m_tree->SetBranchAddress("trackHitCovs", &m_trackHitCovs);
+
+  // Covariances of the track agnles
+  m_tree->SetBranchAddress("trackAngleCovs", &m_trackAngleCovs);
 
   // Geometry ids of the track hits
   m_tree->SetBranchAddress("geometryIds", &m_geometryIds);
 
-  // KF predicted track hits
+  // KF predicted track hits in the surface frame
+  m_tree->SetBranchAddress("predictedTrackHitsLocal",
+                           &m_predictedTrackHitsLocal);
+  m_tree->SetBranchAddress("filteredTrackHitsLocal", &m_filteredTrackHitsLocal);
+  m_tree->SetBranchAddress("smoothedTrackHitsLocal", &m_smoothedTrackHitsLocal);
+
+  // KF predicted track hits in the global frame
   m_tree->SetBranchAddress("predictedTrackHitsGlobal",
                            &m_predictedTrackHitsGlobal);
   m_tree->SetBranchAddress("filteredTrackHitsGlobal",
@@ -104,20 +129,32 @@ E320::E320RootTrackReader::E320RootTrackReader(const Config& config,
   m_tree->SetBranchAddress("smoothedTrackHitsGlobal",
                            &m_smoothedTrackHitsGlobal);
 
-  m_tree->SetBranchAddress("predictedTrackHitsLocal",
-                           &m_predictedTrackHitsLocal);
-  m_tree->SetBranchAddress("filteredTrackHitsLocal", &m_filteredTrackHitsLocal);
-  m_tree->SetBranchAddress("smoothedTrackHitsLocal", &m_smoothedTrackHitsLocal);
+  // KF predicted on surface momenta in the track frame
+  m_tree->SetBranchAddress("predictedOnSurfaceMomentum",
+                           &m_predictedOnSurfaceMomentum);
+  m_tree->SetBranchAddress("filteredOnSurfaceMomentum",
+                           &m_filteredOnSurfaceMomentum);
+  m_tree->SetBranchAddress("smoothedOnSurfaceMomentum",
+                           &m_smoothedOnSurfaceMomentum);
 
   // KF residuals with respect to the measurements
-  m_tree->SetBranchAddress("predictedResiduals", &m_predictedResiduals);
-  m_tree->SetBranchAddress("filteredResiduals", &m_filteredResiduals);
-  m_tree->SetBranchAddress("smoothedResiduals", &m_smoothedResiduals);
+  m_tree->SetBranchAddress("predictedHitResiduals", &m_predictedHitResiduals);
+  m_tree->SetBranchAddress("filteredHitResiduals", &m_filteredHitResiduals);
+  m_tree->SetBranchAddress("smoothedHitResiduals", &m_smoothedHitResiduals);
+
+  m_tree->SetBranchAddress("predictedAngleResiduals",
+                           &m_predictedAngleResiduals);
+  m_tree->SetBranchAddress("filteredAngleResiduals", &m_filteredAngleResiduals);
+  m_tree->SetBranchAddress("smoothedAngleResiduals", &m_smoothedAngleResiduals);
 
   // KF pulls with respect to the measurements
-  m_tree->SetBranchAddress("predictedPulls", &m_predictedPulls);
-  m_tree->SetBranchAddress("filteredPulls", &m_filteredPulls);
-  m_tree->SetBranchAddress("smoothedPulls", &m_smoothedPulls);
+  m_tree->SetBranchAddress("predictedHitPulls", &m_predictedHitPulls);
+  m_tree->SetBranchAddress("filteredHitPulls", &m_filteredHitPulls);
+  m_tree->SetBranchAddress("smoothedHitPulls", &m_smoothedHitPulls);
+
+  m_tree->SetBranchAddress("predictedAnglePulls", &m_predictedAnglePulls);
+  m_tree->SetBranchAddress("filteredAnglePulls", &m_filteredAnglePulls);
+  m_tree->SetBranchAddress("smoothedAnglePulls", &m_smoothedAnglePulls);
 
   // Guessed bound track parameters
   m_tree->SetBranchAddress("boundTrackParametersGuess",
@@ -141,10 +178,12 @@ E320::E320RootTrackReader::E320RootTrackReader(const Config& config,
   // KF predicted vertex at the IP
   m_tree->SetBranchAddress("vertexEst", &m_vertexEst);
 
-  // Chi2 and ndf of the fitted track
+  // Chi2 of the track with respect ot the measurement
   m_tree->SetBranchAddress("chi2Predicted", &m_chi2Predicted);
   m_tree->SetBranchAddress("chi2Filtered", &m_chi2Filtered);
   m_tree->SetBranchAddress("chi2Smoothed", &m_chi2Smoothed);
+
+  // Number of degrees of freedom of the track
   m_tree->SetBranchAddress("ndf", &m_ndf);
 
   // Track ID
@@ -156,6 +195,16 @@ E320::E320RootTrackReader::E320RootTrackReader(const Config& config,
   // Charge
   m_tree->SetBranchAddress("charge", &m_charge);
 
+  //------------------------------------------------------------------
+
+  // Initialize constraint surfaces geometry ids
+  const auto& goInst = *GeometryOptions::instance();
+  m_constraintSurfacesGeoIds.insert(goInst.bpm0Parameters.geoId);
+  m_constraintSurfacesGeoIds.insert(goInst.bpm1Parameters.geoId);
+  m_constraintSurfacesGeoIds.insert(goInst.bpm2Parameters.geoId);
+  m_constraintSurfacesGeoIds.insert(goInst.bpm3Parameters.geoId);
+  m_constraintSurfacesGeoIds.insert(goInst.ipSurfaceParameters.geoId);
+
   // Initialize the data handles
   m_outputSourceLinks.initialize(m_cfg.outputSourceLinks);
 
@@ -164,6 +213,9 @@ E320::E320RootTrackReader::E320RootTrackReader(const Config& config,
 
   m_outputSeedsEst.initialize(m_cfg.outputSeedsEst);
   m_outputTrackParametersEst.initialize(m_cfg.outputTrackParametersEst);
+
+  m_outputMagneticFieldParameters.initialize(
+      m_cfg.outputMagneticFieldParameters);
 }
 
 std::pair<std::size_t, std::size_t> E320::E320RootTrackReader::availableEvents()
@@ -214,17 +266,25 @@ ProcessCode E320::E320RootTrackReader::read(const AlgorithmContext& ctx) {
   IndexSeeds seedsEst{};
   std::vector<Acts::CurvilinearTrackParameters> trackParametersEst{};
 
+  std::vector<std::shared_ptr<MagneticFieldStore>> magFieldStores;
+
+  const auto& goInst = *E320::GeometryOptions::instance();
+  std::size_t longIdx = goInst.longIdx;
+  std::size_t shortIdx = goInst.shortIdx;
+
+  std::size_t quad1Id = goInst.quad1Id;
+  std::size_t quad2Id = goInst.quad2Id;
+  std::size_t quad3Id = goInst.quad3Id;
+  std::size_t xCorrectorId = goInst.xCorrectorId;
+  std::size_t dipoleId = goInst.dipoleId;
+
   std::size_t eventId = std::get<0>(*it);
   const Constraints& constraints = m_cfg.constraints;
   for (auto entry = std::get<1>(*it); entry < std::get<2>(*it); entry++) {
     m_tree->GetEntry(entry);
 
-    if (m_chi2Predicted < constraints.minChi2Predicted ||
-        m_chi2Predicted > constraints.maxChi2Predicted) {
-      continue;
-    }
-    if (m_chi2Smoothed < constraints.minChi2Smoothed ||
-        m_chi2Smoothed > constraints.maxChi2Smoothed) {
+    if (m_chi2Smoothed < constraints.minSmoothedChi2 ||
+        m_chi2Smoothed > constraints.maxSmoothedChi2) {
       continue;
     }
     if (m_vertexEst->Y() < constraints.minVertexEstLong ||
@@ -240,37 +300,117 @@ ProcessCode E320::E320RootTrackReader::read(const AlgorithmContext& ctx) {
       continue;
     }
 
-    Acts::BoundMatrix ipCovGuess;
-    Acts::BoundMatrix ipCovEst;
+    // Magnetic fields
+    auto mStore = std::make_shared<MagneticFieldStore>();
+    mStore->store.reserve(5);
+
+    // Quad gradients T/m
+    mStore->store.insert(
+        {goInst.quad1Id,
+         Acts::MagneticFieldProvider::Cache(
+             std::in_place_type<IdealQuadrupoleMagField::Cache>,
+             m_quad1Grad * Acts::UnitConstants::T / Acts::UnitConstants::m)});
+    mStore->store.insert(
+        {goInst.quad2Id,
+         Acts::MagneticFieldProvider::Cache(
+             std::in_place_type<IdealQuadrupoleMagField::Cache>,
+             m_quad2Grad * Acts::UnitConstants::T / Acts::UnitConstants::m)});
+    mStore->store.insert(
+        {goInst.quad3Id,
+         Acts::MagneticFieldProvider::Cache(
+             std::in_place_type<IdealQuadrupoleMagField::Cache>,
+             m_quad3Grad * Acts::UnitConstants::T / Acts::UnitConstants::m)});
+
+    // XCOR strength T
+    mStore->store.insert(
+        {goInst.xCorrectorId,
+         Acts::MagneticFieldProvider::Cache(
+             std::in_place_type<ConstantMagField::Cache>,
+             m_xCorrectorStrength * Acts::UnitConstants::T, longIdx)});
+
+    // Dipole strength T
+    mStore->store.insert(
+        {goInst.dipoleId,
+         Acts::MagneticFieldProvider::Cache(
+             std::in_place_type<ConstantMagField::Cache>,
+             m_dipoleStrength * Acts::UnitConstants::T, shortIdx)});
+
+    // Store the fields
+    magFieldStores.push_back(mStore);
+
+    // Track origin covariances
+    Acts::BoundMatrix originCovGuess;
+    Acts::BoundMatrix originCovEst;
     for (std::size_t i = 0; i < Acts::eBoundSize; i++) {
       for (std::size_t j = 0; j < Acts::eBoundSize; j++) {
-        ipCovGuess(i, j) = (*m_boundTrackCovGuess)(i, j);
-        ipCovEst(i, j) = (*m_boundTrackCovEst)(i, j);
+        originCovGuess(i, j) = (*m_boundTrackCovGuess)(i, j);
+        originCovEst(i, j) = (*m_boundTrackCovEst)(i, j);
       }
     }
 
-    std::vector<std::size_t> trackSourceLinkIndices{};
-    for (std::size_t i = 0; i < m_trackHitsGlobal->size(); i++) {
-      Acts::Vector2 trackHitLocal(m_trackHitsLocal->at(i).X(),
-                                  m_trackHitsLocal->at(i).Y());
-      Acts::Vector3 trackHitGlobal(m_trackHitsGlobal->at(i).X(),
-                                   m_trackHitsGlobal->at(i).Y(),
-                                   m_trackHitsGlobal->at(i).Z());
-      Acts::SquareMatrix2 trackHitCov;
-      trackHitCov << m_trackHitCovs->at(i)(0, 0), m_trackHitCovs->at(i)(0, 1),
-          m_trackHitCovs->at(i)(1, 0), m_trackHitCovs->at(i)(1, 1);
-
-      Acts::GeometryIdentifier geoId;
-      geoId.setSensitive(m_geometryIds->at(i));
-      SimpleSourceLink obsSourceLink(trackHitLocal, trackHitGlobal, trackHitCov,
-                                     geoId, eventId, sourceLinks.size());
-      trackSourceLinkIndices.push_back(sourceLinks.size());
-      sourceLinks.push_back(Acts::SourceLink(obsSourceLink));
-    }
-
-    // Initial guess
     Acts::ParticleHypothesis hypothesis =
         Acts::ParticleHypothesis(Acts::PdgParticle(m_pdgId));
+
+    std::vector<std::size_t> trackSourceLinkIndices{};
+    for (std::size_t i = 0; i < m_trackHitsGlobal->size(); i++) {
+      if (m_geometryIds->at(i) != 10 && m_geometryIds->at(i) != 12 &&
+          m_geometryIds->at(i) != 14) {
+        continue;
+      }
+
+      if (m_constraintSurfacesGeoIds.contains(m_geometryIds->at(i))) {
+        Acts::ActsVector<ExtendedLocalSize> measLocal(
+            m_trackHitsLocal->at(i).X(), m_trackHitsLocal->at(i).Y(),
+            m_onSurfaceTrackDirection->at(i).Phi(),
+            m_onSurfaceTrackDirection->at(i).Theta());
+
+        Acts::ActsVector<ExtendedGlobalSize> measGlobal(
+            m_trackHitsGlobal->at(i).X(), m_trackHitsGlobal->at(i).Y(),
+            m_trackHitsGlobal->at(i).Z(), m_onSurfaceTrackDirection->at(i).X(),
+            m_onSurfaceTrackDirection->at(i).Y(),
+            m_onSurfaceTrackDirection->at(i).Z());
+
+        Acts::SquareMatrix2 trackHitCov;
+        trackHitCov << m_trackHitCovs->at(i)(0, 0), m_trackHitCovs->at(i)(0, 1),
+            m_trackHitCovs->at(i)(1, 0), m_trackHitCovs->at(i)(1, 1);
+        Acts::SquareMatrix2 trackAngleCov;
+        trackAngleCov << m_trackAngleCovs->at(i)(0, 0),
+            m_trackAngleCovs->at(i)(0, 1), m_trackAngleCovs->at(i)(1, 0),
+            m_trackAngleCovs->at(i)(1, 1);
+
+        Acts::ActsSquareMatrix<ExtendedLocalSize> measCov =
+            Acts::ActsSquareMatrix<ExtendedLocalSize>::Zero();
+        measCov.topLeftCorner(2, 2) = trackHitCov;
+        measCov.bottomRightCorner(2, 2) = trackAngleCov;
+
+        Acts::GeometryIdentifier geoId;
+        geoId.setSensitive(m_geometryIds->at(i));
+        ExtendedSourceLink esl(measLocal, measGlobal, measCov, geoId, eventId,
+                               sourceLinks.size(), m_cfg.backwards);
+        trackSourceLinkIndices.push_back(sourceLinks.size());
+        Acts::SourceLink sl(esl);
+        sourceLinks.push_back(sl);
+      } else {
+        Acts::Vector2 trackHitLocal(m_trackHitsLocal->at(i).X(),
+                                    m_trackHitsLocal->at(i).Y());
+        Acts::Vector3 trackHitGlobal(m_trackHitsGlobal->at(i).X(),
+                                     m_trackHitsGlobal->at(i).Y(),
+                                     m_trackHitsGlobal->at(i).Z());
+        Acts::SquareMatrix2 trackHitCov;
+        trackHitCov << m_trackHitCovs->at(i)(0, 0), m_trackHitCovs->at(i)(0, 1),
+            m_trackHitCovs->at(i)(1, 0), m_trackHitCovs->at(i)(1, 1);
+
+        Acts::GeometryIdentifier geoId;
+        geoId.setSensitive(m_geometryIds->at(i));
+        SimpleSourceLink ssl(trackHitLocal, trackHitGlobal, trackHitCov, geoId,
+                             eventId, sourceLinks.size());
+        trackSourceLinkIndices.push_back(sourceLinks.size());
+        Acts::SourceLink sl(ssl);
+        sourceLinks.push_back(sl);
+      }
+    }
+
+    // Track parameters initial guess
     Acts::Vector4 vertexGuess(m_vertexGuess->X(), m_vertexGuess->Y(),
                               m_vertexGuess->Z(), 0);
     Acts::Vector3 ipDirectionGuess(m_originMomentumGuess->X(),
@@ -282,9 +422,9 @@ ProcessCode E320::E320RootTrackReader::read(const AlgorithmContext& ctx) {
                             static_cast<int>(seedsGuess.size()));
     trackParametersGuess.emplace_back(vertexGuess, ipDirectionGuess,
                                       m_charge / m_originMomentumGuess->P(),
-                                      ipCovGuess, hypothesis);
+                                      originCovGuess, hypothesis);
 
-    // Estimated
+    // Estimated track parameters
     Acts::Vector4 vertexEst(m_vertexEst->X(), m_vertexEst->Y(),
                             m_vertexEst->Z(), 0);
     Acts::Vector3 ipDirectionEst(m_originMomentumEst->X(),
@@ -296,7 +436,7 @@ ProcessCode E320::E320RootTrackReader::read(const AlgorithmContext& ctx) {
                           static_cast<int>(seedsEst.size()));
     trackParametersEst.emplace_back(vertexEst, ipDirectionEst,
                                     m_charge / m_originMomentumEst->P(),
-                                    ipCovEst, hypothesis);
+                                    originCovEst, hypothesis);
   }
 
   ACTS_DEBUG("Read " << sourceLinks.size() << " source links");
@@ -316,6 +456,8 @@ ProcessCode E320::E320RootTrackReader::read(const AlgorithmContext& ctx) {
 
   m_outputSeedsEst(ctx, std::move(seedsEst));
   m_outputTrackParametersEst(ctx, std::move(trackParametersEst));
+
+  m_outputMagneticFieldParameters(ctx, std::move(magFieldStores));
 
   // Return success flag
   return ProcessCode::SUCCESS;
