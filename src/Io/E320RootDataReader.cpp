@@ -51,7 +51,7 @@ E320::E320RootDataReader::E320RootDataReader(const Config& config,
   m_eventMap.emplace_back(m_eventId, 0, 0);
 
   // Go through all entries and store the position of the events
-  for (std::size_t i = 1; i < nEntries; ++i) {
+  for (std::size_t i = 0; i < nEntries; ++i) {
     m_tree->GetEntry(i);
     if (m_eventId != std::get<0>(m_eventMap.back())) {
       std::get<2>(m_eventMap.back()) = i;
@@ -135,6 +135,13 @@ ProcessCode E320::E320RootDataReader::read(const AlgorithmContext& ctx) {
   for (auto entry = std::get<1>(*it); entry < std::get<2>(*it); entry++) {
     m_tree->GetEntry(entry);
 
+    eventMetaData = EventMetaData{.eudaqTrgN = m_detEvent->trg_n,
+                                  .eudaqDAQNumber = m_detEvent->run_number,
+                                  .eudaqRunStartTs = m_detEvent->ts_begin,
+                                  .eudaqRunEndTs = m_detEvent->ts_end,
+                                  .epicsParity = m_detEvent->epicsParity,
+                                  .epicsPulseId = m_detEvent->epicsPID,
+                                  .epicsDAQNumber = m_detEvent->epicsDAQNumber};
     if (m_cfg.requireEpicsParity &&
         m_detEvent->epicsParity != m_cfg.requiredEpicsParity) {
       m_outputSourceLinks(ctx, {});
@@ -146,13 +153,6 @@ ProcessCode E320::E320RootDataReader::read(const AlgorithmContext& ctx) {
       return ProcessCode::SUCCESS;
     }
 
-    eventMetaData = EventMetaData{.eudaqTrgN = m_detEvent->trg_n,
-                                  .eudaqDAQNumber = m_detEvent->run_number,
-                                  .eudaqRunStartTs = m_detEvent->ts_begin,
-                                  .eudaqRunEndTs = m_detEvent->ts_end,
-                                  .epicsParity = m_detEvent->epicsParity,
-                                  .epicsPulseId = m_detEvent->epicsPID,
-                                  .epicsDAQNumber = m_detEvent->epicsDAQNumber};
     for (const auto& staveEv : m_detEvent->st_ev_buffer) {
       for (const auto& chipEv : staveEv.ch_ev_buffer) {
         int sensitiveId = m_geoIdMap.at(chipEv.chip_id);
