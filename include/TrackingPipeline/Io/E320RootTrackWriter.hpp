@@ -79,7 +79,7 @@ class E320RootTrackWriter : public IWriter {
   ReadDataHandle<std::vector<Acts::CurvilinearTrackParameters>>
       m_inputTrackParametersGuesses{this, "InputTrackParametersGuesses"};
 
-  ReadDataHandle<E320::E320RootDataReader::EventMetaData> m_inputEventMetaData{
+  ReadDataHandle<E320RootDataReader::EventMetaData> m_inputEventMetaData{
       this, "InputMetaData"};
 
   std::unique_ptr<const Acts::Logger> m_logger;
