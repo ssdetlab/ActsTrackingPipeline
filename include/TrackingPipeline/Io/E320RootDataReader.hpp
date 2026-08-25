@@ -59,6 +59,7 @@ class E320RootDataReader : public IReader {
         surfaceMap;
   };
 
+  /// @brief Event meta data struct
   struct EventMetaData {
     /// MOSAIC trigger number
     std::size_t eudaqTrgN;
