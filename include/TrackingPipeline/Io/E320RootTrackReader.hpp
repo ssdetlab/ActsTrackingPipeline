@@ -1,10 +1,10 @@
 #pragma once
-
 #include "Acts/EventData/SourceLink.hpp"
 #include "Acts/EventData/TrackParameters.hpp"
 #include "Acts/Utilities/Logger.hpp"
 
 #include <cstddef>
+#include <unordered_map>
 
 #include "TChain.h"
 #include "TLorentzVector.h"
@@ -18,6 +18,7 @@
 #include "TrackingPipeline/Infrastructure/DataHandle.hpp"
 #include "TrackingPipeline/Infrastructure/IReader.hpp"
 #include "TrackingPipeline/Infrastructure/ProcessCode.hpp"
+#include "TrackingPipeline/Io/E320RootDataReader.hpp"
 #include "TrackingPipeline/MagneticField/MagneticFieldStore.hpp"
 
 namespace E320 {
@@ -33,9 +34,23 @@ class E320RootTrackReader : public IReader {
 
   /// @brief Cuts on the tracks read
   struct Constraints {
+    /// Flag to require specific EPICS parity
+    bool requireEpicsParity;
+    /// Required EPICS parity
+    E320RootDataReader::EpicsParity requiredEpicsParity;
+    /// Track predicted chi2 range
+    double minPredictedChi2;
+    double maxPredictedChi2;
+    /// Track filtered chi2 range
+    double minFilteredChi2;
+    double maxFilteredChi2;
     /// Track smoothed chi2 range
     double minSmoothedChi2;
     double maxSmoothedChi2;
+    /// Smoothed residual cuts per chip
+    /// [minX, maxX, minY, maxY]
+    std::unordered_map<std::size_t, std::tuple<double, double, double, double>>
+        smoothedResidualsRanges;
     /// Transverse vertex range
     double minVertexEstLong;
     double maxVertexEstLong;
@@ -60,6 +75,8 @@ class E320RootTrackReader : public IReader {
     std::string outputTrackParametersEst;
     /// Output track-specific mag field configurations
     std::string outputMagneticFieldParameters;
+    /// Collection with the event meta data
+    std::string outputEventMetaData;
     /// The names of the input files
     std::vector<std::string> filePaths;
     /// Name of the input tree
@@ -100,25 +117,25 @@ class E320RootTrackReader : public IReader {
   /// The config class
   Config m_cfg;
 
-  /// WriteDataHandle for the source links data
+  /// WriteDataHandles for the data
   WriteDataHandle<std::vector<Acts::SourceLink>> m_outputSourceLinks{
       this, "OutputSourceLinks"};
 
-  /// WriteDataHandle for the guess seed data
   WriteDataHandle<IndexSeeds> m_outputSeedsGuess{this, "SeedsGuess"};
 
   WriteDataHandle<std::vector<Acts::CurvilinearTrackParameters>>
       m_outputTrackParametersGuess{this, "OutputTrackParametersGuess"};
 
-  /// WriteDataHandle for the fitted seed data
   WriteDataHandle<IndexSeeds> m_outputSeedsEst{this, "SeedsEst"};
 
   WriteDataHandle<std::vector<Acts::CurvilinearTrackParameters>>
       m_outputTrackParametersEst{this, "OutputTrackParametersEst"};
 
-  /// WriteDataHandle for the mag field data
   WriteDataHandle<std::vector<std::shared_ptr<MagneticFieldStore>>>
       m_outputMagneticFieldParameters{this, "OutputMagneticFieldParameters"};
+
+  WriteDataHandle<E320RootDataReader::EventMetaData> m_outputEventMetaData{
+      this, "OutputMetaData"};
 
   /// Logging instance
   std::unique_ptr<const Acts::Logger> m_logger;

@@ -216,6 +216,8 @@ E320::E320RootTrackReader::E320RootTrackReader(const Config& config,
 
   m_outputMagneticFieldParameters.initialize(
       m_cfg.outputMagneticFieldParameters);
+
+  m_outputEventMetaData.initialize(m_cfg.outputEventMetaData);
 }
 
 std::pair<std::size_t, std::size_t> E320::E320RootTrackReader::availableEvents()
@@ -268,6 +270,8 @@ ProcessCode E320::E320RootTrackReader::read(const AlgorithmContext& ctx) {
 
   std::vector<std::shared_ptr<MagneticFieldStore>> magFieldStores;
 
+  E320RootDataReader::EventMetaData eventMetaData{};
+
   const auto& goInst = *E320::GeometryOptions::instance();
   std::size_t longIdx = goInst.longIdx;
   std::size_t shortIdx = goInst.shortIdx;
@@ -283,6 +287,18 @@ ProcessCode E320::E320RootTrackReader::read(const AlgorithmContext& ctx) {
   for (auto entry = std::get<1>(*it); entry < std::get<2>(*it); entry++) {
     m_tree->GetEntry(entry);
 
+    if (constraints.requireEpicsParity &&
+        m_epicsParity != constraints.requiredEpicsParity) {
+      continue;
+    }
+    if (m_chi2Predicted < constraints.minPredictedChi2 ||
+        m_chi2Predicted > constraints.maxPredictedChi2) {
+      continue;
+    }
+    if (m_chi2Filtered < constraints.minFilteredChi2 ||
+        m_chi2Filtered > constraints.maxFilteredChi2) {
+      continue;
+    }
     if (m_chi2Smoothed < constraints.minSmoothedChi2 ||
         m_chi2Smoothed > constraints.maxSmoothedChi2) {
       continue;
@@ -299,6 +315,31 @@ ProcessCode E320::E320RootTrackReader::read(const AlgorithmContext& ctx) {
         m_originMomentumEst->P() > constraints.maxAbsMomentumEst) {
       continue;
     }
+
+    bool passed = true;
+    for (std::size_t j = 0; j < m_smoothedHitResiduals->size(); j++) {
+      std::size_t geoId = m_geometryIds->at(j);
+      const auto& smoothedRes = m_smoothedHitResiduals->at(j);
+      const auto& [minResX, maxResX, minResY, maxResY] =
+          constraints.smoothedResidualsRanges.at(geoId);
+      if (smoothedRes.X() < minResX || smoothedRes.X() > maxResX ||
+          smoothedRes.Y() < minResY || smoothedRes.Y() > maxResY) {
+        passed = false;
+        break;
+      }
+    }
+    if (!passed) {
+      continue;
+    }
+
+    eventMetaData =
+        E320RootDataReader::EventMetaData{.eudaqTrgN = m_eudaqTrgN,
+                                          .eudaqDAQNumber = m_eudaqDAQNumber,
+                                          .eudaqRunStartTs = m_eudaqRunStartTs,
+                                          .eudaqRunEndTs = m_eudaqRunEndTs,
+                                          .epicsParity = m_epicsParity,
+                                          .epicsPulseId = m_epicsPulseId,
+                                          .epicsDAQNumber = m_epicsDAQNumber};
 
     // Magnetic fields
     auto mStore = std::make_shared<MagneticFieldStore>();
@@ -353,11 +394,6 @@ ProcessCode E320::E320RootTrackReader::read(const AlgorithmContext& ctx) {
 
     std::vector<std::size_t> trackSourceLinkIndices{};
     for (std::size_t i = 0; i < m_trackHitsGlobal->size(); i++) {
-      if (m_geometryIds->at(i) != 10 && m_geometryIds->at(i) != 12 &&
-          m_geometryIds->at(i) != 14) {
-        continue;
-      }
-
       if (m_constraintSurfacesGeoIds.contains(m_geometryIds->at(i))) {
         Acts::ActsVector<ExtendedLocalSize> measLocal(
             m_trackHitsLocal->at(i).X(), m_trackHitsLocal->at(i).Y(),
@@ -399,6 +435,8 @@ ProcessCode E320::E320RootTrackReader::read(const AlgorithmContext& ctx) {
         Acts::SquareMatrix2 trackHitCov;
         trackHitCov << m_trackHitCovs->at(i)(0, 0), m_trackHitCovs->at(i)(0, 1),
             m_trackHitCovs->at(i)(1, 0), m_trackHitCovs->at(i)(1, 1);
+
+        // trackHitCov = Acts::Vector2(5_um, 5_um).cwiseAbs2().asDiagonal();
 
         Acts::GeometryIdentifier geoId;
         geoId.setSensitive(m_geometryIds->at(i));
@@ -458,6 +496,8 @@ ProcessCode E320::E320RootTrackReader::read(const AlgorithmContext& ctx) {
   m_outputTrackParametersEst(ctx, std::move(trackParametersEst));
 
   m_outputMagneticFieldParameters(ctx, std::move(magFieldStores));
+
+  m_outputEventMetaData(ctx, std::move(eventMetaData));
 
   // Return success flag
   return ProcessCode::SUCCESS;
