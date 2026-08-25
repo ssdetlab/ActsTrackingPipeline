@@ -13,6 +13,7 @@
 #include "TVector3.h"
 #include "TVectorD.h"
 #include "TrackingPipeline/EventData/DataContainers.hpp"
+#include "TrackingPipeline/EventData/ExtendedSourceLink.hpp"
 #include "TrackingPipeline/Infrastructure/AlgorithmContext.hpp"
 #include "TrackingPipeline/Infrastructure/DataHandle.hpp"
 #include "TrackingPipeline/Infrastructure/IReader.hpp"
@@ -20,16 +21,23 @@
 
 class RootTrackReader : public IReader {
  public:
-  struct Constraints {
-    double minChi2;
-    double maxChi2;
+  /// Exntended sizes shorthands
+  static constexpr const std::size_t ExtendedLocalSize =
+      ExtendedSourceLink::localSubspaceSize;
+  static constexpr const std::size_t ExtendedGlobalSize =
+      ExtendedSourceLink::globalSubspaceSize;
 
+  /// @brief Cuts on the tracks read
+  struct Constraints {
+    /// Track smoothed chi2 range
+    double minSmoothedChi2;
+    double maxSmoothedChi2;
+    /// Transverse vertex range
     double minVertexEstLong;
     double maxVertexEstLong;
-
     double minVertexEstShort;
     double maxVertexEstShort;
-
+    /// Momentum range
     double minAbsMomentumEst;
     double maxAbsMomentumEst;
   };
@@ -50,10 +58,12 @@ class RootTrackReader : public IReader {
     std::vector<std::string> filePaths;
     /// Name of the input tree
     std::string treeName;
-    /// Cuts
+    /// Cuts on the read tracks
     Constraints constraints;
     /// Merge into a single event flag
     bool mergeIntoOneEvent;
+    /// Backwards propagation flag
+    bool backwards;
   };
 
   RootTrackReader(const RootTrackReader&) = delete;
@@ -61,7 +71,8 @@ class RootTrackReader : public IReader {
 
   /// @brief Constructor
   ///
-  /// @param config The Configuration struct
+  /// @param config configuration struct
+  /// @param level logging level
   RootTrackReader(const Config& config, Acts::Logging::Level level);
 
   /// Writer name() method
@@ -83,11 +94,11 @@ class RootTrackReader : public IReader {
   /// The config class
   Config m_cfg;
 
-  /// WriteDataHandle for the observable data
+  /// WriteDataHandle for the source links data
   WriteDataHandle<std::vector<Acts::SourceLink>> m_outputSourceLinks{
       this, "OutputSourceLinks"};
 
-  /// WriteDataHandle for the seed data
+  /// WriteDataHandle for the guess seed data
   WriteDataHandle<IndexSeeds> m_outputSeedsGuess{this, "SeedsGuess"};
 
   WriteDataHandle<std::vector<Acts::CurvilinearTrackParameters>>
@@ -99,6 +110,7 @@ class RootTrackReader : public IReader {
   WriteDataHandle<std::vector<Acts::CurvilinearTrackParameters>>
       m_outputTrackParametersEst{this, "OutputTrackParametersEst"};
 
+  /// Logging instance
   std::unique_ptr<const Acts::Logger> m_logger;
 
   /// Mutex used to protect multi-threaded reads
@@ -107,63 +119,65 @@ class RootTrackReader : public IReader {
   /// Vector of {eventNr, entryMin, entryMax}
   std::vector<std::tuple<std::size_t, std::size_t, std::size_t>> m_eventMap;
 
-  /// The input tree name
+  /// The IO handles
   TFile* m_file = nullptr;
   TTree* m_tree = nullptr;
   TChain* m_chainOwner = nullptr;
 
+  /// List of constraint surface IDs
+  std::unordered_set<std::size_t> m_constraintSurfacesGeoIds;
+
  protected:
-  /// Measurement hits
-  std::vector<TVector3>* m_trackHitsGlobal = nullptr;
+  /// Measurement hits in the surface frame
   std::vector<TVector2>* m_trackHitsLocal = nullptr;
+
+  /// Measurement hits in the global frame
+  std::vector<TVector3>* m_trackHitsGlobal = nullptr;
+
+  /// Direction measurements in the track frame
+  std::vector<TVector3>* m_onSurfaceTrackDirection = nullptr;
 
   /// Covariances of the track hits
   std::vector<TMatrixD>* m_trackHitCovs = nullptr;
 
+  /// Covariances of the track agnles
+  std::vector<TMatrixD>* m_trackAngleCovs = nullptr;
+
   /// Geometry ids of the track hits
   std::vector<std::size_t>* m_geometryIds = nullptr;
 
-  /// KF predicted track hits
-  std::vector<TVector3>* m_predictedTrackHitsGlobal = nullptr;
-  std::vector<TVector3>* m_filteredTrackHitsGlobal = nullptr;
-  std::vector<TVector3>* m_smoothedTrackHitsGlobal = nullptr;
-
+  /// KF predicted track hits in the surface frame
   std::vector<TVector2>* m_predictedTrackHitsLocal = nullptr;
   std::vector<TVector2>* m_filteredTrackHitsLocal = nullptr;
   std::vector<TVector2>* m_smoothedTrackHitsLocal = nullptr;
 
+  /// KF predicted track hits in the global frame
+  std::vector<TVector3>* m_predictedTrackHitsGlobal = nullptr;
+  std::vector<TVector3>* m_filteredTrackHitsGlobal = nullptr;
+  std::vector<TVector3>* m_smoothedTrackHitsGlobal = nullptr;
+
+  /// KF predicted on surface momenta in the track frame
+  std::vector<TLorentzVector>* m_predictedOnSurfaceMomentum = nullptr;
+  std::vector<TLorentzVector>* m_filteredOnSurfaceMomentum = nullptr;
+  std::vector<TLorentzVector>* m_smoothedOnSurfaceMomentum = nullptr;
+
   /// KF residuals with respect to the measurements
-  std::vector<TVector2>* m_predictedResiduals = nullptr;
-  std::vector<TVector2>* m_filteredResiduals = nullptr;
-  std::vector<TVector2>* m_smoothedResiduals = nullptr;
+  std::vector<TVector2>* m_predictedHitResiduals = nullptr;
+  std::vector<TVector2>* m_filteredHitResiduals = nullptr;
+  std::vector<TVector2>* m_smoothedHitResiduals = nullptr;
+
+  std::vector<TVector2>* m_predictedAngleResiduals = nullptr;
+  std::vector<TVector2>* m_filteredAngleResiduals = nullptr;
+  std::vector<TVector2>* m_smoothedAngleResiduals = nullptr;
 
   /// KF pulls with respect to the measurements
-  std::vector<TVector2>* m_predictedPulls = nullptr;
-  std::vector<TVector2>* m_filteredPulls = nullptr;
-  std::vector<TVector2>* m_smoothedPulls = nullptr;
+  std::vector<TVector2>* m_predictedHitPulls = nullptr;
+  std::vector<TVector2>* m_filteredHitPulls = nullptr;
+  std::vector<TVector2>* m_smoothedHitPulls = nullptr;
 
-  /// Chi2 of the track
-  /// with respect ot the
-  /// measurement
-  double m_chi2Predicted = 0;
-  double m_chi2Filtered = 0;
-  double m_chi2Smoothed = 0;
-
-  /// Number of degrees of freedom
-  /// of the track
-  std::size_t m_ndf = 0;
-
-  /// TrackId
-  std::size_t m_trackId = 0;
-
-  /// EventId
-  std::size_t m_eventId = 0;
-
-  /// PDG ID
-  int m_pdgId = 0;
-
-  /// Charge
-  int m_charge = 0;
+  std::vector<TVector2>* m_predictedAnglePulls = nullptr;
+  std::vector<TVector2>* m_filteredAnglePulls = nullptr;
+  std::vector<TVector2>* m_smoothedAnglePulls = nullptr;
 
   /// Guessed bound track parameters
   TVectorD* m_boundTrackParametersGuess = nullptr;
@@ -184,6 +198,29 @@ class RootTrackReader : public IReader {
 
   /// KF predicted vertex at the IP
   TVector3* m_vertexEst = nullptr;
+
+  /// Chi2 of the track
+  /// with respect ot the
+  /// measurement
+  double m_chi2Predicted = 0;
+  double m_chi2Filtered = 0;
+  double m_chi2Smoothed = 0;
+
+  /// Number of degrees of freedom
+  /// of the track
+  std::size_t m_ndf = 0;
+
+  /// Track ID
+  std::size_t m_trackId = 0;
+
+  /// Event ID
+  std::size_t m_eventId = 0;
+
+  /// PDG ID
+  int m_pdgId = 0;
+
+  /// Charge
+  int m_charge = 0;
 
   /// Mutex to protect the tree filling
   std::mutex m_mutex;
