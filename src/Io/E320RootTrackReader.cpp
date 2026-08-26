@@ -319,6 +319,9 @@ ProcessCode E320::E320RootTrackReader::read(const AlgorithmContext& ctx) {
     bool passed = true;
     for (std::size_t j = 0; j < m_smoothedHitResiduals->size(); j++) {
       std::size_t geoId = m_geometryIds->at(j);
+      if (!constraints.smoothedResidualsRanges.contains(geoId)) {
+        continue;
+      }
       const auto& smoothedRes = m_smoothedHitResiduals->at(j);
       const auto& [minResX, maxResX, minResY, maxResY] =
           constraints.smoothedResidualsRanges.at(geoId);
