@@ -90,7 +90,7 @@ materialDecorator = true
 skip = 0
 
 # Number of events
-events = 1000000
+events = 100
 
 # Number of threads
 numThreads = 1

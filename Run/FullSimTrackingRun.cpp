@@ -43,7 +43,7 @@
 #include "TrackingPipeline/TrackFinding/E320SeedingAlgorithm.hpp"
 #include "TrackingPipeline/TrackFinding/E320TrackParametersEstimator.hpp"
 #include "TrackingPipeline/TrackFinding/HoughTransformSeeder.hpp"
-#include "TrackingPipeline/TrackFitting/KFTrackFittingAlgorithm.hpp"
+#include "TrackingPipeline/TrackFitting/E320KFTrackFittingAlgorithm.hpp"
 #include "TrackingPipeline/TrackFitting/StraightLineGX2Fitter.hpp"
 #include "toml++/toml.hpp"
 
@@ -505,7 +505,7 @@ int main() {
       kfPropagator, Acts::getDefaultLogger("DetectorKalmanFilter", logLevel));
 
   // Add the track fitting algorithm to the sequencer
-  KFTrackFittingAlgorithm::Config fitterCfg{
+  E320::E320KFTrackFittingAlgorithm::Config fitterCfg{
       .inputTrackCandidates =
           getEntryStr("KFTrackFittingAlgorithm", "inputTrackCandidates"),
       .inputTrackParameters =
@@ -521,7 +521,7 @@ int main() {
       .referenceSurface = trackingRefSurface.get()};
 
   sequencer.addAlgorithm(
-      std::make_shared<KFTrackFittingAlgorithm>(fitterCfg, logLevel));
+      std::make_shared<E320::E320KFTrackFittingAlgorithm>(fitterCfg, logLevel));
 
   // --------------------------------------------------------------
   // Event write out
