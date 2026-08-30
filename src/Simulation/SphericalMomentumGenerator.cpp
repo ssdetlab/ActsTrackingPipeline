@@ -107,18 +107,16 @@ SphericalMomentumGenerator::SphericalMomentumGenerator(const Config& config)
 }
 
 Acts::Vector3 SphericalMomentumGenerator::genMomentum(RandomEngine& rng) const {
-  std::uniform_real_distribution<double> uniform(0, 1);
-
   double pMag = m_cfg.pRange.first +
-                (m_cfg.pRange.second - m_cfg.pRange.first) * uniform(rng);
+                (m_cfg.pRange.second - m_cfg.pRange.first) * m_uniform(rng);
 
   double phi = m_cfg.phiRange.first +
-               (m_cfg.phiRange.second - m_cfg.phiRange.first) * uniform(rng);
+               (m_cfg.phiRange.second - m_cfg.phiRange.first) * m_uniform(rng);
 
   double theta = std::acos(
       std::cos(m_cfg.thetaRange.first) -
       (std::cos(m_cfg.thetaRange.first) - std::cos(m_cfg.thetaRange.second)) *
-          uniform(rng));
+          m_uniform(rng));
 
   return pMag * Acts::Vector3(std::sin(theta) * std::cos(phi),
                               std::sin(theta) * std::sin(phi), std::cos(theta));

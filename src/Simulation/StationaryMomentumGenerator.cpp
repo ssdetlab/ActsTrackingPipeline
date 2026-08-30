@@ -10,7 +10,10 @@ Acts::Vector3 StationaryMomentumGenerator::genMomentum(
   return m_cfg.momentum;
 }
 
-Acts::SquareMatrix4 StationaryMomentumGenerator::getMomentumCovariance()
-    const {
+Acts::SquareMatrix4 StationaryMomentumGenerator::getMomentumCovariance() const {
   return m_cov;
+}
+
+Acts::Vector3 StationaryMomentumGenerator::getMomentumMean() const {
+  return m_cfg.momentum;
 }

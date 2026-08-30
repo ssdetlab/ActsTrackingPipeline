@@ -9,8 +9,14 @@
 #include "TrackingPipeline/Simulation/IMomentumGenerator.hpp"
 #include "TrackingPipeline/Simulation/detail/NormalKDE.hpp"
 
+/// @brief Class generating momentum vectors based on
+/// kernel-density-estimation technique with user-provided
+/// KDE sample
+///
+/// TODO: implement mean, covariance matrix, split away cpp
 class KDEMomentumGenerator : public IMomentumGenerator {
  public:
+  /// @brief Nested configuration struct
   struct Config {
     std::shared_ptr<ITrackParamsReader> trackParamsReader;
     std::size_t nIterations;
@@ -18,7 +24,10 @@ class KDEMomentumGenerator : public IMomentumGenerator {
     Acts::Transform3 transform;
   };
 
-  KDEMomentumGenerator(const Config& cfg) : m_cfg(cfg) {
+  /// @brief Constructor
+  ///
+  /// @param config configuration struct
+  explicit KDEMomentumGenerator(const Config& config) : m_cfg(config) {
     auto trackParams = m_cfg.trackParamsReader->read();
 
     std::vector<Acts::Vector3> sample;
@@ -31,6 +40,11 @@ class KDEMomentumGenerator : public IMomentumGenerator {
                                            m_cfg.sensitivity);
   }
 
+  /// @brief Generate momentum vector
+  ///
+  /// @param rng random engine for sampling
+  ///
+  /// @return Generated momentum vector
   Acts::Vector3 genMomentum(RandomEngine& rng) const override {
     Acts::Vector3 phiThetaE = m_kde->sample(rng);
     double phi = phiThetaE.x();
@@ -46,7 +60,9 @@ class KDEMomentumGenerator : public IMomentumGenerator {
   }
 
  private:
+  /// Configuration
   Config m_cfg;
 
+  /// Normal KDE instance
   std::unique_ptr<NormalKDE<3>> m_kde;
 };
