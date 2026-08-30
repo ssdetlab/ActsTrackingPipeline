@@ -6,6 +6,7 @@
 #include "TrackingPipeline/Infrastructure/DataHandle.hpp"
 #include "TrackingPipeline/Infrastructure/IAlgorithm.hpp"
 #include "TrackingPipeline/Simulation/IMeasurementGenerator.hpp"
+#include "TrackingPipeline/Simulation/IMultiplicityGenerator.hpp"
 
 /// @brief Algorithm performing fast simulation of a particle
 /// propagation and creating measurements on the geometry surfaces according to
@@ -16,6 +17,8 @@ class MeasurementsEmbeddingAlgorithm : public IAlgorithm {
   struct Config {
     /// Measurement generator
     std::shared_ptr<IMeasurementGenerator> measurementGenerator;
+    /// Event multiplicity generator
+    std::shared_ptr<IMultiplicityGenerator> multiplicityGenerator;
     /// Random number generator
     std::shared_ptr<RandomNumbers> randomNumberSvc;
     /// Input source links
@@ -30,8 +33,6 @@ class MeasurementsEmbeddingAlgorithm : public IAlgorithm {
     std::string outputSimClusters;
     /// Output source links indices
     std::string outputSourceLinkIndices;
-    /// Number of measurements
-    std::size_t nMeasurements;
   };
 
   /// @brief Constructor

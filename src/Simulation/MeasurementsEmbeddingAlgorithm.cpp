@@ -37,9 +37,11 @@ ProcessCode MeasurementsEmbeddingAlgorithm::execute(
   RandomEngine rng = m_cfg.randomNumberSvc->spawnGenerator();
 
   // Create the measurements
-  ACTS_DEBUG("Starting propagation of " << m_cfg.nMeasurements << " tracks");
+  std::size_t nMeasurements = m_cfg.multiplicityGenerator->genMultiplicity(rng);
+  ACTS_DEBUG("Starting propagation of " << nMeasurements << " tracks");
+
   std::size_t inputSize = inputSourceLinks.size();
-  std::size_t outputSize = inputSize + m_cfg.nMeasurements;
+  std::size_t outputSize = inputSize + nMeasurements;
   inputSourceLinks.reserve(outputSize);
   inputSimClusters.reserve(outputSize);
   inputSourceLinksIndices.reserve(outputSize);
