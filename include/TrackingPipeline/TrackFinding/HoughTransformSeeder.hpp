@@ -62,6 +62,8 @@ class HoughTransformSeeder {
     Acts::Vector3 lineDir;
     /// Seed source link indices
     std::vector<std::size_t> sourceLinkIdxs;
+    /// Number of cell intersection counts
+    std::size_t xCount;
   };
 
   /// @brief Constructor

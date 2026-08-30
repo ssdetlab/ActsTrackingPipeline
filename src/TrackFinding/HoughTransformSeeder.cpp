@@ -133,13 +133,8 @@ std::vector<HoughTransformSeeder::HTSeed> HoughTransformSeeder::findSeeds(
 
   for (auto bIt = votingMap.begin(); bIt != votingMap.end(); ++bIt) {
     const auto &[cell, count] = *bIt;
-    std::uint16_t lBound = 0;
-    std::uint16_t rBound = 0;
     if (count < opt.minXCount) {
       continue;
-    } else {
-      lBound = 2;
-      rBound = 2;
     }
     auto [nThetaLong, nRhoLong, nThetaShort, nRhoShort] = cell;
 
@@ -271,7 +266,7 @@ std::vector<HoughTransformSeeder::HTSeed> HoughTransformSeeder::findSeeds(
     point += shift;
 
     seeds.emplace_back(std::move(point), std::move(dir),
-                       std::move(seedSourceLinksIndices));
+                       std::move(seedSourceLinksIndices), count);
   }
   return seeds;
 }
