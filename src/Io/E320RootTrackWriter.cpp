@@ -174,6 +174,9 @@ E320::E320RootTrackWriter::E320RootTrackWriter(const Config& config,
   // Charge
   m_tree->Branch("charge", &m_charge, bufSize, splitLvl);
 
+  // HT cell intersections count
+  m_tree->Branch("xCount", &m_xCount, bufSize, splitLvl);
+
   //------------------------------------------------------------------
   // Initialize the data handles
   m_inputTrackContainer.initialize(m_cfg.inputTrackContainer);
@@ -276,6 +279,9 @@ ProcessCode E320::E320RootTrackWriter::write(const AlgorithmContext& ctx) {
     const auto& track = inputTrackContainer.getTrack(trackIndices.trackIndex);
 
     std::size_t nStates = track.nTrackStates();
+
+    // HT cell intersections count
+    m_xCount = trackIndices.xCount;
 
     // Measurement hits in the surface frame
     m_trackHitsLocal.clear();
