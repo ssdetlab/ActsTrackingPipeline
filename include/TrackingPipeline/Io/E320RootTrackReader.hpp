@@ -12,7 +12,7 @@
 #include "TTree.h"
 #include "TVector3.h"
 #include "TVectorD.h"
-#include "TrackingPipeline/EventData/DataContainers.hpp"
+#include "TrackingPipeline/EventData/E320DataContainers.hpp"
 #include "TrackingPipeline/EventData/ExtendedSourceLink.hpp"
 #include "TrackingPipeline/Infrastructure/AlgorithmContext.hpp"
 #include "TrackingPipeline/Infrastructure/DataHandle.hpp"
@@ -38,6 +38,9 @@ class E320RootTrackReader : public IReader {
     bool requireEpicsParity;
     /// Required EPICS parity
     E320RootDataReader::EpicsParity requiredEpicsParity;
+    /// Range of HT cell intersections counts
+    std::size_t minXCount;
+    std::size_t maxXCount;
     /// Track predicted chi2 range
     double minPredictedChi2;
     double maxPredictedChi2;
@@ -121,12 +124,12 @@ class E320RootTrackReader : public IReader {
   WriteDataHandle<std::vector<Acts::SourceLink>> m_outputSourceLinks{
       this, "OutputSourceLinks"};
 
-  WriteDataHandle<IndexSeeds> m_outputSeedsGuess{this, "SeedsGuess"};
+  WriteDataHandle<E320IndexSeeds> m_outputSeedsGuess{this, "SeedsGuess"};
 
   WriteDataHandle<std::vector<Acts::CurvilinearTrackParameters>>
       m_outputTrackParametersGuess{this, "OutputTrackParametersGuess"};
 
-  WriteDataHandle<IndexSeeds> m_outputSeedsEst{this, "SeedsEst"};
+  WriteDataHandle<E320IndexSeeds> m_outputSeedsEst{this, "SeedsEst"};
 
   WriteDataHandle<std::vector<Acts::CurvilinearTrackParameters>>
       m_outputTrackParametersEst{this, "OutputTrackParametersEst"};
@@ -264,6 +267,9 @@ class E320RootTrackReader : public IReader {
 
   /// Charge
   int m_charge = 0;
+
+  /// HT cell intersections count
+  std::size_t m_xCount = 0;
 
   /// Mutex to protect the tree filling
   std::mutex m_mutex;
