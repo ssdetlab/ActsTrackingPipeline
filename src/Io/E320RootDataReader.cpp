@@ -2,6 +2,7 @@
 
 #include "Acts/Definitions/Algebra.hpp"
 #include "Acts/EventData/SourceLink.hpp"
+#include <Acts/Utilities/MathHelpers.hpp>
 
 #include <cstddef>
 #include <stdexcept>
@@ -81,6 +82,9 @@ E320::E320RootDataReader::E320RootDataReader(const Config& config,
                 {3218, goInst.bpm1Parameters.geoId},
                 {3265, goInst.bpm2Parameters.geoId},
                 {3315, goInst.bpm3Parameters.geoId}};
+
+  // Initialize measurement error map
+  m_allpixErrors = goInst.allpixErrors;
 
   ACTS_DEBUG("Event range: " << availableEvents().first << " - "
                              << availableEvents().second);
@@ -172,8 +176,18 @@ ProcessCode E320::E320RootDataReader::read(const AlgorithmContext& ctx) {
               ctx.geoContext, hitLoc, Acts::Vector3::UnitX());
 
           // Estimate error from the cluster size
-          Acts::Vector2 stdDev(2 * goInst.pixelHalfX / std::sqrt(12 * size),
-                               2 * goInst.pixelHalfY / std::sqrt(12 * size));
+          Acts::Vector2 stdDev = Acts::Vector2::Zero();
+          if (m_cfg.measurementErrorModel == MeasurementErrorModel::Uniform) {
+            stdDev =
+                Acts::Vector2(2 * goInst.pixelHalfX / std::sqrt(12 * size),
+                              2 * goInst.pixelHalfY / std::sqrt(12 * size));
+          } else if (m_cfg.measurementErrorModel ==
+                     MeasurementErrorModel::Allpix2) {
+            auto [resX, resY] = m_allpixErrors.at(size);
+            stdDev = Acts::Vector2(resX, resY);
+          } else {
+            throw std::runtime_error("Unknown measurement error model");
+          }
           Acts::SquareMatrix2 cov = stdDev.cwiseProduct(stdDev).asDiagonal();
 
           // Fill the measurement

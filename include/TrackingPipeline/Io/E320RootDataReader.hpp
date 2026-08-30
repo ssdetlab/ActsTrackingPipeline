@@ -29,6 +29,9 @@ class E320RootDataReader : public IReader {
   /// @brief Epics parity enum
   enum EpicsParity : int { Even = 0, Odd = 1 };
 
+  /// @brief Measurement error model enum
+  enum MeasurementErrorModel : int { Uniform = 0, Allpix2 = 1 };
+
   /// @brief The nested configuration struct
   struct Config {
     /// Collection with the detector measurement data
@@ -49,6 +52,8 @@ class E320RootDataReader : public IReader {
     bool requireEpicsParity;
     /// Required Epics parity
     EpicsParity requiredEpicsParity;
+    /// Measurement error model
+    MeasurementErrorModel measurementErrorModel;
     /// Maximum detector occupancy
     std::size_t maxOccupancy;
     /// Geometry ID scope
@@ -125,6 +130,9 @@ class E320RootDataReader : public IReader {
 
   /// Geometry ID map between EUDAQ and ACTS
   std::unordered_map<std::uint8_t, std::size_t> m_geoIdMap;
+
+  /// Map of measurement cluster size to Allpix2 measurement errors
+  std::unordered_map<std::size_t, std::pair<double, double>> m_allpixErrors;
 
   /// The input tree handle
   TTree* m_tree = nullptr;
