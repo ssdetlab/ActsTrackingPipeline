@@ -40,12 +40,12 @@ ProcessCode E320SeedingAlgorithm::execute(const AlgorithmContext& ctx) const {
 
   if (inputDetSourceLinkIndices.empty()) {
     ACTS_DEBUG("Input is empty. Skipping");
-    m_outputSeeds(ctx, IndexSeeds());
+    m_outputSeeds(ctx, E320IndexSeeds());
     m_outputTrackParameters(ctx, {});
     return ProcessCode::SUCCESS;
   }
 
-  IndexSeeds outSeeds;
+  E320IndexSeeds outSeeds;
   std::vector<Acts::CurvilinearTrackParameters> outTrackParameters;
   std::vector<HoughTransformSeeder::HTSeed> htSeeds =
       m_cfg.htSeeder->findSeeds(ctx.geoContext, inputSourceLinks,
@@ -55,7 +55,7 @@ ProcessCode E320SeedingAlgorithm::execute(const AlgorithmContext& ctx) const {
   outSeeds.reserve(htSeeds.size() * m_cfg.maxLayers);
   outTrackParameters.reserve(htSeeds.size() * m_cfg.maxLayers);
   for (std::size_t i = 0; i < htSeeds.size(); i++) {
-    const auto& [point, dir, slIdxs] = htSeeds.at(i);
+    const auto& [point, dir, slIdxs, xCount] = htSeeds.at(i);
 
     detail::IdxTree::IdxContainer idxContainer;
     idxContainer.reserve(slIdxs.size());
@@ -108,7 +108,8 @@ ProcessCode E320SeedingAlgorithm::execute(const AlgorithmContext& ctx) const {
                                inputBpmSourceLinkIndices.end());
 
         outSeeds.emplace_back(std::move(sourceLinksIdxs),
-                              outTrackParameters.size(), outSeeds.size());
+                              outTrackParameters.size(), outSeeds.size(),
+                              xCount);
         outTrackParameters.push_back(trackParametersResult.value());
       }
     }

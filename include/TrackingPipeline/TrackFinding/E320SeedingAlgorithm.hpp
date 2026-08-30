@@ -4,7 +4,7 @@
 
 #include <cstddef>
 
-#include "TrackingPipeline/EventData/DataContainers.hpp"
+#include "TrackingPipeline/EventData/E320DataContainers.hpp"
 #include "TrackingPipeline/Infrastructure/DataHandle.hpp"
 #include "TrackingPipeline/Infrastructure/IAlgorithm.hpp"
 #include "TrackingPipeline/TrackFinding/HoughTransformSeeder.hpp"
@@ -71,7 +71,7 @@ class E320SeedingAlgorithm : public IAlgorithm {
       this, "InputBpmSourceLinkIndices"};
 
   /// Write data handles
-  WriteDataHandle<IndexSeeds> m_outputSeeds{this, "OutputSeeds"};
+  WriteDataHandle<E320IndexSeeds> m_outputSeeds{this, "OutputSeeds"};
 
   WriteDataHandle<std::vector<Acts::CurvilinearTrackParameters>>
       m_outputTrackParameters{this, "OutputTrackParameters"};
