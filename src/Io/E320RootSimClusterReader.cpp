@@ -11,12 +11,14 @@
 #include <cstddef>
 #include <stdexcept>
 #include <vector>
+#include <sys/stat.h>
 
 #include "TrackingPipeline/EventData/DataContainers.hpp"
 #include "TrackingPipeline/EventData/ExtendedSourceLink.hpp"
 #include "TrackingPipeline/EventData/SimpleSourceLink.hpp"
 #include "TrackingPipeline/Geometry/E320GeometryOptions.hpp"
 #include "TrackingPipeline/Infrastructure/ProcessCode.hpp"
+#include "TrackingPipeline/Infrastructure/TypeDefinitions.hpp"
 
 using namespace Acts::UnitLiterals;
 
@@ -191,6 +193,9 @@ ProcessCode E320RootSimClusterReader::read(const AlgorithmContext& ctx) {
     if (m_geoId < m_cfg.minGeoId || m_geoId > m_cfg.maxGeoId) {
       continue;
     }
+    if (m_cfg.onlySignalClusters && !static_cast<bool>(m_isSignal)) {
+      continue;
+    }
 
     Acts::GeometryIdentifier geoId;
     geoId.setSensitive(m_geoId);
@@ -244,6 +249,25 @@ ProcessCode E320RootSimClusterReader::read(const AlgorithmContext& ctx) {
       Acts::SquareMatrix2 clusterCov;
       clusterCov << (*m_clusterCov)(0, 0), (*m_clusterCov)(0, 1),
           (*m_clusterCov)(1, 0), (*m_clusterCov)(1, 1);
+
+      // --------------------------------------------------
+      std::size_t clSize = 0;
+      if (std::abs(std::sqrt(clusterCov(0, 0)) - 3.33208e-3) < 1e-4) {
+        clSize = 1;
+      }
+      if (std::abs(std::sqrt(clusterCov(0, 0)) - 4.73498e-3) < 1e-4) {
+        clSize = 2;
+      }
+      if (std::abs(std::sqrt(clusterCov(0, 0)) - 4.31227e-3) < 1e-4) {
+        clSize = 3;
+      }
+      if (std::abs(std::sqrt(clusterCov(0, 0)) - 4.90848e-3) < 1e-4) {
+        clSize = 4;
+      }
+      Acts::Vector2 stdDev(2 * 14.62e-3 / std::sqrt(12 * clSize),
+                           2 * 13.44e-3 / std::sqrt(12 * clSize));
+      clusterCov = stdDev.cwiseProduct(stdDev).asDiagonal();
+      // --------------------------------------------------
 
       SimpleSourceLink ssl(geoCenterLocal, geoCenterGlobal, clusterCov, geoId,
                            eventId, sourceLinks.size());

@@ -47,6 +47,8 @@ class E320RootSimClusterReader : public IReader {
     /// Geometry ID scope
     int minGeoId;
     int maxGeoId;
+    /// Flag to read only the signal clusters
+    bool onlySignalClusters;
     /// Wheter to employ surfaces for local to global conversion
     bool surfaceLocalToGlobal;
     /// Surface map for high-precision local to global conversion
