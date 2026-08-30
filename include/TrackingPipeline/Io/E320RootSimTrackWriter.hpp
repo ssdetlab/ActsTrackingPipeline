@@ -14,6 +14,7 @@
 #include "TVector3.h"
 #include "TVectorD.h"
 #include "TrackingPipeline/EventData/DataContainers.hpp"
+#include "TrackingPipeline/EventData/E320DataContainers.hpp"
 #include "TrackingPipeline/Infrastructure/AlgorithmContext.hpp"
 #include "TrackingPipeline/Infrastructure/DataHandle.hpp"
 #include "TrackingPipeline/Infrastructure/IWriter.hpp"
@@ -81,7 +82,7 @@ class E320RootSimTrackWriter : public IWriter {
   ReadDataHandle<KFFitterTrackContainer> m_inputTrackContainer{
       this, "InputTrackContainer"};
 
-  ReadDataHandle<IndexTracks> m_inputTracks{this, "InputTracks"};
+  ReadDataHandle<E320IndexTracks> m_inputTracks{this, "InputTracks"};
 
   ReadDataHandle<std::vector<Acts::CurvilinearTrackParameters>>
       m_inputTrackParametersGuesses{this, "InputTrackParametersGuesses"};
@@ -252,6 +253,9 @@ class E320RootSimTrackWriter : public IWriter {
 
   /// Charge
   int m_charge = 0;
+
+  /// HT cell intersections count
+  std::size_t m_xCount = 0;
 
   /// Mutex to protect the tree filling
   std::mutex m_mutex;
