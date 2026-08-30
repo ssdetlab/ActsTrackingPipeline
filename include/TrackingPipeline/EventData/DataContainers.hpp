@@ -65,8 +65,11 @@ using IndexSeeds = std::vector<IndexSeed>;
 
 /// @brief index-based track container
 struct IndexTrack {
+  /// Index inside the acts track container
   std::size_t trackIndex;
+  /// Index inside the guess origin parameters container
   std::size_t originParametersGuessIndex;
+  /// Track ID
   int trackId;
 };
 
