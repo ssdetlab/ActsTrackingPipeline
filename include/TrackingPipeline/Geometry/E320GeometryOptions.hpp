@@ -218,6 +218,9 @@ struct GeometryOptions {
 
   double pixelThickness;
 
+  /// Allpix2 measurement resolutions
+  std::unordered_map<std::size_t, std::pair<double, double>> allpixErrors;
+
   /// Volume spacing around the chips
   double chipVolumeHalfSpacing;
 

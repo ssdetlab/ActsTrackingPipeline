@@ -189,6 +189,20 @@ E320::GeometryOptions::GeometryOptions() {
 
   pixelThickness = getEntryDouble("TrackingChamber", "pixelThickness") * 1_um;
 
+  // Allpix2 measurement resolutions
+  const auto* allpixResolutions =
+      cfg["TrackingChamber"]["allpixResolution"].as_array();
+  for (auto it = allpixResolutions->begin(); it != allpixResolutions->end();
+       it++) {
+    const auto& entry = *it->as_table();
+    allpixErrors.insert(
+        {entry["clusterSize"].value<std::size_t>().value(),
+         {
+             entry["resolutionX"].value<double>().value() * 1_um,
+             entry["resolutionY"].value<double>().value() * 1_um,
+         }});
+  }
+
   // Volume spacing around the chips
   chipVolumeHalfSpacing =
       getEntryDouble("TrackingChamber", "chipVolumeHalfSpacing") * 1_mm;

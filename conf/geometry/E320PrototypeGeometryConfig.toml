@@ -159,6 +159,47 @@ chip2GeometryId = 14
 chip3GeometryId = 16
 chip4GeometryId = 18
 
+# Allpix2 chip resolutions
+[[TrackingChamber.allpixResolution]]
+# Size of the pixel cluster
+clusterSize = 1
+
+# Resolution X [um]
+resolutionX = 3.33208 
+
+# Resolution Y [um]
+resolutionY = 3.95262
+
+[[TrackingChamber.allpixResolution]]
+# Size of the pixel cluster
+clusterSize = 2
+
+# Resolution X [um]
+resolutionX = 4.73498
+
+# Resolution Y [um]
+resolutionY = 4.44654
+
+[[TrackingChamber.allpixResolution]]
+# Size of the pixel cluster
+clusterSize = 3
+
+# Resolution X [um]
+resolutionX = 4.31227
+
+# Resolution Y [um]
+resolutionY = 4.17356
+
+[[TrackingChamber.allpixResolution]]
+# Size of the pixel cluster
+clusterSize = 4
+
+# Resolution X [um]
+resolutionX = 4.90848
+
+# Resolution Y [um]
+resolutionY = 5.09384
+
 [Magnets]
 # --------------------------------------------------------------
 # Parameters of the composite field
@@ -220,16 +261,16 @@ quad3CenterShort = -3.546
 
 # Quad gradients [T/m]
 # quad1Gradient = 0  # Test
-# quad1Gradient = -2.406  # 2.0 GeV
-quad1Gradient = -4.36  # 3.5 GeV
+quad1Gradient = -2.406  # 2.0 GeV
+# quad1Gradient = -4.36  # 3.5 GeV
 
 # quad2Gradient = 0  # Test
-# quad2Gradient = 3.656  # 2.0 GeV
-quad2Gradient = 6.46  # 3.5 GeV
+quad2Gradient = 3.656  # 2.0 GeV
+# quad2Gradient = 6.46  # 3.5 GeV
 
 # quad3Gradient = 0  # Test
-# quad3Gradient = -2.406  # 2.0 GeV
-quad3Gradient = -4.36  # 3.5 GeV
+quad3Gradient = -2.406  # 2.0 GeV
+# quad3Gradient = -4.36  # 3.5 GeV
 
 # --------------------------------------------------------------
 # Parameters of the x-corrector
@@ -254,18 +295,18 @@ xCorrectorCenterShort = 0
 
 # Local alignment
 # xCorrectorFieldStrength = 0.026 # Bottom
-# xCorrectorFieldStrength = 0 # Center
+# xCorrectorFieldStrength = -0.03 # Center
 # xCorrectorFieldStrength = -0.02 # Top
 
 # Global alignment 2.0 GeV
-# xCorrectorFieldStrength = 0 # Test
+xCorrectorFieldStrength = -0.01497 # Test
 # xCorrectorFieldStrength = 0.0 # Bottom
 # xCorrectorFieldStrength = -0.02 # Center
 # xCorrectorFieldStrength = -0.04 # Top
 
 # Global alignment 3.5 GeV
 # xCorrectorFieldStrength = 0.01 # Bottom
-xCorrectorFieldStrength = -0.04  # Center
+# xCorrectorFieldStrength = -0.04  # Center
 # xCorrectorFieldStrength = -0.09 # Top
 
 # --------------------------------------------------------------
@@ -290,16 +331,16 @@ dipoleCenterShort = 0
 
 # Local alignment
 # dipoleFieldStrength = -0.1651 # Bottom
-# dipoleFieldStrength = -0.1851 # Center
+# dipoleFieldStrength = -0.35 # Center
 # dipoleFieldStrength = -0.2051 # Top
 
 # Global alignment 2.0 GeV
-# dipoleFieldStrength = 0 # Test
+dipoleFieldStrength = -0.1751 # Test
 # dipoleFieldStrength = -0.19 # Bottom
 # dipoleFieldStrength = -0.2151 # Center
 # dipoleFieldStrength = -0.24 # Top
 
 # Global alignment 3.5 GeV
 # dipoleFieldStrength = -0.33  # Bottom
-dipoleFieldStrength = -0.375 # Center
+# dipoleFieldStrength = -0.375 # Center
 # dipoleFieldStrength = -0.415 # Top
