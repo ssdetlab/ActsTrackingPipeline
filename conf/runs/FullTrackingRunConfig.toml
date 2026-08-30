@@ -33,7 +33,7 @@ treeName = "alignment-parameters"
 # Input file path
 filePath = """
 /home/romanurmanov/work/E320/E320Prototype/E320Prototype_analysis/data/\
-alignment/local_2026_data/it1/alignment-parameters.root\
+alignment/local_2026_data/ht_test/sig/aligned/alignment-parameters.root\
 """
 
 [Geometry]
@@ -43,17 +43,17 @@ materialDecorator = true
 
 # Use alignment provider for the 
 # transform initialization
-alignmentProvider = true
+alignmentProvider = false
 
 [Sequencer]
 # Event skip
 skip = 0
 
 # Number of events
-events = 1000
+events = 1000000
 
 # Number of threads
-numThreads = 1
+numThreads = 32
 
 # FPE tracking
 trackFpes = false
@@ -63,7 +63,7 @@ trackFpes = false
 inDirMagnets = """
 /home/romanurmanov/work/E320/E320Prototype/\
 E320Prototype_dataInRootFormat/local_alignment_data/processed/\
-sig\
+bkg\
 """
 
 # Input tree name
@@ -74,7 +74,7 @@ treeName = "magnets"
 inDirClusters = """
 /home/romanurmanov/work/E320/E320Prototype/\
 E320Prototype_dataInRootFormat/local_alignment_data/processed/\
-sig\
+bkg\
 """
 
 # WhiteBoard name of the output source links
@@ -96,12 +96,17 @@ treeName = "data"
 eventKey = "event"
 
 # Read event of only specific EPICS parity
-requireEpicsParity = true
+requireEpicsParity = false
 
 # Required EPICS parity 
 # Even = 0
 # Odd = 1
 requiredEpicsParity = 1
+
+# Flag to select the measurement error model
+# Uniform = 0
+# Allpix2 = 1
+measurementErrorModel = 1
 
 # Cut on the maximum tracker occupancy
 maxOccupancy = 1000
@@ -124,8 +129,8 @@ propDirection = 0
 nCellsThetaShort = 500
 
 # Number of HT bins along rho short axis
-# nCellsRhoShort = 500
-nCellsRhoShort = 2000
+nCellsRhoShort = 500
+# nCellsRhoShort = 2000
 
 # Number of HT bins along theta long axis
 nCellsThetaLong = 500

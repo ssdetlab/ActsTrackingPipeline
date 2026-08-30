@@ -12,6 +12,7 @@
 #include "Acts/TrackFitting/KalmanFitter.hpp"
 #include "Acts/Utilities/Logger.hpp"
 
+#include <cstddef>
 #include <filesystem>
 #include <iostream>
 #include <memory>
@@ -22,11 +23,14 @@
 #include "TrackingPipeline/Alignment/ActsAlignmentFunction.hpp"
 #include "TrackingPipeline/Alignment/AlignmentAlgorithm.hpp"
 #include "TrackingPipeline/Alignment/AlignmentContext.hpp"
+#include "TrackingPipeline/Alignment/E320MinuitLocalAlignmentFunction.hpp"
 #include "TrackingPipeline/Alignment/LinearAnnealingScheduler.hpp"
 #include "TrackingPipeline/Alignment/LocalAlignmentParametersSolverConstraints.hpp"
 #include "TrackingPipeline/Alignment/LocalAlignmentParametersSolverSVD.hpp"
 #include "TrackingPipeline/Alignment/LocalAlignmentTransformUpdater.hpp"
 #include "TrackingPipeline/Alignment/detail/AlignmentStoreBuilders.hpp"
+#include "TrackingPipeline/EventData/MixedSourceLinkCalibrator.hpp"
+#include "TrackingPipeline/EventData/MixedSourceLinkSurfaceAccessor.hpp"
 #include "TrackingPipeline/EventData/SimpleSourceLink.hpp"
 #include "TrackingPipeline/Geometry/E320Geometry.hpp"
 #include "TrackingPipeline/Geometry/E320GeometryOptions.hpp"
@@ -35,7 +39,7 @@
 #include "TrackingPipeline/Infrastructure/TypeDefinitions.hpp"
 #include "TrackingPipeline/Io/AlignmentParametersWriter.hpp"
 #include "TrackingPipeline/Io/E320RootTrackReader.hpp"
-#include "TrackingPipeline/Io/RootTrackWriter.hpp"
+#include "TrackingPipeline/Io/E320RootTrackWriter.hpp"
 #include "TrackingPipeline/TrackFinding/E320TrackParametersEstimator.hpp"
 #include "TrackingPipeline/TrackFitting/KFTrackFittingAlgorithm.hpp"
 #include "toml++/toml.hpp"
@@ -124,7 +128,7 @@ int main() {
       const auto& geoId = surf->geometryId();
       if (geoId.sensitive() != 0u) {
         if (geoId.sensitive() >= goInst.tcParameters.front().geoId &&
-            geoId.sensitive() <= goInst.tcParameters.at(2).geoId) {
+            geoId.sensitive() <= goInst.tcParameters.back().geoId) {
           gx2FitterSurfaceMap[geoId] = surf;
           initialTrackStateFitSurfaces.insert(geoId);
           alignmentFitSurfaces.insert(geoId);
@@ -221,7 +225,23 @@ int main() {
 
   // --------------------------------------------------------------
   // Event reading
-  SimpleSourceLink::SurfaceAccessor surfaceAccessor{detector.get()};
+
+  // Mixed surface accessor
+  SimpleSourceLink::SurfaceAccessor simpleSurfaceAccessor{detector.get()};
+  ExtendedSourceLink::SurfaceAccessor extendedSurfaceAccessor{detector.get()};
+  MixedSourceLinkSurfaceAccessor mixedSurfaceAccessor;
+  mixedSurfaceAccessor.connect<&SimpleSourceLink::SurfaceAccessor::operator(),
+                               SimpleSourceLink>(&simpleSurfaceAccessor);
+  mixedSurfaceAccessor.connect<&ExtendedSourceLink::SurfaceAccessor::operator(),
+                               ExtendedSourceLink>(&extendedSurfaceAccessor);
+
+  // Mixed calibrator
+  MixedSourceLinkCalibrator<KFFitterTrajectory> mixedCalibrator;
+  mixedCalibrator.connect<&simpleSourceLinkCalibrator<KFFitterTrajectory>,
+                          SimpleSourceLink>();
+  mixedCalibrator.connect<
+      &extendedSourceLinkBackwardsPhiCorrectionCalibrator<KFFitterTrajectory>,
+      ExtendedSourceLink>();
 
   // Setup the sequencer
   Sequencer::Config seqCfg;
@@ -237,15 +257,31 @@ int main() {
 
   // Add the sim data reader
   E320::E320RootTrackReader::Constraints readerConstraints{};
+  readerConstraints.requireEpicsParity =
+      getEntryBool("E320RootTrackReader", "requireEpicsParity");
+  readerConstraints.requiredEpicsParity = E320::E320RootDataReader::EpicsParity(
+      getEntrySizeT("E320RootTrackReader", "requiredEpicsParity"));
+  readerConstraints.minXCount =
+      getEntryDouble("E320RootTrackReader", "minXCount");
+  readerConstraints.maxXCount =
+      getEntryDouble("E320RootTrackReader", "maxXCount");
+  readerConstraints.minPredictedChi2 =
+      getEntryDouble("E320RootTrackReader", "minPredictedChi2");
+  readerConstraints.maxPredictedChi2 =
+      getEntryDouble("E320RootTrackReader", "maxPredictedChi2");
+  readerConstraints.minFilteredChi2 =
+      getEntryDouble("E320RootTrackReader", "minFilteredChi2");
+  readerConstraints.maxFilteredChi2 =
+      getEntryDouble("E320RootTrackReader", "maxFilteredChi2");
   readerConstraints.minSmoothedChi2 =
       getEntryDouble("E320RootTrackReader", "minSmoothedChi2");
   readerConstraints.maxSmoothedChi2 =
       getEntryDouble("E320RootTrackReader", "maxSmoothedChi2");
+
   readerConstraints.minVertexEstLong =
       getEntryDouble("E320RootTrackReader", "minVertexEstLong");
   readerConstraints.maxVertexEstLong =
       getEntryDouble("E320RootTrackReader", "maxVertexEstLong");
-
   readerConstraints.minVertexEstShort =
       getEntryDouble("E320RootTrackReader", "minVertexEstShort");
   readerConstraints.maxVertexEstShort =
@@ -255,6 +291,20 @@ int main() {
       getEntryDouble("E320RootTrackReader", "minAbsMomentumEst");
   readerConstraints.maxAbsMomentumEst =
       getEntryDouble("E320RootTrackReader", "maxAbsMomentumEst");
+
+  const auto* residualsRanges =
+      runCfg["E320RootTrackReader"]["smoothedResidualsRange"].as_array();
+  for (auto it = residualsRanges->begin(); it != residualsRanges->end(); it++) {
+    const auto& entry = *it->as_table();
+    readerConstraints.smoothedResidualsRanges.insert(
+        {entry["geoId"].value<std::size_t>().value(),
+         {
+             entry["minSmoothedResidualX"].value<double>().value(),
+             entry["maxSmoothedResidualX"].value<double>().value(),
+             entry["minSmoothedResidualY"].value<double>().value(),
+             entry["maxSmoothedResidualY"].value<double>().value(),
+         }});
+  }
 
   E320::E320RootTrackReader::Config readerCfg;
   readerCfg.treeName = getEntryStr("E320RootTrackReader", "treeName");
@@ -270,6 +320,8 @@ int main() {
       getEntryStr("E320RootTrackReader", "outputTrackParametersEst");
   readerCfg.outputMagneticFieldParameters =
       getEntryStr("E320RootTrackReader", "outputMagneticFieldParameters");
+  readerCfg.outputEventMetaData =
+      getEntryStr("E320RootTrackReader", "outputEventMetaData");
   readerCfg.constraints = readerConstraints;
   readerCfg.mergeIntoOneEvent =
       getEntryBool("E320RootTrackReader", "mergeIntoOneEvent");
@@ -347,7 +399,8 @@ int main() {
   Acts::KalmanFitterExtensions<KFFitterTrajectory> alignmentExtensions;
   // Add calibrator
   alignmentExtensions.calibrator
-      .connect<&simpleSourceLinkCalibrator<KFFitterTrajectory>>();
+      .connect<&MixedSourceLinkCalibrator<KFFitterTrajectory>::operator()>(
+          &mixedCalibrator);
   // Add the updater
   alignmentExtensions.updater
       .connect<&KFFitterGainUpdater::operator()<KFFitterTrajectory>>(
@@ -358,8 +411,8 @@ int main() {
           &alignmentKFSmoother);
   // Add the surface accessor
   alignmentExtensions.surfaceAccessor
-      .connect<&SimpleSourceLink::SurfaceAccessor::operator()>(
-          &surfaceAccessor);
+      .connect<&MixedSourceLinkSurfaceAccessor::operator()>(
+          &mixedSurfaceAccessor);
 
   // GX2 fitter setup
   Acts::GeometryIdentifier gx2StartSurfaceGeoId;
@@ -418,17 +471,20 @@ int main() {
 
   // Alignment parameters solver
 
-  LocalAlignmentParametersSolverConstraints::Config alignmentSolverCfg{};
-  alignmentSolverCfg.alignmentMask = alignmentMask;
-  LocalAlignmentParametersSolverConstraints alignmentSolver(alignmentSolverCfg,
-                                                            logLevel);
-
-  // LocalAlignmentParametersSolverSVD::Config alignmentSolverCfg{};
+  // LocalAlignmentParametersSolverConstraints::Config alignmentSolverCfg{};
   // alignmentSolverCfg.alignmentMask = alignmentMask;
-  // alignmentSolverCfg.maxSingularValueTol = 1e-5;
-  // alignmentSolverCfg.singularValueGapTol = 9e-1;
-  // LocalAlignmentParametersSolverSVD alignmentSolver(alignmentSolverCfg,
-  //                                                   logLevel);
+  // LocalAlignmentParametersSolverConstraints
+  // alignmentSolver(alignmentSolverCfg,
+  //                                                           logLevel);
+
+  LocalAlignmentParametersSolverSVD::Config alignmentSolverCfg{};
+  alignmentSolverCfg.alignmentMask = alignmentMask;
+  alignmentSolverCfg.maxSingularValueTol = getEntryDouble(
+      "LocalAlignmentParametersSolverSVD", "maxSingularValueTol");
+  alignmentSolverCfg.singularValueGapTol = getEntryDouble(
+      "LocalAlignmentParametersSolverSVD", "singularValueGapTol");
+  LocalAlignmentParametersSolverSVD alignmentSolver(alignmentSolverCfg,
+                                                    logLevel);
 
   // Number of refitting iterations
   std::size_t nRefittingIt = 1;
@@ -453,7 +509,7 @@ int main() {
   alignmentFunctionCfg.trackParametersEstimator = trackParametersEstimator;
 
   alignmentFunctionCfg.alignmentParametersSolver.connect<
-      &LocalAlignmentParametersSolverConstraints::calculateAlignmentParameters>(
+      &LocalAlignmentParametersSolverSVD::calculateAlignmentParameters>(
       &alignmentSolver);
 
   alignmentFunctionCfg.alignmentTransformUpdater
@@ -464,16 +520,51 @@ int main() {
     const auto& surface = det->surface();
     const auto& geoId = surface.geometryId().sensitive();
     if (geoId != 0u &&
-        surface.geometryId().sensitive() > goInst.tcParameters.front().geoId &&
-        // surface.geometryId().sensitive() <= goInst.tcParameters.back().geoId)
-        // {
-        surface.geometryId().sensitive() <= goInst.tcParameters.at(2).geoId) {
+        surface.geometryId().sensitive() >= goInst.tcParameters.front().geoId &&
+        surface.geometryId().sensitive() <= goInst.tcParameters.back().geoId) {
       alignmentFunctionCfg.alignedDetElements.push_back(det.get());
     }
   }
 
   auto alignmentFunction =
       std::make_shared<ActsAlignmentFunction>(alignmentFunctionCfg);
+
+  // // Alignment function
+  // E320::E320MinuitLocalAlignmentFunction::Config alignmentFunctionCfg;
+  // alignmentFunctionCfg.detector = detector.get();
+  // alignmentFunctionCfg.magneticField = field;
+  // alignmentFunctionCfg.alignmentStore = aStore;
+  // alignmentFunctionCfg.kfExtensions = alignmentExtensions;
+  // alignmentFunctionCfg.kfReferenceSurface = trackingRefSurface.get();
+  // alignmentFunctionCfg.maxKFSteps = 100000;
+  // alignmentFunctionCfg.trackParametersEstimator = trackParametersEstimator;
+  // alignmentFunctionCfg.initialPars = Acts::ActsVector<12>::Zero();
+  // alignmentFunctionCfg.initialParSteps =
+  //     Acts::ActsVector<12>(10e-3, 10e-3, 1e-3, 10e-3, 10e-3, 1e-3, 10e-3,
+  //     10e-3,
+  //                          1e-3, 10e-3, 10e-3, 1e-3);
+  // alignmentFunctionCfg.parLowBounds =
+  //     Acts::ActsVector<12>(-5e-1, -5e-1, -1e-2, -5e-1, -5e-1, -1e-2, -5e-1,
+  //                          -5e-1, -1e-2, -5e-1, -5e-1, -1e-2);
+  // alignmentFunctionCfg.parHighBounds = Acts::ActsVector<12>(
+  //     5e-1, 5e-1, 1e-2, 5e-1, 5e-1, 1e-2, 5e-1, 5e-1, 1e-2, 5e-1, 5e-1,
+  //     1e-2);
+  // alignmentFunctionCfg.upLevel = 1.0;
+
+  // for (auto& det : detector->detectorElements()) {
+  //   const auto& surface = det->surface();
+  //   const auto& geoId = surface.geometryId().sensitive();
+  //   if (geoId != 0u &&
+  //       surface.geometryId().sensitive() > goInst.tcParameters.front().geoId
+  //       && surface.geometryId().sensitive() <=
+  //       goInst.tcParameters.back().geoId) {
+  //     alignmentFunctionCfg.alignedDetElements.push_back(det.get());
+  //   }
+  // }
+
+  // auto alignmentFunction =
+  //     std::make_shared<E320::E320MinuitLocalAlignmentFunction>(
+  //         alignmentFunctionCfg, logLevel);
 
   // Alignment algorithm
   AlignmentAlgorithm::Config alignmentCfg;
@@ -506,7 +597,8 @@ int main() {
   Acts::KalmanFitterExtensions<KFFitterTrajectory> kfExtensions;
   // Add calibrator
   kfExtensions.calibrator
-      .connect<&simpleSourceLinkCalibrator<KFFitterTrajectory>>();
+      .connect<&MixedSourceLinkCalibrator<KFFitterTrajectory>::operator()>(
+          &mixedCalibrator);
   // Add the updater
   kfExtensions.updater
       .connect<&KFFitterGainUpdater::operator()<KFFitterTrajectory>>(
@@ -517,15 +609,15 @@ int main() {
           &kfSmoother);
   // Add the surface accessor
   kfExtensions.surfaceAccessor
-      .connect<&SimpleSourceLink::SurfaceAccessor::operator()>(
-          &surfaceAccessor);
+      .connect<&MixedSourceLinkSurfaceAccessor::operator()>(
+          &mixedSurfaceAccessor);
 
-  Navigator::Config cfg;
-  cfg.detector = detector.get();
-  cfg.resolvePassive = false;
-  cfg.resolveMaterial = true;
-  cfg.resolveSensitive = true;
-  Navigator kfNavigator(cfg,
+  Navigator::Config navigatorCfg;
+  navigatorCfg.detector = detector.get();
+  navigatorCfg.resolvePassive = false;
+  navigatorCfg.resolveMaterial = true;
+  navigatorCfg.resolveSensitive = true;
+  Navigator kfNavigator(navigatorCfg,
                         Acts::getDefaultLogger("DetectorNavigator", logLevel));
 
   Acts::EigenStepper<> kfStepper(std::move(field));
@@ -559,21 +651,24 @@ int main() {
   // Event write out
 
   // Fitted track writer
-  RootTrackWriter::Config trackWriterCfg;
+  E320::E320RootTrackWriter::Config trackWriterCfg;
   trackWriterCfg.surfaceAccessor
-      .connect<&SimpleSourceLink::SurfaceAccessor::operator()>(
-          &surfaceAccessor);
+      .connect<&MixedSourceLinkSurfaceAccessor::operator()>(
+          &mixedSurfaceAccessor);
   trackWriterCfg.referenceSurface = trackingRefSurface.get();
   trackWriterCfg.inputTrackContainer =
-      getEntryStr("RootTrackWriter", "inputTrackContainer");
-  trackWriterCfg.inputTracks = getEntryStr("RootTrackWriter", "inputTracks");
+      getEntryStr("E320RootTrackWriter", "inputTrackContainer");
+  trackWriterCfg.inputTracks =
+      getEntryStr("E320RootTrackWriter", "inputTracks");
   trackWriterCfg.inputTrackParametersGuesses =
-      getEntryStr("RootTrackWriter", "inputTrackParametersGuesses");
-  trackWriterCfg.treeName = getEntryStr("RootTrackWriter", "treeName");
-  trackWriterCfg.filePath = getEntryStr("RootTrackWriter", "filePath");
+      getEntryStr("E320RootTrackWriter", "inputTrackParametersGuesses");
+  trackWriterCfg.inputEventMetaData =
+      getEntryStr("E320RootTrackWriter", "inputEventMetaData");
+  trackWriterCfg.treeName = getEntryStr("E320RootTrackWriter", "treeName");
+  trackWriterCfg.filePath = getEntryStr("E320RootTrackWriter", "filePath");
 
   sequencer.addWriter(
-      std::make_shared<RootTrackWriter>(trackWriterCfg, logLevel));
+      std::make_shared<E320::E320RootTrackWriter>(trackWriterCfg, logLevel));
 
   // Alignment parameters writer
   AlignmentParametersWriter::Config alignmentWriterCfg;

@@ -34,56 +34,76 @@ Uniform_DirectZ_Tracker_PDCWindow_256x128_1e6/material.json\
 # # Global alignment angles [mrad]
 # globalAngleZ = 0
 
-# # Local alignment shifts [um]
-# localShiftY10 = 0
-# localShiftY12 = 0
-# localShiftY14 = 0
-# localShiftY16 = 0
-# localShiftY18 = 0
-# 
-# localShiftZ10 = 0
-# localShiftZ12 = 0
-# localShiftZ14 = 0
-# localShiftZ16 = 0
-# localShiftZ18 = 0
-# 
-# # Local alignment angles [mrad]
-# localAngleZ10 = 0
-# localAngleZ12 = 0
-# localAngleZ14 = 0
-# localAngleZ16 = 0
-# localAngleZ18 = 0
+# Local alignment shifts [um]
+localShiftY10 = 0
+localShiftY12 = 0
+localShiftY14 = 0
+localShiftY16 = 0
+localShiftY18 = 0
+
+localShiftZ10 = 0
+localShiftZ12 = 0
+localShiftZ14 = 0
+localShiftZ16 = 0
+localShiftZ18 = 0
+
+# Local alignment angles [mrad]
+localAngleZ10 = 0
+localAngleZ12 = 0
+localAngleZ14 = 0
+localAngleZ16 = 0
+localAngleZ18 = 0
 
 # Global alignment shifts [mm]
-globalShiftY = 10
-globalShiftZ = -5
+globalShiftY = -2.5
+globalShiftZ = -4.5
 
 # Global alignment angles [mrad]
 globalAngleZ = -2 
 
-# Local alignment shifts [um]
-localShiftY10 = 30
-localShiftY12 = -40
-localShiftY14 = -40
-localShiftY16 = 30
-localShiftY18 = 20
+# # Local alignment shifts [um]
+# localShiftY10 = 87.1378
+# localShiftY12 = -42.9543
+# localShiftY14 = -85.2652
+# localShiftY16 = -49.1208
+# localShiftY18 = 90.2019
+# 
+# localShiftZ10 = 79.183
+# localShiftZ12 = -51.5106
+# localShiftZ14 = -54.0668
+# localShiftZ16 = -54.0977
+# localShiftZ18 = 80.4914
+# 
+# # Local alignment angles [mrad]
+# localAngleZ10 = -0.778647
+# localAngleZ12 = 1.0279
+# localAngleZ14 = -3.05136
+# localAngleZ16 = -0.461109
+# localAngleZ18 = -3.25102
 
-localShiftZ10 = -20
-localShiftZ12 = 50
-localShiftZ14 = 40
-localShiftZ16 = -40
-localShiftZ18 = -30
-
-# Local alignment angles [mrad]
-localAngleZ10 = 1
-localAngleZ12 = -1
-localAngleZ14 = -2
-localAngleZ16 = 1
-localAngleZ18 = 1
+# Noam's alignment
+# localShiftY10 = 0
+# localShiftY12 = 39.3
+# localShiftY14 = -53.9
+# localShiftY16 = -64.2
+# localShiftY18 = 27.5
+# 
+# localShiftZ10 = 0
+# localShiftZ12 = 23.5
+# localShiftZ14 = -28.8
+# localShiftZ16 = -64.9
+# localShiftZ18 = 24.6
+# 
+# # Local alignment angles [mrad]
+# localAngleZ10 = 0
+# localAngleZ12 = -1.8
+# localAngleZ14 = 1.6
+# localAngleZ16 = -1.5
+# localAngleZ18 = 0.5
 
 # Use material decorator for the 
 # material description
-materialDecorator = false
+materialDecorator = true
 
 [Sequencer]
 # Event skip
@@ -117,11 +137,11 @@ vertexResolution = 30
 
 [SphericalMomentumGenerator]
 # Absolute momentum range [GeV]
-minAbsoluteMomentum = 3.0
-maxAbsoluteMomentum = 4.0
+# minAbsoluteMomentum = 3.0
+# maxAbsoluteMomentum = 4.0
 
-# minAbsoluteMomentum = 1.5
-# maxAbsoluteMomentum = 2.5
+minAbsoluteMomentum = 1.5
+maxAbsoluteMomentum = 2.5
 
 # Phi angle range [mrad]
 minPhi = -1
@@ -141,6 +161,58 @@ constraintSurfaceResolutionY = 200
 # for tracking detector surfaces [um]
 trackingSurfaceResolutionX = 5
 trackingSurfaceResolutionY = 5
+
+[[ClusterSizeBasedDigitizer]]
+# Size of the simulated cluster [N pix]
+clusterSize = 1
+
+# Sampling probability of the size
+samplingProb = 0.168115
+
+# Hit X resolution in local surface frame [um]
+resolutionX = 3.33208
+
+# Hit Y resolution in local surface frame [um]
+resolutionY = 3.95262
+
+[[ClusterSizeBasedDigitizer]]
+# Size of the simulated cluster [N pix]
+clusterSize = 2
+
+# Sampling probability of the size
+samplingProb = 0.284536
+
+# Hit X resolution in local surface frame [um]
+resolutionX = 4.73498
+
+# Hit Y resolution in local surface frame [um]
+resolutionY = 4.44654
+
+[[ClusterSizeBasedDigitizer]]
+# Size of the simulated cluster [N pix]
+clusterSize = 3
+
+# Sampling probability of the size
+samplingProb = 0.217946
+
+# Hit X resolution in local surface frame [um]
+resolutionX = 4.31227
+
+# Hit Y resolution in local surface frame [um]
+resolutionY = 4.17356
+
+[[ClusterSizeBasedDigitizer]]
+# Size of the simulated cluster [N pix]
+clusterSize = 4
+
+# Sampling probability of the size
+samplingProb = 0.329402
+
+# Hit X resolution in local surface frame [um]
+resolutionX = 4.90848
+
+# Hit Y resolution in local surface frame [um]
+resolutionY = 5.09384
 
 [TrackAngleDigitizer]
 # Gaussian angle smearing resolution

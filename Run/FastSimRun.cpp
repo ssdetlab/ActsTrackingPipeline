@@ -296,27 +296,30 @@ int main() {
   Propagator measCreatorPropagator(std::move(measCreatorStepper),
                                    std::move(measCreatorNavigator));
 
-  // Digitizers
-  SurfaceRangedDigitizer::Config trackHitDigitizerCfg;
-  for (const auto& pars : constraintSurfaceParameters) {
-    trackHitDigitizerCfg.resolutions.insert(
-        {pars.geoId,
-         {getEntryDouble("TrackHitDigitizer", "constraintSurfaceResolutionX") *
-              1_um,
-          getEntryDouble("TrackHitDigitizer", "constraintSurfaceResolutionY") *
-              1_um}});
-  }
-  for (const auto& pars : goInst.tcParameters) {
-    trackHitDigitizerCfg.resolutions.insert(
-        {pars.geoId,
-         {getEntryDouble("TrackHitDigitizer", "trackingSurfaceResolutionX") *
-              1_um,
-          getEntryDouble("TrackHitDigitizer", "trackingSurfaceResolutionY") *
-              1_um}});
-  }
-  auto trackHitDigitizer =
-      std::make_shared<SurfaceRangedDigitizer>(trackHitDigitizerCfg);
+  // Surface-specific track hit digitizer
+  // SurfaceRangedDigitizer::Config trackHitDigitizerCfg;
+  // for (const auto& pars : constraintSurfaceParameters) {
+  //   trackHitDigitizerCfg.resolutions.insert(
+  //       {pars.geoId,
+  //        {getEntryDouble("TrackHitDigitizer", "constraintSurfaceResolutionX")
+  //        *
+  //             1_um,
+  //         getEntryDouble("TrackHitDigitizer", "constraintSurfaceResolutionY")
+  //         *
+  //             1_um}});
+  // }
+  // for (const auto& pars : goInst.tcParameters) {
+  //   trackHitDigitizerCfg.resolutions.insert(
+  //       {pars.geoId,
+  //        {getEntryDouble("TrackHitDigitizer", "trackingSurfaceResolutionX") *
+  //             1_um,
+  //         getEntryDouble("TrackHitDigitizer", "trackingSurfaceResolutionY") *
+  //             1_um}});
+  // }
+  // auto trackHitDigitizer =
+  //     std::make_shared<SurfaceRangedDigitizer>(trackHitDigitizerCfg);
 
+  // Track angle digitizer
   SimpleDigitizer::Config angleDigitizerCfg;
   angleDigitizerCfg.resolution = {
       getEntryDouble("TrackAngleDigitizer", "constraintSurfaceResolutionPhi") *
@@ -325,6 +328,25 @@ int main() {
                      "constraintSurfaceResolutionTheta") *
           1_mrad};
   auto angleDigitizer = std::make_shared<SimpleDigitizer>(angleDigitizerCfg);
+
+  // Cluster-size-dependent track hit digitizer
+  ClusterSizeBasedDigitizer::Config trackHitDigitizerCfg;
+  const auto* clusterSizeDigitizationPars =
+      runCfg["ClusterSizeBasedDigitizer"].as_array();
+
+  for (auto it = clusterSizeDigitizationPars->begin();
+       it != clusterSizeDigitizationPars->end(); it++) {
+    const auto& entry = *it->as_table();
+    trackHitDigitizerCfg.clSizeProbsStdDevs.insert(
+        {entry["clusterSize"].value<std::size_t>().value(),
+         {
+             entry["samplingProb"].value<double>().value(),
+             entry["resolutionX"].value<double>().value() * 1_um,
+             entry["resolutionY"].value<double>().value() * 1_um,
+         }});
+  }
+  auto trackHitDigitizer =
+      std::make_shared<ClusterSizeBasedDigitizer>(trackHitDigitizerCfg);
 
   // Vertex generator
   double vertexRes =

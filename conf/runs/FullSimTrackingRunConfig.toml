@@ -27,12 +27,12 @@ Uniform_DirectZ_Tracker_PDCWindow_256x128_1e6/material.json\
 """
 
 [Geometry]
-# # Global alignment shifts [mm]
-# globalShiftY = 0
-# globalShiftZ = 0
-# 
-# # Global alignment angles [mrad]
-# globalAngleZ = 0
+# Global alignment shifts [mm]
+globalShiftY = 0
+globalShiftZ = 0
+
+# Global alignment angles [mrad]
+globalAngleZ = 0
 
 # Local alignment shifts [um]
 localShiftY10 = 0
@@ -54,12 +54,12 @@ localAngleZ14 = 0
 localAngleZ16 = 0
 localAngleZ18 = 0
 
-# Global alignment shifts [mm]
-globalShiftY = 10
-globalShiftZ = -5
+# # Global alignment shifts [mm]
+# globalShiftY = 10
+# globalShiftZ = -5
 
-# Global alignment angles [mrad]
-globalAngleZ = -2 
+# # Global alignment angles [mrad]
+# globalAngleZ = -2 
 
 # # Local alignment shifts [um]
 # localShiftY10 = 30
@@ -83,14 +83,14 @@ globalAngleZ = -2
 
 # Use material decorator for the 
 # material description
-materialDecorator = false
+materialDecorator = true
 
 [Sequencer]
 # Event skip
 skip = 0
 
 # Number of events
-events = 100000
+events = 1000000
 
 # Number of threads
 numThreads = 1
@@ -101,8 +101,8 @@ trackFpes = false
 [E320MagneticFieldParametersProvider]
 inDirMagnets = """
 /home/romanurmanov/work/E320/E320Prototype/\
-E320Prototype_dataInRootFormat/sim/test/\
-magnets\
+E320Prototype_dataInRootFormat/sim/alignment/local/\
+sig/magnets\
 """
 
 treeName = "magnets"
@@ -110,8 +110,8 @@ treeName = "magnets"
 [E320RootSimClusterReader]
 inDirClusters = """
 /home/romanurmanov/work/E320/E320Prototype/\
-E320Prototype_dataInRootFormat/sim/test/\
-clusters\
+E320Prototype_dataInRootFormat/sim/alignment/local/\
+sig/clusters\
 """
 
 # WhiteBoard name of the output source links
@@ -135,20 +135,23 @@ surfaceLocalToGlobal = true
 
 # Propagation direction for extended source link
 # invertion
-backwards = true
+backwards = false
+
+# Flag to read only signal clusters
+onlySignalClusters = false
 
 [E320TrackParametersEstimator]
 # Number of GX2 fit iterations
 nIterations = 2
 
 # Max GX2 chi2 cut
-maxChi2 = 100000000
+maxChi2 = 1e9
 # maxChi2 = 100
 
 # Propagation direction
 # forward = 0
 # backward = 1
-propDirection = 1
+propDirection = 0
 
 [HoughTransformSeeder]
 # Number of HT bins along theta short axis

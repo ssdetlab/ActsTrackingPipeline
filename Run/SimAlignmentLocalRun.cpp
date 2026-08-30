@@ -311,8 +311,8 @@ int main() {
 
   // Reestimation reference surface
   Acts::Transform3 reestimationRefSurfTransform = Acts::Transform3::Identity();
-  reestimationRefSurfTransform.translation() = Acts::Vector3(
-      goInst.ipTcDistance + 2 * goInst.tcHalfPrimary + 0.1_mm, 0, 0);
+  reestimationRefSurfTransform.translation() =
+      Acts::Vector3(goInst.ipTcDistance - 0.1_mm, 0, 0);
   reestimationRefSurfTransform.rotate(refSurfToWorldRotationX);
   reestimationRefSurfTransform.rotate(refSurfToWorldRotationY);
   reestimationRefSurfTransform.rotate(refSurfToWorldRotationZ);
@@ -327,8 +327,8 @@ int main() {
 
   // Tracking reference surface
   Acts::Transform3 trackingRefSurfaceTransform = Acts::Transform3::Identity();
-  trackingRefSurfaceTransform.translation() =
-      Acts::Vector3(goInst.ipSurfaceCenterPrimary - 0.1_mm, 0, 0);
+  trackingRefSurfaceTransform.translation() = Acts::Vector3(
+      goInst.dipoleCenterPrimary + goInst.dipoleHalfPrimary + 0.01_mm, 0, 0);
   trackingRefSurfaceTransform.rotate(refSurfToWorldRotationX);
   trackingRefSurfaceTransform.rotate(refSurfToWorldRotationY);
   trackingRefSurfaceTransform.rotate(refSurfToWorldRotationZ);
@@ -422,20 +422,21 @@ int main() {
 
   // Alignment parameters solver
 
-  LocalAlignmentParametersSolverConstraints::Config alignmentSolverCfg{};
-  alignmentSolverCfg.alignmentMask = alignmentMask;
-  LocalAlignmentParametersSolverConstraints alignmentSolver(alignmentSolverCfg,
-                                                            logLevel);
-
-  // LocalAlignmentParametersSolverSVD::Config alignmentSolverCfg{};
+  // LocalAlignmentParametersSolverConstraints::Config alignmentSolverCfg{};
   // alignmentSolverCfg.alignmentMask = alignmentMask;
-  // alignmentSolverCfg.maxSingularValueTol = 1e-5;
-  // alignmentSolverCfg.singularValueGapTol = 9e-1;
-  // LocalAlignmentParametersSolverSVD alignmentSolver(alignmentSolverCfg,
-  //                                                   logLevel);
+  // LocalAlignmentParametersSolverConstraints
+  // alignmentSolver(alignmentSolverCfg,
+  //                                                           logLevel);
+
+  LocalAlignmentParametersSolverSVD::Config alignmentSolverCfg{};
+  alignmentSolverCfg.alignmentMask = alignmentMask;
+  alignmentSolverCfg.maxSingularValueTol = 1e-5;
+  alignmentSolverCfg.singularValueGapTol = 9e-1;
+  LocalAlignmentParametersSolverSVD alignmentSolver(alignmentSolverCfg,
+                                                    logLevel);
 
   // Number of refitting iterations
-  std::size_t nRefittingIt = 2;
+  std::size_t nRefittingIt = 1;
 
   // Alignment function
   ActsAlignmentFunction::Config alignmentFunctionCfg;
@@ -457,7 +458,7 @@ int main() {
   alignmentFunctionCfg.trackParametersEstimator = trackParametersEstimator;
 
   alignmentFunctionCfg.alignmentParametersSolver.connect<
-      &LocalAlignmentParametersSolverConstraints::calculateAlignmentParameters>(
+      &LocalAlignmentParametersSolverSVD::calculateAlignmentParameters>(
       &alignmentSolver);
 
   alignmentFunctionCfg.alignmentTransformUpdater
@@ -468,10 +469,8 @@ int main() {
     const auto& surface = det->surface();
     const auto& geoId = surface.geometryId().sensitive();
     if (geoId != 0u &&
-        surface.geometryId().sensitive() > goInst.tcParameters.front().geoId &&
-        // surface.geometryId().sensitive() <= goInst.tcParameters.back().geoId)
-        // {
-        surface.geometryId().sensitive() <= goInst.tcParameters.at(2).geoId) {
+        surface.geometryId().sensitive() >= goInst.tcParameters.front().geoId &&
+        surface.geometryId().sensitive() <= goInst.tcParameters.back().geoId) {
       alignmentFunctionCfg.alignedDetElements.push_back(det.get());
     }
   }

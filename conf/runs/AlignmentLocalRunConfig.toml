@@ -27,13 +27,6 @@ Uniform_DirectZ_Tracker_PDCWindow_256x128_1e6/material.json\
 """
 
 [Geometry]
-# # Global alignment shifts [mm]
-# globalShiftY = 0
-# globalShiftZ = 0
-# 
-# # Global alignment angles [mrad]
-# globalAngleZ = 0
-
 # Local alignment shifts [um]
 localShiftY10 = 0
 localShiftY12 = 0
@@ -79,37 +72,91 @@ numThreads = 1
 trackFpes = false
 
 [E320RootTrackReader]
+# Flag to require a specific EPICS parity
+requireEpicsParity = true
+
+# Required EPICS parity
+# 0 = even
+# 1 = odd
+requiredEpicsParity = 0
+
+
+minXCount = 5
+maxXCount = 20
+
+# Cut on the tracks predicted chi2
+minPredictedChi2 = 0
+maxPredictedChi2 = 3000
+
+# Cut on the tracks filtered chi2
+minFilteredChi2 = 0
+maxFilteredChi2 = 3000
+
 # Cut on the tracks smoothed chi2
-minSmoothedChi2 = 200
-maxSmoothedChi2 = 1000
+minSmoothedChi2 = 0
+maxSmoothedChi2 = 40
 
 # Cut on the tracks vertex long coordinate [mm]
-minVertexEstLong = -30
-maxVertexEstLong = -15
+minVertexEstLong = -20
+maxVertexEstLong = 20
 
 # Cut on the tracks vertex short coordinate [mm]
-minVertexEstShort = -25
-maxVertexEstShort = -10
+minVertexEstShort = -20
+maxVertexEstShort = 20
 
 # Cut on the tracks energy [GeV]
-minAbsMomentumEst = 0
+minAbsMomentumEst = 1
 maxAbsMomentumEst = 10
 
+# Directory with the track data
 inDirTracks = """
 /home/romanurmanov/work/E320/E320Prototype/\
 E320Prototype_analysis/data/alignment/\
-local_2026_data/common/sig/filtered\
+local_2026_data/ht_test/sig/filtered\
 """
 
+# Input tree name
 treeName = "fitted-tracks"
+
+# WhiteBoard name of the output source links
 outputSourceLinks = "SourceLinks"
+
+# WhiteBoard name of the output guess seeds
 outputSeedsGuess = "SeedsGuess"
+
+# WhiteBoard name of the output guess track parameters
 outputTrackParametersGuess = "TrackParametersGuess"
+
+# WhiteBoard name of the output estimated seeds
 outputSeedsEst = "SeedsEst"
+
+# WhiteBoard name of the output estimated track parameters
 outputTrackParametersEst = "TrackParametersEst"
+
+# WhiteBoard name of the output magnetic field parameters
 outputMagneticFieldParameters = "MagFieldPars"
+
+# WhiteBoard name of the output event meta data
+outputEventMetaData = "EventMetaData"
+
+# Flag to merge all tracks into a single event
 mergeIntoOneEvent = true
+
+# Flag to account for backwards propagation
 backwards = false
+
+# Cut on the residuals in the chips
+[[E320RootTrackReader.smoothedResidualsRange]]
+geoId = 16
+# minSmoothedResidualX = 0.005
+# maxSmoothedResidualX = 0.05
+# minSmoothedResidualY = -0.065
+# maxSmoothedResidualY = -0.005
+
+minSmoothedResidualX = -10
+maxSmoothedResidualX = 10
+minSmoothedResidualY = -10
+maxSmoothedResidualY = 10
 
 [E320TrackParametersEstimator]
 # Number of GX2 fit iterations
@@ -123,6 +170,18 @@ maxChi2 = 1e9
 # forward = 0
 # backward = 1
 propDirection = 0
+
+[LocalAlignmentParametersSolverSVD]
+# Cut on the relative magnitude between 
+# a given singular value and the largest
+# singular value of the alignment fit Hessian
+maxSingularValueTol = 1e-5
+
+# Cut on the relative magnitude between 
+# a given singular value and the next largest
+# singular value that overrides the 
+# maxSingularValueTol cut
+singularValueGapTol = 9e-1
 
 [ActsAlignmentFunction]
 # Cut on the number of the KF steps
@@ -179,7 +238,7 @@ outputTracks = "Tracks"
 # Cut on the maximum number of KF steps
 maxSteps = 100000
 
-[RootTrackWriter]
+[E320RootTrackWriter]
 # WhiteBoard name of the input track container
 inputTrackContainer = "TrackContainer"
 
@@ -188,6 +247,9 @@ inputTracks = "Tracks"
 
 # WhiteBoard name of the input track parameters
 inputTrackParametersGuesses = "UpdatedTrackParameters"
+
+# WhiteBoard name of the input event meta data
+inputEventMetaData = "EventMetaData"
 
 # Output tree name
 treeName = "fitted-tracks"

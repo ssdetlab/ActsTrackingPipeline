@@ -41,7 +41,7 @@
 #include "TrackingPipeline/TrackFinding/E320SeedingAlgorithm.hpp"
 #include "TrackingPipeline/TrackFinding/E320TrackParametersEstimator.hpp"
 #include "TrackingPipeline/TrackFinding/HoughTransformSeeder.hpp"
-#include "TrackingPipeline/TrackFitting/KFTrackFittingAlgorithm.hpp"
+#include "TrackingPipeline/TrackFitting/E320KFTrackFittingAlgorithm.hpp"
 #include "TrackingPipeline/TrackFitting/StraightLineGX2Fitter.hpp"
 #include "toml++/toml.hpp"
 
@@ -313,6 +313,9 @@ int main() {
       getEntryBool("E320RootDataReader", "requireEpicsParity");
   readerCfg.requiredEpicsParity = E320::E320RootDataReader::EpicsParity(
       getEntrySizeT("E320RootDataReader", "requiredEpicsParity"));
+  readerCfg.measurementErrorModel =
+      E320::E320RootDataReader::MeasurementErrorModel(
+          getEntrySizeT("E320RootDataReader", "measurementErrorModel"));
   readerCfg.maxOccupancy = getEntrySizeT("E320RootDataReader", "maxOccupancy");
   readerCfg.minGeoId = goInst.tcParameters.front().geoId;
   readerCfg.maxGeoId = goInst.tcParameters.back().geoId;
@@ -467,7 +470,7 @@ int main() {
       kfPropagator, Acts::getDefaultLogger("DetectorKalmanFilter", logLevel));
 
   // Add the track fitting algorithm to the sequencer
-  KFTrackFittingAlgorithm::Config fitterCfg{
+  E320::E320KFTrackFittingAlgorithm::Config fitterCfg{
       .inputTrackCandidates =
           getEntryStr("KFTrackFittingAlgorithm", "inputTrackCandidates"),
       .inputTrackParameters =
@@ -483,35 +486,10 @@ int main() {
       .referenceSurface = trackingRefSurface.get()};
 
   sequencer.addAlgorithm(
-      std::make_shared<KFTrackFittingAlgorithm>(fitterCfg, logLevel));
+      std::make_shared<E320::E320KFTrackFittingAlgorithm>(fitterCfg, logLevel));
 
   // --------------------------------------------------------------
   // Event write out
-
-  // Cluster writer
-  RootMeasurementWriter::Config measurementWriterCfg{};
-  measurementWriterCfg.inputSourceLinks =
-      getEntryStr("RootMeasurementWriter", "inputSourceLinks");
-  measurementWriterCfg.treeName =
-      getEntryStr("RootMeasurementWriter", "treeName");
-  measurementWriterCfg.filePath =
-      getEntryStr("RootMeasurementWriter", "filePath");
-
-  sequencer.addWriter(
-      std::make_shared<RootMeasurementWriter>(measurementWriterCfg, logLevel));
-
-  // Seed writer
-  RootSeedWriter::Config seedWriterCfg;
-  seedWriterCfg.inputSeeds = getEntryStr("RootSeedWriter", "inputSeeds");
-  seedWriterCfg.inputTrackParameters =
-      getEntryStr("RootSeedWriter", "inputTrackParameters");
-  seedWriterCfg.inputSourceLinks =
-      getEntryStr("RootSeedWriter", "inputSourceLinks");
-  seedWriterCfg.treeName = getEntryStr("RootSeedWriter", "treeName");
-  seedWriterCfg.filePath = getEntryStr("RootSeedWriter", "filePath");
-
-  sequencer.addWriter(
-      std::make_shared<RootSeedWriter>(seedWriterCfg, logLevel));
 
   // Fitted track writer
   E320::E320RootTrackWriter::Config trackWriterCfg;

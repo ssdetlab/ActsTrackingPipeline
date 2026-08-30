@@ -267,9 +267,9 @@ int main() {
   // Seeding reference surface
   Acts::Transform3 seedingRefSurfTransform = Acts::Transform3::Identity();
   seedingRefSurfTransform.translation() =
-      // Acts::Vector3(goInst.ipTcDistance - 0.1_mm, 0, 0);
-      Acts::Vector3(goInst.ipTcDistance + 2 * goInst.tcHalfPrimary + 0.1_mm, 0,
-                    0);
+      Acts::Vector3(goInst.ipTcDistance - 0.1_mm, 0, 0);
+  // Acts::Vector3(goInst.ipTcDistance + 2 * goInst.tcHalfPrimary + 0.1_mm, 0,
+  //               0);
   seedingRefSurfTransform.rotate(refSurfToWorldRotationX);
   seedingRefSurfTransform.rotate(refSurfToWorldRotationY);
   seedingRefSurfTransform.rotate(refSurfToWorldRotationZ);
@@ -284,11 +284,10 @@ int main() {
 
   // Tracking reference surface
   Acts::Transform3 trackingRefSurfTransform = Acts::Transform3::Identity();
-  trackingRefSurfTransform.translation() = Acts::Vector3(0, 0, 0);
+  // trackingRefSurfTransform.translation() = Acts::Vector3(0, 0, 0);
   // Acts::Vector3(goInst.ipSurfaceCenterPrimary - 0.1_mm, 0, 0);
-  // Acts::Vector3(
-  //     goInst.dipoleCenterPrimary + goInst.dipoleHalfPrimary + 0.01_mm, 0,
-  //     0);
+  Acts::Vector3(goInst.dipoleCenterPrimary + goInst.dipoleHalfPrimary + 0.01_mm,
+                0, 0);
   trackingRefSurfTransform.rotate(refSurfToWorldRotationX);
   trackingRefSurfTransform.rotate(refSurfToWorldRotationY);
   trackingRefSurfTransform.rotate(refSurfToWorldRotationZ);
@@ -349,6 +348,8 @@ int main() {
   readerCfg.surfaceLocalToGlobal =
       getEntryBool("E320RootSimClusterReader", "surfaceLocalToGlobal");
   readerCfg.backwards = getEntryBool("E320RootSimClusterReader", "backwards");
+  readerCfg.onlySignalClusters =
+      getEntryBool("E320RootSimClusterReader", "onlySignalClusters");
   readerCfg.minGeoId = goInst.tcParameters.front().geoId;
   // readerCfg.minGeoId = goInst.ipSurfaceParameters.geoId;
   readerCfg.maxGeoId = goInst.tcParameters.back().geoId;

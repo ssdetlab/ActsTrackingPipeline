@@ -27,12 +27,12 @@ Uniform_DirectZ_Tracker_PDCWindow_256x128_1e6/material.json\
 """
 
 [Geometry]
-# # Global alignment shifts [mm]
-# globalShiftY = 0
-# globalShiftZ = 0
-# 
-# # Global alignment angles [mrad]
-# globalAngleZ = 0
+# Global alignment shifts [mm]
+globalShiftY = 0
+globalShiftZ = 0
+
+# Global alignment angles [mrad]
+globalAngleZ = 0
 
 # Local alignment shifts [um]
 localShiftY10 = 0
@@ -54,12 +54,12 @@ localAngleZ14 = 0
 localAngleZ16 = 0
 localAngleZ18 = 0
 
-# Global alignment shifts [mm]
-globalShiftY = 10
-globalShiftZ = -5
+# # Global alignment shifts [mm]
+# globalShiftY = 10
+# globalShiftZ = -5
 
-# Global alignment angles [mrad]
-globalAngleZ = -2 
+# # Global alignment angles [mrad]
+# globalAngleZ = -2 
 
 # # Local alignment shifts [um]
 # localShiftY10 = 30
@@ -83,7 +83,7 @@ globalAngleZ = -2
 
 # Use material decorator for the 
 # material description
-materialDecorator = false
+materialDecorator = true
 
 [Sequencer]
 # Event skip
@@ -117,7 +117,7 @@ maxAbsMomentumEst = 10
 
 inDirTracks = """
 /home/romanurmanov/work/E320/E320Prototype/E320Prototype_analysis/sim/\
-alignment/local/test\
+alignment/local/filtered\
 """
 
 treeName = "fitted-tracks"
@@ -129,7 +129,7 @@ outputSeedsEst = "SeedsEst"
 outputTrackParametersEst = "TrackParametersEst"
 outputMagneticFieldParameters = "MagFieldPars"
 mergeIntoOneEvent = true
-backwards = true
+backwards = false
 
 [E320TrackParametersEstimator]
 # Number of GX2 fit iterations
@@ -142,7 +142,7 @@ maxChi2 = 1e9
 # Propagation direction
 # forward = 0
 # backward = 1
-propDirection = 1
+propDirection = 0
 
 [ActsAlignmentFunction]
 # Cut on the number of the KF steps
