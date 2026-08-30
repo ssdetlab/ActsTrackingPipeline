@@ -34,25 +34,25 @@ Uniform_DirectZ_Tracker_PDCWindow_256x128_1e6/material.json\
 # # Global alignment angles [mrad]
 # globalAngleZ = 0
 
-# Local alignment shifts [um]
-localShiftY10 = 0
-localShiftY12 = 0
-localShiftY14 = 0
-localShiftY16 = 0
-localShiftY18 = 0
-
-localShiftZ10 = 0
-localShiftZ12 = 0
-localShiftZ14 = 0
-localShiftZ16 = 0
-localShiftZ18 = 0
-
-# Local alignment angles [mrad]
-localAngleZ10 = 0
-localAngleZ12 = 0
-localAngleZ14 = 0
-localAngleZ16 = 0
-localAngleZ18 = 0
+# # Local alignment shifts [um]
+# localShiftY10 = 0
+# localShiftY12 = 0
+# localShiftY14 = 0
+# localShiftY16 = 0
+# localShiftY18 = 0
+# 
+# localShiftZ10 = 0
+# localShiftZ12 = 0
+# localShiftZ14 = 0
+# localShiftZ16 = 0
+# localShiftZ18 = 0
+# 
+# # Local alignment angles [mrad]
+# localAngleZ10 = 0
+# localAngleZ12 = 0
+# localAngleZ14 = 0
+# localAngleZ16 = 0
+# localAngleZ18 = 0
 
 # Global alignment shifts [mm]
 globalShiftY = -2.5
@@ -61,25 +61,25 @@ globalShiftZ = -4.5
 # Global alignment angles [mrad]
 globalAngleZ = -2 
 
-# # Local alignment shifts [um]
-# localShiftY10 = 87.1378
-# localShiftY12 = -42.9543
-# localShiftY14 = -85.2652
-# localShiftY16 = -49.1208
-# localShiftY18 = 90.2019
-# 
-# localShiftZ10 = 79.183
-# localShiftZ12 = -51.5106
-# localShiftZ14 = -54.0668
-# localShiftZ16 = -54.0977
-# localShiftZ18 = 80.4914
-# 
-# # Local alignment angles [mrad]
-# localAngleZ10 = -0.778647
-# localAngleZ12 = 1.0279
-# localAngleZ14 = -3.05136
-# localAngleZ16 = -0.461109
-# localAngleZ18 = -3.25102
+# Local alignment shifts [um]
+localShiftY10 = 87.1378
+localShiftY12 = -42.9543
+localShiftY14 = -85.2652
+localShiftY16 = -49.1208
+localShiftY18 = 90.2019
+
+localShiftZ10 = 79.183
+localShiftZ12 = -51.5106
+localShiftZ14 = -54.0668
+localShiftZ16 = -54.0977
+localShiftZ18 = 80.4914
+
+# Local alignment angles [mrad]
+localAngleZ10 = -0.778647
+localAngleZ12 = 1.0279
+localAngleZ14 = -3.05136
+localAngleZ16 = -0.461109
+localAngleZ18 = -3.25102
 
 # Noam's alignment
 # localShiftY10 = 0
@@ -129,7 +129,7 @@ outputSimClusters = "SimClusters"
 outputSourceLinkIndices = "SimMeasurementIndices"
 
 # Number of event to generate
-nEvents = 10000
+nEvents = 100
 
 [GaussianVertexGenerator]
 # Vertex resolution [um]
@@ -220,6 +220,10 @@ resolutionY = 5.09384
 constraintSurfaceResolutionPhi = 1
 constraintSurfaceResolutionTheta = 1
 
+[SigConstantMultiplicityGenerator]
+# Number of measurements to generate
+nMeasurements = 250
+
 [SigMeasurementsEmbeddingAlgorithm]
 # WhiteBoard name of the input sim measurements
 inputSourceLinks = "SimMeasurements"
@@ -239,9 +243,6 @@ outputSimClusters = "Clusters"
 # WhiteBoard name of the output measurement indices
 outputSourceLinkIndices = "MeasurementIndices"
 
-# Number of measurements to generate
-nMeasurements = 1
-
 [UniformBackgroundCreator]
 # Measurement resolution in local X axis
 resolutionX = 5
@@ -251,6 +252,10 @@ resolutionY = 5
 
 # Number of generated measurements per surface
 nMeasurementsPerSurface = 20
+
+[BkgConstantMultiplicityGenerator]
+# Number of measurements to generate
+nMeasurements = 1
 
 [BkgMeasurementsEmbeddingAlgorithm]
 # WhiteBoard name of the input sim measurements

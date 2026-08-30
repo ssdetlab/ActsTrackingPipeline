@@ -32,6 +32,7 @@
 #include "TrackingPipeline/Io/E320MagneticFieldWriter.hpp"
 #include "TrackingPipeline/Io/E320RootSimClusterWriter.hpp"
 #include "TrackingPipeline/Simulation/ClusterSizeBasedDigitizer.hpp"
+#include "TrackingPipeline/Simulation/ConstantMultiplicityGenerator.hpp"
 #include "TrackingPipeline/Simulation/ConvergingBeamGenerator.hpp"
 #include "TrackingPipeline/Simulation/ExtendedSourceLinkCreator.hpp"
 #include "TrackingPipeline/Simulation/GaussianVertexGenerator.hpp"
@@ -473,6 +474,16 @@ int main() {
   auto measCreator = std::make_shared<MeasurementsCreator>(
       measCreatorPropagator, measCreatorCfg);
 
+  /// Event multiplicity generator
+  ConstantMultiplicityGenerator::Config sigMultiplicityGeneratorCfg{};
+  sigMultiplicityGeneratorCfg.eventMultiplicity =
+      getEntrySizeT("SigConstantMultiplicityGenerator", "nMeasurements");
+
+  auto sigMultiplicityGenerator =
+      std::make_shared<ConstantMultiplicityGenerator>(
+          sigMultiplicityGeneratorCfg);
+
+  /// Measurement embedding algorithm
   MeasurementsEmbeddingAlgorithm::Config measCreatorAlgoCfg;
   measCreatorAlgoCfg.inputSourceLinks =
       getEntryStr("SigMeasurementsEmbeddingAlgorithm", "inputSourceLinks");
@@ -486,9 +497,8 @@ int main() {
       getEntryStr("SigMeasurementsEmbeddingAlgorithm", "outputSimClusters");
   measCreatorAlgoCfg.outputSourceLinkIndices = getEntryStr(
       "SigMeasurementsEmbeddingAlgorithm", "outputSourceLinkIndices");
-  measCreatorAlgoCfg.nMeasurements =
-      getEntrySizeT("SigMeasurementsEmbeddingAlgorithm", "nMeasurements");
   measCreatorAlgoCfg.measurementGenerator = measCreator;
+  measCreatorAlgoCfg.multiplicityGenerator = sigMultiplicityGenerator;
   measCreatorAlgoCfg.randomNumberSvc =
       std::make_shared<RandomNumbers>(RandomNumbers::Config());
 
@@ -509,6 +519,15 @@ int main() {
 
   auto bkgCreator = std::make_shared<UniformBackgroundCreator>(bkgCreatorCfg);
 
+  /// Event multiplicity generator
+  ConstantMultiplicityGenerator::Config bkgMultiplicityGeneratorCfg{};
+  bkgMultiplicityGeneratorCfg.eventMultiplicity =
+      getEntrySizeT("BkgConstantMultiplicityGenerator", "nMeasurements");
+
+  auto bkgMultiplicityGenerator =
+      std::make_shared<ConstantMultiplicityGenerator>(
+          bkgMultiplicityGeneratorCfg);
+
   MeasurementsEmbeddingAlgorithm::Config bkgCreatorAlgoCfg;
   bkgCreatorAlgoCfg.inputSourceLinks =
       getEntryStr("BkgMeasurementsEmbeddingAlgorithm", "inputSourceLinks");
@@ -522,9 +541,8 @@ int main() {
       getEntryStr("BkgMeasurementsEmbeddingAlgorithm", "outputSimClusters");
   bkgCreatorAlgoCfg.outputSourceLinkIndices = getEntryStr(
       "BkgMeasurementsEmbeddingAlgorithm", "outputSourceLinkIndices");
-  bkgCreatorAlgoCfg.nMeasurements =
-      getEntrySizeT("BkgMeasurementsEmbeddingAlgorithm", "nMeasurements");
   bkgCreatorAlgoCfg.measurementGenerator = bkgCreator;
+  measCreatorAlgoCfg.multiplicityGenerator = bkgMultiplicityGenerator;
   bkgCreatorAlgoCfg.randomNumberSvc =
       std::make_shared<RandomNumbers>(RandomNumbers::Config());
 
