@@ -2,6 +2,7 @@ target_sources(
     TrackingPipelineCore
     PRIVATE
     AlignmentAlgorithm.cpp  
+    E320AlignmentAlgorithm.cpp  
     LinearAnnealingScheduler.cpp
     LocalAlignmentParametersSolverConstraints.cpp
     LocalAlignmentParametersSolverSVD.cpp
