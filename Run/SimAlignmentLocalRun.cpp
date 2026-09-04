@@ -20,14 +20,11 @@
 #include <unistd.h>
 
 #include "TrackingPipeline/Alignment/ActsAlignmentFunction.hpp"
-#include "TrackingPipeline/Alignment/AlignmentAlgorithm.hpp"
 #include "TrackingPipeline/Alignment/AlignmentContext.hpp"
-#include "TrackingPipeline/Alignment/LocalAlignmentParametersSolverConstraints.hpp"
+#include "TrackingPipeline/Alignment/E320AlignmentAlgorithm.hpp"
 #include "TrackingPipeline/Alignment/LocalAlignmentParametersSolverSVD.hpp"
 #include "TrackingPipeline/Alignment/LocalAlignmentTransformUpdater.hpp"
 #include "TrackingPipeline/Alignment/detail/AlignmentStoreBuilders.hpp"
-#include "TrackingPipeline/EventData/MixedSourceLinkCalibrator.hpp"
-#include "TrackingPipeline/EventData/MixedSourceLinkSurfaceAccessor.hpp"
 #include "TrackingPipeline/EventData/SimpleSourceLink.hpp"
 #include "TrackingPipeline/Geometry/E320Geometry.hpp"
 #include "TrackingPipeline/Geometry/E320GeometryOptions.hpp"
@@ -38,7 +35,7 @@
 #include "TrackingPipeline/Io/E320RootSimTrackReader.hpp"
 #include "TrackingPipeline/Io/E320RootSimTrackWriter.hpp"
 #include "TrackingPipeline/TrackFinding/E320TrackParametersEstimator.hpp"
-#include "TrackingPipeline/TrackFitting/KFTrackFittingAlgorithm.hpp"
+#include "TrackingPipeline/TrackFitting/E320KFTrackFittingAlgorithm.hpp"
 #include "toml++/toml.hpp"
 
 using namespace Acts::UnitLiterals;
@@ -421,13 +418,6 @@ int main() {
                                                   logLevel);
 
   // Alignment parameters solver
-
-  // LocalAlignmentParametersSolverConstraints::Config alignmentSolverCfg{};
-  // alignmentSolverCfg.alignmentMask = alignmentMask;
-  // LocalAlignmentParametersSolverConstraints
-  // alignmentSolver(alignmentSolverCfg,
-  //                                                           logLevel);
-
   LocalAlignmentParametersSolverSVD::Config alignmentSolverCfg{};
   alignmentSolverCfg.alignmentMask = alignmentMask;
   alignmentSolverCfg.maxSingularValueTol = 1e-5;
@@ -479,26 +469,26 @@ int main() {
       std::make_shared<ActsAlignmentFunction>(alignmentFunctionCfg);
 
   // Alignment algorithm
-  AlignmentAlgorithm::Config alignmentCfg;
+  E320::E320AlignmentAlgorithm::Config alignmentCfg;
   alignmentCfg.inputSourceLinks =
-      getEntryStr("AlignmentAlgorithm", "inputSourceLinks");
+      getEntryStr("E320AlignmentAlgorithm", "inputSourceLinks");
   alignmentCfg.inputTrackCandidates =
-      getEntryStr("AlignmentAlgorithm", "inputTrackCandidates");
+      getEntryStr("E320AlignmentAlgorithm", "inputTrackCandidates");
   alignmentCfg.inputTrackParameters =
-      getEntryStr("AlignmentAlgorithm", "inputTrackParameters");
+      getEntryStr("E320AlignmentAlgorithm", "inputTrackParameters");
   alignmentCfg.inputMagneticFieldParameters =
-      getEntryStr("AlignmentAlgorithm", "inputMagneticFieldParameters");
+      getEntryStr("E320AlignmentAlgorithm", "inputMagneticFieldParameters");
   alignmentCfg.outputAlignmentParameters =
-      getEntryStr("AlignmentAlgorithm", "outputAlignmentParameters");
+      getEntryStr("E320AlignmentAlgorithm", "outputAlignmentParameters");
   alignmentCfg.outputTrackParameters =
-      getEntryStr("AlignmentAlgorithm", "outputTrackParameters");
+      getEntryStr("E320AlignmentAlgorithm", "outputTrackParameters");
   alignmentCfg.alignmentFunction = alignmentFunction;
   alignmentCfg.alignmentFitSurfaces = alignmentFitSurfaces;
   alignmentCfg.initialTrackStateFitSurfaces = initialTrackStateFitSurfaces;
 
-  auto alignmentAlgorithm =
-      std::make_shared<AlignmentAlgorithm>(alignmentCfg, logLevel);
-  sequencer.addAlgorithm(alignmentAlgorithm);
+  auto E320alignmentAlgorithm =
+      std::make_shared<E320::E320AlignmentAlgorithm>(alignmentCfg, logLevel);
+  sequencer.addAlgorithm(E320alignmentAlgorithm);
 
   // --------------------------------------------------------------
   // Track fitting
@@ -540,23 +530,24 @@ int main() {
       kfPropagator, Acts::getDefaultLogger("DetectorKalmanFilter", logLevel));
 
   // Add the track fitting algorithm to the sequencer
-  KFTrackFittingAlgorithm::Config fitterCfg{
+  E320::E320KFTrackFittingAlgorithm::Config fitterCfg{
       .inputTrackCandidates =
-          getEntryStr("KFTrackFittingAlgorithm", "inputTrackCandidates"),
+          getEntryStr("E320KFTrackFittingAlgorithm", "inputTrackCandidates"),
       .inputTrackParameters =
-          getEntryStr("KFTrackFittingAlgorithm", "inputTrackParameters"),
+          getEntryStr("E320KFTrackFittingAlgorithm", "inputTrackParameters"),
       .inputSourceLinks =
-          getEntryStr("KFTrackFittingAlgorithm", "inputSourceLinks"),
+          getEntryStr("E320KFTrackFittingAlgorithm", "inputSourceLinks"),
       .outputTrackContainer =
-          getEntryStr("KFTrackFittingAlgorithm", "outputTrackContainer"),
-      .outputTracks = getEntryStr("KFTrackFittingAlgorithm", "outputTracks"),
+          getEntryStr("E320KFTrackFittingAlgorithm", "outputTrackContainer"),
+      .outputTracks =
+          getEntryStr("E320KFTrackFittingAlgorithm", "outputTracks"),
       .fitter = fitter,
-      .maxSteps = getEntrySizeT("KFTrackFittingAlgorithm", "maxSteps"),
+      .maxSteps = getEntrySizeT("E320KFTrackFittingAlgorithm", "maxSteps"),
       .kfExtensions = kfExtensions,
       .referenceSurface = trackingRefSurface.get()};
 
   sequencer.addAlgorithm(
-      std::make_shared<KFTrackFittingAlgorithm>(fitterCfg, logLevel));
+      std::make_shared<E320::E320KFTrackFittingAlgorithm>(fitterCfg, logLevel));
 
   // --------------------------------------------------------------
   // Event write out

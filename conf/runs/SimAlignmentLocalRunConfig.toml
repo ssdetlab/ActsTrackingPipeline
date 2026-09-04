@@ -100,8 +100,8 @@ trackFpes = false
 
 [E320RootSimTrackReader]
 # Cut on the tracks smoothed chi2
-minSmoothedChi2 = 0
-maxSmoothedChi2 = 1e9
+minSmoothedChi2 = 1500
+maxSmoothedChi2 = 3000
 
 # Cut on the tracks vertex long coordinate [mm]
 minVertexEstLong = -1e9
@@ -117,7 +117,7 @@ maxAbsMomentumEst = 10
 
 inDirTracks = """
 /home/romanurmanov/work/E320/E320Prototype/E320Prototype_analysis/sim/\
-alignment/local/filtered\
+alignment/local/sig/filtered\
 """
 
 treeName = "fitted-tracks"
@@ -161,7 +161,7 @@ deltaChi2ONdfCutOffNSteps = 10
 # Cut on the maximum number of fit iterations
 maxAlignmentFitNumIt = 200
 
-[AlignmentAlgorithm]
+[E320AlignmentAlgorithm]
 # WhiteBoard name of the input source links
 inputSourceLinks = "SourceLinks"
 
@@ -180,7 +180,7 @@ outputAlignmentParameters = "AlignmentParameters"
 # WhiteBoard name of the output updated track parameters
 outputTrackParameters = "UpdatedTrackParameters"
 
-[KFTrackFittingAlgorithm]
+[E320KFTrackFittingAlgorithm]
 # WhiteBoard name of the input track candidates
 inputTrackCandidates = "SeedsGuess"
 
