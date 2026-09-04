@@ -11,6 +11,7 @@
 #include <cstddef>
 #include <stdexcept>
 #include <vector>
+
 #include <sys/stat.h>
 
 #include "TrackingPipeline/EventData/DataContainers.hpp"
@@ -302,6 +303,15 @@ ProcessCode E320RootSimClusterReader::read(const AlgorithmContext& ctx) {
     }
     SimCluster cluster{sourceLinks.back(), hits, static_cast<bool>(m_isSignal)};
     simClusters.push_back(cluster);
+  }
+  if (detSourceLinkIndices.size() > m_cfg.maxOccupancy) {
+    m_outputSourceLinks(ctx, {});
+    m_outputSimClusters(ctx, {});
+    m_outputDetSourceLinkIndices(ctx, {});
+    m_outputConstraintSourceLinkIndices(ctx, {});
+
+    // Return success flag
+    return ProcessCode::SUCCESS;
   }
 
   ACTS_DEBUG("Read " << sourceLinks.size() << " source links");

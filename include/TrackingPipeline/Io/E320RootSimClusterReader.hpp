@@ -44,6 +44,8 @@ class E320RootSimClusterReader : public IReader {
     std::vector<std::string> filePaths;
     /// Name of the input tree
     std::string treeName;
+    /// Maximum detector occupancy
+    std::size_t maxOccupancy;
     /// Geometry ID scope
     int minGeoId;
     int maxGeoId;
