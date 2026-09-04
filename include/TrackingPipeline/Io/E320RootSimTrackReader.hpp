@@ -13,6 +13,7 @@
 #include "TVector3.h"
 #include "TVectorD.h"
 #include "TrackingPipeline/EventData/DataContainers.hpp"
+#include "TrackingPipeline/EventData/E320DataContainers.hpp"
 #include "TrackingPipeline/EventData/ExtendedSourceLink.hpp"
 #include "TrackingPipeline/Infrastructure/AlgorithmContext.hpp"
 #include "TrackingPipeline/Infrastructure/DataHandle.hpp"
@@ -110,13 +111,13 @@ class E320RootSimTrackReader : public IReader {
   WriteDataHandle<SimClusters> m_outputSimClusters{this, "OutputSimClusters"};
 
   /// WriteDataHandle for the guess seed data
-  WriteDataHandle<IndexSeeds> m_outputSeedsGuess{this, "SeedsGuess"};
+  WriteDataHandle<E320IndexSeeds> m_outputSeedsGuess{this, "SeedsGuess"};
 
   WriteDataHandle<std::vector<Acts::CurvilinearTrackParameters>>
       m_outputTrackParametersGuess{this, "OutputTrackParametersGuess"};
 
   /// WriteDataHandle for the fitted seed data
-  WriteDataHandle<IndexSeeds> m_outputSeedsEst{this, "SeedsEst"};
+  WriteDataHandle<E320IndexSeeds> m_outputSeedsEst{this, "SeedsEst"};
 
   WriteDataHandle<std::vector<Acts::CurvilinearTrackParameters>>
       m_outputTrackParametersEst{this, "OutputTrackParametersEst"};
@@ -297,6 +298,9 @@ class E320RootSimTrackReader : public IReader {
 
   /// Charge
   int m_charge = 0;
+
+  /// HT cell intersections count
+  std::size_t m_xCount = 0;
 
   /// Mutex to protect the tree filling
   std::mutex m_mutex;

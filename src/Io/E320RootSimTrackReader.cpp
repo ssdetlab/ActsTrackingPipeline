@@ -249,6 +249,9 @@ E320::E320RootSimTrackReader::E320RootSimTrackReader(const Config& config,
   // Charge
   m_tree->SetBranchAddress("charge", &m_charge);
 
+  // HT cell intersections count
+  m_tree->SetBranchAddress("xCount", &m_xCount);
+
   //------------------------------------------------------------------
 
   // Initialize constraint surfaces geometry ids
@@ -317,10 +320,10 @@ ProcessCode E320::E320RootSimTrackReader::read(const AlgorithmContext& ctx) {
   std::vector<Acts::SourceLink> sourceLinks{};
   SimClusters simClusters{};
 
-  IndexSeeds seedsGuess{};
+  E320IndexSeeds seedsGuess{};
   std::vector<Acts::CurvilinearTrackParameters> trackParametersGuess{};
 
-  IndexSeeds seedsEst{};
+  E320IndexSeeds seedsEst{};
   std::vector<Acts::CurvilinearTrackParameters> trackParametersEst{};
 
   std::vector<std::shared_ptr<MagneticFieldStore>> magFieldStores;
@@ -507,7 +510,7 @@ ProcessCode E320::E320RootSimTrackReader::read(const AlgorithmContext& ctx) {
     ipDirectionGuess.normalize();
 
     seedsGuess.emplace_back(trackSourceLinkIndices, trackParametersGuess.size(),
-                            static_cast<int>(seedsGuess.size()));
+                            static_cast<int>(seedsGuess.size()), m_xCount);
     trackParametersGuess.emplace_back(vertexGuess, ipDirectionGuess,
                                       m_charge / m_originMomentumGuess->P(),
                                       originCovGuess, hypothesis);
@@ -521,7 +524,7 @@ ProcessCode E320::E320RootSimTrackReader::read(const AlgorithmContext& ctx) {
     ipDirectionEst.normalize();
 
     seedsEst.emplace_back(trackSourceLinkIndices, trackParametersEst.size(),
-                          static_cast<int>(seedsEst.size()));
+                          static_cast<int>(seedsEst.size()), m_xCount);
     trackParametersEst.emplace_back(vertexEst, ipDirectionEst,
                                     m_charge / m_originMomentumEst->P(),
                                     originCovEst, hypothesis);
