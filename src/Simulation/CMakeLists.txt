@@ -18,4 +18,5 @@ target_sources(
     SurfaceRangedDigitizer.cpp
     ClusterSizeBasedDigitizer.cpp
     ConstantMultiplicityGenerator.cpp
+    RootHistMultiplicityGenerator.cpp
   )
