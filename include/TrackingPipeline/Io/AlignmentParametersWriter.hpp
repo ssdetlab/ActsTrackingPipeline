@@ -4,7 +4,7 @@
 #include "TMatrixD.h"
 #include "TTree.h"
 #include "TVector3.h"
-#include "TrackingPipeline/Alignment/AlignmentAlgorithm.hpp"
+#include "TrackingPipeline/Alignment/AlignmentFunction.hpp"
 #include "TrackingPipeline/Infrastructure/AlgorithmContext.hpp"
 #include "TrackingPipeline/Infrastructure/DataHandle.hpp"
 #include "TrackingPipeline/Infrastructure/IWriter.hpp"
@@ -56,7 +56,7 @@ class AlignmentParametersWriter : public IWriter {
   Config m_cfg;
 
   /// Read data handle
-  ReadDataHandle<AlignmentAlgorithm::AlignmentResult> m_alignmentResults{
+  ReadDataHandle<AlignmentFunction::AlignmentResult> m_alignmentResults{
       this, "InputAlignmentResults"};
 
   /// Logging instance
