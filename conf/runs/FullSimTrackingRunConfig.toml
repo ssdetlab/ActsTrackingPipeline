@@ -26,6 +26,16 @@ E320Prototype_material/\
 Uniform_DirectZ_Tracker_PDCWindow_256x128_1e6/material.json\
 """
 
+[AlignmentParametersProvider]
+# Input tree name
+treeName = "alignment-parameters"
+
+# Input file path
+filePath = """
+/home/romanurmanov/work/E320/E320Prototype/E320Prototype_analysis/sim/\
+alignment/local/sig/aligned/alignment-parameters.root\
+"""
+
 [Geometry]
 # Global alignment shifts [mm]
 globalShiftY = 0
@@ -85,15 +95,19 @@ localAngleZ18 = 0
 # material description
 materialDecorator = true
 
+# Use alignment provider for the 
+# transform initialization
+alignmentProvider = true
+
 [Sequencer]
 # Event skip
 skip = 0
 
 # Number of events
-events = 100
+events = 1000000
 
 # Number of threads
-numThreads = 1
+numThreads = 32
 
 # FPE tracking
 trackFpes = false
@@ -136,6 +150,9 @@ surfaceLocalToGlobal = true
 # Propagation direction for extended source link
 # invertion
 backwards = false
+
+# Cut on the maximum detector occupancy
+maxOccupancy = 1000
 
 # Flag to read only signal clusters
 onlySignalClusters = false

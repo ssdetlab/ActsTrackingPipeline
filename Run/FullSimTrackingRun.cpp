@@ -186,6 +186,16 @@ int main() {
   aStore = detail::makeAlignmentStore(gctx, detector.get(), globalShifts,
                                       localShifts, globalAngles, localAngles);
 
+  if (getEntryBool("Geometry", "alignmentProvider")) {
+    AlignmentParametersProvider::Config alignmentProviderCfg;
+    alignmentProviderCfg.treeName =
+        getEntryStr("AlignmentParametersProvider", "treeName");
+    alignmentProviderCfg.filePath =
+        getEntryStr("AlignmentParametersProvider", "filePath");
+    AlignmentParametersProvider alignmentProvider(alignmentProviderCfg);
+    aStore = alignmentProvider.getAlignmentStore();
+  }
+
   // Initialize alignment context
   AlignmentContext alignCtx(aStore);
 
@@ -348,6 +358,8 @@ int main() {
   readerCfg.surfaceLocalToGlobal =
       getEntryBool("E320RootSimClusterReader", "surfaceLocalToGlobal");
   readerCfg.backwards = getEntryBool("E320RootSimClusterReader", "backwards");
+  readerCfg.maxOccupancy =
+      getEntrySizeT("E320RootSimClusterReader", "maxOccupancy");
   readerCfg.onlySignalClusters =
       getEntryBool("E320RootSimClusterReader", "onlySignalClusters");
   readerCfg.minGeoId = goInst.tcParameters.front().geoId;
@@ -493,16 +505,17 @@ int main() {
   cfg.resolvePassive = false;
   cfg.resolveMaterial = true;
   cfg.resolveSensitive = true;
-  Navigator kfNavigator(cfg,
-                        Acts::getDefaultLogger("DetectorNavigator", logLevel));
+  Navigator kfNavigator(
+      cfg, Acts::getDefaultLogger("DetectorNavigator", Acts::Logging::FATAL));
 
   Acts::EigenStepper<> kfStepper(std::move(field));
   auto kfPropagator =
       Propagator(std::move(kfStepper), std::move(kfNavigator),
-                 Acts::getDefaultLogger("Propagator", logLevel));
+                 Acts::getDefaultLogger("Propagator", Acts::Logging::FATAL));
 
   const auto fitter = KFFitter(
-      kfPropagator, Acts::getDefaultLogger("DetectorKalmanFilter", logLevel));
+      kfPropagator,
+      Acts::getDefaultLogger("DetectorKalmanFilter", Acts::Logging::FATAL));
 
   // Add the track fitting algorithm to the sequencer
   E320::E320KFTrackFittingAlgorithm::Config fitterCfg{
