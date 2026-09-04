@@ -85,32 +85,34 @@ ProcessCode AlignmentAlgorithm::execute(const AlgorithmContext& ctx) const {
   }
 
   // Initialize source link containers
-  SourceLinkContainer trackFitSourceLinkContainer;
+  AlignmentFunction::SourceLinkContainer trackFitSourceLinkContainer;
   trackFitSourceLinkContainer.reserve(nCandidates);
   for (const auto& indices : trackFitIndicesContainer) {
     trackFitSourceLinkContainer.emplace_back(inputSourceLinks, indices);
   }
 
-  SourceLinkContainer initialTrackStateFitSourceLinkContainer;
+  AlignmentFunction::SourceLinkContainer
+      initialTrackStateFitSourceLinkContainer;
   initialTrackStateFitSourceLinkContainer.reserve(nCandidates);
   for (const auto& indices : initialTrackStateFitIndicesContainer) {
     initialTrackStateFitSourceLinkContainer.emplace_back(inputSourceLinks,
                                                          indices);
   }
 
-  TrackParametersContainer trackParametersContainer(
+  AlignmentFunction::TrackParametersContainer trackParametersContainer(
       inputTrackParameters, trackParametersIndicesContainer);
 
-  MagneticFieldParametersContainer magFieldContainer(inputMagFieldParameters,
-                                                     magFieldIndicesContainer);
+  AlignmentFunction::MagneticFieldParametersContainer magFieldContainer(
+      inputMagFieldParameters, magFieldIndicesContainer);
 
   // Run alignment
   ACTS_DEBUG("Invoke track-based alignment with " << nCandidates
                                                   << " input tracks");
-  AlignmentResult alignmentResult = (*m_cfg.alignmentFunction)(
-      ctx.geoContext, ctx.magFieldContext, ctx.calibContext,
-      trackFitSourceLinkContainer, initialTrackStateFitSourceLinkContainer,
-      trackParametersContainer, magFieldContainer);
+  AlignmentFunction::AlignmentResult alignmentResult =
+      (*m_cfg.alignmentFunction)(ctx.geoContext, ctx.magFieldContext,
+                                 ctx.calibContext, trackFitSourceLinkContainer,
+                                 initialTrackStateFitSourceLinkContainer,
+                                 trackParametersContainer, magFieldContainer);
   ACTS_INFO(
       "Alignment finished with chi2/ndf = " << alignmentResult.averageChi2ONdf);
 

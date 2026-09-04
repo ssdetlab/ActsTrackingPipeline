@@ -21,15 +21,13 @@ ActsAlignmentFunction::ActsAlignmentFunction(const Config& cfg) : m_cfg(cfg) {
   m_align = std::make_unique<ActsAligner>(std::move(trackFitter));
 }
 
-AlignmentAlgorithm::AlignmentResult ActsAlignmentFunction::operator()(
+AlignmentFunction::AlignmentResult ActsAlignmentFunction::operator()(
     const Acts::GeometryContext& gctx, const Acts::MagneticFieldContext& mctx,
     const Acts::CalibrationContext& cctx,
-    const AlignmentAlgorithm::SourceLinkContainer& alignmentFitSourceLinks,
-    const AlignmentAlgorithm::SourceLinkContainer&
-        initialTrackStateFitSourceLinks,
-    const AlignmentAlgorithm::TrackParametersContainer& initialParameters,
-    const AlignmentAlgorithm::MagneticFieldParametersContainer&
-        magFieldParameters) const {
+    const SourceLinkContainer& alignmentFitSourceLinks,
+    const SourceLinkContainer& initialTrackStateFitSourceLinks,
+    const TrackParametersContainer& initialParameters,
+    const MagneticFieldParametersContainer& magFieldParameters) const {
   // Initialize KF options
   auto propOptions = KFFitterPropagatorOptions(gctx, mctx);
   propOptions.maxSteps = m_cfg.maxKFSteps;
@@ -74,7 +72,7 @@ AlignmentAlgorithm::AlignmentResult ActsAlignmentFunction::operator()(
   }
 
   // Fill out alignment results struct
-  AlignmentAlgorithm::AlignmentResult alignmentResult;
+  AlignmentResult alignmentResult;
   alignmentResult.deltaAlignmentParameters =
       actsAlignmentResult.deltaAlignmentParameters;
   alignmentResult.alignedParameters = actsAlignmentResult.alignedParameters;

@@ -4,7 +4,7 @@
 
 #include "Minuit2/FCNBase.h"
 #include "Minuit2/MnMigrad.h"
-#include "TrackingPipeline/Alignment/AlignmentAlgorithm.hpp"
+#include "TrackingPipeline/Alignment/AlignmentFunction.hpp"
 #include "TrackingPipeline/Alignment/AlignmentStore.hpp"
 #include "TrackingPipeline/Infrastructure/TypeDefinitions.hpp"
 #include "TrackingPipeline/TrackFinding/ITrackParametersEstimator.hpp"
@@ -17,8 +17,7 @@ namespace E320 {
 /// and rotation about the COM horizontal axis alignment search using
 /// MINUIT chi2 minimization. The covariance of the track residuals at the IP
 /// plane is estimated directly from the sample to avoid numerical issues
-class E320MinuitGlobalAlignmentFunction
-    : public AlignmentAlgorithm::AlignmentFunction {
+class E320MinuitGlobalAlignmentFunction : public AlignmentFunction {
  public:
   /// @brief nested configuration struct
   struct Config {
@@ -62,16 +61,13 @@ class E320MinuitGlobalAlignmentFunction
       /// Calibration context
       const Acts::CalibrationContext& cctx;
       /// Source links used in the track fit optimization
-      const AlignmentAlgorithm::SourceLinkContainer&
-          alignmentFitSourceLinkContainer;
+      const SourceLinkContainer& alignmentFitSourceLinkContainer;
       /// Source links used in the inital track state estimation
-      const AlignmentAlgorithm::SourceLinkContainer&
-          initialTrackStateFitSourceLinkContainer;
+      const SourceLinkContainer& initialTrackStateFitSourceLinkContainer;
       /// Initial track parameters estimates
-      const AlignmentAlgorithm::TrackParametersContainer& trackParameters;
+      const TrackParametersContainer& trackParameters;
       /// Track-specific magnetic fields configuration
-      const AlignmentAlgorithm::MagneticFieldParametersContainer&
-          magFieldParameters;
+      const MagneticFieldParametersContainer& magFieldParameters;
       /// Kalman filter instance
       const std::shared_ptr<KFFitter>& fitter;
       /// Function config instance
@@ -151,15 +147,14 @@ class E320MinuitGlobalAlignmentFunction
   /// @param magFieldParameters track-specific magnetic field configurations
   ///
   /// @return struct containing the results of the alignment procedure
-  AlignmentAlgorithm::AlignmentResult operator()(
+  AlignmentResult operator()(
       const Acts::GeometryContext& gctx, const Acts::MagneticFieldContext& mctx,
       const Acts::CalibrationContext& cctx,
-      const AlignmentAlgorithm::SourceLinkContainer& alignmentFitSourceLinks,
-      const AlignmentAlgorithm::SourceLinkContainer&
-          initialTrackStateFitSourceLinks,
-      const AlignmentAlgorithm::TrackParametersContainer& initialParameters,
-      const AlignmentAlgorithm::MagneticFieldParametersContainer&
-          magFieldParameters) const override;
+      const SourceLinkContainer& alignmentFitSourceLinks,
+      const SourceLinkContainer& initialTrackStateFitSourceLinks,
+      const TrackParametersContainer& initialParameters,
+      const MagneticFieldParametersContainer& magFieldParameters)
+      const override;
 
  protected:
   /// @brief access to logging instance

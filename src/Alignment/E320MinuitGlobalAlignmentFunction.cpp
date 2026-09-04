@@ -245,16 +245,14 @@ E320::E320MinuitGlobalAlignmentFunction::E320MinuitGlobalAlignmentFunction(
       Acts::getDefaultLogger("AlignmentKalmanFilter", Acts::Logging::INFO));
 }
 
-AlignmentAlgorithm::AlignmentResult
+AlignmentFunction::AlignmentResult
 E320::E320MinuitGlobalAlignmentFunction::operator()(
     const Acts::GeometryContext& gctx, const Acts::MagneticFieldContext& mctx,
     const Acts::CalibrationContext& cctx,
-    const AlignmentAlgorithm::SourceLinkContainer& alignmentFitSourceLinks,
-    const AlignmentAlgorithm::SourceLinkContainer&
-        initialTrackStateFitSourceLinks,
-    const AlignmentAlgorithm::TrackParametersContainer& initialParameters,
-    const AlignmentAlgorithm::MagneticFieldParametersContainer&
-        magFieldParameters) const {
+    const SourceLinkContainer& alignmentFitSourceLinks,
+    const SourceLinkContainer& initialTrackStateFitSourceLinks,
+    const TrackParametersContainer& initialParameters,
+    const MagneticFieldParametersContainer& magFieldParameters) const {
   // Store nominal alignment parameters
   auto nominalAlignmentStore = *m_cfg.alignmentStore;
   Acts::GeometryContext nominalGctx(AlignmentContext(
@@ -332,7 +330,7 @@ E320::E320MinuitGlobalAlignmentFunction::operator()(
   double finalChi2 = min.Fval();
   std::size_t ndf = 0;
 
-  AlignmentAlgorithm::AlignmentResult alignmentResult;
+  AlignmentResult alignmentResult;
   alignmentResult.deltaAlignmentParameters = Acts::Vector3(
       min.UserParameters().Value(0), min.UserParameters().Value(1),
       min.UserParameters().Value(2));

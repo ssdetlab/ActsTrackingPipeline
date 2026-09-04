@@ -4,13 +4,13 @@
 
 #include <cstddef>
 
-#include "TrackingPipeline/Alignment/AlignmentAlgorithm.hpp"
+#include "TrackingPipeline/Alignment/AlignmentFunction.hpp"
 #include "TrackingPipeline/Infrastructure/TypeDefinitions.hpp"
 #include "TrackingPipeline/TrackFinding/ITrackParametersEstimator.hpp"
 
 /// @brief Alignment function calling Acts-implemented alignment machinery
 /// for chi2 minimization
-class ActsAlignmentFunction : public AlignmentAlgorithm::AlignmentFunction {
+class ActsAlignmentFunction : public AlignmentFunction {
  public:
   /// @brief nested configuration struct
   struct Config {
@@ -61,15 +61,14 @@ class ActsAlignmentFunction : public AlignmentAlgorithm::AlignmentFunction {
   /// @param magFieldParameters track-specific magnetic field configurations
   ///
   /// @return struct containing the results of the alignment procedure
-  AlignmentAlgorithm::AlignmentResult operator()(
+  AlignmentResult operator()(
       const Acts::GeometryContext& gctx, const Acts::MagneticFieldContext& mctx,
       const Acts::CalibrationContext& cctx,
-      const AlignmentAlgorithm::SourceLinkContainer& alignmentFitSourceLinks,
-      const AlignmentAlgorithm::SourceLinkContainer&
-          initialTrackStateFitSourceLinks,
-      const AlignmentAlgorithm::TrackParametersContainer& initialParameters,
-      const AlignmentAlgorithm::MagneticFieldParametersContainer&
-          magFieldParameters) const override;
+      const SourceLinkContainer& alignmentFitSourceLinks,
+      const SourceLinkContainer& initialTrackStateFitSourceLinks,
+      const TrackParametersContainer& initialParameters,
+      const MagneticFieldParametersContainer& magFieldParameters)
+      const override;
 
  private:
   /// Configuration
