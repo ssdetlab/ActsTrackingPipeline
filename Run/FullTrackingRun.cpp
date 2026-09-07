@@ -35,8 +35,6 @@
 #include "TrackingPipeline/Io/E320MagneticFieldWriter.hpp"
 #include "TrackingPipeline/Io/E320RootDataReader.hpp"
 #include "TrackingPipeline/Io/E320RootTrackWriter.hpp"
-#include "TrackingPipeline/Io/RootMeasurementWriter.hpp"
-#include "TrackingPipeline/Io/RootSeedWriter.hpp"
 #include "TrackingPipeline/MagneticField/MagneticFieldContextDecorator.hpp"
 #include "TrackingPipeline/TrackFinding/E320SeedingAlgorithm.hpp"
 #include "TrackingPipeline/TrackFinding/E320TrackParametersEstimator.hpp"
