@@ -265,7 +265,7 @@ quad1Gradient = -2.406  # 2.0 GeV
 # quad1Gradient = -4.36  # 3.5 GeV
 
 # quad2Gradient = 0  # Test
-quad2Gradient = 3.656  # 2.0 GeV
+quad2Gradient = 3.565  # 2.0 GeV
 # quad2Gradient = 6.46  # 3.5 GeV
 
 # quad3Gradient = 0  # Test
@@ -335,6 +335,7 @@ dipoleCenterShort = 0
 # dipoleFieldStrength = -0.2051 # Top
 
 # Global alignment 2.0 GeV
+# dipoleFieldStrength = -0.1951 # Test
 dipoleFieldStrength = -0.1751 # Test
 # dipoleFieldStrength = -0.19 # Bottom
 # dipoleFieldStrength = -0.2151 # Center
