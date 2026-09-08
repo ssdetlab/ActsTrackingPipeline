@@ -72,6 +72,26 @@ localAngleZ18 = 0
 # globalAngleZ = -2 
 
 # # Local alignment shifts [um]
+# localShiftY10 = 87.0424
+# localShiftY12 = -42.8826
+# localShiftY14 = -85.2079
+# localShiftY16 = -49.0775
+# localShiftY18 = 90.1256
+# 
+# localShiftZ10 = 79.2388
+# localShiftZ12 = -51.5436
+# localShiftZ14 = -54.1019
+# localShiftZ16 = -54.1335
+# localShiftZ18 = 80.5396
+# 
+# # Local alignment angles [mrad]
+# localAngleZ10 = -2.61758
+# localAngleZ12 = -0.605774
+# localAngleZ14 = -4.47824
+# localAngleZ16 = -1.68011
+# localAngleZ18 = -4.27792
+
+# # Local alignment shifts [um]
 # localShiftY10 = 30
 # localShiftY12 = -40
 # localShiftY14 = -40
@@ -97,7 +117,7 @@ materialDecorator = true
 
 # Use alignment provider for the 
 # transform initialization
-alignmentProvider = true
+alignmentProvider = false
 
 [Sequencer]
 # Event skip
@@ -115,8 +135,8 @@ trackFpes = false
 [E320MagneticFieldParametersProvider]
 inDirMagnets = """
 /home/romanurmanov/work/E320/E320Prototype/\
-E320Prototype_dataInRootFormat/sim/alignment/local/\
-sig/magnets\
+E320Prototype_dataInRootFormat/sim/alignment/high_occ_test/\
+sig_high_rate/magnets\
 """
 
 treeName = "magnets"
@@ -124,8 +144,8 @@ treeName = "magnets"
 [E320RootSimClusterReader]
 inDirClusters = """
 /home/romanurmanov/work/E320/E320Prototype/\
-E320Prototype_dataInRootFormat/sim/alignment/local/\
-sig/clusters\
+E320Prototype_dataInRootFormat/sim/alignment/high_occ_test/\
+sig_high_rate/clusters\
 """
 
 # WhiteBoard name of the output source links
