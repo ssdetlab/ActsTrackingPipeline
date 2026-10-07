@@ -7,6 +7,8 @@
 #include <cstddef>
 #include <vector>
 
+#include <TMatrixDfwd.h>
+
 #include "TFile.h"
 #include "TLorentzVector.h"
 #include "TMatrixD.h"
@@ -169,6 +171,9 @@ class E320RootSimTrackWriter : public IWriter {
   std::vector<TVector2> m_filteredAngleResiduals;
   std::vector<TVector2> m_smoothedAngleResiduals;
 
+  /// KF leave-one-out residuals
+  std::vector<TVector2> m_leaveOneOutHitResiduals;
+
   /// KF pulls with respect to the true hits
   std::vector<TVector2> m_truePredictedHitPulls;
   std::vector<TVector2> m_trueFilteredHitPulls;
@@ -186,6 +191,12 @@ class E320RootSimTrackWriter : public IWriter {
   std::vector<TVector2> m_predictedAnglePulls;
   std::vector<TVector2> m_filteredAnglePulls;
   std::vector<TVector2> m_smoothedAnglePulls;
+
+  /// KF states covariances
+  std::vector<TMatrixD> m_predictedTrackStateCovs;
+  std::vector<TMatrixD> m_filteredTrackStateCovs;
+  std::vector<TMatrixD> m_smoothedTrackStateCovs;
+  std::vector<TMatrixD> m_leaveOneOutTrackStateCovs;
 
   /// Guessed bound track parameters
   TVectorD m_boundTrackParametersGuess;
