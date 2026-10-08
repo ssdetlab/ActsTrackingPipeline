@@ -13,7 +13,7 @@
 #include "TTree.h"
 #include "TVector3.h"
 #include "TVectorD.h"
-#include "TrackingPipeline/EventData/E320DataContainers.hpp"
+#include "TrackingPipeline/EventData/E320IndexTrack.hpp"
 #include "TrackingPipeline/Infrastructure/AlgorithmContext.hpp"
 #include "TrackingPipeline/Infrastructure/DataHandle.hpp"
 #include "TrackingPipeline/Infrastructure/IWriter.hpp"
@@ -161,6 +161,8 @@ class E320RootTrackWriter : public IWriter {
   std::vector<TVector2> m_filteredAngleResiduals;
   std::vector<TVector2> m_smoothedAngleResiduals;
 
+  std::vector<TVector2> m_leaveOneOutHitResiduals;
+
   /// KF pulls with respect to the measurements
   std::vector<TVector2> m_predictedHitPulls;
   std::vector<TVector2> m_filteredHitPulls;
@@ -169,6 +171,12 @@ class E320RootTrackWriter : public IWriter {
   std::vector<TVector2> m_predictedAnglePulls;
   std::vector<TVector2> m_filteredAnglePulls;
   std::vector<TVector2> m_smoothedAnglePulls;
+
+  /// KF states covariances
+  std::vector<TMatrixD> m_predictedTrackStateCovs;
+  std::vector<TMatrixD> m_filteredTrackStateCovs;
+  std::vector<TMatrixD> m_smoothedTrackStateCovs;
+  std::vector<TMatrixD> m_leaveOneOutTrackStateCovs;
 
   /// Guessed bound track parameters
   TVectorD m_boundTrackParametersGuess;

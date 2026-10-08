@@ -118,6 +118,9 @@ E320::E320RootTrackWriter::E320RootTrackWriter(const Config& config,
   m_tree->Branch("smoothedAngleResiduals", &m_smoothedAngleResiduals, bufSize,
                  splitLvl);
 
+  m_tree->Branch("leaveOneOutHitResiduals", &m_leaveOneOutHitResiduals, bufSize,
+                 splitLvl);
+
   // KF pulls with respect to the measurements
   m_tree->Branch("predictedHitPulls", &m_predictedHitPulls, bufSize, splitLvl);
   m_tree->Branch("filteredHitPulls", &m_filteredHitPulls, bufSize, splitLvl);
@@ -129,6 +132,16 @@ E320::E320RootTrackWriter::E320RootTrackWriter(const Config& config,
                  splitLvl);
   m_tree->Branch("smoothedAnglePulls", &m_smoothedAnglePulls, bufSize,
                  splitLvl);
+
+  // KF states covariances
+  m_tree->Branch("predictedTrackStateCovs", &m_predictedTrackStateCovs, bufSize,
+                 splitLvl);
+  m_tree->Branch("filteredTrackStateCovs", &m_filteredTrackStateCovs, bufSize,
+                 splitLvl);
+  m_tree->Branch("smoothedTrackStateCovs", &m_smoothedTrackStateCovs, bufSize,
+                 splitLvl);
+  m_tree->Branch("leaveOneOutTrackStateCovs", &m_leaveOneOutTrackStateCovs,
+                 bufSize, splitLvl);
 
   // Guessed bound track parameters
   m_tree->Branch("boundTrackParametersGuess", &m_boundTrackParametersGuess,
@@ -356,6 +369,9 @@ ProcessCode E320::E320RootTrackWriter::write(const AlgorithmContext& ctx) {
     m_smoothedAngleResiduals.clear();
     m_smoothedAngleResiduals.reserve(nStates);
 
+    m_leaveOneOutHitResiduals.clear();
+    m_leaveOneOutHitResiduals.reserve(nStates);
+
     // KF pulls with respect to the measurements
     m_predictedHitPulls.clear();
     m_predictedHitPulls.reserve(nStates);
@@ -374,6 +390,19 @@ ProcessCode E320::E320RootTrackWriter::write(const AlgorithmContext& ctx) {
 
     m_smoothedAnglePulls.clear();
     m_smoothedAnglePulls.reserve(nStates);
+
+    // KF states covariances
+    m_predictedTrackStateCovs.clear();
+    m_predictedTrackStateCovs.reserve(nStates);
+
+    m_filteredTrackStateCovs.clear();
+    m_filteredTrackStateCovs.reserve(nStates);
+
+    m_smoothedTrackStateCovs.clear();
+    m_smoothedTrackStateCovs.reserve(nStates);
+
+    m_leaveOneOutTrackStateCovs.clear();
+    m_leaveOneOutTrackStateCovs.reserve(nStates);
 
     // ----------------------------------------------
     // Guess track parameters
@@ -550,6 +579,7 @@ ProcessCode E320::E320RootTrackWriter::write(const AlgorithmContext& ctx) {
       // Predicted state info
       Acts::BoundVector predictedPars = state.predicted();
       Acts::ActsDynamicMatrix effectiveProjector = state.effectiveProjector();
+      Acts::BoundMatrix predictedStateCov = state.predictedCovariance();
 
       // Get the predicted measurement hit
       Acts::ActsDynamicVector predictedMeas =
@@ -576,7 +606,7 @@ ProcessCode E320::E320RootTrackWriter::write(const AlgorithmContext& ctx) {
 
       // Covariance with respect to the true track hits
       Acts::ActsDynamicMatrix predictedMeasCovTruth =
-          effectiveProjector * state.predictedCovariance() *
+          effectiveProjector * predictedStateCov *
           effectiveProjector.transpose();
 
       Acts::SquareMatrix2 predictedHitCovTruth =
@@ -655,6 +685,17 @@ ProcessCode E320::E320RootTrackWriter::write(const AlgorithmContext& ctx) {
       m_predictedAnglePulls.emplace_back(predictedAnglePull(0),
                                          predictedAnglePull(1));
 
+      // Store predicted state covariance
+      TMatrixD predictedTrackStateCov(2, 2);
+      TArrayD predictedTrackStateCovData(Acts::eBoundSize * Acts::eBoundSize);
+      for (std::size_t i = 0; i < Acts::eBoundSize * Acts::eBoundSize; i++) {
+        predictedTrackStateCovData[i] = predictedStateCov(i);
+      }
+      predictedTrackStateCov.Use(Acts::eBoundSize, Acts::eBoundSize,
+                                 predictedTrackStateCovData.GetArray());
+
+      m_predictedTrackStateCovs.push_back(predictedTrackStateCov);
+
       // Add to the track chi2
       m_chi2Predicted += predictedHitPull.dot(predictedHitPull) +
                          predictedAnglePull.dot(predictedAnglePull);
@@ -664,6 +705,7 @@ ProcessCode E320::E320RootTrackWriter::write(const AlgorithmContext& ctx) {
       if (state.hasFiltered()) {
         Acts::BoundVector filteredPars = state.filtered();
         Acts::ActsDynamicMatrix effectiveProjector = state.effectiveProjector();
+        Acts::BoundMatrix filteredStateCov = state.filteredCovariance();
 
         // Get the filtered measurement hit
         Acts::ActsDynamicVector filteredMeas =
@@ -690,7 +732,7 @@ ProcessCode E320::E320RootTrackWriter::write(const AlgorithmContext& ctx) {
 
         // Covariance with respect to the true track hits
         Acts::ActsDynamicMatrix filteredMeasCovTruth =
-            effectiveProjector * state.filteredCovariance() *
+            effectiveProjector * filteredStateCov *
             effectiveProjector.transpose();
 
         Acts::SquareMatrix2 filteredHitCovTruth =
@@ -770,6 +812,16 @@ ProcessCode E320::E320RootTrackWriter::write(const AlgorithmContext& ctx) {
         m_filteredAnglePulls.emplace_back(filteredAnglePull(0),
                                           filteredAnglePull(1));
 
+        // Store filtered state covariance
+        TMatrixD filteredTrackStateCov(2, 2);
+        TArrayD filteredTrackStateCovData(Acts::eBoundSize * Acts::eBoundSize);
+        for (std::size_t i = 0; i < Acts::eBoundSize * Acts::eBoundSize; i++) {
+          filteredTrackStateCovData[i] = filteredStateCov(i);
+        }
+        filteredTrackStateCov.Use(Acts::eBoundSize, Acts::eBoundSize,
+                                  filteredTrackStateCovData.GetArray());
+        m_filteredTrackStateCovs.push_back(filteredTrackStateCov);
+
         // Add to the track chi2
         m_chi2Filtered += filteredHitPull.dot(filteredHitPull) +
                           filteredAnglePull.dot(filteredAnglePull);
@@ -780,6 +832,7 @@ ProcessCode E320::E320RootTrackWriter::write(const AlgorithmContext& ctx) {
       if (state.hasSmoothed()) {
         Acts::BoundVector smoothedPars = state.smoothed();
         Acts::ActsDynamicMatrix effectiveProjector = state.effectiveProjector();
+        Acts::BoundMatrix smoothedStateCov = state.smoothedCovariance();
 
         // Get the smoothed measurement hit
         Acts::ActsDynamicVector smoothedMeas =
@@ -806,7 +859,7 @@ ProcessCode E320::E320RootTrackWriter::write(const AlgorithmContext& ctx) {
 
         // Covariance with respect to the true track hits
         Acts::ActsDynamicMatrix smoothedMeasCovTruth =
-            effectiveProjector * state.smoothedCovariance() *
+            effectiveProjector * smoothedStateCov *
             effectiveProjector.transpose();
 
         Acts::SquareMatrix2 smoothedHitCovTruth =
@@ -885,6 +938,43 @@ ProcessCode E320::E320RootTrackWriter::write(const AlgorithmContext& ctx) {
 
         m_smoothedAnglePulls.emplace_back(smoothedAnglePull(0),
                                           smoothedAnglePull(1));
+
+        // Store smoothed state covariance
+        TMatrixD smoothedTrackStateCov(2, 2);
+        TArrayD smoothedTrackStateCovData(Acts::eBoundSize * Acts::eBoundSize);
+        for (std::size_t i = 0; i < Acts::eBoundSize * Acts::eBoundSize; i++) {
+          smoothedTrackStateCovData[i] = smoothedStateCov(i);
+        }
+        smoothedTrackStateCov.Use(Acts::eBoundSize, Acts::eBoundSize,
+                                  smoothedTrackStateCovData.GetArray());
+        m_smoothedTrackStateCovs.push_back(smoothedTrackStateCov);
+
+        // Leave-one-out residuals
+        Acts::BoundMatrix measHitCovProjInv = effectiveProjector.transpose() *
+                                              measHitCov.inverse() *
+                                              effectiveProjector;
+        Acts::BoundMatrix leaveOneOutStateCov =
+            (smoothedStateCov.inverse() - measHitCovProjInv).inverse();
+
+        Acts::BoundVector leaveOneOutStateEst =
+            leaveOneOutStateCov *
+            (smoothedStateCov.inverse() * smoothedPars -
+             effectiveProjector.transpose() * measHitCov.inverse() * measHit);
+        Acts::Vector2 leaveOneOutResidual =
+            measHit - effectiveProjector * leaveOneOutStateEst;
+
+        m_leaveOneOutHitResiduals.emplace_back(leaveOneOutResidual.x(),
+                                               leaveOneOutResidual.y());
+
+        TMatrixD leaveOneOutTrackStateCov(2, 2);
+        TArrayD leaveOneOutTrackStateCovData(Acts::eBoundSize *
+                                             Acts::eBoundSize);
+        for (std::size_t i = 0; i < Acts::eBoundSize * Acts::eBoundSize; i++) {
+          leaveOneOutTrackStateCovData[i] = leaveOneOutStateCov(i);
+        }
+        leaveOneOutTrackStateCov.Use(Acts::eBoundSize, Acts::eBoundSize,
+                                     leaveOneOutTrackStateCovData.GetArray());
+        m_leaveOneOutTrackStateCovs.push_back(leaveOneOutTrackStateCov);
 
         // Add to the track chi2
         m_chi2Smoothed += smoothedHitPull.dot(smoothedHitPull) +
