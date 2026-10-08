@@ -444,8 +444,6 @@ ProcessCode E320::E320RootTrackReader::read(const AlgorithmContext& ctx) {
         trackHitCov << m_trackHitCovs->at(i)(0, 0), m_trackHitCovs->at(i)(0, 1),
             m_trackHitCovs->at(i)(1, 0), m_trackHitCovs->at(i)(1, 1);
 
-        // trackHitCov = Acts::Vector2(5_um, 5_um).cwiseAbs2().asDiagonal();
-
         Acts::GeometryIdentifier geoId;
         geoId.setSensitive(m_geometryIds->at(i));
         SimpleSourceLink ssl(trackHitLocal, trackHitGlobal, trackHitCov, geoId,
