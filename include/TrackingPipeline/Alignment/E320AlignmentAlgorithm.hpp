@@ -8,7 +8,7 @@
 #include <vector>
 
 #include "TrackingPipeline/Alignment/AlignmentFunction.hpp"
-#include "TrackingPipeline/EventData/E320DataContainers.hpp"
+#include "TrackingPipeline/EventData/E320IndexSeed.hpp"
 #include "TrackingPipeline/Infrastructure/DataHandle.hpp"
 #include "TrackingPipeline/Infrastructure/IAlgorithm.hpp"
 #include "TrackingPipeline/MagneticField/MagneticFieldStore.hpp"

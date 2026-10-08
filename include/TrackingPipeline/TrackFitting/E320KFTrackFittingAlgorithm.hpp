@@ -2,7 +2,8 @@
 
 #include "Acts/EventData/TrackParameters.hpp"
 
-#include "TrackingPipeline/EventData/E320DataContainers.hpp"
+#include "TrackingPipeline/EventData/E320IndexSeed.hpp"
+#include "TrackingPipeline/EventData/E320IndexTrack.hpp"
 #include "TrackingPipeline/Infrastructure/DataHandle.hpp"
 #include "TrackingPipeline/Infrastructure/IAlgorithm.hpp"
 #include "TrackingPipeline/Infrastructure/TypeDefinitions.hpp"
