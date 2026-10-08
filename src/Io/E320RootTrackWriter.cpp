@@ -972,7 +972,8 @@ ProcessCode E320::E320RootTrackWriter::write(const AlgorithmContext& ctx) {
             (smoothedStateCovLdlt.solve(Acts::BoundMatrix::Identity()) *
                  smoothedPars -
              effectiveProjector.transpose() *
-                 measHitCovLdlt.solve(Acts::BoundMatrix::Identity()) * measHit);
+                 measHitCovLdlt.solve(Acts::SquareMatrix2::Identity()) *
+                 measHit);
         Acts::Vector2 leaveOneOutResidual =
             measHit - effectiveProjector * leaveOneOutStateEst;
 
