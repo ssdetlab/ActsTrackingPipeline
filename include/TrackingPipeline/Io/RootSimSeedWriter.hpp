@@ -8,7 +8,7 @@
 #include "TFile.h"
 #include "TLorentzVector.h"
 #include "TTree.h"
-#include "TrackingPipeline/EventData/DataContainers.hpp"
+#include "TrackingPipeline/EventData/IndexSeed.hpp"
 #include "TrackingPipeline/EventData/SimCluster.hpp"
 #include "TrackingPipeline/Infrastructure/AlgorithmContext.hpp"
 #include "TrackingPipeline/Infrastructure/DataHandle.hpp"

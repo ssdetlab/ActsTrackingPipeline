@@ -1,8 +1,8 @@
 #pragma once
 
 #include "Acts/EventData/SourceLink.hpp"
+#include "Acts/EventData/TrackParameters.hpp"
 #include "Acts/Utilities/Logger.hpp"
-#include <Acts/EventData/TrackParameters.hpp>
 
 #include <cstddef>
 
@@ -12,8 +12,8 @@
 #include "TTree.h"
 #include "TVector3.h"
 #include "TVectorD.h"
-#include "TrackingPipeline/EventData/DataContainers.hpp"
 #include "TrackingPipeline/EventData/ExtendedSourceLink.hpp"
+#include "TrackingPipeline/EventData/IndexSeed.hpp"
 #include "TrackingPipeline/Infrastructure/AlgorithmContext.hpp"
 #include "TrackingPipeline/Infrastructure/DataHandle.hpp"
 #include "TrackingPipeline/Infrastructure/IReader.hpp"
