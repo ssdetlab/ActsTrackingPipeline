@@ -7,8 +7,6 @@
 #include "TrackingPipeline/Infrastructure/IReader.hpp"
 #include "TrackingPipeline/Infrastructure/ProcessCode.hpp"
 
-using namespace Acts::UnitLiterals;
-
 /// @brief dummy reader enabling Sequencer's event loop but
 /// providing no data
 class DummyReader : public IReader {
@@ -28,33 +26,17 @@ class DummyReader : public IReader {
   /// @brief Constructor
   ///
   /// @param config configuration struct
-  explicit DummyReader(const Config& config) : IReader(), m_cfg(config) {
-    m_outputSourceLinks.initialize(m_cfg.outputSourceLinks);
-    m_outputSimClusters.initialize(m_cfg.outputSimClusters);
-    m_outputSourceLinkIndices.initialize(m_cfg.outputSourceLinkIndices);
-  }
+  explicit DummyReader(const Config& config);
 
   /// @brief The execute method
   ///
   /// @param ctx current algorithm context
   ///
   /// @return algorithm process code
-  ProcessCode read(const AlgorithmContext& ctx) override {
-    std::vector<Acts::SourceLink> sourceLinks{};
-    std::vector<std::size_t> sourceLinksIndices{};
-    SimClusters clusters{};
-
-    m_outputSourceLinks(ctx, std::move(sourceLinks));
-    m_outputSimClusters(ctx, std::move(clusters));
-    m_outputSourceLinkIndices(ctx, std::move(sourceLinksIndices));
-
-    return ProcessCode::SUCCESS;
-  }
+  ProcessCode read(const AlgorithmContext& ctx) override;
 
   /// @brief Provide range of available events
-  std::pair<std::size_t, std::size_t> availableEvents() const override {
-    return {0, m_cfg.nEvents};
-  }
+  std::pair<std::size_t, std::size_t> availableEvents() const override;
 
   /// @brief get reader's name
   std::string name() const override { return "DummyReader"; }

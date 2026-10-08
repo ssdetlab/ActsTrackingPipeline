@@ -1,6 +1,7 @@
 target_sources(
     TrackingPipelineCore
     PRIVATE
+    DummyReader.cpp
     RootSimClusterWriter.cpp
     RootSimClusterReader.cpp
     RootSimSeedWriter.cpp
