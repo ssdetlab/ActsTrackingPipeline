@@ -1193,16 +1193,26 @@ ProcessCode E320::E320RootSimTrackWriter::write(const AlgorithmContext& ctx) {
         m_smoothedTrackStateCovs.push_back(smoothedTrackStateCov);
 
         // Leave-one-out residuals
-        Acts::BoundMatrix measHitCovProjInv = effectiveProjector.transpose() *
-                                              measHitCov.inverse() *
-                                              effectiveProjector;
+        const Eigen::LDLT<Acts::SquareMatrix2>& measHitCovLdlt =
+            measHitCov.ldlt();
+        const Eigen::LDLT<Acts::BoundMatrix>& smoothedStateCovLdlt =
+            smoothedStateCov.ldlt();
+
+        Acts::BoundMatrix measHitCovProjInv =
+            effectiveProjector.transpose() *
+            measHitCovLdlt.solve(effectiveProjector);
         Acts::BoundMatrix leaveOneOutStateCov =
-            (smoothedStateCov.inverse() - measHitCovProjInv).inverse();
+            (smoothedStateCovLdlt.solve(Acts::BoundMatrix::Identity()) -
+             measHitCovProjInv)
+                .ldlt()
+                .solve(Acts::BoundMatrix::Identity());
 
         Acts::BoundVector leaveOneOutStateEst =
             leaveOneOutStateCov *
-            (smoothedStateCov.inverse() * smoothedPars -
-             effectiveProjector.transpose() * measHitCov.inverse() * measHit);
+            (smoothedStateCovLdlt.solve(Acts::BoundMatrix::Identity()) *
+                 smoothedPars -
+             effectiveProjector.transpose() *
+                 measHitCovLdlt.solve(Acts::BoundMatrix::Identity()) * measHit);
         Acts::Vector2 leaveOneOutResidual =
             measHit - effectiveProjector * leaveOneOutStateEst;
 
