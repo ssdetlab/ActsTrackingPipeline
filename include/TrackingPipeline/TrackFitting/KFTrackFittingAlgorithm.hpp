@@ -2,8 +2,8 @@
 
 #include "Acts/EventData/TrackParameters.hpp"
 
-#include "TrackingPipeline/EventData/DataContainers.hpp"
 #include "TrackingPipeline/EventData/IndexSeed.hpp"
+#include "TrackingPipeline/EventData/IndexTrack.hpp"
 #include "TrackingPipeline/Infrastructure/DataHandle.hpp"
 #include "TrackingPipeline/Infrastructure/IAlgorithm.hpp"
 #include "TrackingPipeline/Infrastructure/TypeDefinitions.hpp"

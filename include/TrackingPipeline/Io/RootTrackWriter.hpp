@@ -13,13 +13,12 @@
 #include "TTree.h"
 #include "TVector3.h"
 #include "TVectorD.h"
-#include "TrackingPipeline/EventData/DataContainers.hpp"
+#include "TrackingPipeline/EventData/IndexTrack.hpp"
 #include "TrackingPipeline/Infrastructure/AlgorithmContext.hpp"
 #include "TrackingPipeline/Infrastructure/DataHandle.hpp"
 #include "TrackingPipeline/Infrastructure/IWriter.hpp"
 #include "TrackingPipeline/Infrastructure/ProcessCode.hpp"
 #include "TrackingPipeline/Infrastructure/TypeDefinitions.hpp"
-#include "TrackingPipeline/Io/E320RootDataReader.hpp"
 
 /// @brief E320-specific track writer
 class RootTrackWriter : public IWriter {

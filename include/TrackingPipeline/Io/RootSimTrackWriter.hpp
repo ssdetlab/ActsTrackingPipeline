@@ -13,7 +13,7 @@
 #include "TTree.h"
 #include "TVector3.h"
 #include "TVectorD.h"
-#include "TrackingPipeline/EventData/DataContainers.hpp"
+#include "TrackingPipeline/EventData/IndexTrack.hpp"
 #include "TrackingPipeline/EventData/SimCluster.hpp"
 #include "TrackingPipeline/Infrastructure/AlgorithmContext.hpp"
 #include "TrackingPipeline/Infrastructure/DataHandle.hpp"
