@@ -41,7 +41,7 @@ class SimpleSourceLink {
   /// @param cov covariance of the measurement in the track coordinate system
   /// @param gid geometry ID of the measurement surface
   /// @param eid event ID
-  /// @param idx user-assigned index for fast-sim fast access
+  /// @param idx user-assigned index for user-defined fast access
   SimpleSourceLink(const Acts::ActsVector<localSubspaceSize>& paramsLoc,
                    const Acts::ActsVector<globalSubspaceSize>& paramsGlob,
                    const Acts::ActsSquareMatrix<localSubspaceSize>& cov,
