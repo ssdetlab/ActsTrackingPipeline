@@ -5,6 +5,7 @@
 #include <cstddef>
 
 #include "TrackingPipeline/EventData/DataContainers.hpp"
+#include "TrackingPipeline/EventData/SimCluster.hpp"
 #include "TrackingPipeline/Infrastructure/DataHandle.hpp"
 #include "TrackingPipeline/Infrastructure/IAlgorithm.hpp"
 

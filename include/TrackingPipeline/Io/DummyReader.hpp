@@ -2,14 +2,14 @@
 
 #include <cstddef>
 
-#include "TrackingPipeline/EventData/DataContainers.hpp"
+#include "TrackingPipeline/EventData/SimCluster.hpp"
 #include "TrackingPipeline/Infrastructure/DataHandle.hpp"
 #include "TrackingPipeline/Infrastructure/IReader.hpp"
 #include "TrackingPipeline/Infrastructure/ProcessCode.hpp"
 
 using namespace Acts::UnitLiterals;
 
-/// @brief dummy reader enabling Sequencer's event loop but 
+/// @brief dummy reader enabling Sequencer's event loop but
 /// providing no data
 class DummyReader : public IReader {
  public:

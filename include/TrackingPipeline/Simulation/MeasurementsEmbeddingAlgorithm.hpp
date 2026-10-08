@@ -2,7 +2,6 @@
 
 #include <cstddef>
 
-#include "TrackingPipeline/EventData/DataContainers.hpp"
 #include "TrackingPipeline/Infrastructure/DataHandle.hpp"
 #include "TrackingPipeline/Infrastructure/IAlgorithm.hpp"
 #include "TrackingPipeline/Simulation/IMeasurementGenerator.hpp"

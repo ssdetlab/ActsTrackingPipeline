@@ -1,6 +1,5 @@
 #pragma once
 
-#include "Acts/Definitions/TrackParametrization.hpp"
 #include "Acts/EventData/SourceLink.hpp"
 #include "Acts/EventData/TrackContainer.hpp"
 #include "Acts/EventData/TrackParameters.hpp"
@@ -11,40 +10,6 @@
 #include <cstddef>
 #include <memory>
 #include <vector>
-
-///-----------------------------------------------
-/// Sim data containers
-
-struct SimHit {
-  /// True parameters at the surface
-  Acts::BoundVector truthParameters;
-  /// Global hit position
-  Acts::Vector3 globalPosition;
-  /// True IP parameters
-  Acts::CurvilinearTrackParameters ipParameters;
-  /// True track Ids
-  int trackId;
-  /// True parent track Ids
-  int parentTrackId;
-  /// Run ID for unique identification
-  int runId;
-};
-
-/// @brief Collection of SimHits
-using SimHits = std::vector<SimHit>;
-
-/// @brief Cluster with truth information
-struct SimCluster {
-  /// Observable parameters
-  Acts::SourceLink sourceLink;
-  /// Truth parameters
-  SimHits truthHits;
-  /// Is Signal flag
-  bool isSignal;
-};
-
-/// @brief Collection of SimClusters
-using SimClusters = std::vector<SimCluster>;
 
 ///-----------------------------------------------
 /// Obserbable data containers

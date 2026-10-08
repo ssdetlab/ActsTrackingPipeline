@@ -2,7 +2,7 @@
 
 #include <cstddef>
 
-#include "TrackingPipeline/EventData/DataContainers.hpp"
+#include "TrackingPipeline/EventData/SimCluster.hpp"
 #include "TrackingPipeline/Infrastructure/RandomNumbers.hpp"
 
 /// @brief Interface for generating backgorund hits
