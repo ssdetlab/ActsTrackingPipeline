@@ -171,7 +171,7 @@ class E320RootSimTrackWriter : public IWriter {
   std::vector<TVector2> m_filteredAngleResiduals;
   std::vector<TVector2> m_smoothedAngleResiduals;
 
-  /// KF leave-one-out residuals
+  /// KF leave-one-out residuals with respect to the measurements
   std::vector<TVector2> m_leaveOneOutHitResiduals;
 
   /// KF pulls with respect to the true hits
