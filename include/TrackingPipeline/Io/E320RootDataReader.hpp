@@ -12,6 +12,8 @@
 #include "TChain.h"
 #include "TFile.h"
 #include "TTree.h"
+#include "TrackingPipeline/EventData/E320EpicsParity.hpp"
+#include "TrackingPipeline/EventData/E320EventMetaData.hpp"
 #include "TrackingPipeline/Geometry/E320GeometryOptions.hpp"
 #include "TrackingPipeline/Infrastructure/AlgorithmContext.hpp"
 #include "TrackingPipeline/Infrastructure/DataHandle.hpp"
@@ -25,9 +27,6 @@ class E320RootDataReader : public IReader {
  public:
   /// Particle hit shorthand
   using Hit = std::pair<std::size_t, std::size_t>;
-
-  /// @brief Epics parity enum
-  enum EpicsParity : int { Even = 0, Odd = 1 };
 
   /// @brief Measurement error model enum
   enum MeasurementErrorModel : int { Uniform = 0, Allpix2 = 1 };
@@ -62,24 +61,6 @@ class E320RootDataReader : public IReader {
     /// Surface map for high-precision local to global conversion
     std::unordered_map<Acts::GeometryIdentifier, const Acts::Surface*>
         surfaceMap;
-  };
-
-  /// @brief Event meta data struct
-  struct EventMetaData {
-    /// MOSAIC trigger number
-    std::size_t eudaqTrgN;
-    /// EUDAQ DAQ number
-    std::size_t eudaqDAQNumber;
-    /// EUDAQ run start timestamp
-    std::size_t eudaqRunStartTs;
-    /// EUDAQ run end timestamp
-    std::size_t eudaqRunEndTs;
-    /// EPICS odd/even parity
-    std::size_t epicsParity;
-    /// EPICS PID
-    std::size_t epicsPulseId;
-    /// FACET-II DAQ number
-    std::size_t epicsDAQNumber;
   };
 
   E320RootDataReader(const E320RootDataReader&) = delete;

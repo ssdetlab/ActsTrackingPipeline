@@ -272,7 +272,7 @@ ProcessCode E320::E320RootTrackReader::read(const AlgorithmContext& ctx) {
 
   std::vector<std::shared_ptr<MagneticFieldStore>> magFieldStores;
 
-  E320RootDataReader::EventMetaData eventMetaData{};
+  EventMetaData eventMetaData{};
 
   const auto& goInst = *E320::GeometryOptions::instance();
   std::size_t longIdx = goInst.longIdx;
@@ -340,14 +340,13 @@ ProcessCode E320::E320RootTrackReader::read(const AlgorithmContext& ctx) {
       continue;
     }
 
-    eventMetaData =
-        E320RootDataReader::EventMetaData{.eudaqTrgN = m_eudaqTrgN,
-                                          .eudaqDAQNumber = m_eudaqDAQNumber,
-                                          .eudaqRunStartTs = m_eudaqRunStartTs,
-                                          .eudaqRunEndTs = m_eudaqRunEndTs,
-                                          .epicsParity = m_epicsParity,
-                                          .epicsPulseId = m_epicsPulseId,
-                                          .epicsDAQNumber = m_epicsDAQNumber};
+    eventMetaData = EventMetaData{.eudaqTrgN = m_eudaqTrgN,
+                                  .eudaqDAQNumber = m_eudaqDAQNumber,
+                                  .eudaqRunStartTs = m_eudaqRunStartTs,
+                                  .eudaqRunEndTs = m_eudaqRunEndTs,
+                                  .epicsParity = m_epicsParity,
+                                  .epicsPulseId = m_epicsPulseId,
+                                  .epicsDAQNumber = m_epicsDAQNumber};
 
     // Magnetic fields
     auto mStore = std::make_shared<MagneticFieldStore>();

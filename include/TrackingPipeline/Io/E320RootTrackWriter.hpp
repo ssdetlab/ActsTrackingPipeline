@@ -13,13 +13,13 @@
 #include "TTree.h"
 #include "TVector3.h"
 #include "TVectorD.h"
+#include "TrackingPipeline/EventData/E320EventMetaData.hpp"
 #include "TrackingPipeline/EventData/E320IndexTrack.hpp"
 #include "TrackingPipeline/Infrastructure/AlgorithmContext.hpp"
 #include "TrackingPipeline/Infrastructure/DataHandle.hpp"
 #include "TrackingPipeline/Infrastructure/IWriter.hpp"
 #include "TrackingPipeline/Infrastructure/ProcessCode.hpp"
 #include "TrackingPipeline/Infrastructure/TypeDefinitions.hpp"
-#include "TrackingPipeline/Io/E320RootDataReader.hpp"
 
 namespace E320 {
 
@@ -79,8 +79,7 @@ class E320RootTrackWriter : public IWriter {
   ReadDataHandle<std::vector<Acts::CurvilinearTrackParameters>>
       m_inputTrackParametersGuesses{this, "InputTrackParametersGuesses"};
 
-  ReadDataHandle<E320RootDataReader::EventMetaData> m_inputEventMetaData{
-      this, "InputMetaData"};
+  ReadDataHandle<EventMetaData> m_inputEventMetaData{this, "InputMetaData"};
 
   std::unique_ptr<const Acts::Logger> m_logger;
 

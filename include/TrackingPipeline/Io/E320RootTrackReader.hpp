@@ -12,13 +12,14 @@
 #include "TTree.h"
 #include "TVector3.h"
 #include "TVectorD.h"
+#include "TrackingPipeline/EventData/E320EpicsParity.hpp"
+#include "TrackingPipeline/EventData/E320EventMetaData.hpp"
 #include "TrackingPipeline/EventData/E320IndexSeed.hpp"
 #include "TrackingPipeline/EventData/ExtendedSourceLink.hpp"
 #include "TrackingPipeline/Infrastructure/AlgorithmContext.hpp"
 #include "TrackingPipeline/Infrastructure/DataHandle.hpp"
 #include "TrackingPipeline/Infrastructure/IReader.hpp"
 #include "TrackingPipeline/Infrastructure/ProcessCode.hpp"
-#include "TrackingPipeline/Io/E320RootDataReader.hpp"
 #include "TrackingPipeline/MagneticField/MagneticFieldStore.hpp"
 
 namespace E320 {
@@ -37,7 +38,7 @@ class E320RootTrackReader : public IReader {
     /// Flag to require specific EPICS parity
     bool requireEpicsParity;
     /// Required EPICS parity
-    E320RootDataReader::EpicsParity requiredEpicsParity;
+    EpicsParity requiredEpicsParity;
     /// Range of HT cell intersections counts
     std::size_t minXCount;
     std::size_t maxXCount;
@@ -137,8 +138,7 @@ class E320RootTrackReader : public IReader {
   WriteDataHandle<std::vector<std::shared_ptr<MagneticFieldStore>>>
       m_outputMagneticFieldParameters{this, "OutputMagneticFieldParameters"};
 
-  WriteDataHandle<E320RootDataReader::EventMetaData> m_outputEventMetaData{
-      this, "OutputMetaData"};
+  WriteDataHandle<EventMetaData> m_outputEventMetaData{this, "OutputMetaData"};
 
   /// Logging instance
   std::unique_ptr<const Acts::Logger> m_logger;
