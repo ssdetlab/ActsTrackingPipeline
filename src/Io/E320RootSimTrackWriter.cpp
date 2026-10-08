@@ -122,15 +122,14 @@ E320::E320RootSimTrackWriter::E320RootSimTrackWriter(const Config& config,
   m_tree->Branch("smoothedHitResiduals", &m_smoothedHitResiduals, bufSize,
                  splitLvl);
 
-  // KF leave-one-out residuals
-  m_tree->Branch("leaveOneOutHitResiduals", &m_leaveOneOutHitResiduals, bufSize,
-                 splitLvl);
-
   m_tree->Branch("predictedAngleResiduals", &m_predictedAngleResiduals, bufSize,
                  splitLvl);
   m_tree->Branch("filteredAngleResiduals", &m_filteredAngleResiduals, bufSize,
                  splitLvl);
   m_tree->Branch("smoothedAngleResiduals", &m_smoothedAngleResiduals, bufSize,
+                 splitLvl);
+
+  m_tree->Branch("leaveOneOutHitResiduals", &m_leaveOneOutHitResiduals, bufSize,
                  splitLvl);
 
   // KF pulls with respect to the true hits
@@ -446,10 +445,6 @@ ProcessCode E320::E320RootSimTrackWriter::write(const AlgorithmContext& ctx) {
     m_smoothedHitResiduals.clear();
     m_smoothedHitResiduals.reserve(nStates);
 
-    // KF leave-one-out residuals
-    m_leaveOneOutHitResiduals.clear();
-    m_leaveOneOutHitResiduals.reserve(nStates);
-
     m_predictedAngleResiduals.clear();
     m_predictedAngleResiduals.reserve(nStates);
 
@@ -458,6 +453,9 @@ ProcessCode E320::E320RootSimTrackWriter::write(const AlgorithmContext& ctx) {
 
     m_smoothedAngleResiduals.clear();
     m_smoothedAngleResiduals.reserve(nStates);
+
+    m_leaveOneOutHitResiduals.clear();
+    m_leaveOneOutHitResiduals.reserve(nStates);
 
     // KF pulls with respect to the true hits
     m_truePredictedHitPulls.clear();
