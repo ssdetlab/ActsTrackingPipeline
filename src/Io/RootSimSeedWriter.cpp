@@ -1,14 +1,13 @@
 #include "TrackingPipeline/Io/RootSimSeedWriter.hpp"
 
+#include "Acts/Definitions/Algebra.hpp"
+#include "Acts/Geometry/GeometryIdentifier.hpp"
 #include "Acts/Utilities/Logger.hpp"
-#include <Acts/Definitions/Algebra.hpp>
-#include <Acts/Geometry/GeometryIdentifier.hpp>
 
 #include <cstddef>
 #include <vector>
 
 #include "TLorentzVector.h"
-#include "TrackingPipeline/EventData/DataContainers.hpp"
 #include "TrackingPipeline/EventData/SimpleSourceLink.hpp"
 #include "TrackingPipeline/Infrastructure/ProcessCode.hpp"
 

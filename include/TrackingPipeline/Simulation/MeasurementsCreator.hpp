@@ -12,7 +12,6 @@
 #include <unordered_map>
 #include <vector>
 
-#include "TrackingPipeline/EventData/DataContainers.hpp"
 #include "TrackingPipeline/Simulation/IMeasurementGenerator.hpp"
 #include "TrackingPipeline/Simulation/IMomentumGenerator.hpp"
 #include "TrackingPipeline/Simulation/IVertexGenerator.hpp"

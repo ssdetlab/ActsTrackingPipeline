@@ -1,11 +1,10 @@
 #include "TrackingPipeline/Io/E320RootSimClusterReader.hpp"
 
 #include "Acts/Definitions/Algebra.hpp"
+#include "Acts/Definitions/PdgParticle.hpp"
 #include "Acts/Definitions/TrackParametrization.hpp"
-#include <Acts/Definitions/PdgParticle.hpp>
-#include <Acts/EventData/TrackParameters.hpp>
-#include <Acts/Utilities/Logger.hpp>
-#include <Acts/Utilities/VectorHelpers.hpp>
+#include "Acts/EventData/TrackParameters.hpp"
+#include "Acts/Utilities/Logger.hpp"
 
 #include <cmath>
 #include <cstddef>
@@ -14,12 +13,10 @@
 
 #include <sys/stat.h>
 
-#include "TrackingPipeline/EventData/DataContainers.hpp"
 #include "TrackingPipeline/EventData/ExtendedSourceLink.hpp"
 #include "TrackingPipeline/EventData/SimpleSourceLink.hpp"
 #include "TrackingPipeline/Geometry/E320GeometryOptions.hpp"
 #include "TrackingPipeline/Infrastructure/ProcessCode.hpp"
-#include "TrackingPipeline/Infrastructure/TypeDefinitions.hpp"
 
 using namespace Acts::UnitLiterals;
 

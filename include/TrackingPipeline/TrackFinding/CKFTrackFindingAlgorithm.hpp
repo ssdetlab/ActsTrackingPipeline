@@ -9,7 +9,7 @@
 #include <cstddef>
 #include <memory>
 
-#include "TrackingPipeline/EventData/DataContainers.hpp"
+#include "TrackingPipeline/EventData/LegacyDataContainers.hpp"
 #include "TrackingPipeline/EventData/SimpleSourceLink.hpp"
 #include "TrackingPipeline/Infrastructure/DataHandle.hpp"
 #include "TrackingPipeline/Infrastructure/IAlgorithm.hpp"
@@ -71,9 +71,9 @@ class CKFTrackFindingAlgorithm : public IAlgorithm {
   using Propagator = Acts::Propagator<Acts::EigenStepper<>,
                                       Acts::Experimental::DetectorNavigator>;
   /// Track containers
-  using TrackContainer = Acts::TrackContainer<Acts::VectorTrackContainer,
-                                              Acts::VectorMultiTrajectory,
-                                              std::shared_ptr>;
+  using TrackContainer =
+      Acts::TrackContainer<Acts::VectorTrackContainer,
+                           Acts::VectorMultiTrajectory, std::shared_ptr>;
   using TrackStateContainerBackend =
       typename TrackContainer::TrackStateContainerBackend;
 

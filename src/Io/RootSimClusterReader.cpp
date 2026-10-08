@@ -1,17 +1,16 @@
 #include "TrackingPipeline/Io/RootSimClusterReader.hpp"
 
 #include "Acts/Definitions/Algebra.hpp"
+#include "Acts/Definitions/PdgParticle.hpp"
 #include "Acts/Definitions/TrackParametrization.hpp"
-#include <Acts/Definitions/PdgParticle.hpp>
-#include <Acts/EventData/TrackParameters.hpp>
-#include <Acts/Utilities/Logger.hpp>
+#include "Acts/EventData/TrackParameters.hpp"
+#include "Acts/Utilities/Logger.hpp"
 
 #include <cmath>
 #include <cstddef>
 #include <stdexcept>
 #include <vector>
 
-#include "TrackingPipeline/EventData/DataContainers.hpp"
 #include "TrackingPipeline/EventData/SimpleSourceLink.hpp"
 #include "TrackingPipeline/Infrastructure/ProcessCode.hpp"
 

@@ -4,7 +4,6 @@
 #include <utility>
 #include <vector>
 
-#include "TrackingPipeline/EventData/DataContainers.hpp"
 #include "TrackingPipeline/Simulation/IMeasurementGenerator.hpp"
 
 /// @brief Class generating uniformly distributed background on sensitive surfaces

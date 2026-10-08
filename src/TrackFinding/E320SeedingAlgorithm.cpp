@@ -7,7 +7,6 @@
 #include <utility>
 #include <vector>
 
-#include "TrackingPipeline/EventData/DataContainers.hpp"
 #include "TrackingPipeline/EventData/SimpleSourceLink.hpp"
 #include "TrackingPipeline/TrackFinding/HoughTransformSeeder.hpp"
 #include "TrackingPipeline/Utilities/IdxTree.hpp"

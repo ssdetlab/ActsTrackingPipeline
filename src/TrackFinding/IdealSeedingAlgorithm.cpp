@@ -4,7 +4,6 @@
 
 #include <cstddef>
 
-#include "TrackingPipeline/EventData/DataContainers.hpp"
 #include "TrackingPipeline/EventData/SimpleSourceLink.hpp"
 
 IdealSeedingAlgorithm::IdealSeedingAlgorithm(const Config& config,

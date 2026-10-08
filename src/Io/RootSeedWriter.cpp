@@ -8,7 +8,6 @@
 #include <vector>
 
 #include "TLorentzVector.h"
-#include "TrackingPipeline/EventData/DataContainers.hpp"
 #include "TrackingPipeline/EventData/SimpleSourceLink.hpp"
 #include "TrackingPipeline/Infrastructure/ProcessCode.hpp"
 

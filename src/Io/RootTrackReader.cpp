@@ -1,17 +1,16 @@
 #include "TrackingPipeline/Io/RootTrackReader.hpp"
 
 #include "Acts/Definitions/Algebra.hpp"
+#include "Acts/Definitions/PdgParticle.hpp"
 #include "Acts/Definitions/TrackParametrization.hpp"
-#include <Acts/Definitions/PdgParticle.hpp>
-#include <Acts/EventData/TrackParameters.hpp>
-#include <Acts/Utilities/Logger.hpp>
+#include "Acts/EventData/TrackParameters.hpp"
+#include "Acts/Utilities/Logger.hpp"
 
 #include <cstddef>
 #include <stdexcept>
 #include <vector>
 
 #include "TFile.h"
-#include "TrackingPipeline/EventData/DataContainers.hpp"
 #include "TrackingPipeline/EventData/SimpleSourceLink.hpp"
 
 using namespace Acts::UnitLiterals;
