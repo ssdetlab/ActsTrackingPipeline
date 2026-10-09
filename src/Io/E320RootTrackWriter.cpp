@@ -34,25 +34,25 @@ E320::E320RootTrackWriter::E320RootTrackWriter(const Config& config,
   int bufSize = 32000;
   int splitLvl = 0;
 
-  /// EUDAQ trigger ID
+  // EUDAQ trigger ID
   m_tree->Branch("eudaqTrgN", &m_eudaqTrgN, bufSize, splitLvl);
 
-  /// EUDAQ DAQ run number
+  // EUDAQ DAQ run number
   m_tree->Branch("eudaqDAQNumber", &m_eudaqDAQNumber, bufSize, splitLvl);
 
-  /// EUDAQ DAQ run start timestamp
+  // EUDAQ DAQ run start timestamp
   m_tree->Branch("eudaqRunStartTs", &m_eudaqRunStartTs, bufSize, splitLvl);
 
-  /// EUDAQ DAQ run end timestamp
+  // EUDAQ DAQ run end timestamp
   m_tree->Branch("eudaqRunEndTs", &m_eudaqRunEndTs, bufSize, splitLvl);
 
-  /// Event EPICS parity
+  // Event EPICS parity
   m_tree->Branch("epicsParity", &m_epicsParity, bufSize, splitLvl);
 
-  /// Event EPICS PID
+  // Event EPICS PID
   m_tree->Branch("epicsPulseId", &m_epicsPulseId, bufSize, splitLvl);
 
-  /// Event EPICS DAQ number
+  // Event EPICS DAQ number
   m_tree->Branch("epicsDAQNumber", &m_epicsDAQNumber, bufSize, splitLvl);
 
   // Magnet configuration as seen by track
@@ -78,6 +78,26 @@ E320::E320RootTrackWriter::E320RootTrackWriter(const Config& config,
 
   // Covariances of the track agnles
   m_tree->Branch("trackAngleCovs", &m_trackAngleCovs, bufSize, splitLvl);
+
+  // Measurements cluster matrices
+  m_tree->Branch("trackHitClusterMatrices", &m_trackHitClusterMatrices, bufSize,
+                 splitLvl);
+
+  // Measurements cluster matrices extents in local X
+  m_tree->Branch("trackHitClusterMatrixLengthsX",
+                 &m_trackHitClusterMatrixLengthsX, bufSize, splitLvl);
+
+  // Measurements cluster matrices extents in local Y
+  m_tree->Branch("trackHitClusterMatrixLengthsY",
+                 &m_trackHitClusterMatrixLengthsY, bufSize, splitLvl);
+
+  // Measurements cluster matrices pixel count
+  m_tree->Branch("trackHitClusterMatrixSizes", &m_trackHitClusterMatrixSizes,
+                 bufSize, splitLvl);
+
+  // Measurements cluster matrices shape IDs
+  m_tree->Branch("trackHitClusterMatrixShapeIds",
+                 &m_trackHitClusterMatrixShapeIds, bufSize, splitLvl);
 
   // Geometry ids of the track hits
   m_tree->Branch("geometryIds", &m_geometryIds, bufSize, splitLvl);
@@ -198,6 +218,7 @@ E320::E320RootTrackWriter::E320RootTrackWriter(const Config& config,
   m_inputTrackContainer.initialize(m_cfg.inputTrackContainer);
   m_inputTracks.initialize(m_cfg.inputTracks);
   m_inputTrackParametersGuesses.initialize(m_cfg.inputTrackParametersGuesses);
+  m_inputClusterMatrices.initialize(m_cfg.inputClusterMatrices);
   m_inputEventMetaData.initialize(m_cfg.inputEventMetaData);
 }
 
@@ -213,6 +234,7 @@ ProcessCode E320::E320RootTrackWriter::write(const AlgorithmContext& ctx) {
   const auto& inputTrackContainer = m_inputTrackContainer(ctx);
   const auto& inputTracks = m_inputTracks(ctx);
   const auto& inputTrackParametersGuesses = m_inputTrackParametersGuesses(ctx);
+  const auto& inputClusterMatrices = m_inputClusterMatrices(ctx);
   const auto& inputMetaData = m_inputEventMetaData(ctx);
 
   ACTS_DEBUG("Received " << inputTrackContainer.size() << " input tracks");
@@ -318,6 +340,26 @@ ProcessCode E320::E320RootTrackWriter::write(const AlgorithmContext& ctx) {
     // Covariances of the track agnles
     m_trackAngleCovs.clear();
     m_trackAngleCovs.reserve(nStates);
+
+    // Measurements cluster matrices
+    m_trackHitClusterMatrices.clear();
+    m_trackHitClusterMatrices.reserve(nStates);
+
+    // Measurements cluster matrices extents in local X
+    m_trackHitClusterMatrixLengthsX.clear();
+    m_trackHitClusterMatrixLengthsX.reserve(nStates);
+
+    // Measurements cluster matrices extents in local Y
+    m_trackHitClusterMatrixLengthsY.clear();
+    m_trackHitClusterMatrixLengthsY.reserve(nStates);
+
+    // Measurements cluster matrices pixel count
+    m_trackHitClusterMatrixSizes.clear();
+    m_trackHitClusterMatrixSizes.reserve(nStates);
+
+    // Measurements cluster matrices shape IDs
+    m_trackHitClusterMatrixShapeIds.clear();
+    m_trackHitClusterMatrixShapeIds.reserve(nStates);
 
     // Geometry ids of the track hits
     m_geometryIds.clear();
@@ -514,10 +556,6 @@ ProcessCode E320::E320RootTrackWriter::write(const AlgorithmContext& ctx) {
           extended ? SimpleSourceLink(stateSourceLink.get<ExtendedSourceLink>())
                          .index()
                    : stateSourceLink.get<SimpleSourceLink>().index();
-      bool backwards =
-          extended ? stateSourceLink.get<ExtendedSourceLink>().isBackwards()
-                   : false;
-
       m_geometryIds.push_back(referenceSurface.geometryId().sensitive());
 
       // ---------------------------------------------
@@ -577,6 +615,24 @@ ProcessCode E320::E320RootTrackWriter::write(const AlgorithmContext& ctx) {
       }
       trackAngleCov.Use(2, 2, trackAngleCovData.GetArray());
       m_trackAngleCovs.push_back(trackAngleCov);
+
+      // Store measurement cluster matrix info
+      const auto& clusterMatrix = inputClusterMatrices.at(sourceLinkIdx);
+      std::size_t clusterSize = clusterMatrix.size();
+      const Eigen::MatrixXi& pixelMatrix = clusterMatrix.matrix();
+
+      TMatrixD trackHitClusterMatrix(clusterSize, clusterSize);
+      TArrayD trackHitClusterMatrixData(clusterSize * clusterSize);
+      for (std::size_t i = 0; i < clusterSize * clusterSize; i++) {
+        trackHitClusterMatrixData[i] = pixelMatrix(i);
+      }
+      trackHitClusterMatrix.Use(clusterSize, clusterSize,
+                                trackHitClusterMatrixData.GetArray());
+      m_trackHitClusterMatrices.push_back(trackHitClusterMatrix);
+      m_trackHitClusterMatrixLengthsX.push_back(clusterMatrix.lengthX());
+      m_trackHitClusterMatrixLengthsY.push_back(clusterMatrix.lengthY());
+      m_trackHitClusterMatrixSizes.push_back(clusterMatrix.size());
+      m_trackHitClusterMatrixShapeIds.push_back(clusterMatrix.shapeId());
 
       // ---------------------------------------------
       // Predicted state info

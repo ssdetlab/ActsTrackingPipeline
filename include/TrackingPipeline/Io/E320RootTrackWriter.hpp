@@ -13,6 +13,7 @@
 #include "TTree.h"
 #include "TVector3.h"
 #include "TVectorD.h"
+#include "TrackingPipeline/EventData/ClusterMatrix.hpp"
 #include "TrackingPipeline/EventData/E320EventMetaData.hpp"
 #include "TrackingPipeline/EventData/E320IndexTrack.hpp"
 #include "TrackingPipeline/Infrastructure/AlgorithmContext.hpp"
@@ -26,6 +27,10 @@ namespace E320 {
 /// @brief E320-specific track writer
 class E320RootTrackWriter : public IWriter {
  public:
+  /// @brief Cluster pixel matrixset shorthand
+  using ClusterMatrixSet =
+      std::unordered_map<std::size_t, ClusterMatrix<std::uint16_t>>;
+
   /// @brief nested configuration struct
   struct Config {
     /// Surface accessor
@@ -38,6 +43,8 @@ class E320RootTrackWriter : public IWriter {
     std::string inputTracks;
     /// Input track container
     std::string inputTrackParametersGuesses;
+    /// Input cluster matrices data
+    std::string inputClusterMatrices;
     /// Input event meta data
     std::string inputEventMetaData;
     /// Output tree name
@@ -78,6 +85,9 @@ class E320RootTrackWriter : public IWriter {
 
   ReadDataHandle<std::vector<Acts::CurvilinearTrackParameters>>
       m_inputTrackParametersGuesses{this, "InputTrackParametersGuesses"};
+
+  ReadDataHandle<ClusterMatrixSet> m_inputClusterMatrices{
+      this, "InputClusterMatrices"};
 
   ReadDataHandle<EventMetaData> m_inputEventMetaData{this, "InputMetaData"};
 
@@ -132,6 +142,21 @@ class E320RootTrackWriter : public IWriter {
 
   /// Covariances of the track agnles
   std::vector<TMatrixD> m_trackAngleCovs;
+
+  /// Measurements cluster matrices
+  std::vector<TMatrixD> m_trackHitClusterMatrices;
+
+  /// Measurements cluster matrices extents in local X
+  std::vector<std::size_t> m_trackHitClusterMatrixLengthsX;
+
+  /// Measurements cluster matrices extents in local Y
+  std::vector<std::size_t> m_trackHitClusterMatrixLengthsY;
+
+  /// Measurements cluster matrices pixel count
+  std::vector<std::size_t> m_trackHitClusterMatrixSizes;
+
+  /// Measurements cluster matrices shape IDs
+  std::vector<std::size_t> m_trackHitClusterMatrixShapeIds;
 
   /// Geometry ids of the track hits
   std::vector<std::size_t> m_geometryIds;
