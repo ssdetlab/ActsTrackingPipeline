@@ -79,13 +79,25 @@ E320::E320RootTrackReader::E320RootTrackReader(const Config& config,
   //------------------------------------------------------------------
   // Set the rest of the branches
 
-  // Event meta data
+  // EUDAQ trigger ID
   m_tree->SetBranchAddress("eudaqTrgN", &m_eudaqTrgN);
+
+  // EUDAQ DAQ run number
   m_tree->SetBranchAddress("eudaqDAQNumber", &m_eudaqDAQNumber);
+
+  // EUDAQ DAQ run start timestamp
   m_tree->SetBranchAddress("eudaqRunStartTs", &m_eudaqRunStartTs);
+
+  // EUDAQ DAQ run end timestamp
   m_tree->SetBranchAddress("eudaqRunEndTs", &m_eudaqRunEndTs);
+
+  // Event EPICS parity
   m_tree->SetBranchAddress("epicsParity", &m_epicsParity);
+
+  // Event EPICS PID
   m_tree->SetBranchAddress("epicsPulseId", &m_epicsPulseId);
+
+  // Event EPICS DAQ number
   m_tree->SetBranchAddress("epicsDAQNumber", &m_epicsDAQNumber);
 
   // Magnet configuration as seen by track
@@ -110,6 +122,26 @@ E320::E320RootTrackReader::E320RootTrackReader(const Config& config,
 
   // Covariances of the track agnles
   m_tree->SetBranchAddress("trackAngleCovs", &m_trackAngleCovs);
+
+  // Measurements cluster matrices
+  m_tree->SetBranchAddress("trackHitClusterMatrices",
+                           &m_trackHitClusterMatrices);
+
+  // Measurements cluster matrices extents in local X
+  m_tree->SetBranchAddress("trackHitClusterMatrixLengthsX",
+                           &m_trackHitClusterMatrixLengthsX);
+
+  // Measurements cluster matrices extents in local Y
+  m_tree->Branch("trackHitClusterMatrixLengthsY",
+                 &m_trackHitClusterMatrixLengthsY);
+
+  // Measurements cluster matrices pixel count
+  m_tree->SetBranchAddress("trackHitClusterMatrixSizes",
+                           &m_trackHitClusterMatrixSizes);
+
+  // Measurements cluster matrices shape IDs
+  m_tree->SetBranchAddress("trackHitClusterMatrixShapeIds",
+                           &m_trackHitClusterMatrixShapeIds);
 
   // Geometry ids of the track hits
   m_tree->SetBranchAddress("geometryIds", &m_geometryIds);
@@ -146,6 +178,9 @@ E320::E320RootTrackReader::E320RootTrackReader(const Config& config,
   m_tree->SetBranchAddress("filteredAngleResiduals", &m_filteredAngleResiduals);
   m_tree->SetBranchAddress("smoothedAngleResiduals", &m_smoothedAngleResiduals);
 
+  m_tree->SetBranchAddress("leaveOneOutHitResiduals",
+                           &m_leaveOneOutHitResiduals);
+
   // KF pulls with respect to the measurements
   m_tree->SetBranchAddress("predictedHitPulls", &m_predictedHitPulls);
   m_tree->SetBranchAddress("filteredHitPulls", &m_filteredHitPulls);
@@ -154,6 +189,14 @@ E320::E320RootTrackReader::E320RootTrackReader(const Config& config,
   m_tree->SetBranchAddress("predictedAnglePulls", &m_predictedAnglePulls);
   m_tree->SetBranchAddress("filteredAnglePulls", &m_filteredAnglePulls);
   m_tree->SetBranchAddress("smoothedAnglePulls", &m_smoothedAnglePulls);
+
+  // KF states covariances
+  m_tree->SetBranchAddress("predictedTrackStateCovs",
+                           &m_predictedTrackStateCovs);
+  m_tree->SetBranchAddress("filteredTrackStateCovs", &m_filteredTrackStateCovs);
+  m_tree->SetBranchAddress("smoothedTrackStateCovs", &m_smoothedTrackStateCovs);
+  m_tree->SetBranchAddress("leaveOneOutTrackStateCovs",
+                           &m_leaveOneOutTrackStateCovs);
 
   // Guessed bound track parameters
   m_tree->SetBranchAddress("boundTrackParametersGuess",

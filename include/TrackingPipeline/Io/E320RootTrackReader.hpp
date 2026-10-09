@@ -158,13 +158,25 @@ class E320RootTrackReader : public IReader {
   std::unordered_set<std::size_t> m_constraintSurfacesGeoIds;
 
  protected:
-  /// Event meta data
+  /// EUDAQ trigger ID
   std::size_t m_eudaqTrgN = 0;
+
+  /// EUDAQ DAQ run number
   std::size_t m_eudaqDAQNumber = 0;
+
+  /// EUDAQ DAQ run start timestamp
   std::size_t m_eudaqRunStartTs = 0;
+
+  /// EUDAQ DAQ run end timestamp
   std::size_t m_eudaqRunEndTs = 0;
+
+  /// Event EPICS parity
   std::size_t m_epicsParity = 0;
+
+  /// Event EPICS PID
   std::size_t m_epicsPulseId = 0;
+
+  /// Event EPICS DAQ number
   std::size_t m_epicsDAQNumber = 0;
 
   /// Magnet configuration as seen by track
@@ -188,6 +200,21 @@ class E320RootTrackReader : public IReader {
 
   /// Covariances of the track agnles
   std::vector<TMatrixD>* m_trackAngleCovs = nullptr;
+
+  /// Measurements cluster matrices
+  std::vector<TMatrixD>* m_trackHitClusterMatrices = nullptr;
+
+  /// Measurements cluster matrices extents in local X
+  std::vector<std::size_t>* m_trackHitClusterMatrixLengthsX = nullptr;
+
+  /// Measurements cluster matrices extents in local Y
+  std::vector<std::size_t>* m_trackHitClusterMatrixLengthsY = nullptr;
+
+  /// Measurements cluster matrices pixel count
+  std::vector<std::size_t>* m_trackHitClusterMatrixSizes = nullptr;
+
+  /// Measurements cluster matrices shape IDs
+  std::vector<std::size_t>* m_trackHitClusterMatrixShapeIds = nullptr;
 
   /// Geometry ids of the track hits
   std::vector<std::size_t>* m_geometryIds = nullptr;
@@ -216,6 +243,8 @@ class E320RootTrackReader : public IReader {
   std::vector<TVector2>* m_filteredAngleResiduals = nullptr;
   std::vector<TVector2>* m_smoothedAngleResiduals = nullptr;
 
+  std::vector<TVector2>* m_leaveOneOutHitResiduals = nullptr;
+
   /// KF pulls with respect to the measurements
   std::vector<TVector2>* m_predictedHitPulls = nullptr;
   std::vector<TVector2>* m_filteredHitPulls = nullptr;
@@ -224,6 +253,12 @@ class E320RootTrackReader : public IReader {
   std::vector<TVector2>* m_predictedAnglePulls = nullptr;
   std::vector<TVector2>* m_filteredAnglePulls = nullptr;
   std::vector<TVector2>* m_smoothedAnglePulls = nullptr;
+
+  /// KF states covariances
+  std::vector<TMatrixD>* m_predictedTrackStateCovs = nullptr;
+  std::vector<TMatrixD>* m_filteredTrackStateCovs = nullptr;
+  std::vector<TMatrixD>* m_smoothedTrackStateCovs = nullptr;
+  std::vector<TMatrixD>* m_leaveOneOutTrackStateCovs = nullptr;
 
   /// Guessed bound track parameters
   TVectorD* m_boundTrackParametersGuess = nullptr;
