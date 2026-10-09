@@ -6,7 +6,7 @@
 # WARNING = 3
 # ERROR = 4
 # FATAL = 5
-logLevel = 2
+logLevel = 1
 
 [MaterialMapJsonConverter]
 # Material mapping options
@@ -144,7 +144,29 @@ maxChi2 = 1e9
 # backward = 1
 propDirection = 0
 
+[LocalAlignmentParametersSolverSVD]
+# Cut on the relative magnitude between 
+# a given singular value and the largest
+# singular value of the alignment fit Hessian
+maxSingularValueTol = 1e-5
+
+# Cut on the relative magnitude between 
+# a given singular value and the next largest
+# singular value that overrides the 
+# maxSingularValueTol cut
+singularValueGapTol = 9e-1
+
 [ActsAlignmentFunction]
+# Alignment mask specifying active degrees of freedom
+# false = inactive
+# true = active
+alignmentMaskCenter0 = false
+alignmentMaskCenter1 = true
+alignmentMaskCenter2 = true
+alignmentMaskRotation0 = false
+alignmentMaskRotation1 = false
+alignmentMaskRotation2 = true
+
 # Cut on the number of the KF steps
 maxKFSteps = 100000
 
@@ -160,6 +182,9 @@ deltaChi2ONdfCutOffNSteps = 10
 
 # Cut on the maximum number of fit iterations
 maxAlignmentFitNumIt = 200
+
+# Number of refitting iterations
+nRefittingIt = 1
 
 [E320AlignmentAlgorithm]
 # WhiteBoard name of the input source links

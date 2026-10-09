@@ -11,6 +11,7 @@
 #include "Acts/TrackFitting/GainMatrixUpdater.hpp"
 #include "Acts/TrackFitting/KalmanFitter.hpp"
 #include "Acts/Utilities/Logger.hpp"
+#include <ActsAlignment/Kernel/AlignmentMask.hpp>
 
 #include <filesystem>
 #include <iostream>
@@ -407,9 +408,25 @@ int main() {
 
   // Alignment mask
   ActsAlignment::AlignmentMask alignmentMask =
-      (ActsAlignment::AlignmentMask::Center1 |
-       ActsAlignment::AlignmentMask::Center2 |
-       ActsAlignment::AlignmentMask::Rotation2);
+      ActsAlignment::AlignmentMask::None;
+  if (getEntryBool("ActsAlignmentFunction", "alignmentMaskCenter0")) {
+    alignmentMask |= ActsAlignment::AlignmentMask::Center0;
+  }
+  if (getEntryBool("ActsAlignmentFunction", "alignmentMaskCenter1")) {
+    alignmentMask |= ActsAlignment::AlignmentMask::Center1;
+  }
+  if (getEntryBool("ActsAlignmentFunction", "alignmentMaskCenter2")) {
+    alignmentMask |= ActsAlignment::AlignmentMask::Center2;
+  }
+  if (getEntryBool("ActsAlignmentFunction", "alignmentMaskRotation0")) {
+    alignmentMask |= ActsAlignment::AlignmentMask::Rotation0;
+  }
+  if (getEntryBool("ActsAlignmentFunction", "alignmentMaskRotation1")) {
+    alignmentMask |= ActsAlignment::AlignmentMask::Rotation1;
+  }
+  if (getEntryBool("ActsAlignmentFunction", "alignmentMaskRotation2")) {
+    alignmentMask |= ActsAlignment::AlignmentMask::Rotation2;
+  }
 
   // Alignment transform updater
   LocalAlignmentTransformUpdater::Config alignmentUpdaterCfg{};
@@ -420,13 +437,12 @@ int main() {
   // Alignment parameters solver
   LocalAlignmentParametersSolverSVD::Config alignmentSolverCfg{};
   alignmentSolverCfg.alignmentMask = alignmentMask;
-  alignmentSolverCfg.maxSingularValueTol = 1e-5;
-  alignmentSolverCfg.singularValueGapTol = 9e-1;
+  alignmentSolverCfg.maxSingularValueTol = getEntryDouble(
+      "LocalAlignmentParametersSolverSVD", "maxSingularValueTol");
+  alignmentSolverCfg.singularValueGapTol = getEntryDouble(
+      "LocalAlignmentParametersSolverSVD", "singularValueGapTol");
   LocalAlignmentParametersSolverSVD alignmentSolver(alignmentSolverCfg,
                                                     logLevel);
-
-  // Number of refitting iterations
-  std::size_t nRefittingIt = 1;
 
   // Alignment function
   ActsAlignmentFunction::Config alignmentFunctionCfg;
@@ -439,12 +455,13 @@ int main() {
       getEntryDouble("ActsAlignmentFunction", "deltaChi2ONdfCutOffDelta")};
   alignmentFunctionCfg.maxAlignmentFitNumIt =
       getEntrySizeT("ActsAlignmentFunction", "maxAlignmentFitNumIt");
+  alignmentFunctionCfg.nRefittingIt =
+      getEntrySizeT("ActsAlignmentFunction", "nRefittingIt");
   alignmentFunctionCfg.detector = detector.get();
   alignmentFunctionCfg.magneticField = field;
   alignmentFunctionCfg.kfExtensions = alignmentExtensions;
   alignmentFunctionCfg.kfReferenceSurface = trackingRefSurface.get();
   alignmentFunctionCfg.alignmentMask = alignmentMask;
-  alignmentFunctionCfg.nRefittingIt = nRefittingIt;
   alignmentFunctionCfg.trackParametersEstimator = trackParametersEstimator;
 
   alignmentFunctionCfg.alignmentParametersSolver.connect<
@@ -459,8 +476,8 @@ int main() {
     const auto& surface = det->surface();
     const auto& geoId = surface.geometryId().sensitive();
     if (geoId != 0u &&
-        surface.geometryId().sensitive() >= goInst.tcParameters.front().geoId &&
-        surface.geometryId().sensitive() <= goInst.tcParameters.back().geoId) {
+        surface.geometryId().sensitive() > goInst.tcParameters.front().geoId &&
+        surface.geometryId().sensitive() < goInst.tcParameters.back().geoId) {
       alignmentFunctionCfg.alignedDetElements.push_back(det.get());
     }
   }

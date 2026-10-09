@@ -32,8 +32,9 @@ treeName = "alignment-parameters"
 
 # Input file path
 filePath = """
-/home/romanurmanov/work/E320/E320Prototype/E320Prototype_analysis/data/\
-alignment/local_2026_data/ht_test/sig/it2/aligned/alignment-parameters.root\
+/home/romanurmanov/work/E320/E320Prototype/E320Prototype_analysis/\
+data/alignment/local_2026_data/sample_test/sig/high_chi2/filtered_full_chi2/\
+aligned/alignment-parameters.root\
 """
 
 [Geometry]
@@ -43,17 +44,17 @@ materialDecorator = true
 
 # Use alignment provider for the 
 # transform initialization
-alignmentProvider = false
+alignmentProvider = true
 
 [Sequencer]
 # Event skip
 skip = 0
 
 # Number of events
-events = 1000000
+events = 1000
 
 # Number of threads
-numThreads = 32
+numThreads = 32 
 
 # FPE tracking
 trackFpes = false
@@ -79,6 +80,9 @@ sig\
 
 # WhiteBoard name of the output source links
 outputSourceLinks = "SourceLinks"
+
+# WhiteBoard name of the output cluster matrices
+outputClusterMatrices = "ClusterMatrices"
 
 # WhiteBoard name of the output detector source link indices
 outputDetSourceLinkIndices = "DetSourceLinkIndices"
@@ -111,6 +115,9 @@ measurementErrorModel = 1
 # Cut on the maximum tracker occupancy
 maxOccupancy = 1000
 
+# Cut on the maximum cluster size
+maxClusterSize = 4
+
 [E320TrackParametersEstimator]
 # Number of GX2 fit iterations
 nIterations = 2
@@ -129,15 +136,15 @@ propDirection = 0
 nCellsThetaShort = 500
 
 # Number of HT bins along rho short axis
-nCellsRhoShort = 500
-# nCellsRhoShort = 2000
+# nCellsRhoShort = 500
+nCellsRhoShort = 2000
 
 # Number of HT bins along theta long axis
 nCellsThetaLong = 500
 
 # Number of HT bins along rho long axis
-nCellsRhoLong = 500
-# nCellsRhoLong = 2000
+# nCellsRhoLong = 500
+nCellsRhoLong = 2000
 
 # Cut on the minimum number of intersections
 # in a HT cell
@@ -229,6 +236,9 @@ inputTracks = "Tracks"
 
 # WhiteBoard name of the input track parameters
 inputTrackParametersGuesses = "TrackParameters"
+
+# WhiteBoard name of the input cluster matrices data
+inputClusterMatrices = "ClusterMatrices"
 
 # WhiteBoard name of the input event meta data
 inputEventMetaData = "EventMetaData"

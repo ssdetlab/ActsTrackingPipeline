@@ -59,47 +59,47 @@ globalShiftY = -2.5
 globalShiftZ = -4.5
 
 # Global alignment angles [mrad]
-globalAngleZ = -2 
+globalAngleZ = -2
 
 # Local alignment shifts [um]
-localShiftY10 = 87.1378
-localShiftY12 = -42.9543
-localShiftY14 = -85.2652
-localShiftY16 = -49.1208
-localShiftY18 = 90.2019
+localShiftY10 = 87.1026
+localShiftY12 = -42.9392
+localShiftY14 = -85.2415
+localShiftY16 = -49.0838
+localShiftY18 = 90.1621
 
-localShiftZ10 = 79.183
-localShiftZ12 = -51.5106
-localShiftZ14 = -54.0668
-localShiftZ16 = -54.0977
-localShiftZ18 = 80.4914
+localShiftZ10 = 79.0526
+localShiftZ12 = -51.4421
+localShiftZ14 = -53.9096
+localShiftZ16 = -54.074
+localShiftZ18 = 80.3726
 
 # Local alignment angles [mrad]
-localAngleZ10 = -0.778647
-localAngleZ12 = 1.0279
-localAngleZ14 = -3.05136
-localAngleZ16 = -0.461109
-localAngleZ18 = -3.25102
+localAngleZ10 = -2.16419
+localAngleZ12 = -0.314002
+localAngleZ14 = -4.34635
+localAngleZ16 = -1.71339
+localAngleZ18 = -4.45922
 
-# Noam's alignment
-# localShiftY10 = 0
-# localShiftY12 = 39.3
-# localShiftY14 = -53.9
-# localShiftY16 = -64.2
-# localShiftY18 = 27.5
+# # Local alignment shifts [um]
+# localShiftY10 = 18.3344
+# localShiftY12 = 25.0112
+# localShiftY14 = -50.0314
+# localShiftY16 = -48.2874
+# localShiftY18 = 54.9776
 # 
-# localShiftZ10 = 0
-# localShiftZ12 = 23.5
-# localShiftZ14 = -28.8
-# localShiftZ16 = -64.9
-# localShiftZ18 = 24.6
+# localShiftZ10 = 14.4245
+# localShiftZ12 = 12.6156
+# localShiftZ14 = -21.0681
+# localShiftZ16 = -53.4449
+# localShiftZ18 = 47.4642
 # 
 # # Local alignment angles [mrad]
-# localAngleZ10 = 0
-# localAngleZ12 = -1.8
-# localAngleZ14 = 1.6
-# localAngleZ16 = -1.5
-# localAngleZ18 = 0.5
+# localAngleZ10 = 1.47486
+# localAngleZ12 = 1.36707
+# localAngleZ14 = -2.68634
+# localAngleZ16 = -0.0745296
+# localAngleZ18 = -2.83556
 
 # Use material decorator for the 
 # material description
@@ -110,7 +110,7 @@ materialDecorator = true
 skip = 0
 
 # Number of events
-events = 10000000
+events = 100000
 
 # Number of threads
 numThreads = 1
@@ -129,7 +129,7 @@ outputSimClusters = "SimClusters"
 outputSourceLinkIndices = "SimMeasurementIndices"
 
 # Number of event to generate
-nEvents = 100
+nEvents = 1000000
 
 [GaussianVertexGenerator]
 # Vertex resolution [um]
@@ -222,7 +222,18 @@ constraintSurfaceResolutionTheta = 1
 
 [SigConstantMultiplicityGenerator]
 # Number of measurements to generate
-nMeasurements = 250
+nMeasurements = 1
+
+[SigRootHistMultiplicityGenerator]
+# Path to the hist file
+filePath = """
+/home/romanurmanov/work/E320/E320Prototype/\
+E320Prototype_fastsim_data/multiplicity_dists/\
+multiplicity-hist.root\
+"""
+
+# Hist name
+histName = "multiplicity-hist"
 
 [SigMeasurementsEmbeddingAlgorithm]
 # WhiteBoard name of the input sim measurements

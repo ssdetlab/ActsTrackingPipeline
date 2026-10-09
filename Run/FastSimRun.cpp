@@ -38,6 +38,7 @@
 #include "TrackingPipeline/Simulation/GaussianVertexGenerator.hpp"
 #include "TrackingPipeline/Simulation/MeasurementsCreator.hpp"
 #include "TrackingPipeline/Simulation/MeasurementsEmbeddingAlgorithm.hpp"
+#include "TrackingPipeline/Simulation/RootHistMultiplicityGenerator.hpp"
 #include "TrackingPipeline/Simulation/SimpleDigitizer.hpp"
 #include "TrackingPipeline/Simulation/SimpleSourceLinkCreator.hpp"
 #include "TrackingPipeline/Simulation/SphericalMomentumGenerator.hpp"
@@ -298,27 +299,25 @@ int main() {
                                    std::move(measCreatorNavigator));
 
   // Surface-specific track hit digitizer
-  // SurfaceRangedDigitizer::Config trackHitDigitizerCfg;
-  // for (const auto& pars : constraintSurfaceParameters) {
-  //   trackHitDigitizerCfg.resolutions.insert(
-  //       {pars.geoId,
-  //        {getEntryDouble("TrackHitDigitizer", "constraintSurfaceResolutionX")
-  //        *
-  //             1_um,
-  //         getEntryDouble("TrackHitDigitizer", "constraintSurfaceResolutionY")
-  //         *
-  //             1_um}});
-  // }
-  // for (const auto& pars : goInst.tcParameters) {
-  //   trackHitDigitizerCfg.resolutions.insert(
-  //       {pars.geoId,
-  //        {getEntryDouble("TrackHitDigitizer", "trackingSurfaceResolutionX") *
-  //             1_um,
-  //         getEntryDouble("TrackHitDigitizer", "trackingSurfaceResolutionY") *
-  //             1_um}});
-  // }
-  // auto trackHitDigitizer =
-  //     std::make_shared<SurfaceRangedDigitizer>(trackHitDigitizerCfg);
+  SurfaceRangedDigitizer::Config trackHitDigitizerCfg;
+  for (const auto& pars : constraintSurfaceParameters) {
+    trackHitDigitizerCfg.resolutions.insert(
+        {pars.geoId,
+         {getEntryDouble("TrackHitDigitizer", "constraintSurfaceResolutionX") *
+              1_um,
+          getEntryDouble("TrackHitDigitizer", "constraintSurfaceResolutionY") *
+              1_um}});
+  }
+  for (const auto& pars : goInst.tcParameters) {
+    trackHitDigitizerCfg.resolutions.insert(
+        {pars.geoId,
+         {getEntryDouble("TrackHitDigitizer", "trackingSurfaceResolutionX") *
+              1_um,
+          getEntryDouble("TrackHitDigitizer", "trackingSurfaceResolutionY") *
+              1_um}});
+  }
+  auto trackHitDigitizer =
+      std::make_shared<SurfaceRangedDigitizer>(trackHitDigitizerCfg);
 
   // Track angle digitizer
   SimpleDigitizer::Config angleDigitizerCfg;
@@ -330,24 +329,24 @@ int main() {
           1_mrad};
   auto angleDigitizer = std::make_shared<SimpleDigitizer>(angleDigitizerCfg);
 
-  // Cluster-size-dependent track hit digitizer
-  ClusterSizeBasedDigitizer::Config trackHitDigitizerCfg;
-  const auto* clusterSizeDigitizationPars =
-      runCfg["ClusterSizeBasedDigitizer"].as_array();
+  // // Cluster-size-dependent track hit digitizer
+  // ClusterSizeBasedDigitizer::Config trackHitDigitizerCfg;
+  // const auto* clusterSizeDigitizationPars =
+  //     runCfg["ClusterSizeBasedDigitizer"].as_array();
 
-  for (auto it = clusterSizeDigitizationPars->begin();
-       it != clusterSizeDigitizationPars->end(); it++) {
-    const auto& entry = *it->as_table();
-    trackHitDigitizerCfg.clSizeProbsStdDevs.insert(
-        {entry["clusterSize"].value<std::size_t>().value(),
-         {
-             entry["samplingProb"].value<double>().value(),
-             entry["resolutionX"].value<double>().value() * 1_um,
-             entry["resolutionY"].value<double>().value() * 1_um,
-         }});
-  }
-  auto trackHitDigitizer =
-      std::make_shared<ClusterSizeBasedDigitizer>(trackHitDigitizerCfg);
+  // for (auto it = clusterSizeDigitizationPars->begin();
+  //      it != clusterSizeDigitizationPars->end(); it++) {
+  //   const auto& entry = *it->as_table();
+  //   trackHitDigitizerCfg.clSizeProbsStdDevs.insert(
+  //       {entry["clusterSize"].value<std::size_t>().value(),
+  //        {
+  //            entry["samplingProb"].value<double>().value(),
+  //            entry["resolutionX"].value<double>().value() * 1_um,
+  //            entry["resolutionY"].value<double>().value() * 1_um,
+  //        }});
+  // }
+  // auto trackHitDigitizer =
+  //     std::make_shared<ClusterSizeBasedDigitizer>(trackHitDigitizerCfg);
 
   // Vertex generator
   double vertexRes =
@@ -483,6 +482,16 @@ int main() {
       std::make_shared<ConstantMultiplicityGenerator>(
           sigMultiplicityGeneratorCfg);
 
+  // RootHistMultiplicityGenerator::Config sigMultiplicityGeneratorCfg{};
+  // sigMultiplicityGeneratorCfg.filePath =
+  //     getEntryStr("SigRootHistMultiplicityGenerator", "filePath");
+  // sigMultiplicityGeneratorCfg.histName =
+  //     getEntryStr("SigRootHistMultiplicityGenerator", "histName");
+
+  // auto sigMultiplicityGenerator =
+  //     std::make_shared<RootHistMultiplicityGenerator>(
+  //         sigMultiplicityGeneratorCfg);
+
   /// Measurement embedding algorithm
   MeasurementsEmbeddingAlgorithm::Config measCreatorAlgoCfg;
   measCreatorAlgoCfg.inputSourceLinks =
@@ -542,7 +551,7 @@ int main() {
   bkgCreatorAlgoCfg.outputSourceLinkIndices = getEntryStr(
       "BkgMeasurementsEmbeddingAlgorithm", "outputSourceLinkIndices");
   bkgCreatorAlgoCfg.measurementGenerator = bkgCreator;
-  measCreatorAlgoCfg.multiplicityGenerator = bkgMultiplicityGenerator;
+  bkgCreatorAlgoCfg.multiplicityGenerator = bkgMultiplicityGenerator;
   bkgCreatorAlgoCfg.randomNumberSvc =
       std::make_shared<RandomNumbers>(RandomNumbers::Config());
 

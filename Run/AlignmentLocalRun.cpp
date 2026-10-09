@@ -21,11 +21,9 @@
 #include <unistd.h>
 
 #include "TrackingPipeline/Alignment/ActsAlignmentFunction.hpp"
-#include "TrackingPipeline/Alignment/AlignmentAlgorithm.hpp"
 #include "TrackingPipeline/Alignment/AlignmentContext.hpp"
+#include "TrackingPipeline/Alignment/E320AlignmentAlgorithm.hpp"
 #include "TrackingPipeline/Alignment/E320MinuitLocalAlignmentFunction.hpp"
-#include "TrackingPipeline/Alignment/LinearAnnealingScheduler.hpp"
-#include "TrackingPipeline/Alignment/LocalAlignmentParametersSolverConstraints.hpp"
 #include "TrackingPipeline/Alignment/LocalAlignmentParametersSolverSVD.hpp"
 #include "TrackingPipeline/Alignment/LocalAlignmentTransformUpdater.hpp"
 #include "TrackingPipeline/Alignment/detail/AlignmentStoreBuilders.hpp"
@@ -41,7 +39,7 @@
 #include "TrackingPipeline/Io/E320RootTrackReader.hpp"
 #include "TrackingPipeline/Io/E320RootTrackWriter.hpp"
 #include "TrackingPipeline/TrackFinding/E320TrackParametersEstimator.hpp"
-#include "TrackingPipeline/TrackFitting/KFTrackFittingAlgorithm.hpp"
+#include "TrackingPipeline/TrackFitting/E320KFTrackFittingAlgorithm.hpp"
 #include "toml++/toml.hpp"
 
 using namespace Acts::UnitLiterals;
@@ -259,7 +257,7 @@ int main() {
   E320::E320RootTrackReader::Constraints readerConstraints{};
   readerConstraints.requireEpicsParity =
       getEntryBool("E320RootTrackReader", "requireEpicsParity");
-  readerConstraints.requiredEpicsParity = E320::E320RootDataReader::EpicsParity(
+  readerConstraints.requiredEpicsParity = E320::EpicsParity(
       getEntrySizeT("E320RootTrackReader", "requiredEpicsParity"));
   readerConstraints.minXCount =
       getEntryDouble("E320RootTrackReader", "minXCount");
@@ -361,6 +359,8 @@ int main() {
   Acts::Transform3 reestimationRefSurfTransform = Acts::Transform3::Identity();
   reestimationRefSurfTransform.translation() =
       Acts::Vector3(goInst.ipTcDistance - 0.1_mm, 0, 0);
+  // Acts::Vector3(goInst.ipTcDistance + 4 * goInst.interChipDistance + 1_mm, 0,
+  // 0);
   reestimationRefSurfTransform.rotate(refSurfToWorldRotationX);
   reestimationRefSurfTransform.rotate(refSurfToWorldRotationY);
   reestimationRefSurfTransform.rotate(refSurfToWorldRotationZ);
@@ -377,6 +377,7 @@ int main() {
   Acts::Transform3 trackingRefSurfaceTransform = Acts::Transform3::Identity();
   trackingRefSurfaceTransform.translation() = Acts::Vector3(
       goInst.dipoleCenterPrimary + goInst.dipoleHalfPrimary + 0.01_mm, 0, 0);
+  // goInst.ipTcDistance + 4 * goInst.interChipDistance + 1_mm, 0, 0);
   trackingRefSurfaceTransform.rotate(refSurfToWorldRotationX);
   trackingRefSurfaceTransform.rotate(refSurfToWorldRotationY);
   trackingRefSurfaceTransform.rotate(refSurfToWorldRotationZ);
@@ -459,9 +460,25 @@ int main() {
 
   // Alignment mask
   ActsAlignment::AlignmentMask alignmentMask =
-      (ActsAlignment::AlignmentMask::Center1 |
-       ActsAlignment::AlignmentMask::Center2 |
-       ActsAlignment::AlignmentMask::Rotation2);
+      ActsAlignment::AlignmentMask::None;
+  if (getEntryBool("ActsAlignmentFunction", "alignmentMaskCenter0")) {
+    alignmentMask |= ActsAlignment::AlignmentMask::Center0;
+  }
+  if (getEntryBool("ActsAlignmentFunction", "alignmentMaskCenter1")) {
+    alignmentMask |= ActsAlignment::AlignmentMask::Center1;
+  }
+  if (getEntryBool("ActsAlignmentFunction", "alignmentMaskCenter2")) {
+    alignmentMask |= ActsAlignment::AlignmentMask::Center2;
+  }
+  if (getEntryBool("ActsAlignmentFunction", "alignmentMaskRotation0")) {
+    alignmentMask |= ActsAlignment::AlignmentMask::Rotation0;
+  }
+  if (getEntryBool("ActsAlignmentFunction", "alignmentMaskRotation1")) {
+    alignmentMask |= ActsAlignment::AlignmentMask::Rotation1;
+  }
+  if (getEntryBool("ActsAlignmentFunction", "alignmentMaskRotation2")) {
+    alignmentMask |= ActsAlignment::AlignmentMask::Rotation2;
+  }
 
   // Alignment transform updater
   LocalAlignmentTransformUpdater::Config alignmentUpdaterCfg{};
@@ -470,13 +487,6 @@ int main() {
                                                   logLevel);
 
   // Alignment parameters solver
-
-  // LocalAlignmentParametersSolverConstraints::Config alignmentSolverCfg{};
-  // alignmentSolverCfg.alignmentMask = alignmentMask;
-  // LocalAlignmentParametersSolverConstraints
-  // alignmentSolver(alignmentSolverCfg,
-  //                                                           logLevel);
-
   LocalAlignmentParametersSolverSVD::Config alignmentSolverCfg{};
   alignmentSolverCfg.alignmentMask = alignmentMask;
   alignmentSolverCfg.maxSingularValueTol = getEntryDouble(
@@ -485,9 +495,6 @@ int main() {
       "LocalAlignmentParametersSolverSVD", "singularValueGapTol");
   LocalAlignmentParametersSolverSVD alignmentSolver(alignmentSolverCfg,
                                                     logLevel);
-
-  // Number of refitting iterations
-  std::size_t nRefittingIt = 1;
 
   // Alignment function
   ActsAlignmentFunction::Config alignmentFunctionCfg;
@@ -500,12 +507,13 @@ int main() {
       getEntryDouble("ActsAlignmentFunction", "deltaChi2ONdfCutOffDelta")};
   alignmentFunctionCfg.maxAlignmentFitNumIt =
       getEntrySizeT("ActsAlignmentFunction", "maxAlignmentFitNumIt");
+  alignmentFunctionCfg.nRefittingIt =
+      getEntrySizeT("ActsAlignmentFunction", "nRefittingIt");
   alignmentFunctionCfg.detector = detector.get();
   alignmentFunctionCfg.magneticField = field;
   alignmentFunctionCfg.kfExtensions = alignmentExtensions;
   alignmentFunctionCfg.kfReferenceSurface = trackingRefSurface.get();
   alignmentFunctionCfg.alignmentMask = alignmentMask;
-  alignmentFunctionCfg.nRefittingIt = nRefittingIt;
   alignmentFunctionCfg.trackParametersEstimator = trackParametersEstimator;
 
   alignmentFunctionCfg.alignmentParametersSolver.connect<
@@ -520,8 +528,8 @@ int main() {
     const auto& surface = det->surface();
     const auto& geoId = surface.geometryId().sensitive();
     if (geoId != 0u &&
-        surface.geometryId().sensitive() >= goInst.tcParameters.front().geoId &&
-        surface.geometryId().sensitive() <= goInst.tcParameters.back().geoId) {
+        surface.geometryId().sensitive() > goInst.tcParameters.front().geoId &&
+        surface.geometryId().sensitive() < goInst.tcParameters.back().geoId) {
       alignmentFunctionCfg.alignedDetElements.push_back(det.get());
     }
   }
@@ -540,23 +548,26 @@ int main() {
   // alignmentFunctionCfg.trackParametersEstimator = trackParametersEstimator;
   // alignmentFunctionCfg.initialPars = Acts::ActsVector<12>::Zero();
   // alignmentFunctionCfg.initialParSteps =
-  //     Acts::ActsVector<12>(10e-3, 10e-3, 1e-3, 10e-3, 10e-3, 1e-3, 10e-3,
+  //     Acts::ActsVector<9>(10e-3, 10e-3, 1e-3, 10e-3, 10e-3, 1e-3, 10e-3,
   //     10e-3,
-  //                          1e-3, 10e-3, 10e-3, 1e-3);
-  // alignmentFunctionCfg.parLowBounds =
-  //     Acts::ActsVector<12>(-5e-1, -5e-1, -1e-2, -5e-1, -5e-1, -1e-2, -5e-1,
-  //                          -5e-1, -1e-2, -5e-1, -5e-1, -1e-2);
-  // alignmentFunctionCfg.parHighBounds = Acts::ActsVector<12>(
-  //     5e-1, 5e-1, 1e-2, 5e-1, 5e-1, 1e-2, 5e-1, 5e-1, 1e-2, 5e-1, 5e-1,
+  //                          1e-3);
+  // // 10e-3, 10e-3, 1e-3, 10e-3, 10e-3, 1e-3);
+  // alignmentFunctionCfg.parLowBounds = Acts::ActsVector<9>(
+  //     -5e-1, -5e-1, -1e-2, -5e-1, -5e-1, -1e-2, -5e-1, -5e-1, -1e-2);
+  /// /  -5e-1,
+  /// /      -5e-1, -1e-2, -5e-1, -5e-1, -1e-2);
+  // alignmentFunctionCfg.parHighBounds =
+  //     Acts::ActsVector<9>(5e-1, 5e-1, 1e-2, 5e-1, 5e-1, 1e-2, 5e-1, 5e-1,
   //     1e-2);
-  // alignmentFunctionCfg.upLevel = 1.0;
+  //                          // 5e-1, 5e-1, 1e-2, 5e-1, 5e-1, 1e-2);
+  // alignmentFunctionCfg.upLevel = 0.5;
 
   // for (auto& det : detector->detectorElements()) {
   //   const auto& surface = det->surface();
   //   const auto& geoId = surface.geometryId().sensitive();
   //   if (geoId != 0u &&
   //       surface.geometryId().sensitive() > goInst.tcParameters.front().geoId
-  //       && surface.geometryId().sensitive() <=
+  //       && surface.geometryId().sensitive() <
   //       goInst.tcParameters.back().geoId) {
   //     alignmentFunctionCfg.alignedDetElements.push_back(det.get());
   //   }
@@ -567,26 +578,26 @@ int main() {
   //         alignmentFunctionCfg, logLevel);
 
   // Alignment algorithm
-  AlignmentAlgorithm::Config alignmentCfg;
+  E320::E320AlignmentAlgorithm::Config alignmentCfg;
   alignmentCfg.inputSourceLinks =
-      getEntryStr("AlignmentAlgorithm", "inputSourceLinks");
+      getEntryStr("E320AlignmentAlgorithm", "inputSourceLinks");
   alignmentCfg.inputTrackCandidates =
-      getEntryStr("AlignmentAlgorithm", "inputTrackCandidates");
+      getEntryStr("E320AlignmentAlgorithm", "inputTrackCandidates");
   alignmentCfg.inputTrackParameters =
-      getEntryStr("AlignmentAlgorithm", "inputTrackParameters");
+      getEntryStr("E320AlignmentAlgorithm", "inputTrackParameters");
   alignmentCfg.inputMagneticFieldParameters =
-      getEntryStr("AlignmentAlgorithm", "inputMagneticFieldParameters");
+      getEntryStr("E320AlignmentAlgorithm", "inputMagneticFieldParameters");
   alignmentCfg.outputAlignmentParameters =
-      getEntryStr("AlignmentAlgorithm", "outputAlignmentParameters");
+      getEntryStr("E320AlignmentAlgorithm", "outputAlignmentParameters");
   alignmentCfg.outputTrackParameters =
-      getEntryStr("AlignmentAlgorithm", "outputTrackParameters");
+      getEntryStr("E320AlignmentAlgorithm", "outputTrackParameters");
   alignmentCfg.alignmentFunction = alignmentFunction;
   alignmentCfg.alignmentFitSurfaces = alignmentFitSurfaces;
   alignmentCfg.initialTrackStateFitSurfaces = initialTrackStateFitSurfaces;
 
-  auto alignmentAlgorithm =
-      std::make_shared<AlignmentAlgorithm>(alignmentCfg, logLevel);
-  sequencer.addAlgorithm(alignmentAlgorithm);
+  auto E320alignmentAlgorithm =
+      std::make_shared<E320::E320AlignmentAlgorithm>(alignmentCfg, logLevel);
+  sequencer.addAlgorithm(E320alignmentAlgorithm);
 
   // --------------------------------------------------------------
   // Track fitting
@@ -629,23 +640,24 @@ int main() {
       kfPropagator, Acts::getDefaultLogger("DetectorKalmanFilter", logLevel));
 
   // Add the track fitting algorithm to the sequencer
-  KFTrackFittingAlgorithm::Config fitterCfg{
+  E320::E320KFTrackFittingAlgorithm::Config fitterCfg{
       .inputTrackCandidates =
-          getEntryStr("KFTrackFittingAlgorithm", "inputTrackCandidates"),
+          getEntryStr("E320KFTrackFittingAlgorithm", "inputTrackCandidates"),
       .inputTrackParameters =
-          getEntryStr("KFTrackFittingAlgorithm", "inputTrackParameters"),
+          getEntryStr("E320KFTrackFittingAlgorithm", "inputTrackParameters"),
       .inputSourceLinks =
-          getEntryStr("KFTrackFittingAlgorithm", "inputSourceLinks"),
+          getEntryStr("E320KFTrackFittingAlgorithm", "inputSourceLinks"),
       .outputTrackContainer =
-          getEntryStr("KFTrackFittingAlgorithm", "outputTrackContainer"),
-      .outputTracks = getEntryStr("KFTrackFittingAlgorithm", "outputTracks"),
+          getEntryStr("E320KFTrackFittingAlgorithm", "outputTrackContainer"),
+      .outputTracks =
+          getEntryStr("E320KFTrackFittingAlgorithm", "outputTracks"),
       .fitter = fitter,
-      .maxSteps = getEntrySizeT("KFTrackFittingAlgorithm", "maxSteps"),
+      .maxSteps = getEntrySizeT("E320KFTrackFittingAlgorithm", "maxSteps"),
       .kfExtensions = kfExtensions,
       .referenceSurface = trackingRefSurface.get()};
 
   sequencer.addAlgorithm(
-      std::make_shared<KFTrackFittingAlgorithm>(fitterCfg, logLevel));
+      std::make_shared<E320::E320KFTrackFittingAlgorithm>(fitterCfg, logLevel));
 
   // --------------------------------------------------------------
   // Event write out

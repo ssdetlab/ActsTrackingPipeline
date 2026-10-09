@@ -33,7 +33,7 @@ treeName = "alignment-parameters"
 # Input file path
 filePath = """
 /home/romanurmanov/work/E320/E320Prototype/E320Prototype_analysis/sim/\
-alignment/local/sig/aligned/alignment-parameters.root\
+alignment/cluster_error_test/allpix2_errors/aligned/alignment-parameters.root\
 """
 
 [Geometry]
@@ -124,10 +124,10 @@ alignmentProvider = false
 skip = 0
 
 # Number of events
-events = 1000000
+events = 100000
 
 # Number of threads
-numThreads = 32
+numThreads = 1
 
 # FPE tracking
 trackFpes = false
@@ -135,8 +135,8 @@ trackFpes = false
 [E320MagneticFieldParametersProvider]
 inDirMagnets = """
 /home/romanurmanov/work/E320/E320Prototype/\
-E320Prototype_dataInRootFormat/sim/alignment/high_occ_test/\
-sig_high_rate/magnets\
+E320Prototype_dataInRootFormat/sim/test/\
+magnets\
 """
 
 treeName = "magnets"
@@ -144,8 +144,8 @@ treeName = "magnets"
 [E320RootSimClusterReader]
 inDirClusters = """
 /home/romanurmanov/work/E320/E320Prototype/\
-E320Prototype_dataInRootFormat/sim/alignment/high_occ_test/\
-sig_high_rate/clusters\
+E320Prototype_dataInRootFormat/sim/test/\
+clusters\
 """
 
 # WhiteBoard name of the output source links

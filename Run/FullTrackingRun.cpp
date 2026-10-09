@@ -299,6 +299,8 @@ int main() {
   E320::E320RootDataReader::Config readerCfg;
   readerCfg.outputSourceLinks =
       getEntryStr("E320RootDataReader", "outputSourceLinks");
+  readerCfg.outputClusterMatrices =
+      getEntryStr("E320RootDataReader", "outputClusterMatrices");
   readerCfg.outputDetSourceLinkIndices =
       getEntryStr("E320RootDataReader", "outputDetSourceLinkIndices");
   readerCfg.outputBpmSourceLinkIndices =
@@ -309,12 +311,14 @@ int main() {
   readerCfg.eventKey = getEntryStr("E320RootDataReader", "eventKey");
   readerCfg.requireEpicsParity =
       getEntryBool("E320RootDataReader", "requireEpicsParity");
-  readerCfg.requiredEpicsParity = E320::E320RootDataReader::EpicsParity(
+  readerCfg.requiredEpicsParity = E320::EpicsParity(
       getEntrySizeT("E320RootDataReader", "requiredEpicsParity"));
   readerCfg.measurementErrorModel =
       E320::E320RootDataReader::MeasurementErrorModel(
           getEntrySizeT("E320RootDataReader", "measurementErrorModel"));
   readerCfg.maxOccupancy = getEntrySizeT("E320RootDataReader", "maxOccupancy");
+  readerCfg.maxClusterSize =
+      getEntrySizeT("E320RootDataReader", "maxClusterSize");
   readerCfg.minGeoId = goInst.tcParameters.front().geoId;
   readerCfg.maxGeoId = goInst.tcParameters.back().geoId;
   readerCfg.surfaceMap = surfaceMap;
@@ -501,6 +505,8 @@ int main() {
       getEntryStr("E320RootTrackWriter", "inputTracks");
   trackWriterCfg.inputTrackParametersGuesses =
       getEntryStr("E320RootTrackWriter", "inputTrackParametersGuesses");
+  trackWriterCfg.inputClusterMatrices =
+      getEntryStr("E320RootTrackWriter", "inputClusterMatrices");
   trackWriterCfg.inputEventMetaData =
       getEntryStr("E320RootTrackWriter", "inputEventMetaData");
   trackWriterCfg.treeName = getEntryStr("E320RootTrackWriter", "treeName");
