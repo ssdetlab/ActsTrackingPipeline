@@ -2,11 +2,12 @@
 
 #include "Acts/Definitions/Algebra.hpp"
 #include "Acts/EventData/SourceLink.hpp"
-#include <Acts/Utilities/MathHelpers.hpp>
 
 #include <cstddef>
+#include <memory>
 #include <stdexcept>
 
+#include "TrackingPipeline/EventData/ClusterMatrix.hpp"
 #include "TrackingPipeline/EventData/SimpleSourceLink.hpp"
 #include "TrackingPipeline/Infrastructure/ProcessCode.hpp"
 
@@ -35,6 +36,7 @@ E320::E320RootDataReader::E320RootDataReader(const Config& config,
   }
 
   m_outputSourceLinks.initialize(m_cfg.outputSourceLinks);
+  m_outputClusterMatrices.initialize(m_cfg.outputClusterMatrices);
   m_outputDetSourceLinksIndices.initialize(m_cfg.outputDetSourceLinkIndices);
   m_outputBpmSourceLinksIndices.initialize(m_cfg.outputBpmSourceLinkIndices);
   m_outputEventMetaData.initialize(m_cfg.outputEventMetaData);
@@ -111,6 +113,7 @@ ProcessCode E320::E320RootDataReader::read(const AlgorithmContext& ctx) {
     }
 
     m_outputSourceLinks(ctx, {});
+    m_outputClusterMatrices(ctx, {});
     m_outputDetSourceLinksIndices(ctx, {});
     m_outputBpmSourceLinksIndices(ctx, {});
     m_outputEventMetaData(ctx, {});
@@ -130,6 +133,7 @@ ProcessCode E320::E320RootDataReader::read(const AlgorithmContext& ctx) {
 
   // Create the measurements
   std::vector<Acts::SourceLink> sourceLinks{};
+  ClusterMatrixSet clusterMatrixSet{};
   std::vector<std::size_t> detSourceLinksIndices{};
   std::vector<std::size_t> bpmSourceLinksIndices{};
   EventMetaData eventMetaData{};
@@ -139,16 +143,17 @@ ProcessCode E320::E320RootDataReader::read(const AlgorithmContext& ctx) {
   for (auto entry = std::get<1>(*it); entry < std::get<2>(*it); entry++) {
     m_tree->GetEntry(entry);
 
-    eventMetaData = EventMetaData{.eudaqTrgN = m_detEvent->trg_n,
-                                  .eudaqDAQNumber = m_detEvent->run_number,
-                                  .eudaqRunStartTs = m_detEvent->ts_begin,
-                                  .eudaqRunEndTs = m_detEvent->ts_end,
+    eventMetaData = EventMetaData{.eudaqTrgN = m_detEvent->trgN,
+                                  .eudaqDAQNumber = m_detEvent->runNumber,
+                                  .eudaqRunStartTs = m_detEvent->tsBegin,
+                                  .eudaqRunEndTs = m_detEvent->tsEnd,
                                   .epicsParity = m_detEvent->epicsParity,
                                   .epicsPulseId = m_detEvent->epicsPID,
                                   .epicsDAQNumber = m_detEvent->epicsDAQNumber};
     if (m_cfg.requireEpicsParity &&
         m_detEvent->epicsParity != m_cfg.requiredEpicsParity) {
       m_outputSourceLinks(ctx, {});
+      m_outputClusterMatrices(ctx, {});
       m_outputDetSourceLinksIndices(ctx, {});
       m_outputBpmSourceLinksIndices(ctx, {});
       m_outputEventMetaData(ctx, std::move(eventMetaData));
@@ -157,9 +162,9 @@ ProcessCode E320::E320RootDataReader::read(const AlgorithmContext& ctx) {
       return ProcessCode::SUCCESS;
     }
 
-    for (const auto& staveEv : m_detEvent->st_ev_buffer) {
-      for (const auto& chipEv : staveEv.ch_ev_buffer) {
-        int sensitiveId = m_geoIdMap.at(chipEv.chip_id);
+    for (const auto& staveEv : m_detEvent->staveEventBuffer) {
+      for (const auto& chipEv : staveEv.chipEventBuffer) {
+        int sensitiveId = m_geoIdMap.at(chipEv.chipId);
         if (sensitiveId < m_cfg.minGeoId || sensitiveId > m_cfg.maxGeoId) {
           continue;
         }
@@ -167,7 +172,12 @@ ProcessCode E320::E320RootDataReader::read(const AlgorithmContext& ctx) {
         // Apply the Geometry ID convention
         geoId.setSensitive(sensitiveId);
 
-        for (const auto& [hitX, hitY, sizeX, sizeY, size] : chipEv.hits) {
+        for (const auto& [hitX, hitY, sizeX, sizeY, size, pixels] :
+             chipEv.hits) {
+          ClusterMatrix pixelMatrix(pixels, m_cfg.maxClusterSize);
+          std::size_t matrixShapeId = pixelMatrix.shapeId();
+          clusterMatrixSet.insert({matrixShapeId, pixelMatrix});
+
           Acts::Vector2 hitLoc{
               (hitX + 0.5) * goInst.pixelHalfX * 2 - goInst.chipHalfX,
               -(hitY + 0.5) * goInst.pixelHalfY * 2 + goInst.chipHalfY};
@@ -192,7 +202,7 @@ ProcessCode E320::E320RootDataReader::read(const AlgorithmContext& ctx) {
 
           // Fill the measurement
           SimpleSourceLink ssl(hitLoc, hitGlob, cov, geoId, eventId,
-                               sourceLinks.size());
+                               matrixShapeId);
           detSourceLinksIndices.push_back(sourceLinks.size());
           sourceLinks.push_back(Acts::SourceLink(ssl));
         }
@@ -200,6 +210,7 @@ ProcessCode E320::E320RootDataReader::read(const AlgorithmContext& ctx) {
     }
     if (detSourceLinksIndices.size() > m_cfg.maxOccupancy) {
       m_outputSourceLinks(ctx, {});
+      m_outputClusterMatrices(ctx, {});
       m_outputDetSourceLinksIndices(ctx, {});
       m_outputBpmSourceLinksIndices(ctx, {});
       m_outputEventMetaData(ctx, std::move(eventMetaData));
@@ -208,7 +219,7 @@ ProcessCode E320::E320RootDataReader::read(const AlgorithmContext& ctx) {
       return ProcessCode::SUCCESS;
     }
 
-    for (const auto& bpmEv : m_detEvent->bpm_ev_buffer) {
+    for (const auto& bpmEv : m_detEvent->bpmEventBuffer) {
       int sensitiveId = m_geoIdMap.at(bpmEv.id);
       if (sensitiveId < m_cfg.minGeoId || sensitiveId > m_cfg.maxGeoId) {
         continue;
@@ -261,6 +272,7 @@ ProcessCode E320::E320RootDataReader::read(const AlgorithmContext& ctx) {
   ACTS_DEBUG("Sending " << bpmSourceLinksIndices.size()
                         << " bpm source link indices");
   m_outputSourceLinks(ctx, std::move(sourceLinks));
+  m_outputClusterMatrices(ctx, std::move(clusterMatrixSet));
   m_outputDetSourceLinksIndices(ctx, std::move(detSourceLinksIndices));
   m_outputBpmSourceLinksIndices(ctx, std::move(bpmSourceLinksIndices));
   m_outputEventMetaData(ctx, std::move(eventMetaData));

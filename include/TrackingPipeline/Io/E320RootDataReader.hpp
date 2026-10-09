@@ -12,6 +12,7 @@
 #include "TChain.h"
 #include "TFile.h"
 #include "TTree.h"
+#include "TrackingPipeline/EventData/ClusterMatrix.hpp"
 #include "TrackingPipeline/EventData/E320EpicsParity.hpp"
 #include "TrackingPipeline/EventData/E320EventMetaData.hpp"
 #include "TrackingPipeline/Geometry/E320GeometryOptions.hpp"
@@ -28,6 +29,10 @@ class E320RootDataReader : public IReader {
   /// Particle hit shorthand
   using Hit = std::pair<std::size_t, std::size_t>;
 
+  /// @brief Cluster pixel matrixset shorthand
+  using ClusterMatrixSet =
+      std::unordered_map<std::size_t, ClusterMatrix<std::uint16_t>>;
+
   /// @brief Measurement error model enum
   enum MeasurementErrorModel : int { Uniform = 0, Allpix2 = 1 };
 
@@ -35,6 +40,8 @@ class E320RootDataReader : public IReader {
   struct Config {
     /// Collection with the detector measurement data
     std::string outputSourceLinks;
+    /// Collection with the cluster matrices data
+    std::string outputClusterMatrices;
     /// Collection with the detector measurement data indices
     std::string outputDetSourceLinkIndices;
     /// Collection with the BPM measurement data indices
@@ -58,6 +65,8 @@ class E320RootDataReader : public IReader {
     /// Geometry ID scope
     int minGeoId;
     int maxGeoId;
+    /// Maximum size of a pixel cluster
+    std::size_t maxClusterSize;
     /// Surface map for high-precision local to global conversion
     std::unordered_map<Acts::GeometryIdentifier, const Acts::Surface*>
         surfaceMap;
@@ -91,6 +100,9 @@ class E320RootDataReader : public IReader {
   /// WriteDataHandles for the data
   WriteDataHandle<std::vector<Acts::SourceLink>> m_outputSourceLinks{
       this, "OutputSourceLinks"};
+
+  WriteDataHandle<ClusterMatrixSet> m_outputClusterMatrices{
+      this, "OutputClusterMatrices"};
 
   WriteDataHandle<std::vector<std::size_t>> m_outputDetSourceLinksIndices{
       this, "OutputDetSourceLinksIndices"};
