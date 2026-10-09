@@ -132,8 +132,8 @@ E320::E320RootTrackReader::E320RootTrackReader(const Config& config,
                            &m_trackHitClusterMatrixLengthsX);
 
   // Measurements cluster matrices extents in local Y
-  m_tree->Branch("trackHitClusterMatrixLengthsY",
-                 &m_trackHitClusterMatrixLengthsY);
+  m_tree->SetBranchAddress("trackHitClusterMatrixLengthsY",
+                           &m_trackHitClusterMatrixLengthsY);
 
   // Measurements cluster matrices pixel count
   m_tree->SetBranchAddress("trackHitClusterMatrixSizes",
