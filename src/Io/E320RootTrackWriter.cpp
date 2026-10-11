@@ -99,6 +99,10 @@ E320::E320RootTrackWriter::E320RootTrackWriter(const Config& config,
   m_tree->Branch("trackHitClusterMatrixShapeIds",
                  &m_trackHitClusterMatrixShapeIds, bufSize, splitLvl);
 
+  // Measurements cluster matrices pixels
+  m_tree->Branch("trackHitClusterMatrixPixels", &m_trackHitClusterMatrixPixels,
+                 bufSize, splitLvl);
+
   // Geometry ids of the track hits
   m_tree->Branch("geometryIds", &m_geometryIds, bufSize, splitLvl);
 
@@ -360,6 +364,10 @@ ProcessCode E320::E320RootTrackWriter::write(const AlgorithmContext& ctx) {
     // Measurements cluster matrices shape IDs
     m_trackHitClusterMatrixShapeIds.clear();
     m_trackHitClusterMatrixShapeIds.reserve(nStates);
+
+    // Measurements cluster matrices pixels
+    m_trackHitClusterMatrixPixels.clear();
+    m_trackHitClusterMatrixPixels.reserve(nStates);
 
     // Geometry ids of the track hits
     m_geometryIds.clear();
@@ -633,6 +641,7 @@ ProcessCode E320::E320RootTrackWriter::write(const AlgorithmContext& ctx) {
       m_trackHitClusterMatrixLengthsY.push_back(clusterMatrix.lengthY());
       m_trackHitClusterMatrixSizes.push_back(clusterMatrix.size());
       m_trackHitClusterMatrixShapeIds.push_back(clusterMatrix.shapeId());
+      m_trackHitClusterMatrixPixels.push_back(clusterMatrix.pixels());
 
       // ---------------------------------------------
       // Predicted state info

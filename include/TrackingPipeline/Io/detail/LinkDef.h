@@ -4,4 +4,5 @@
 #pragma link C++ class vector < TLorentzVector> + ;
 #pragma link C++ class vector < TMatrixD> + ;
 #pragma link C++ class vector < TVectorD> + ;
+#pragma link C++ class vector < vector < size_t>> + ;
 #endif
