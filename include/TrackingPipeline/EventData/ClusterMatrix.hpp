@@ -77,6 +77,9 @@ class ClusterMatrix {
   /// @brief get cluster unique shape identifier
   std::size_t shapeId() const { return m_shapeId; }
 
+  /// @brief get cluster pixels
+  const std::vector<std::pair<T, T>> &pixels() const { return m_pixels; }
+
   /// @brief equality comparison operator
   ///
   /// @param other cluster matrix to compare to
@@ -98,6 +101,9 @@ class ClusterMatrix {
 
   /// Cluster size in number of pixels
   std::size_t m_size;
+
+  /// Cluster pixels
+  std::vector<std::pair<T, T>> m_pixels;
 
   /// Cluster pixel matrix
   Eigen::MatrixXi m_matrix;
