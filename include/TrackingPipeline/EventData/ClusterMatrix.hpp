@@ -25,7 +25,7 @@ class ClusterMatrix {
   /// @param pixels cluster pixels
   explicit ClusterMatrix(const std::vector<std::pair<T, T>> &pixels,
                          std::size_t matrixDim)
-      : m_size(pixels.size()) {
+      : m_pixels(pixels), m_size(pixels.size()) {
     if (m_size > matrixDim) {
       throw std::runtime_error(
           "Cluster size is greater than allocated matrix dimensions");
@@ -35,7 +35,7 @@ class ClusterMatrix {
     // Find the top left pixel of the cluster
     std::size_t topLeftX = 1024;
     std::size_t topLeftY = 0;
-    for (const auto &[hitX, hitY] : pixels) {
+    for (const auto &[hitX, hitY] : m_pixels) {
       if (topLeftX > hitX) {
         topLeftX = hitX;
       }
@@ -45,7 +45,7 @@ class ClusterMatrix {
     }
 
     // Construct the pixel matrix
-    for (const auto &[hitX, hitY] : pixels) {
+    for (const auto &[hitX, hitY] : m_pixels) {
       std::size_t col = hitX - topLeftX;
       std::size_t row = topLeftY - hitY;
       m_matrix(row, col) = 1;
