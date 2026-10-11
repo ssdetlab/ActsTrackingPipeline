@@ -28,8 +28,7 @@ namespace E320 {
 class E320RootTrackWriter : public IWriter {
  public:
   /// @brief Cluster pixel matrixset shorthand
-  using ClusterMatrixSet =
-      std::unordered_map<std::size_t, ClusterMatrix<std::uint16_t>>;
+  using ClusterMatrixSet = std::vector<ClusterMatrix<std::uint16_t>>;
 
   /// @brief nested configuration struct
   struct Config {
