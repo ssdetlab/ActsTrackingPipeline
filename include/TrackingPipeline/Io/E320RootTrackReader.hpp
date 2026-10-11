@@ -12,6 +12,7 @@
 #include "TTree.h"
 #include "TVector3.h"
 #include "TVectorD.h"
+#include "TrackingPipeline/EventData/ClusterMatrix.hpp"
 #include "TrackingPipeline/EventData/E320EpicsParity.hpp"
 #include "TrackingPipeline/EventData/E320EventMetaData.hpp"
 #include "TrackingPipeline/EventData/E320IndexSeed.hpp"
@@ -32,6 +33,9 @@ class E320RootTrackReader : public IReader {
       ExtendedSourceLink::localSubspaceSize;
   static constexpr const std::size_t ExtendedGlobalSize =
       ExtendedSourceLink::globalSubspaceSize;
+
+  /// @brief Cluster pixel matrixset shorthand
+  using ClusterMatrixSet = std::vector<ClusterMatrix<std::uint16_t>>;
 
   /// @brief Cuts on the tracks read
   struct Constraints {
@@ -63,12 +67,16 @@ class E320RootTrackReader : public IReader {
     /// Momentum range
     double minAbsMomentumEst;
     double maxAbsMomentumEst;
+    /// Maximum size of a pixel cluster
+    std::size_t maxClusterSize;
   };
 
   /// @brief The nested configuration struct
   struct Config {
     /// Output source links
     std::string outputSourceLinks;
+    /// Collection with the cluster matrices data
+    std::string outputClusterMatrices;
     /// Output seeds
     std::string outputSeedsGuess;
     /// Output track parameters guess
@@ -124,6 +132,9 @@ class E320RootTrackReader : public IReader {
   /// WriteDataHandles for the data
   WriteDataHandle<std::vector<Acts::SourceLink>> m_outputSourceLinks{
       this, "OutputSourceLinks"};
+
+  WriteDataHandle<ClusterMatrixSet> m_outputClusterMatrices{
+      this, "OutputClusterMatrices"};
 
   WriteDataHandle<E320IndexSeeds> m_outputSeedsGuess{this, "SeedsGuess"};
 
@@ -215,6 +226,10 @@ class E320RootTrackReader : public IReader {
 
   /// Measurements cluster matrices shape IDs
   std::vector<std::size_t>* m_trackHitClusterMatrixShapeIds = nullptr;
+
+  /// Measurements cluster matrices pixels
+  std::vector<std::vector<std::pair<std::uint16_t, std::uint16_t>>>*
+      m_trackHitClusterMatrixPixels = nullptr;
 
   /// Geometry ids of the track hits
   std::vector<std::size_t>* m_geometryIds = nullptr;

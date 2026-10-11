@@ -143,6 +143,10 @@ E320::E320RootTrackReader::E320RootTrackReader(const Config& config,
   m_tree->SetBranchAddress("trackHitClusterMatrixShapeIds",
                            &m_trackHitClusterMatrixShapeIds);
 
+  // Measurements cluster matrices pixels
+  m_tree->SetBranchAddress("trackHitClusterMatrixPixels",
+                           &m_trackHitClusterMatrixPixels);
+
   // Geometry ids of the track hits
   m_tree->SetBranchAddress("geometryIds", &m_geometryIds);
 
@@ -252,16 +256,13 @@ E320::E320RootTrackReader::E320RootTrackReader(const Config& config,
 
   // Initialize the data handles
   m_outputSourceLinks.initialize(m_cfg.outputSourceLinks);
-
+  m_outputClusterMatrices.initialize(m_cfg.outputClusterMatrices);
   m_outputSeedsGuess.initialize(m_cfg.outputSeedsGuess);
   m_outputTrackParametersGuess.initialize(m_cfg.outputTrackParametersGuess);
-
   m_outputSeedsEst.initialize(m_cfg.outputSeedsEst);
   m_outputTrackParametersEst.initialize(m_cfg.outputTrackParametersEst);
-
   m_outputMagneticFieldParameters.initialize(
       m_cfg.outputMagneticFieldParameters);
-
   m_outputEventMetaData.initialize(m_cfg.outputEventMetaData);
 }
 
@@ -286,12 +287,13 @@ ProcessCode E320::E320RootTrackReader::read(const AlgorithmContext& ctx) {
     }
 
     m_outputSourceLinks(ctx, {});
-
+    m_outputClusterMatrices(ctx, {});
     m_outputSeedsGuess(ctx, {});
     m_outputTrackParametersGuess(ctx, {});
-
     m_outputSeedsEst(ctx, {});
     m_outputTrackParametersEst(ctx, {});
+    m_outputMagneticFieldParameters(ctx, {});
+    m_outputEventMetaData(ctx, {});
 
     // Return success flag
     return ProcessCode::SUCCESS;
@@ -306,13 +308,11 @@ ProcessCode E320::E320RootTrackReader::read(const AlgorithmContext& ctx) {
 
   // Create the measurements
   std::vector<Acts::SourceLink> sourceLinks{};
-
+  ClusterMatrixSet clusterMatrixSet{};
   E320IndexSeeds seedsGuess{};
   std::vector<Acts::CurvilinearTrackParameters> trackParametersGuess{};
-
   E320IndexSeeds seedsEst{};
   std::vector<Acts::CurvilinearTrackParameters> trackParametersEst{};
-
   std::vector<std::shared_ptr<MagneticFieldStore>> magFieldStores;
 
   EventMetaData eventMetaData{};
@@ -477,6 +477,11 @@ ProcessCode E320::E320RootTrackReader::read(const AlgorithmContext& ctx) {
         Acts::SourceLink sl(esl);
         sourceLinks.push_back(sl);
       } else {
+        ClusterMatrix pixelMatrix(m_trackHitClusterMatrixPixels->at(i),
+                                  constraints.maxClusterSize);
+        std::size_t matrixShapeId = pixelMatrix.shapeId();
+        clusterMatrixSet.push_back(pixelMatrix);
+
         Acts::Vector2 trackHitLocal(m_trackHitsLocal->at(i).X(),
                                     m_trackHitsLocal->at(i).Y());
         Acts::Vector3 trackHitGlobal(m_trackHitsGlobal->at(i).X(),
@@ -536,15 +541,12 @@ ProcessCode E320::E320RootTrackReader::read(const AlgorithmContext& ctx) {
                      << " estimated track parameters");
 
   m_outputSourceLinks(ctx, std::move(sourceLinks));
-
+  m_outputClusterMatrices(ctx, std::move(clusterMatrixSet));
   m_outputSeedsGuess(ctx, std::move(seedsGuess));
   m_outputTrackParametersGuess(ctx, std::move(trackParametersGuess));
-
   m_outputSeedsEst(ctx, std::move(seedsEst));
   m_outputTrackParametersEst(ctx, std::move(trackParametersEst));
-
   m_outputMagneticFieldParameters(ctx, std::move(magFieldStores));
-
   m_outputEventMetaData(ctx, std::move(eventMetaData));
 
   // Return success flag
