@@ -133,7 +133,7 @@ ProcessCode E320::E320RootDataReader::read(const AlgorithmContext& ctx) {
 
   // Create the measurements
   std::vector<Acts::SourceLink> sourceLinks{};
-  ClusterMatrixSet clusterMatrixSet{};
+  ClusterMatrixSet clusterMatrices{};
   std::vector<std::size_t> detSourceLinksIndices{};
   std::vector<std::size_t> bpmSourceLinksIndices{};
   EventMetaData eventMetaData{};
@@ -176,7 +176,7 @@ ProcessCode E320::E320RootDataReader::read(const AlgorithmContext& ctx) {
              chipEv.hits) {
           ClusterMatrix pixelMatrix(pixels, m_cfg.maxClusterSize);
           std::size_t matrixShapeId = pixelMatrix.shapeId();
-          clusterMatrixSet.insert({matrixShapeId, pixelMatrix});
+          clusterMatrices.push_back(pixelMatrix);
 
           Acts::Vector2 hitLoc{
               (hitX + 0.5) * goInst.pixelHalfX * 2 - goInst.chipHalfX,
@@ -202,7 +202,7 @@ ProcessCode E320::E320RootDataReader::read(const AlgorithmContext& ctx) {
 
           // Fill the measurement
           SimpleSourceLink ssl(hitLoc, hitGlob, cov, geoId, eventId,
-                               matrixShapeId);
+                               sourceLinks.size());
           detSourceLinksIndices.push_back(sourceLinks.size());
           sourceLinks.push_back(Acts::SourceLink(ssl));
         }
@@ -272,7 +272,7 @@ ProcessCode E320::E320RootDataReader::read(const AlgorithmContext& ctx) {
   ACTS_DEBUG("Sending " << bpmSourceLinksIndices.size()
                         << " bpm source link indices");
   m_outputSourceLinks(ctx, std::move(sourceLinks));
-  m_outputClusterMatrices(ctx, std::move(clusterMatrixSet));
+  m_outputClusterMatrices(ctx, std::move(clusterMatrices));
   m_outputDetSourceLinksIndices(ctx, std::move(detSourceLinksIndices));
   m_outputBpmSourceLinksIndices(ctx, std::move(bpmSourceLinksIndices));
   m_outputEventMetaData(ctx, std::move(eventMetaData));

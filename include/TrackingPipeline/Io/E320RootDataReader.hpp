@@ -30,8 +30,7 @@ class E320RootDataReader : public IReader {
   using Hit = std::pair<std::size_t, std::size_t>;
 
   /// @brief Cluster pixel matrixset shorthand
-  using ClusterMatrixSet =
-      std::unordered_map<std::size_t, ClusterMatrix<std::uint16_t>>;
+  using ClusterMatrixSet = std::vector<ClusterMatrix<std::uint16_t>>;
 
   /// @brief Measurement error model enum
   enum MeasurementErrorModel : int { Uniform = 0, Allpix2 = 1 };
