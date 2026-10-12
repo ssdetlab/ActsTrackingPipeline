@@ -83,6 +83,9 @@ E320::E320RootSimTrackWriter::E320RootSimTrackWriter(const Config& config,
   m_tree->Branch("smoothedTrackHitsLocal", &m_smoothedTrackHitsLocal, bufSize,
                  splitLvl);
 
+  m_tree->Branch("leaveOneOutTrackHitsLocal", &m_leaveOneOutTrackHitsLocal,
+                 bufSize, splitLvl);
+
   // KF predicted track hits in the global frame
   m_tree->Branch("predictedTrackHitsGlobal", &m_predictedTrackHitsGlobal,
                  bufSize, splitLvl);
@@ -90,6 +93,9 @@ E320::E320RootSimTrackWriter::E320RootSimTrackWriter(const Config& config,
                  splitLvl);
   m_tree->Branch("smoothedTrackHitsGlobal", &m_smoothedTrackHitsGlobal, bufSize,
                  splitLvl);
+
+  m_tree->Branch("leaveOneOutTrackHitsGlobal", &m_leaveOneOutTrackHitsGlobal,
+                 bufSize, splitLvl);
 
   // KF predicted on surface momenta in the track frame
   m_tree->Branch("predictedOnSurfaceMomentum", &m_predictedOnSurfaceMomentum,
@@ -112,6 +118,9 @@ E320::E320RootSimTrackWriter::E320RootSimTrackWriter(const Config& config,
   m_tree->Branch("trueFilteredAngleResiduals", &m_trueFilteredAngleResiduals,
                  bufSize, splitLvl);
   m_tree->Branch("trueSmoothedAngleResiduals", &m_trueSmoothedAngleResiduals,
+                 bufSize, splitLvl);
+
+  m_tree->Branch("trueLeaveOneOutHitResiduals", &m_trueLeaveOneOutHitResiduals,
                  bufSize, splitLvl);
 
   // KF residuals with respect to the measurements
@@ -147,6 +156,9 @@ E320::E320RootSimTrackWriter::E320RootSimTrackWriter(const Config& config,
   m_tree->Branch("trueSmoothedAnglePulls", &m_trueSmoothedAnglePulls, bufSize,
                  splitLvl);
 
+  m_tree->Branch("trueLeaveOneOutHitPulls", &m_trueLeaveOneOutHitPulls, bufSize,
+                 splitLvl);
+
   // KF pulls with respect to the measurements
   m_tree->Branch("predictedHitPulls", &m_predictedHitPulls, bufSize, splitLvl);
   m_tree->Branch("filteredHitPulls", &m_filteredHitPulls, bufSize, splitLvl);
@@ -157,6 +169,9 @@ E320::E320RootSimTrackWriter::E320RootSimTrackWriter(const Config& config,
   m_tree->Branch("filteredAnglePulls", &m_filteredAnglePulls, bufSize,
                  splitLvl);
   m_tree->Branch("smoothedAnglePulls", &m_smoothedAnglePulls, bufSize,
+                 splitLvl);
+
+  m_tree->Branch("leaveOneOutHitPulls", &m_leaveOneOutHitPulls, bufSize,
                  splitLvl);
 
   // KF states covariances
@@ -396,6 +411,9 @@ ProcessCode E320::E320RootSimTrackWriter::write(const AlgorithmContext& ctx) {
     m_smoothedTrackHitsLocal.clear();
     m_smoothedTrackHitsLocal.reserve(nStates);
 
+    m_leaveOneOutTrackHitsLocal.clear();
+    m_leaveOneOutTrackHitsLocal.reserve(nStates);
+
     // KF predicted track hits in the global frame
     m_predictedTrackHitsGlobal.clear();
     m_predictedTrackHitsGlobal.reserve(nStates);
@@ -405,6 +423,9 @@ ProcessCode E320::E320RootSimTrackWriter::write(const AlgorithmContext& ctx) {
 
     m_smoothedTrackHitsGlobal.clear();
     m_smoothedTrackHitsGlobal.reserve(nStates);
+
+    m_leaveOneOutTrackHitsGlobal.clear();
+    m_leaveOneOutTrackHitsGlobal.reserve(nStates);
 
     // KF predicted on surface momenta in the track frame
     m_predictedOnSurfaceMomentum.clear();
@@ -434,6 +455,9 @@ ProcessCode E320::E320RootSimTrackWriter::write(const AlgorithmContext& ctx) {
 
     m_trueSmoothedAngleResiduals.clear();
     m_trueSmoothedAngleResiduals.reserve(nStates);
+
+    m_trueLeaveOneOutHitResiduals.clear();
+    m_trueLeaveOneOutHitResiduals.reserve(nStates);
 
     // KF residuals with respect to the measurements
     m_predictedHitResiduals.clear();
@@ -476,6 +500,9 @@ ProcessCode E320::E320RootSimTrackWriter::write(const AlgorithmContext& ctx) {
     m_trueSmoothedAnglePulls.clear();
     m_trueSmoothedAnglePulls.reserve(nStates);
 
+    m_trueLeaveOneOutHitPulls.clear();
+    m_trueLeaveOneOutHitPulls.reserve(nStates);
+
     // KF pulls with respect to the measurements
     m_predictedHitPulls.clear();
     m_predictedHitPulls.reserve(nStates);
@@ -494,6 +521,9 @@ ProcessCode E320::E320RootSimTrackWriter::write(const AlgorithmContext& ctx) {
 
     m_smoothedAnglePulls.clear();
     m_smoothedAnglePulls.reserve(nStates);
+
+    m_leaveOneOutHitPulls.clear();
+    m_leaveOneOutHitPulls.reserve(nStates);
 
     // KF states covariances
     m_predictedTrackStateCovs.clear();
@@ -1192,7 +1222,7 @@ ProcessCode E320::E320RootSimTrackWriter::write(const AlgorithmContext& ctx) {
                                   smoothedTrackStateCovData.GetArray());
         m_smoothedTrackStateCovs.push_back(smoothedTrackStateCov);
 
-        // Leave-one-out residuals
+        // Get leave-one-out track state covariance
         const Eigen::LDLT<Acts::SquareMatrix2>& measHitCovLdlt =
             measHitCov.ldlt();
         const Eigen::LDLT<Acts::BoundMatrix>& smoothedStateCovLdlt =
@@ -1207,6 +1237,7 @@ ProcessCode E320::E320RootSimTrackWriter::write(const AlgorithmContext& ctx) {
                 .ldlt()
                 .solve(Acts::BoundMatrix::Identity());
 
+        // Get leave-one-out track state
         Acts::BoundVector leaveOneOutStateEst =
             leaveOneOutStateCov *
             (smoothedStateCovLdlt.solve(Acts::BoundMatrix::Identity()) *
@@ -1214,12 +1245,72 @@ ProcessCode E320::E320RootSimTrackWriter::write(const AlgorithmContext& ctx) {
              effectiveProjector.transpose() *
                  measHitCovLdlt.solve(Acts::SquareMatrix2::Identity()) *
                  measHit);
-        Acts::Vector2 leaveOneOutResidual =
-            measHit - effectiveProjector * leaveOneOutStateEst;
 
+        // Get leave-one-out local hit
+        Acts::Vector2 leaveOneOutHit = effectiveProjector * leaveOneOutStateEst;
+
+        // Get leave-one-out global hit
+        Acts::Vector3 leaveOneOutHitGlobal = referenceSurface.localToGlobal(
+            ctx.geoContext, leaveOneOutHit, Acts::Vector3(1, 0, 0));
+
+        // Get leave-one-out residuals with repspect to the true hit
+        Acts::Vector2 trueLeaveOneOutResidual = trueTrackHit - leaveOneOutHit;
+
+        // Get leave-one-out residuals with repspect to the measurement
+        Acts::Vector2 leaveOneOutResidual = measHit - leaveOneOutHit;
+
+        // Leave-one-out covariance with respect to the true track hits
+        Acts::ActsDynamicMatrix leaveOneOutHitCovTruth =
+            effectiveProjector * leaveOneOutStateCov *
+            effectiveProjector.transpose();
+
+        Acts::Vector2 leaveOneOutHitDiagTruth =
+            leaveOneOutHitCovTruth.cwiseAbs()
+                .diagonal()
+                .cwiseInverse()
+                .cwiseSqrt();
+
+        // Leave-one-out covariance with respect to the measurement
+        Acts::ActsDynamicMatrix leaveOneOutHitCov =
+            measHitCov + leaveOneOutHitCovTruth;
+
+        Acts::Vector2 leaveOneOutHitDiag =
+            leaveOneOutHitCov.cwiseAbs().diagonal().cwiseInverse().cwiseSqrt();
+
+        // Get leave-one-out pull with repspect to the true hit
+        Acts::Vector2 trueLeaveOneOutPull =
+            leaveOneOutHitDiagTruth.cwiseProduct(trueTrackHit - leaveOneOutHit);
+
+        // Get leave-one-out pull with repspect to the measurement
+        Acts::Vector2 leaveOneOutPull =
+            leaveOneOutHitDiag.cwiseProduct(measHit - leaveOneOutHit);
+
+        // Store leave-one-out local hit
+        m_leaveOneOutTrackHitsLocal.emplace_back(leaveOneOutHit.x(),
+                                                 leaveOneOutHit.y());
+
+        // Store leave-one-out global hit
+        m_leaveOneOutTrackHitsGlobal.emplace_back(leaveOneOutHitGlobal.x(),
+                                                  leaveOneOutHitGlobal.y(),
+                                                  leaveOneOutHitGlobal.z());
+
+        // Store leave-one-out residual with respect to the true hit
+        m_trueLeaveOneOutHitResiduals.emplace_back(trueLeaveOneOutResidual.x(),
+                                                   trueLeaveOneOutResidual.y());
+
+        // Store leave-one-out residual with respect to the measurement
         m_leaveOneOutHitResiduals.emplace_back(leaveOneOutResidual.x(),
                                                leaveOneOutResidual.y());
 
+        // Store leave-one-out pull with respect to the true hit
+        m_trueLeaveOneOutHitPulls.emplace_back(trueLeaveOneOutPull.x(),
+                                               trueLeaveOneOutPull.y());
+
+        // Store leave-one-out pull with respect to the measurement
+        m_leaveOneOutHitPulls.emplace_back(leaveOneOutPull.x(),
+                                           leaveOneOutPull.y());
+
+        // Store leave-one-out track state covariance
         TMatrixD leaveOneOutTrackStateCov(2, 2);
         TArrayD leaveOneOutTrackStateCovData(Acts::eBoundSize *
                                              Acts::eBoundSize);
