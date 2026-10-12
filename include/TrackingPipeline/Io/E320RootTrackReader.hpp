@@ -239,10 +239,14 @@ class E320RootTrackReader : public IReader {
   std::vector<TVector2>* m_filteredTrackHitsLocal = nullptr;
   std::vector<TVector2>* m_smoothedTrackHitsLocal = nullptr;
 
+  std::vector<TVector2>* m_leaveOneOutTrackHitsLocal = nullptr;
+
   /// KF predicted track hits in the global frame
   std::vector<TVector3>* m_predictedTrackHitsGlobal = nullptr;
   std::vector<TVector3>* m_filteredTrackHitsGlobal = nullptr;
   std::vector<TVector3>* m_smoothedTrackHitsGlobal = nullptr;
+
+  std::vector<TVector3>* m_leaveOneOutTrackHitsGlobal = nullptr;
 
   /// KF predicted on surface momenta in the track frame
   std::vector<TLorentzVector>* m_predictedOnSurfaceMomentum = nullptr;
@@ -268,6 +272,8 @@ class E320RootTrackReader : public IReader {
   std::vector<TVector2>* m_predictedAnglePulls = nullptr;
   std::vector<TVector2>* m_filteredAnglePulls = nullptr;
   std::vector<TVector2>* m_smoothedAnglePulls = nullptr;
+
+  std::vector<TVector2>* m_leaveOneOutHitPulls = nullptr;
 
   /// KF states covariances
   std::vector<TMatrixD>* m_predictedTrackStateCovs = nullptr;

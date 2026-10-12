@@ -156,6 +156,9 @@ E320::E320RootTrackReader::E320RootTrackReader(const Config& config,
   m_tree->SetBranchAddress("filteredTrackHitsLocal", &m_filteredTrackHitsLocal);
   m_tree->SetBranchAddress("smoothedTrackHitsLocal", &m_smoothedTrackHitsLocal);
 
+  m_tree->SetBranchAddress("leaveOneOutTrackHitsLocal",
+                           &m_leaveOneOutTrackHitsLocal);
+
   // KF predicted track hits in the global frame
   m_tree->SetBranchAddress("predictedTrackHitsGlobal",
                            &m_predictedTrackHitsGlobal);
@@ -163,6 +166,9 @@ E320::E320RootTrackReader::E320RootTrackReader(const Config& config,
                            &m_filteredTrackHitsGlobal);
   m_tree->SetBranchAddress("smoothedTrackHitsGlobal",
                            &m_smoothedTrackHitsGlobal);
+
+  m_tree->SetBranchAddress("leaveOneOutTrackHitsGlobal",
+                           &m_leaveOneOutTrackHitsGlobal);
 
   // KF predicted on surface momenta in the track frame
   m_tree->SetBranchAddress("predictedOnSurfaceMomentum",
@@ -193,6 +199,8 @@ E320::E320RootTrackReader::E320RootTrackReader(const Config& config,
   m_tree->SetBranchAddress("predictedAnglePulls", &m_predictedAnglePulls);
   m_tree->SetBranchAddress("filteredAnglePulls", &m_filteredAnglePulls);
   m_tree->SetBranchAddress("smoothedAnglePulls", &m_smoothedAnglePulls);
+
+  m_tree->SetBranchAddress("leaveOneOutHitPulls", &m_leaveOneOutHitPulls);
 
   // KF states covariances
   m_tree->SetBranchAddress("predictedTrackStateCovs",
