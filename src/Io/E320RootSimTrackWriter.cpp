@@ -904,7 +904,7 @@ ProcessCode E320::E320RootSimTrackWriter::write(const AlgorithmContext& ctx) {
                                          predictedAnglePull(1));
 
       // Store predicted state covariance
-      TMatrixD predictedTrackStateCov(2, 2);
+      TMatrixD predictedTrackStateCov(Acts::eBoundSize, Acts::eBoundSize);
       TArrayD predictedTrackStateCovData(Acts::eBoundSize * Acts::eBoundSize);
       for (std::size_t i = 0; i < Acts::eBoundSize * Acts::eBoundSize; i++) {
         predictedTrackStateCovData[i] = predictedStateCov(i);
@@ -1058,7 +1058,7 @@ ProcessCode E320::E320RootSimTrackWriter::write(const AlgorithmContext& ctx) {
                                           filteredAnglePull(1));
 
         // Store filtered state covariance
-        TMatrixD filteredTrackStateCov(2, 2);
+        TMatrixD filteredTrackStateCov(Acts::eBoundSize, Acts::eBoundSize);
         TArrayD filteredTrackStateCovData(Acts::eBoundSize * Acts::eBoundSize);
         for (std::size_t i = 0; i < Acts::eBoundSize * Acts::eBoundSize; i++) {
           filteredTrackStateCovData[i] = filteredStateCov(i);
@@ -1213,7 +1213,7 @@ ProcessCode E320::E320RootSimTrackWriter::write(const AlgorithmContext& ctx) {
                                           smoothedAnglePull(1));
 
         // Store smoothed state covariance
-        TMatrixD smoothedTrackStateCov(2, 2);
+        TMatrixD smoothedTrackStateCov(Acts::eBoundSize, Acts::eBoundSize);
         TArrayD smoothedTrackStateCovData(Acts::eBoundSize * Acts::eBoundSize);
         for (std::size_t i = 0; i < Acts::eBoundSize * Acts::eBoundSize; i++) {
           smoothedTrackStateCovData[i] = smoothedStateCov(i);
