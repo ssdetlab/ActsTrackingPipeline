@@ -626,15 +626,17 @@ ProcessCode E320::E320RootTrackWriter::write(const AlgorithmContext& ctx) {
 
       // Store measurement cluster matrix info
       const auto& clusterMatrix = inputClusterMatrices.at(sourceLinkIdx);
-      std::size_t clusterSize = clusterMatrix.size();
-      const Eigen::MatrixXi& pixelMatrix = clusterMatrix.matrix();
+      std::size_t clusterMatrixDim = clusterMatrix.matrixDim();
+      const Eigen::MatrixXi& pixelMatrix = clusterMatrix.matrix().transpose();
 
-      TMatrixD trackHitClusterMatrix(clusterSize, clusterSize);
-      TArrayD trackHitClusterMatrixData(clusterSize * clusterSize);
-      for (std::size_t i = 0; i < clusterSize * clusterSize; i++) {
+      // NOTE: ROOT and EIGEN have different indexing conventions,
+      // in case of the non-symmetric matrices need to transpose
+      TMatrixD trackHitClusterMatrix(clusterMatrixDim, clusterMatrixDim);
+      TArrayD trackHitClusterMatrixData(clusterMatrixDim * clusterMatrixDim);
+      for (std::size_t i = 0; i < clusterMatrixDim * clusterMatrixDim; i++) {
         trackHitClusterMatrixData[i] = pixelMatrix(i);
       }
-      trackHitClusterMatrix.Use(clusterSize, clusterSize,
+      trackHitClusterMatrix.Use(clusterMatrixDim, clusterMatrixDim,
                                 trackHitClusterMatrixData.GetArray());
       m_trackHitClusterMatrices.push_back(trackHitClusterMatrix);
       m_trackHitClusterMatrixLengthsX.push_back(clusterMatrix.lengthX());
