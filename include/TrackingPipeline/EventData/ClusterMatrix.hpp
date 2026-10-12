@@ -68,6 +68,9 @@ class ClusterMatrix {
   /// @brief get cluster size in number of pixels
   std::size_t size() const { return m_size; }
 
+  /// @brief get matrix dimension
+  std::size_t matrixDim() const { return m_matrix.rows(); }
+
   /// @brief get cluster extent in local X direction
   std::size_t lengthX() const { return m_lengthX; }
 
