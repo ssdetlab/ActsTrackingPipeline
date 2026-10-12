@@ -1311,7 +1311,7 @@ ProcessCode E320::E320RootSimTrackWriter::write(const AlgorithmContext& ctx) {
                                            leaveOneOutPull.y());
 
         // Store leave-one-out track state covariance
-        TMatrixD leaveOneOutTrackStateCov(2, 2);
+        TMatrixD leaveOneOutTrackStateCov(Acts::eBoundSize, Acts::eBoundSize);
         TArrayD leaveOneOutTrackStateCovData(Acts::eBoundSize *
                                              Acts::eBoundSize);
         for (std::size_t i = 0; i < Acts::eBoundSize * Acts::eBoundSize; i++) {
