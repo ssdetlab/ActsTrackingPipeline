@@ -169,10 +169,14 @@ class E320RootTrackWriter : public IWriter {
   std::vector<TVector2> m_filteredTrackHitsLocal;
   std::vector<TVector2> m_smoothedTrackHitsLocal;
 
+  std::vector<TVector2> m_leaveOneOutTrackHitsLocal;
+
   /// KF predicted track hits in the global frame
   std::vector<TVector3> m_predictedTrackHitsGlobal;
   std::vector<TVector3> m_filteredTrackHitsGlobal;
   std::vector<TVector3> m_smoothedTrackHitsGlobal;
+
+  std::vector<TVector3> m_leaveOneOutTrackHitsGlobal;
 
   /// KF predicted on surface momenta in the track frame
   std::vector<TLorentzVector> m_predictedOnSurfaceMomentum;
@@ -198,6 +202,8 @@ class E320RootTrackWriter : public IWriter {
   std::vector<TVector2> m_predictedAnglePulls;
   std::vector<TVector2> m_filteredAnglePulls;
   std::vector<TVector2> m_smoothedAnglePulls;
+
+  std::vector<TVector2> m_leaveOneOutHitPulls;
 
   /// KF states covariances
   std::vector<TMatrixD> m_predictedTrackStateCovs;
