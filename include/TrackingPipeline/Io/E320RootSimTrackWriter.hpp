@@ -22,9 +22,11 @@
 #include "TrackingPipeline/Infrastructure/IWriter.hpp"
 #include "TrackingPipeline/Infrastructure/ProcessCode.hpp"
 #include "TrackingPipeline/Infrastructure/TypeDefinitions.hpp"
+#include "TrackingPipeline/MagneticField/MagneticFieldStore.hpp"
 
 namespace E320 {
 
+/// @brief Track ID shorthand: [trackId, parentTrackId, runId]
 using TrackID = std::tuple<int, int, int>;
 
 /// @brief E320-specific writer storing fitted sim tracks in a ROOT file
@@ -44,12 +46,17 @@ class E320RootSimTrackWriter : public IWriter {
     std::string inputTrackParametersGuesses;
     /// Input sim clusters
     std::string inputSimClusters;
+    /// Input track-specific mag field configurations
+    std::string inputMagneticFieldParameters;
     /// Output tree name
     std::string treeName;
     /// Output file path
     std::string filePath;
     /// Phi correction flag for backwards propagation
     bool applyPhiCorrection;
+    /// Flag to extract the magnetic fields from the
+    /// event magnetic field context
+    bool mctxMagneticFields;
   };
 
   E320RootSimTrackWriter(const E320RootSimTrackWriter &) = delete;
@@ -68,6 +75,10 @@ class E320RootSimTrackWriter : public IWriter {
   std::string name() const override { return "RootFittedTrackWriter"; }
 
   /// @brief write out data to the file
+  ///
+  /// @param ctx algorithm context of the event
+  ///
+  /// @return execution process code
   ProcessCode write(const AlgorithmContext &ctx) override;
 
   /// Readonly access to the config
@@ -90,6 +101,9 @@ class E320RootSimTrackWriter : public IWriter {
       m_inputTrackParametersGuesses{this, "InputTrackParametersGuesses"};
 
   ReadDataHandle<SimClusters> m_inputSimClusters{this, "InputSimClusters"};
+
+  ReadDataHandle<std::vector<std::shared_ptr<MagneticFieldStore>>>
+      m_inputMagneticFieldParameters{this, "InputMagneticFieldParameters"};
 
   /// Logging instance
   std::unique_ptr<const Acts::Logger> m_logger;
