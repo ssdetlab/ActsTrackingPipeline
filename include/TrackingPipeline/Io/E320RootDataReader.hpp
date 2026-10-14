@@ -75,6 +75,9 @@ class E320RootDataReader : public IReader {
   E320RootDataReader(const E320RootDataReader&&) = delete;
 
   /// @brief constructor
+  ///
+  /// @param config configuration struct
+  /// @param level logging level
   E320RootDataReader(const Config& config, Acts::Logging::Level level);
 
   /// @brief get reader name
@@ -84,6 +87,10 @@ class E320RootDataReader : public IReader {
   std::pair<std::size_t, std::size_t> availableEvents() const final;
 
   /// @brief read out data from the input stream
+  ///
+  /// @param ctx algorithm context of the event
+  ///
+  /// @return execution process code
   ProcessCode read(const AlgorithmContext& ctx) override;
 
   /// @brief readonly access to the config
