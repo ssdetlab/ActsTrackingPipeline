@@ -21,6 +21,7 @@
 #include "TrackingPipeline/Infrastructure/IWriter.hpp"
 #include "TrackingPipeline/Infrastructure/ProcessCode.hpp"
 #include "TrackingPipeline/Infrastructure/TypeDefinitions.hpp"
+#include "TrackingPipeline/MagneticField/MagneticFieldStore.hpp"
 
 namespace E320 {
 
@@ -46,16 +47,24 @@ class E320RootTrackWriter : public IWriter {
     std::string inputClusterMatrices;
     /// Input event meta data
     std::string inputEventMetaData;
+    /// Input track-specific mag field configurations
+    std::string inputMagneticFieldParameters;
     /// Output tree name
     std::string treeName;
     /// Output file path
     std::string filePath;
+    /// Flag to extract the magnetic fields from the 
+    /// event magnetic field context
+    bool mctxMagneticFields;
   };
 
   E320RootTrackWriter(const E320RootTrackWriter &) = delete;
   E320RootTrackWriter(const E320RootTrackWriter &&) = delete;
 
   /// @brief constructor
+  ///
+  /// @param config configuration struct
+  /// @param level logging level
   E320RootTrackWriter(const Config &config, Acts::Logging::Level level);
 
   /// @brief finalize method
@@ -65,6 +74,10 @@ class E320RootTrackWriter : public IWriter {
   std::string name() const override { return "RootFittedTrackWriter"; }
 
   /// @brief write out data to the file
+  ///
+  /// @param ctx algorithm context of the event
+  ///
+  /// @return execution process code
   ProcessCode write(const AlgorithmContext &ctx) override;
 
   /// Readonly access to the config
@@ -88,8 +101,12 @@ class E320RootTrackWriter : public IWriter {
   ReadDataHandle<ClusterMatrixSet> m_inputClusterMatrices{
       this, "InputClusterMatrices"};
 
+  ReadDataHandle<std::vector<std::shared_ptr<MagneticFieldStore>>>
+      m_inputMagneticFieldParameters{this, "InputMagneticFieldParameters"};
+
   ReadDataHandle<EventMetaData> m_inputEventMetaData{this, "InputMetaData"};
 
+  /// Logging instance
   std::unique_ptr<const Acts::Logger> m_logger;
 
   /// The output file

@@ -233,6 +233,12 @@ E320::E320RootTrackWriter::E320RootTrackWriter(const Config& config,
   m_inputTrackParametersGuesses.initialize(m_cfg.inputTrackParametersGuesses);
   m_inputClusterMatrices.initialize(m_cfg.inputClusterMatrices);
   m_inputEventMetaData.initialize(m_cfg.inputEventMetaData);
+
+  // Initialize if magnetic fields are to be supplied as data
+  if (!m_cfg.mctxMagneticFields) {
+    m_inputMagneticFieldParameters.initialize(
+        m_cfg.inputMagneticFieldParameters);
+  }
 }
 
 ProcessCode E320::E320RootTrackWriter::finalize() {
@@ -249,6 +255,13 @@ ProcessCode E320::E320RootTrackWriter::write(const AlgorithmContext& ctx) {
   const auto& inputTrackParametersGuesses = m_inputTrackParametersGuesses(ctx);
   const auto& inputClusterMatrices = m_inputClusterMatrices(ctx);
   const auto& inputMetaData = m_inputEventMetaData(ctx);
+
+  // Initialize if magnetic fields are to be supplied as data
+  std::vector<std::shared_ptr<MagneticFieldStore>> dummyMagFieldContainer = {};
+  const std::vector<std::shared_ptr<MagneticFieldStore>>&
+      inputMagFieldParameters =
+          m_cfg.mctxMagneticFields ? dummyMagFieldContainer
+                                   : m_inputMagneticFieldParameters(ctx);
 
   ACTS_DEBUG("Received " << inputTrackContainer.size() << " input tracks");
   ACTS_DEBUG("Received " << inputTracks.size() << " input track indices");
@@ -286,7 +299,7 @@ ProcessCode E320::E320RootTrackWriter::write(const AlgorithmContext& ctx) {
   // Dipole strength T
   m_dipoleStrength = goInst.dipoleFieldStrength / Acts::UnitConstants::T;
 
-  if (mctx.hasValue()) {
+  if (m_cfg.mctxMagneticFields && mctx.hasValue()) {
     const auto& store = mctx.get<std::shared_ptr<MagneticFieldStore>&>();
 
     if (store->store.contains(goInst.quad1Id)) {
@@ -323,6 +336,41 @@ ProcessCode E320::E320RootTrackWriter::write(const AlgorithmContext& ctx) {
 
   // Iterate over the fitted tracks
   for (std::size_t idx = 0; idx < inputTracks.size(); idx++) {
+    if (!m_cfg.mctxMagneticFields) {
+      const auto& store = inputMagFieldParameters.at(idx);
+
+      if (store->store.contains(goInst.quad1Id)) {
+        m_quad1Grad = store->store.at(goInst.quad1Id)
+                          .as<IdealQuadrupoleMagField::Cache>()
+                          .m_gradient *
+                      Acts::UnitConstants::m / Acts::UnitConstants::T;
+      }
+      if (store->store.contains(goInst.quad2Id)) {
+        m_quad2Grad = store->store.at(goInst.quad2Id)
+                          .as<IdealQuadrupoleMagField::Cache>()
+                          .m_gradient *
+                      Acts::UnitConstants::m / Acts::UnitConstants::T;
+      }
+      if (store->store.contains(goInst.quad3Id)) {
+        m_quad3Grad = store->store.at(goInst.quad3Id)
+                          .as<IdealQuadrupoleMagField::Cache>()
+                          .m_gradient *
+                      Acts::UnitConstants::m / Acts::UnitConstants::T;
+      }
+      if (store->store.contains(goInst.xCorrectorId)) {
+        m_xCorrectorStrength = store->store.at(goInst.xCorrectorId)
+                                   .as<ConstantMagField::Cache>()
+                                   .m_field(goInst.xCorrectorDirIdx) /
+                               Acts::UnitConstants::T;
+      }
+      if (store->store.contains(goInst.dipoleId)) {
+        m_dipoleStrength = store->store.at(goInst.dipoleId)
+                               .as<ConstantMagField::Cache>()
+                               .m_field(goInst.dipoleDirIdx) /
+                           Acts::UnitConstants::T;
+      }
+    }
+
     // Get track indices
     const auto& trackIndices = inputTracks.at(idx);
 
@@ -1078,12 +1126,6 @@ ProcessCode E320::E320RootTrackWriter::write(const AlgorithmContext& ctx) {
         Acts::ActsDynamicMatrix leaveOneOutHitCovTruth =
             effectiveProjector * leaveOneOutStateCov *
             effectiveProjector.transpose();
-
-        Acts::Vector2 leaveOneOutHitDiagTruth =
-            leaveOneOutHitCovTruth.cwiseAbs()
-                .diagonal()
-                .cwiseInverse()
-                .cwiseSqrt();
 
         // Leave-one-out covariance with respect to the measurement
         Acts::ActsDynamicMatrix leaveOneOutHitCov =
