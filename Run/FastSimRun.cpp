@@ -353,9 +353,9 @@ int main() {
       getEntryDouble("GaussianVertexGenerator", "vertexResolution") * 1_um;
 
   GaussianVertexGenerator::Config vertexGenCfg;
-  // vertexGenCfg.mean = Acts::Vector3(goInst.bpm0CenterPrimary - 5_mm, 0, 0);
   vertexGenCfg.mean = Acts::Vector3(0, 0, 0);
-  // Acts::Vector3(goInst.ipSurfaceCenterPrimary - 0.1_mm, goInst.tcCenterLong,
+  // Acts::Vector3(goInst.bpm0CenterPrimary - 5_mm, 0, 0);
+  // Acts::Vector3(goInst.ipTcDistance - 0.1_mm, goInst.tcCenterLong,
   //               goInst.tcCenterShort);
   vertexGenCfg.cov = Acts::SquareMatrix3::Identity() * vertexRes * vertexRes;
   auto vertexGen = std::make_shared<GaussianVertexGenerator>(vertexGenCfg);

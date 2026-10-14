@@ -35,6 +35,7 @@
 #include "TrackingPipeline/Geometry/GeometryContextDecorator.hpp"
 #include "TrackingPipeline/Infrastructure/Sequencer.hpp"
 #include "TrackingPipeline/Infrastructure/TypeDefinitions.hpp"
+#include "TrackingPipeline/Io/AlignmentParametersProvider.hpp"
 #include "TrackingPipeline/Io/AlignmentParametersWriter.hpp"
 #include "TrackingPipeline/Io/E320RootTrackReader.hpp"
 #include "TrackingPipeline/Io/E320RootTrackWriter.hpp"
@@ -289,6 +290,8 @@ int main() {
       getEntryDouble("E320RootTrackReader", "minAbsMomentumEst");
   readerConstraints.maxAbsMomentumEst =
       getEntryDouble("E320RootTrackReader", "maxAbsMomentumEst");
+  readerConstraints.maxClusterSize =
+      getEntrySizeT("E320RootTrackReader", "maxClusterSize");
 
   const auto* residualsRanges =
       runCfg["E320RootTrackReader"]["smoothedResidualsRange"].as_array();
@@ -308,6 +311,8 @@ int main() {
   readerCfg.treeName = getEntryStr("E320RootTrackReader", "treeName");
   readerCfg.outputSourceLinks =
       getEntryStr("E320RootTrackReader", "outputSourceLinks");
+  readerCfg.outputClusterMatrices =
+      getEntryStr("E320RootTrackReader", "outputClusterMatrices");
   readerCfg.outputSeedsGuess =
       getEntryStr("E320RootTrackReader", "outputSeedsGuess");
   readerCfg.outputTrackParametersGuess =
@@ -647,6 +652,8 @@ int main() {
           getEntryStr("E320KFTrackFittingAlgorithm", "inputTrackParameters"),
       .inputSourceLinks =
           getEntryStr("E320KFTrackFittingAlgorithm", "inputSourceLinks"),
+      .inputMagneticFieldParameters = getEntryStr(
+          "E320KFTrackFittingAlgorithm", "inputMagneticFieldParameters"),
       .outputTrackContainer =
           getEntryStr("E320KFTrackFittingAlgorithm", "outputTrackContainer"),
       .outputTracks =
@@ -654,7 +661,9 @@ int main() {
       .fitter = fitter,
       .maxSteps = getEntrySizeT("E320KFTrackFittingAlgorithm", "maxSteps"),
       .kfExtensions = kfExtensions,
-      .referenceSurface = trackingRefSurface.get()};
+      .referenceSurface = trackingRefSurface.get(),
+      .mctxMagneticFields =
+          getEntryBool("E320KFTrackFittingAlgorithm", "mctxMagneticFields")};
 
   sequencer.addAlgorithm(
       std::make_shared<E320::E320KFTrackFittingAlgorithm>(fitterCfg, logLevel));
@@ -674,10 +683,16 @@ int main() {
       getEntryStr("E320RootTrackWriter", "inputTracks");
   trackWriterCfg.inputTrackParametersGuesses =
       getEntryStr("E320RootTrackWriter", "inputTrackParametersGuesses");
+  trackWriterCfg.inputClusterMatrices =
+      getEntryStr("E320RootTrackWriter", "inputClusterMatrices");
+  trackWriterCfg.inputMagneticFieldParameters =
+      getEntryStr("E320RootTrackWriter", "inputMagneticFieldParameters");
   trackWriterCfg.inputEventMetaData =
       getEntryStr("E320RootTrackWriter", "inputEventMetaData");
   trackWriterCfg.treeName = getEntryStr("E320RootTrackWriter", "treeName");
   trackWriterCfg.filePath = getEntryStr("E320RootTrackWriter", "filePath");
+  trackWriterCfg.mctxMagneticFields =
+      getEntryBool("E320RootTrackWriter", "mctxMagneticFields");
 
   sequencer.addWriter(
       std::make_shared<E320::E320RootTrackWriter>(trackWriterCfg, logLevel));

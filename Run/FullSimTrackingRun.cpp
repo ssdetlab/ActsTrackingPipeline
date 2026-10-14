@@ -38,7 +38,6 @@
 #include "TrackingPipeline/Io/E320MagneticFieldWriter.hpp"
 #include "TrackingPipeline/Io/E320RootSimClusterReader.hpp"
 #include "TrackingPipeline/Io/E320RootSimTrackWriter.hpp"
-#include "TrackingPipeline/Io/RootSimSeedWriter.hpp"
 #include "TrackingPipeline/MagneticField/MagneticFieldContextDecorator.hpp"
 #include "TrackingPipeline/TrackFinding/E320SeedingAlgorithm.hpp"
 #include "TrackingPipeline/TrackFinding/E320TrackParametersEstimator.hpp"
@@ -140,15 +139,6 @@ int main() {
 
   // Initialize alignment store
   auto aStore = detail::makeAlignmentStore(gctx, detector.get());
-
-  // // Read alignment store from a file
-  // AlignmentParametersProvider::Config alignmentProviderCfg;
-  // alignmentProviderCfg.filePath =
-  //     "/home/romanurmanov/work/E320/E320Prototype/E320Prototype_analysis/sim/"
-  //     "alignment/local/aligned/alignment-parameters.root";
-  // alignmentProviderCfg.treeName = "alignment-parameters";
-  // AlignmentParametersProvider alignmentProvider(alignmentProviderCfg);
-  // aStore = alignmentProvider.getAlignmentStore();
 
   Acts::Vector3 globalShifts(0,
                              getEntryDouble("Geometry", "globalShiftY") * 1_mm,
@@ -277,9 +267,9 @@ int main() {
   // Seeding reference surface
   Acts::Transform3 seedingRefSurfTransform = Acts::Transform3::Identity();
   seedingRefSurfTransform.translation() =
-      Acts::Vector3(goInst.ipTcDistance - 0.1_mm, 0, 0);
-  // Acts::Vector3(goInst.ipTcDistance + 2 * goInst.tcHalfPrimary + 0.1_mm, 0,
-  //               0);
+      // Acts::Vector3(goInst.ipTcDistance - 0.1_mm, 0, 0);
+      Acts::Vector3(goInst.ipTcDistance + 2 * goInst.tcHalfPrimary + 0.1_mm, 0,
+                    0);
   seedingRefSurfTransform.rotate(refSurfToWorldRotationX);
   seedingRefSurfTransform.rotate(refSurfToWorldRotationY);
   seedingRefSurfTransform.rotate(refSurfToWorldRotationZ);
@@ -294,10 +284,13 @@ int main() {
 
   // Tracking reference surface
   Acts::Transform3 trackingRefSurfTransform = Acts::Transform3::Identity();
-  // trackingRefSurfTransform.translation() = Acts::Vector3(0, 0, 0);
-  // Acts::Vector3(goInst.ipSurfaceCenterPrimary - 0.1_mm, 0, 0);
-  Acts::Vector3(goInst.dipoleCenterPrimary + goInst.dipoleHalfPrimary + 0.01_mm,
-                0, 0);
+  trackingRefSurfTransform.translation() =
+      // Acts::Vector3(0, 0, 0);
+      // Acts::Vector3(goInst.ipSurfaceCenterPrimary - 0.1_mm, 0, 0);
+      // Acts::Vector3(goInst.ipTcDistance - 0.1_mm, 0, 0);
+      Acts::Vector3(
+          goInst.dipoleCenterPrimary + goInst.dipoleHalfPrimary + 0.01_mm, 0,
+          0);
   trackingRefSurfTransform.rotate(refSurfToWorldRotationX);
   trackingRefSurfTransform.rotate(refSurfToWorldRotationY);
   trackingRefSurfTransform.rotate(refSurfToWorldRotationZ);
@@ -505,17 +498,16 @@ int main() {
   cfg.resolvePassive = false;
   cfg.resolveMaterial = true;
   cfg.resolveSensitive = true;
-  Navigator kfNavigator(
-      cfg, Acts::getDefaultLogger("DetectorNavigator", Acts::Logging::FATAL));
+  Navigator kfNavigator(cfg,
+                        Acts::getDefaultLogger("DetectorNavigator", logLevel));
 
   Acts::EigenStepper<> kfStepper(std::move(field));
   auto kfPropagator =
       Propagator(std::move(kfStepper), std::move(kfNavigator),
-                 Acts::getDefaultLogger("Propagator", Acts::Logging::FATAL));
+                 Acts::getDefaultLogger("Propagator", logLevel));
 
   const auto fitter = KFFitter(
-      kfPropagator,
-      Acts::getDefaultLogger("DetectorKalmanFilter", Acts::Logging::FATAL));
+      kfPropagator, Acts::getDefaultLogger("DetectorKalmanFilter", logLevel));
 
   // Add the track fitting algorithm to the sequencer
   E320::E320KFTrackFittingAlgorithm::Config fitterCfg{
@@ -525,13 +517,17 @@ int main() {
           getEntryStr("KFTrackFittingAlgorithm", "inputTrackParameters"),
       .inputSourceLinks =
           getEntryStr("KFTrackFittingAlgorithm", "inputSourceLinks"),
+      .inputMagneticFieldParameters = getEntryStr(
+          "KFTrackFittingAlgorithm", "inputMagneticFieldParameters"),
       .outputTrackContainer =
           getEntryStr("KFTrackFittingAlgorithm", "outputTrackContainer"),
       .outputTracks = getEntryStr("KFTrackFittingAlgorithm", "outputTracks"),
       .fitter = fitter,
       .maxSteps = getEntrySizeT("KFTrackFittingAlgorithm", "maxSteps"),
       .kfExtensions = kfExtensions,
-      .referenceSurface = trackingRefSurface.get()};
+      .referenceSurface = trackingRefSurface.get(),
+      .mctxMagneticFields =
+          getEntryBool("KFTrackFittingAlgorithm", "mctxMagneticFields")};
 
   sequencer.addAlgorithm(
       std::make_shared<E320::E320KFTrackFittingAlgorithm>(fitterCfg, logLevel));
@@ -553,8 +549,12 @@ int main() {
       getEntryStr("E320RootSimTrackWriter", "inputTrackParametersGuesses");
   trackWriterCfg.inputSimClusters =
       getEntryStr("E320RootSimTrackWriter", "inputSimClusters");
+  trackWriterCfg.inputMagneticFieldParameters =
+      getEntryStr("E320RootSimTrackWriter", "inputMagneticFieldParameters");
   trackWriterCfg.treeName = getEntryStr("E320RootSimTrackWriter", "treeName");
   trackWriterCfg.filePath = getEntryStr("E320RootSimTrackWriter", "filePath");
+  trackWriterCfg.mctxMagneticFields =
+      getEntryBool("E320RootSimTrackWriter", "mctxMagneticFields");
 
   sequencer.addWriter(
       std::make_shared<E320::E320RootSimTrackWriter>(trackWriterCfg, logLevel));

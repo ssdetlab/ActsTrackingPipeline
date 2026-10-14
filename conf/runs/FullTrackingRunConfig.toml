@@ -33,7 +33,7 @@ treeName = "alignment-parameters"
 # Input file path
 filePath = """
 /home/romanurmanov/work/E320/E320Prototype/E320Prototype_analysis/\
-data/alignment/local_2026_data/sample_test/sig/high_chi2/filtered_full_chi2/\
+data/alignment/local_2026_data/cluster_error_test/sig/leave_one_out_errors/\
 aligned/alignment-parameters.root\
 """
 
@@ -54,7 +54,7 @@ skip = 0
 events = 1000
 
 # Number of threads
-numThreads = 32 
+numThreads = 32
 
 # FPE tracking
 trackFpes = false
@@ -136,15 +136,15 @@ propDirection = 0
 nCellsThetaShort = 500
 
 # Number of HT bins along rho short axis
-# nCellsRhoShort = 500
-nCellsRhoShort = 2000
+nCellsRhoShort = 500
+# nCellsRhoShort = 2000
 
 # Number of HT bins along theta long axis
 nCellsThetaLong = 500
 
 # Number of HT bins along rho long axis
-# nCellsRhoLong = 500
-nCellsRhoLong = 2000
+nCellsRhoLong = 500
+# nCellsRhoLong = 2000
 
 # Cut on the minimum number of intersections
 # in a HT cell
@@ -184,6 +184,9 @@ inputTrackParameters = "TrackParameters"
 # WhiteBoard name of the input source links
 inputSourceLinks = "SourceLinks"
 
+# WhiteBoard name of the input magnetic field parameters
+inputMagneticFieldParameters = ""
+
 # WhiteBoard name of the output track container
 outputTrackContainer = "TrackContainer"
 
@@ -192,6 +195,10 @@ outputTracks = "Tracks"
 
 # Cut on the maximum number of KF steps
 maxSteps = 100000
+
+# Flag to read the magnetic field data from the
+# magnetic field context
+mctxMagneticFields = true
 
 [RootMeasurementWriter]
 # WhiteBoard name of the input source links
@@ -240,6 +247,10 @@ inputTrackParametersGuesses = "TrackParameters"
 # WhiteBoard name of the input cluster matrices data
 inputClusterMatrices = "ClusterMatrices"
 
+# WhiteBoard name of the input magnetic field parameters
+# Note: unused here
+inputMagneticFieldParameters = ""
+
 # WhiteBoard name of the input event meta data
 inputEventMetaData = "EventMetaData"
 
@@ -252,6 +263,10 @@ filePath = """
 data/\
 fitted-tracks.root\
 """
+
+# Flag to read the magnetic field data from the
+# magnetic field context
+mctxMagneticFields = true
 
 [E320MagneticFieldWriter]
 # Output tree name

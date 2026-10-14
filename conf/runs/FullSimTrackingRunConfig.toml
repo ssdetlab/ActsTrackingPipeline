@@ -65,11 +65,11 @@ localAngleZ16 = 0
 localAngleZ18 = 0
 
 # # Global alignment shifts [mm]
-# globalShiftY = 10
-# globalShiftZ = -5
-
+# globalShiftY = -2.5
+# globalShiftZ = -4.5
+# 
 # # Global alignment angles [mrad]
-# globalAngleZ = -2 
+# globalAngleZ = -2
 
 # # Local alignment shifts [um]
 # localShiftY10 = 87.0424
@@ -169,7 +169,7 @@ surfaceLocalToGlobal = true
 
 # Propagation direction for extended source link
 # invertion
-backwards = false
+backwards = true
 
 # Cut on the maximum detector occupancy
 maxOccupancy = 1000
@@ -188,21 +188,21 @@ maxChi2 = 1e9
 # Propagation direction
 # forward = 0
 # backward = 1
-propDirection = 0
+propDirection = 1
 
 [HoughTransformSeeder]
 # Number of HT bins along theta short axis
 nCellsThetaShort = 500
 
 # Number of HT bins along rho short axis
-nCellsRhoShort = 500
+nCellsRhoShort = 2000
 # nCellsRhoShort = 2000
 
 # Number of HT bins along theta long axis
 nCellsThetaLong = 500
 
 # Number of HT bins along rho long axis
-nCellsRhoLong = 500
+nCellsRhoLong = 2000
 # nCellsRhoLong = 2000
 
 # Cut on the minimum number of intersections
@@ -243,6 +243,9 @@ inputTrackParameters = "TrackParameters"
 # WhiteBoard name of the input source links
 inputSourceLinks = "SourceLinks"
 
+# WhiteBoard name of the input magnetic field parameters
+inputMagneticFieldParameters = ""
+
 # WhiteBoard name of the output track container
 outputTrackContainer = "TrackContainer"
 
@@ -251,6 +254,10 @@ outputTracks = "Tracks"
 
 # Cut on the maximum number of KF steps
 maxSteps = 100000
+
+# Flag to read the magnetic field data from the
+# magnetic field context
+mctxMagneticFields = true
 
 [E320RootSimTrackWriter]
 # WhiteBoard name of the input track container
@@ -265,6 +272,10 @@ inputTrackParametersGuesses = "TrackParameters"
 # WhiteBoard name of the input event meta data
 inputSimClusters = "SimClusters"
 
+# WhiteBoard name of the input magnetic field parameters
+# Note: unused here
+inputMagneticFieldParameters = ""
+
 # Output tree name
 treeName = "fitted-tracks"
 
@@ -274,6 +285,10 @@ filePath = """
 sim/\
 fitted-tracks.root\
 """
+
+# Flag to read the magnetic field data from the
+# magnetic field context
+mctxMagneticFields = true
 
 [E320MagneticFieldWriter]
 # Output tree name

@@ -97,144 +97,30 @@ minFilteredChi2 = 0
 maxFilteredChi2 = 1e9
 
 # Cut on the tracks smoothed chi2
-minSmoothedChi2 = 1750
-maxSmoothedChi2 = 3400
+minSmoothedChi2 = 0
+maxSmoothedChi2 = 30
 
 # Cut on the tracks vertex long coordinate [mm]
-minVertexEstLong = -35
-maxVertexEstLong = -5
+minVertexEstLong = -300
+maxVertexEstLong = 300 
 
 # Cut on the tracks vertex short coordinate [mm]
-minVertexEstShort = -30
-maxVertexEstShort = -5
+minVertexEstShort = -300
+maxVertexEstShort = 300 
 
 # Cut on the tracks energy [GeV]
-minAbsMomentumEst = 1
+minAbsMomentumEst = 0
 maxAbsMomentumEst = 10
 
-# ##################################################
-# # High chi2 alignment step1
-# 
-# # Flag to require a specific EPICS parity
-# requireEpicsParity = true
-# 
-# # Required EPICS parity
-# # 0 = even
-# # 1 = odd
-# requiredEpicsParity = 0
-# 
-# # Cut on the HT cell count range
-# minXCount = 0
-# maxXCount = 20
-# 
-# # Cut on the tracks predicted chi2
-# minPredictedChi2 = 0
-# maxPredictedChi2 = 1e9
-# 
-# # Cut on the tracks filtered chi2
-# minFilteredChi2 = 0
-# maxFilteredChi2 = 1e9
-# 
-# # Cut on the tracks smoothed chi2
-# minSmoothedChi2 = 0
-# maxSmoothedChi2 = 40
-# 
-# # Cut on the tracks vertex long coordinate [mm]
-# minVertexEstLong = -1e9
-# maxVertexEstLong = 1e9
-# 
-# # Cut on the tracks vertex short coordinate [mm]
-# minVertexEstShort = -1e9
-# maxVertexEstShort = 1e9
-# 
-# # Cut on the tracks energy [GeV]
-# minAbsMomentumEst = 0
-# maxAbsMomentumEst = 10
-
-# ##################################################
-# # Low chi2 alignment step1
-# 
-# # Flag to require a specific EPICS parity
-# requireEpicsParity = true
-# 
-# # Required EPICS parity
-# # 0 = even
-# # 1 = odd
-# requiredEpicsParity = 0
-# 
-# # Cut on the HT cell count range
-# minXCount = 5
-# maxXCount = 5
-# 
-# # Cut on the tracks predicted chi2
-# minPredictedChi2 = 0
-# maxPredictedChi2 = 1e9
-# 
-# # Cut on the tracks filtered chi2
-# minFilteredChi2 = 0
-# maxFilteredChi2 = 1e9
-# 
-# # Cut on the tracks smoothed chi2
-# minSmoothedChi2 = 750
-# maxSmoothedChi2 = 2000
-# 
-# # Cut on the tracks vertex long coordinate [mm]
-# minVertexEstLong = -10
-# maxVertexEstLong = 10
-# 
-# # Cut on the tracks vertex short coordinate [mm]
-# minVertexEstShort = -10
-# maxVertexEstShort = 10
-# 
-# # Cut on the tracks energy [GeV]
-# minAbsMomentumEst = 1
-# maxAbsMomentumEst = 10
-
-# ##################################################
-# # Low chi2 alignment step1
-# 
-# # Flag to require a specific EPICS parity
-# requireEpicsParity = true
-# 
-# # Required EPICS parity
-# # 0 = even
-# # 1 = odd
-# requiredEpicsParity = 0
-# 
-# # Cut on the HT cell count range
-# minXCount = 0
-# maxXCount = 20
-# 
-# # Cut on the tracks predicted chi2
-# minPredictedChi2 = 0
-# maxPredictedChi2 = 1e9
-# 
-# # Cut on the tracks filtered chi2
-# minFilteredChi2 = 0
-# maxFilteredChi2 = 1e9
-# 
-# # Cut on the tracks smoothed chi2
-# minSmoothedChi2 = 0
-# maxSmoothedChi2 = 40
-# 
-# # Cut on the tracks vertex long coordinate [mm]
-# minVertexEstLong = -1e9
-# maxVertexEstLong = 1e9
-# 
-# # Cut on the tracks vertex short coordinate [mm]
-# minVertexEstShort = -1e9
-# maxVertexEstShort = 1e9
-# 
-# # Cut on the tracks energy [GeV]
-# minAbsMomentumEst = 0
-# maxAbsMomentumEst = 10
+# Cut on the maximum cluster size
+maxClusterSize = 4
 
 # Directory with the track data
 inDirTracks = """
 /home/romanurmanov/work/E320/E320Prototype/\
 E320Prototype_analysis/data/alignment/\
-local_2026_data/sample_test/sig/high_chi2/\
-filtered_full_chi2/step1\
+local_2026_data/cluster_error_test/sig/leave_one_out_errors/\
+step2\
 """
 
 # Input tree name
@@ -242,6 +128,9 @@ treeName = "fitted-tracks"
 
 # WhiteBoard name of the output source links
 outputSourceLinks = "SourceLinks"
+
+# WhiteBoard name of the output cluster matrices
+outputClusterMatrices = "ClusterMatrices"
 
 # WhiteBoard name of the output guess seeds
 outputSeedsGuess = "SeedsGuess"
@@ -270,32 +159,17 @@ backwards = false
 # Cut on the residuals in the chips
 [[E320RootTrackReader.smoothedResidualsRange]]
 
-# ##################################################
-# # High chi2 alignment filtered
-# 
 # geoId = 16
 # minSmoothedResidualX = 0.0
 # maxSmoothedResidualX = 0.06
 # minSmoothedResidualY = -0.075
 # maxSmoothedResidualY = -0.005
 
-# ##################################################
-# # High chi2 alignment step1
-# 
-# geoId = 16
-# minSmoothedResidualX = -10
-# maxSmoothedResidualX = 10
-# minSmoothedResidualY = -10
-# maxSmoothedResidualY = 10
-
-##################################################
-# Low chi2 alignment filtered
-
 geoId = 16
-minSmoothedResidualX = 0.0
-maxSmoothedResidualX = 0.06
-minSmoothedResidualY = -0.075
-maxSmoothedResidualY = -0.005
+minSmoothedResidualX = -1e9
+maxSmoothedResidualX = 1e9
+minSmoothedResidualY = -1e9
+maxSmoothedResidualY = 1e9
 
 [[E320RootTrackReader.smoothedResidualsRange]]
 geoId = 14
@@ -388,10 +262,14 @@ outputTrackParameters = "UpdatedTrackParameters"
 inputTrackCandidates = "SeedsGuess"
 
 # WhiteBoard name of the input track parameters
-inputTrackParameters = "UpdatedTrackParameters"
+# inputTrackParameters = "UpdatedTrackParameters"
+inputTrackParameters = "TrackParametersGuess"
 
 # WhiteBoard name of the input source links
 inputSourceLinks = "SourceLinks"
+
+# WhiteBoard name of the input magnetic field parameters
+inputMagneticFieldParameters = "MagFieldPars"
 
 # WhiteBoard name of the output track container
 outputTrackContainer = "TrackContainer"
@@ -402,6 +280,10 @@ outputTracks = "Tracks"
 # Cut on the maximum number of KF steps
 maxSteps = 100000
 
+# Flag to read the magnetic field data from the
+# magnetic field context
+mctxMagneticFields = false
+
 [E320RootTrackWriter]
 # WhiteBoard name of the input track container
 inputTrackContainer = "TrackContainer"
@@ -410,7 +292,14 @@ inputTrackContainer = "TrackContainer"
 inputTracks = "Tracks"
 
 # WhiteBoard name of the input track parameters
-inputTrackParametersGuesses = "UpdatedTrackParameters"
+# inputTrackParametersGuesses = "UpdatedTrackParameters"
+inputTrackParametersGuesses = "TrackParametersGuess"
+
+# WhiteBoard name of the input cluster matrices data
+inputClusterMatrices = "ClusterMatrices"
+
+# WhiteBoard name of the input magnetic field parameters
+inputMagneticFieldParameters = "MagFieldPars"
 
 # WhiteBoard name of the input event meta data
 inputEventMetaData = "EventMetaData"
@@ -424,6 +313,10 @@ filePath = """
 data/\
 fitted-tracks.root\
 """
+
+# Flag to read the magnetic field data from the
+# magnetic field context
+mctxMagneticFields = false
 
 [AlignmentParametersWriter]
 # WhiteBoard name of the input alignment parameters
