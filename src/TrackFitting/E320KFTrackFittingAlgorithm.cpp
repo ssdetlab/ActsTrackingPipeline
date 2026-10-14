@@ -16,6 +16,11 @@ E320::E320KFTrackFittingAlgorithm::E320KFTrackFittingAlgorithm(
 
   m_outputTrackContainer.initialize(m_cfg.outputTrackContainer);
   m_outputTracks.initialize(m_cfg.outputTracks);
+
+  if (!m_cfg.mctxMagneticFields) {
+    m_inputMagneticFieldParameters.initialize(
+        m_cfg.inputMagneticFieldParameters);
+  }
 }
 
 ProcessCode E320::E320KFTrackFittingAlgorithm::execute(
@@ -23,6 +28,12 @@ ProcessCode E320::E320KFTrackFittingAlgorithm::execute(
   const auto& inputTrackCandidates = m_inputTrackCandidates(ctx);
   const auto& inputTrackParameters = m_inputTrackParameters(ctx);
   const auto& inputSourceLinks = m_inputSourceLinks(ctx);
+
+  std::vector<std::shared_ptr<MagneticFieldStore>> dummyMagFieldContainer = {};
+  const std::vector<std::shared_ptr<MagneticFieldStore>>&
+      inputMagFieldParameters =
+          m_cfg.mctxMagneticFields ? dummyMagFieldContainer
+                                   : m_inputMagneticFieldParameters(ctx);
 
   ACTS_DEBUG("Received " << inputTrackCandidates.size() << " track candidates");
   ACTS_DEBUG("Received " << inputTrackParameters.size() << " track parameters");
@@ -48,6 +59,7 @@ ProcessCode E320::E320KFTrackFittingAlgorithm::execute(
 
   E320IndexTracks tracks;
   tracks.reserve(inputTrackCandidates.size());
+  Acts::MagneticFieldContext candidateMctx{};
   for (std::size_t idx = 0; idx < inputTrackCandidates.size(); idx++) {
     const auto& candidate = inputTrackCandidates.at(idx);
     const auto& sourceLinkIndices = candidate.sourceLinkIndices;
@@ -60,6 +72,14 @@ ProcessCode E320::E320KFTrackFittingAlgorithm::execute(
     detail::NonOwningProjectionIterator end = begin + sourceLinkIndices.size();
     const auto& startParameters =
         inputTrackParameters.at(candidate.originParametersIndex);
+
+    if (!m_cfg.mctxMagneticFields) {
+      candidateMctx =
+          Acts::MagneticFieldContext{inputMagFieldParameters.at(idx)};
+      kfOptions.magFieldContext =
+          std::reference_wrapper<const Acts::MagneticFieldContext>(
+              candidateMctx);
+    }
 
     auto res = m_cfg.fitter.fit(begin, end, startParameters, kfOptions,
                                 trackContainer);
