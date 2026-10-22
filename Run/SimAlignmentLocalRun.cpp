@@ -554,6 +554,8 @@ int main() {
           getEntryStr("E320KFTrackFittingAlgorithm", "inputTrackParameters"),
       .inputSourceLinks =
           getEntryStr("E320KFTrackFittingAlgorithm", "inputSourceLinks"),
+      .inputMagneticFieldParameters = getEntryStr(
+          "E320KFTrackFittingAlgorithm", "inputMagneticFieldParameters"),
       .outputTrackContainer =
           getEntryStr("E320KFTrackFittingAlgorithm", "outputTrackContainer"),
       .outputTracks =
@@ -561,7 +563,9 @@ int main() {
       .fitter = fitter,
       .maxSteps = getEntrySizeT("E320KFTrackFittingAlgorithm", "maxSteps"),
       .kfExtensions = kfExtensions,
-      .referenceSurface = trackingRefSurface.get()};
+      .referenceSurface = trackingRefSurface.get(),
+      .mctxMagneticFields =
+          getEntryBool("E320KFTrackFittingAlgorithm", "mctxMagneticFields")};
 
   sequencer.addAlgorithm(
       std::make_shared<E320::E320KFTrackFittingAlgorithm>(fitterCfg, logLevel));
@@ -585,6 +589,10 @@ int main() {
       getEntryStr("E320RootSimTrackWriter", "inputSimClusters");
   trackWriterCfg.treeName = getEntryStr("E320RootSimTrackWriter", "treeName");
   trackWriterCfg.filePath = getEntryStr("E320RootSimTrackWriter", "filePath");
+  trackWriterCfg.inputMagneticFieldParameters =
+      getEntryStr("E320RootSimTrackWriter", "inputMagneticFieldParameters");
+  trackWriterCfg.mctxMagneticFields =
+      getEntryBool("E320RootSimTrackWriter", "mctxMagneticFields");
 
   sequencer.addWriter(
       std::make_shared<E320::E320RootSimTrackWriter>(trackWriterCfg, logLevel));

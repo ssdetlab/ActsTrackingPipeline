@@ -285,12 +285,13 @@ int main() {
   // Tracking reference surface
   Acts::Transform3 trackingRefSurfTransform = Acts::Transform3::Identity();
   trackingRefSurfTransform.translation() =
-      // Acts::Vector3(0, 0, 0);
+      // Acts::Vector3(-0.1_mm, 0, 0);
+      Acts::Vector3(goInst.ipSurfaceCenterPrimary - 5_mm, 0, 0);
       // Acts::Vector3(goInst.ipSurfaceCenterPrimary - 0.1_mm, 0, 0);
       // Acts::Vector3(goInst.ipTcDistance - 0.1_mm, 0, 0);
-      Acts::Vector3(
-          goInst.dipoleCenterPrimary + goInst.dipoleHalfPrimary + 0.01_mm, 0,
-          0);
+      // Acts::Vector3(
+      //     goInst.dipoleCenterPrimary + goInst.dipoleHalfPrimary + 0.01_mm, 0,
+      //     0);
   trackingRefSurfTransform.rotate(refSurfToWorldRotationX);
   trackingRefSurfTransform.rotate(refSurfToWorldRotationY);
   trackingRefSurfTransform.rotate(refSurfToWorldRotationZ);
@@ -355,8 +356,8 @@ int main() {
       getEntrySizeT("E320RootSimClusterReader", "maxOccupancy");
   readerCfg.onlySignalClusters =
       getEntryBool("E320RootSimClusterReader", "onlySignalClusters");
-  readerCfg.minGeoId = goInst.tcParameters.front().geoId;
-  // readerCfg.minGeoId = goInst.ipSurfaceParameters.geoId;
+  // readerCfg.minGeoId = goInst.tcParameters.front().geoId;
+  readerCfg.minGeoId = goInst.ipSurfaceParameters.geoId;
   readerCfg.maxGeoId = goInst.tcParameters.back().geoId;
   // readerCfg.maxGeoId = goInst.bpm3Parameters.geoId;
   readerCfg.surfaceMap = surfaceMap;

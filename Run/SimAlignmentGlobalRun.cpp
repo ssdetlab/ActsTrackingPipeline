@@ -18,8 +18,8 @@
 #include <limits>
 #include <memory>
 
-#include "TrackingPipeline/Alignment/AlignmentAlgorithm.hpp"
 #include "TrackingPipeline/Alignment/AlignmentContext.hpp"
+#include "TrackingPipeline/Alignment/E320AlignmentAlgorithm.hpp"
 #include "TrackingPipeline/Alignment/E320MinuitGlobalAlignmentFunction.hpp"
 #include "TrackingPipeline/Alignment/detail/AlignmentStoreBuilders.hpp"
 #include "TrackingPipeline/EventData/ExtendedSourceLink.hpp"
@@ -31,11 +31,12 @@
 #include "TrackingPipeline/Geometry/GeometryContextDecorator.hpp"
 #include "TrackingPipeline/Infrastructure/Sequencer.hpp"
 #include "TrackingPipeline/Infrastructure/TypeDefinitions.hpp"
+#include "TrackingPipeline/Io/AlignmentParametersProvider.hpp"
 #include "TrackingPipeline/Io/AlignmentParametersWriter.hpp"
 #include "TrackingPipeline/Io/E320RootSimTrackReader.hpp"
 #include "TrackingPipeline/Io/E320RootSimTrackWriter.hpp"
 #include "TrackingPipeline/TrackFinding/E320TrackParametersEstimator.hpp"
-#include "TrackingPipeline/TrackFitting/KFTrackFittingAlgorithm.hpp"
+#include "TrackingPipeline/TrackFitting/E320KFTrackFittingAlgorithm.hpp"
 #include "toml++/toml.hpp"
 
 using namespace Acts::UnitLiterals;
@@ -101,7 +102,9 @@ int main() {
       logLevel);
 
   // Construct detector
-  auto detector = E320::buildDetector(gctx, nullptr);
+  auto detector = getEntryBool("Geometry", "materialDecorator")
+                      ? E320::buildDetector(gctx, materialDecorator)
+                      : E320::buildDetector(gctx, nullptr);
 
   // Set up surface maps for later use
   std::unordered_map<Acts::GeometryIdentifier, const Acts::Surface*>
@@ -163,6 +166,16 @@ int main() {
                      getEntryDouble("Geometry", "localAngleZ18") * 1_mrad)}};
   aStore = detail::makeAlignmentStore(gctx, detector.get(), globalShifts,
                                       localShifts, globalAngles, localAngles);
+
+  if (getEntryBool("Geometry", "alignmentProvider")) {
+    AlignmentParametersProvider::Config alignmentProviderCfg;
+    alignmentProviderCfg.treeName =
+        getEntryStr("AlignmentParametersProvider", "treeName");
+    alignmentProviderCfg.filePath =
+        getEntryStr("AlignmentParametersProvider", "filePath");
+    AlignmentParametersProvider alignmentProvider(alignmentProviderCfg);
+    aStore = alignmentProvider.getAlignmentStore();
+  }
 
   // Initialize alignment context
   AlignmentContext alignCtx(aStore);
@@ -324,7 +337,8 @@ int main() {
   // Tracking reference surface
   Acts::Transform3 trackingRefSurfaceTransform = Acts::Transform3::Identity();
   trackingRefSurfaceTransform.translation() =
-      Acts::Vector3(goInst.ipSurfaceCenterPrimary - 0.1_mm, 0, 0);
+      // Acts::Vector3(500_mm - 0.1_mm, 0, 0);
+      Acts::Vector3(goInst.ipSurfaceCenterPrimary - 5_mm, 0, 0);
   trackingRefSurfaceTransform.rotate(refSurfToWorldRotationX);
   trackingRefSurfaceTransform.rotate(refSurfToWorldRotationY);
   trackingRefSurfaceTransform.rotate(refSurfToWorldRotationZ);
@@ -489,26 +503,26 @@ int main() {
           alignmentFunctionCfg, logLevel);
 
   // Alignment algorithm
-  AlignmentAlgorithm::Config alignmentCfg;
+  E320::E320AlignmentAlgorithm::Config alignmentCfg;
   alignmentCfg.inputSourceLinks =
-      getEntryStr("AlignmentAlgorithm", "inputSourceLinks");
+      getEntryStr("E320AlignmentAlgorithm", "inputSourceLinks");
   alignmentCfg.inputTrackCandidates =
-      getEntryStr("AlignmentAlgorithm", "inputTrackCandidates");
+      getEntryStr("E320AlignmentAlgorithm", "inputTrackCandidates");
   alignmentCfg.inputTrackParameters =
-      getEntryStr("AlignmentAlgorithm", "inputTrackParameters");
+      getEntryStr("E320AlignmentAlgorithm", "inputTrackParameters");
   alignmentCfg.inputMagneticFieldParameters =
-      getEntryStr("AlignmentAlgorithm", "inputMagneticFieldParameters");
+      getEntryStr("E320AlignmentAlgorithm", "inputMagneticFieldParameters");
   alignmentCfg.outputAlignmentParameters =
-      getEntryStr("AlignmentAlgorithm", "outputAlignmentParameters");
+      getEntryStr("E320AlignmentAlgorithm", "outputAlignmentParameters");
   alignmentCfg.outputTrackParameters =
-      getEntryStr("AlignmentAlgorithm", "outputTrackParameters");
+      getEntryStr("E320AlignmentAlgorithm", "outputTrackParameters");
   alignmentCfg.alignmentFunction = alignmentFunction;
   alignmentCfg.alignmentFitSurfaces = alignmentFitSurfaces;
   alignmentCfg.initialTrackStateFitSurfaces = initialTrackStateFitSurfaces;
 
-  auto alignmentAlgorithm =
-      std::make_shared<AlignmentAlgorithm>(alignmentCfg, logLevel);
-  sequencer.addAlgorithm(alignmentAlgorithm);
+  auto E320alignmentAlgorithm =
+      std::make_shared<E320::E320AlignmentAlgorithm>(alignmentCfg, logLevel);
+  sequencer.addAlgorithm(E320alignmentAlgorithm);
 
   // --------------------------------------------------------------
   // Track fitting
@@ -519,7 +533,8 @@ int main() {
   Acts::KalmanFitterExtensions<KFFitterTrajectory> kfExtensions;
   // Add calibrator
   kfExtensions.calibrator
-      .connect<&simpleSourceLinkCalibrator<KFFitterTrajectory>>();
+      .connect<&MixedSourceLinkCalibrator<KFFitterTrajectory>::operator()>(
+          &mixedCalibrator);
   // Add the updater
   kfExtensions.updater
       .connect<&KFFitterGainUpdater::operator()<KFFitterTrajectory>>(
@@ -530,8 +545,8 @@ int main() {
           &kfSmoother);
   // Add the surface accessor
   kfExtensions.surfaceAccessor
-      .connect<&SimpleSourceLink::SurfaceAccessor::operator()>(
-          &surfaceAccessor);
+      .connect<&MixedSourceLinkSurfaceAccessor::operator()>(
+          &mixedSurfaceAccessor);
 
   Navigator::Config cfg;
   cfg.detector = detector.get();
@@ -550,23 +565,28 @@ int main() {
       kfPropagator, Acts::getDefaultLogger("DetectorKalmanFilter", logLevel));
 
   // Add the track fitting algorithm to the sequencer
-  KFTrackFittingAlgorithm::Config fitterCfg{
+  E320::E320KFTrackFittingAlgorithm::Config fitterCfg{
       .inputTrackCandidates =
-          getEntryStr("KFTrackFittingAlgorithm", "inputTrackCandidates"),
+          getEntryStr("E320KFTrackFittingAlgorithm", "inputTrackCandidates"),
       .inputTrackParameters =
-          getEntryStr("KFTrackFittingAlgorithm", "inputTrackParameters"),
+          getEntryStr("E320KFTrackFittingAlgorithm", "inputTrackParameters"),
       .inputSourceLinks =
-          getEntryStr("KFTrackFittingAlgorithm", "inputSourceLinks"),
+          getEntryStr("E320KFTrackFittingAlgorithm", "inputSourceLinks"),
+      .inputMagneticFieldParameters = getEntryStr(
+          "E320KFTrackFittingAlgorithm", "inputMagneticFieldParameters"),
       .outputTrackContainer =
-          getEntryStr("KFTrackFittingAlgorithm", "outputTrackContainer"),
-      .outputTracks = getEntryStr("KFTrackFittingAlgorithm", "outputTracks"),
+          getEntryStr("E320KFTrackFittingAlgorithm", "outputTrackContainer"),
+      .outputTracks =
+          getEntryStr("E320KFTrackFittingAlgorithm", "outputTracks"),
       .fitter = fitter,
-      .maxSteps = getEntrySizeT("KFTrackFittingAlgorithm", "maxSteps"),
+      .maxSteps = getEntrySizeT("E320KFTrackFittingAlgorithm", "maxSteps"),
       .kfExtensions = kfExtensions,
-      .referenceSurface = trackingRefSurface.get()};
+      .referenceSurface = trackingRefSurface.get(),
+      .mctxMagneticFields =
+          getEntryBool("E320KFTrackFittingAlgorithm", "mctxMagneticFields")};
 
   sequencer.addAlgorithm(
-      std::make_shared<KFTrackFittingAlgorithm>(fitterCfg, logLevel));
+      std::make_shared<E320::E320KFTrackFittingAlgorithm>(fitterCfg, logLevel));
 
   // --------------------------------------------------------------
   // Event write out
@@ -574,8 +594,8 @@ int main() {
   // Fitted track writer
   E320::E320RootSimTrackWriter::Config trackWriterCfg;
   trackWriterCfg.surfaceAccessor
-      .connect<&SimpleSourceLink::SurfaceAccessor::operator()>(
-          &surfaceAccessor);
+      .connect<&MixedSourceLinkSurfaceAccessor::operator()>(
+          &mixedSurfaceAccessor);
   trackWriterCfg.referenceSurface = trackingRefSurface.get();
   trackWriterCfg.inputTrackContainer =
       getEntryStr("E320RootSimTrackWriter", "inputTrackContainer");
@@ -587,6 +607,10 @@ int main() {
       getEntryStr("E320RootSimTrackWriter", "inputSimClusters");
   trackWriterCfg.treeName = getEntryStr("E320RootSimTrackWriter", "treeName");
   trackWriterCfg.filePath = getEntryStr("E320RootSimTrackWriter", "filePath");
+  trackWriterCfg.inputMagneticFieldParameters =
+      getEntryStr("E320RootSimTrackWriter", "inputMagneticFieldParameters");
+  trackWriterCfg.mctxMagneticFields =
+      getEntryBool("E320RootSimTrackWriter", "mctxMagneticFields");
 
   sequencer.addWriter(
       std::make_shared<E320::E320RootSimTrackWriter>(trackWriterCfg, logLevel));

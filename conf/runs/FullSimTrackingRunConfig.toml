@@ -6,7 +6,7 @@
 # WARNING = 3
 # ERROR = 4
 # FATAL = 5
-logLevel = 2
+logLevel = 1
 
 [MaterialMapJsonConverter]
 # Material mapping options
@@ -33,7 +33,7 @@ treeName = "alignment-parameters"
 # Input file path
 filePath = """
 /home/romanurmanov/work/E320/E320Prototype/E320Prototype_analysis/sim/\
-alignment/cluster_error_test/allpix2_errors/aligned/alignment-parameters.root\
+alignment/test/global/aligned/alignment-parameters.root\
 """
 
 [Geometry]
@@ -72,43 +72,23 @@ localAngleZ18 = 0
 # globalAngleZ = -2
 
 # # Local alignment shifts [um]
-# localShiftY10 = 87.0424
-# localShiftY12 = -42.8826
-# localShiftY14 = -85.2079
-# localShiftY16 = -49.0775
-# localShiftY18 = 90.1256
-# 
-# localShiftZ10 = 79.2388
-# localShiftZ12 = -51.5436
-# localShiftZ14 = -54.1019
-# localShiftZ16 = -54.1335
-# localShiftZ18 = 80.5396
-# 
-# # Local alignment angles [mrad]
-# localAngleZ10 = -2.61758
-# localAngleZ12 = -0.605774
-# localAngleZ14 = -4.47824
-# localAngleZ16 = -1.68011
-# localAngleZ18 = -4.27792
-
-# # Local alignment shifts [um]
-# localShiftY10 = 30
-# localShiftY12 = -40
+# localShiftY10 = -30
+# localShiftY12 = 30
 # localShiftY14 = -40
-# localShiftY16 = 30
-# localShiftY18 = 20
+# localShiftY16 = 40
+# localShiftY18 = 50
 # 
-# localShiftZ10 = -20
-# localShiftZ12 = 50
-# localShiftZ14 = 40
-# localShiftZ16 = -40
-# localShiftZ18 = -30
+# localShiftZ10 = 20
+# localShiftZ12 = 30
+# localShiftZ14 = -40
+# localShiftZ16 = -50
+# localShiftZ18 = 50
 # 
 # # Local alignment angles [mrad]
-# localAngleZ10 = 1
-# localAngleZ12 = -1
-# localAngleZ14 = -2
-# localAngleZ16 = 1
+# localAngleZ10 = 1.5
+# localAngleZ12 = -2
+# localAngleZ14 = -1
+# localAngleZ16 = 2
 # localAngleZ18 = 1
 
 # Use material decorator for the 
@@ -117,7 +97,7 @@ materialDecorator = true
 
 # Use alignment provider for the 
 # transform initialization
-alignmentProvider = false
+alignmentProvider = true
 
 [Sequencer]
 # Event skip
@@ -135,8 +115,8 @@ trackFpes = false
 [E320MagneticFieldParametersProvider]
 inDirMagnets = """
 /home/romanurmanov/work/E320/E320Prototype/\
-E320Prototype_dataInRootFormat/sim/test/\
-magnets\
+E320Prototype_dataInRootFormat/sim/alignment/test/\
+global/test/magnets\
 """
 
 treeName = "magnets"
@@ -144,8 +124,8 @@ treeName = "magnets"
 [E320RootSimClusterReader]
 inDirClusters = """
 /home/romanurmanov/work/E320/E320Prototype/\
-E320Prototype_dataInRootFormat/sim/test/\
-clusters\
+E320Prototype_dataInRootFormat/sim/alignment/test/\
+global/test/clusters\
 """
 
 # WhiteBoard name of the output source links
@@ -195,14 +175,14 @@ propDirection = 1
 nCellsThetaShort = 500
 
 # Number of HT bins along rho short axis
-nCellsRhoShort = 2000
+nCellsRhoShort = 500
 # nCellsRhoShort = 2000
 
 # Number of HT bins along theta long axis
 nCellsThetaLong = 500
 
 # Number of HT bins along rho long axis
-nCellsRhoLong = 2000
+nCellsRhoLong = 500
 # nCellsRhoLong = 2000
 
 # Cut on the minimum number of intersections

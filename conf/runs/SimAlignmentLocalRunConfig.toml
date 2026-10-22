@@ -100,8 +100,8 @@ trackFpes = false
 
 [E320RootSimTrackReader]
 # Cut on the tracks smoothed chi2
-minSmoothedChi2 = 1500
-maxSmoothedChi2 = 3000
+minSmoothedChi2 = 0
+maxSmoothedChi2 = 1e9
 
 # Cut on the tracks vertex long coordinate [mm]
 minVertexEstLong = -1e9
@@ -117,7 +117,7 @@ maxAbsMomentumEst = 10
 
 inDirTracks = """
 /home/romanurmanov/work/E320/E320Prototype/E320Prototype_analysis/sim/\
-alignment/local/sig/filtered\
+alignment/test/local/filtered\
 """
 
 treeName = "fitted-tracks"
@@ -215,6 +215,9 @@ inputTrackParameters = "UpdatedTrackParameters"
 # WhiteBoard name of the input source links
 inputSourceLinks = "SourceLinks"
 
+# WhiteBoard name of the input magnetic field parameters
+inputMagneticFieldParameters = "MagFieldPars"
+
 # WhiteBoard name of the output track container
 outputTrackContainer = "TrackContainer"
 
@@ -223,6 +226,10 @@ outputTracks = "Tracks"
 
 # Cut on the maximum number of KF steps
 maxSteps = 100000
+
+# Flag to read the magnetic field data from the
+# magnetic field context
+mctxMagneticFields = false
 
 [E320RootSimTrackWriter]
 # WhiteBoard name of the input track container
@@ -237,6 +244,9 @@ inputTrackParametersGuesses = "TrackParametersGuess"
 # WhiteBoard name of the input event meta data
 inputSimClusters = "SimClusters"
 
+# WhiteBoard name of the input magnetic field parameters
+inputMagneticFieldParameters = "MagFieldPars"
+
 # Output tree name
 treeName = "fitted-tracks"
 
@@ -245,6 +255,10 @@ filePath = """
 /home/romanurmanov/work/E320/E320Prototype/E320Prototype_analysis/sim/\
 fitted-tracks.root\
 """
+
+# Flag to read the magnetic field data from the
+# magnetic field context
+mctxMagneticFields = false
 
 [AlignmentParametersWriter]
 # WhiteBoard name of the input alignment parameters
