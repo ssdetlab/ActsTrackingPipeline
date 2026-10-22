@@ -186,10 +186,14 @@ class E320RootSimTrackReader : public IReader {
   std::vector<TVector2>* m_filteredTrackHitsLocal = nullptr;
   std::vector<TVector2>* m_smoothedTrackHitsLocal = nullptr;
 
+  std::vector<TVector2>* m_leaveOneOutTrackHitsLocal = nullptr;
+
   /// KF predicted track hits in the global frame
   std::vector<TVector3>* m_predictedTrackHitsGlobal = nullptr;
   std::vector<TVector3>* m_filteredTrackHitsGlobal = nullptr;
   std::vector<TVector3>* m_smoothedTrackHitsGlobal = nullptr;
+
+  std::vector<TVector3>* m_leaveOneOutTrackHitsGlobal = nullptr;
 
   /// KF predicted on surface momenta in the track frame
   std::vector<TLorentzVector>* m_predictedOnSurfaceMomentum = nullptr;
@@ -205,6 +209,8 @@ class E320RootSimTrackReader : public IReader {
   std::vector<TVector2>* m_trueFilteredAngleResiduals = nullptr;
   std::vector<TVector2>* m_trueSmoothedAngleResiduals = nullptr;
 
+  std::vector<TVector2>* m_trueLeaveOneOutHitResiduals = nullptr;
+
   /// KF residuals with respect to the measurements
   std::vector<TVector2>* m_predictedHitResiduals = nullptr;
   std::vector<TVector2>* m_filteredHitResiduals = nullptr;
@@ -213,6 +219,8 @@ class E320RootSimTrackReader : public IReader {
   std::vector<TVector2>* m_predictedAngleResiduals = nullptr;
   std::vector<TVector2>* m_filteredAngleResiduals = nullptr;
   std::vector<TVector2>* m_smoothedAngleResiduals = nullptr;
+
+  std::vector<TVector2>* m_leaveOneOutHitResiduals = nullptr;
 
   /// KF pulls with respect to the true hits
   std::vector<TVector2>* m_truePredictedHitPulls = nullptr;
@@ -223,6 +231,8 @@ class E320RootSimTrackReader : public IReader {
   std::vector<TVector2>* m_trueFilteredAnglePulls = nullptr;
   std::vector<TVector2>* m_trueSmoothedAnglePulls = nullptr;
 
+  std::vector<TVector2>* m_trueLeaveOneOutHitPulls = nullptr;
+
   /// KF pulls with respect to the measurements
   std::vector<TVector2>* m_predictedHitPulls = nullptr;
   std::vector<TVector2>* m_filteredHitPulls = nullptr;
@@ -231,6 +241,14 @@ class E320RootSimTrackReader : public IReader {
   std::vector<TVector2>* m_predictedAnglePulls = nullptr;
   std::vector<TVector2>* m_filteredAnglePulls = nullptr;
   std::vector<TVector2>* m_smoothedAnglePulls = nullptr;
+
+  std::vector<TVector2>* m_leaveOneOutHitPulls = nullptr;
+
+  /// KF states covariances
+  std::vector<TMatrixD>* m_predictedTrackStateCovs = nullptr;
+  std::vector<TMatrixD>* m_filteredTrackStateCovs = nullptr;
+  std::vector<TMatrixD>* m_smoothedTrackStateCovs = nullptr;
+  std::vector<TMatrixD>* m_leaveOneOutTrackStateCovs = nullptr;
 
   /// Guessed bound track parameters
   TVectorD* m_boundTrackParametersGuess = nullptr;

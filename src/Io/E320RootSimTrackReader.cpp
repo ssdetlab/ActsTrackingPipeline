@@ -124,6 +124,9 @@ E320::E320RootSimTrackReader::E320RootSimTrackReader(const Config& config,
   m_tree->SetBranchAddress("filteredTrackHitsLocal", &m_filteredTrackHitsLocal);
   m_tree->SetBranchAddress("smoothedTrackHitsLocal", &m_smoothedTrackHitsLocal);
 
+  m_tree->SetBranchAddress("leaveOneOutTrackHitsLocal",
+                           &m_leaveOneOutTrackHitsLocal);
+
   // KF predicted track hits in the global frame
   m_tree->SetBranchAddress("predictedTrackHitsGlobal",
                            &m_predictedTrackHitsGlobal);
@@ -131,6 +134,9 @@ E320::E320RootSimTrackReader::E320RootSimTrackReader(const Config& config,
                            &m_filteredTrackHitsGlobal);
   m_tree->SetBranchAddress("smoothedTrackHitsGlobal",
                            &m_smoothedTrackHitsGlobal);
+
+  m_tree->SetBranchAddress("leaveOneOutTrackHitsGlobal",
+                           &m_leaveOneOutTrackHitsGlobal);
 
   // KF predicted on surface momenta in the track frame
   m_tree->SetBranchAddress("predictedOnSurfaceMomentum",
@@ -155,6 +161,9 @@ E320::E320RootSimTrackReader::E320RootSimTrackReader(const Config& config,
   m_tree->SetBranchAddress("trueSmoothedAngleResiduals",
                            &m_trueSmoothedAngleResiduals);
 
+  m_tree->SetBranchAddress("trueLeaveOneOutHitResiduals",
+                           &m_trueLeaveOneOutHitResiduals);
+
   // KF residuals with respect to the measurements
   m_tree->SetBranchAddress("predictedHitResiduals", &m_predictedHitResiduals);
   m_tree->SetBranchAddress("filteredHitResiduals", &m_filteredHitResiduals);
@@ -164,6 +173,9 @@ E320::E320RootSimTrackReader::E320RootSimTrackReader(const Config& config,
                            &m_predictedAngleResiduals);
   m_tree->SetBranchAddress("filteredAngleResiduals", &m_filteredAngleResiduals);
   m_tree->SetBranchAddress("smoothedAngleResiduals", &m_smoothedAngleResiduals);
+
+  m_tree->SetBranchAddress("leaveOneOutHitResiduals",
+                           &m_leaveOneOutHitResiduals);
 
   // KF pulls with respect to the true hits
   m_tree->SetBranchAddress("truePredictedHitPulls", &m_truePredictedHitPulls);
@@ -175,6 +187,9 @@ E320::E320RootSimTrackReader::E320RootSimTrackReader(const Config& config,
   m_tree->SetBranchAddress("trueFilteredAnglePulls", &m_trueFilteredAnglePulls);
   m_tree->SetBranchAddress("trueSmoothedAnglePulls", &m_trueSmoothedAnglePulls);
 
+  m_tree->SetBranchAddress("trueLeaveOneOutHitPulls",
+                           &m_trueLeaveOneOutHitPulls);
+
   // KF pulls with respect to the measurements
   m_tree->SetBranchAddress("predictedHitPulls", &m_predictedHitPulls);
   m_tree->SetBranchAddress("filteredHitPulls", &m_filteredHitPulls);
@@ -183,6 +198,16 @@ E320::E320RootSimTrackReader::E320RootSimTrackReader(const Config& config,
   m_tree->SetBranchAddress("predictedAnglePulls", &m_predictedAnglePulls);
   m_tree->SetBranchAddress("filteredAnglePulls", &m_filteredAnglePulls);
   m_tree->SetBranchAddress("smoothedAnglePulls", &m_smoothedAnglePulls);
+
+  m_tree->SetBranchAddress("leaveOneOutHitPulls", &m_leaveOneOutHitPulls);
+
+  // KF states covariances
+  m_tree->SetBranchAddress("predictedTrackStateCovs",
+                           &m_predictedTrackStateCovs);
+  m_tree->SetBranchAddress("filteredTrackStateCovs", &m_filteredTrackStateCovs);
+  m_tree->SetBranchAddress("smoothedTrackStateCovs", &m_smoothedTrackStateCovs);
+  m_tree->SetBranchAddress("leaveOneOutTrackStateCovs",
+                           &m_leaveOneOutTrackStateCovs);
 
   // Guessed bound track parameters
   m_tree->SetBranchAddress("boundTrackParametersGuess",
@@ -199,22 +224,22 @@ E320::E320RootSimTrackReader::E320RootSimTrackReader(const Config& config,
                            &m_boundTrackParametersTruth);
   m_tree->SetBranchAddress("boundTrackCovTruth", &m_boundTrackCovTruth);
 
-  // Initial guess of the momentum at the IP
+  // Initial guess of the momentum at the origin
   m_tree->SetBranchAddress("originMomentumGuess", &m_originMomentumGuess);
 
-  // Initial guess of the vertex at the IP
+  // Initial guess of the vertex at the origin
   m_tree->SetBranchAddress("vertexGuess", &m_vertexGuess);
 
-  // KF predicted momentum at the IP
+  // KF predicted momentum at the origin
   m_tree->SetBranchAddress("originMomentumEst", &m_originMomentumEst);
 
-  // KF predicted vertex at the IP
+  // KF predicted vertex at the origin
   m_tree->SetBranchAddress("vertexEst", &m_vertexEst);
 
-  // True momentum at the IP
+  // True momentum at the origin
   m_tree->SetBranchAddress("originMomentumTruth", &m_originMomentumTruth);
 
-  // True vertex at the IP
+  // True vertex at the origin
   m_tree->SetBranchAddress("vertexTruth", &m_vertexTruth);
 
   // Chi2 of the track with respect ot the measurement
