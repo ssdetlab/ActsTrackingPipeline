@@ -73,8 +73,6 @@ AlignmentFunction::AlignmentResult ActsAlignmentFunction::operator()(
 
   // Fill out alignment results struct
   AlignmentResult alignmentResult;
-  alignmentResult.deltaAlignmentParameters =
-      actsAlignmentResult.deltaAlignmentParameters;
   alignmentResult.alignedParameters = actsAlignmentResult.alignedParameters;
   alignmentResult.alignmentCovariance = actsAlignmentResult.alignmentCovariance;
   alignmentResult.averageChi2ONdf = actsAlignmentResult.averageChi2ONdf;
