@@ -287,12 +287,12 @@ ProcessCode E320::E320RootSimTrackWriter::write(const AlgorithmContext& ctx) {
   const auto& inputTrackParametersGuesses = m_inputTrackParametersGuesses(ctx);
   const auto& inputTruthClusters = m_inputSimClusters(ctx);
 
-  // // Initialize if magnetic fields are to be supplied as data
-  // std::vector<std::shared_ptr<MagneticFieldStore>> dummyMagFieldContainer = {};
-  // const std::vector<std::shared_ptr<MagneticFieldStore>>&
-  //     inputMagFieldParameters =
-  //         m_cfg.mctxMagneticFields ? dummyMagFieldContainer
-  //                                  : m_inputMagneticFieldParameters(ctx);
+  // Initialize if magnetic fields are to be supplied as data
+  std::vector<std::shared_ptr<MagneticFieldStore>> dummyMagFieldContainer = {};
+  const std::vector<std::shared_ptr<MagneticFieldStore>>&
+      inputMagFieldParameters =
+          m_cfg.mctxMagneticFields ? dummyMagFieldContainer
+                                   : m_inputMagneticFieldParameters(ctx);
 
   ACTS_DEBUG("Received " << inputTrackContainer.size() << " input tracks");
   ACTS_DEBUG("Received " << inputTracks.size() << " input track indices");
@@ -368,40 +368,40 @@ ProcessCode E320::E320RootSimTrackWriter::write(const AlgorithmContext& ctx) {
 
   // Iterate over the fitted tracks
   for (std::size_t idx = 0; idx < inputTracks.size(); idx++) {
-    // if (!m_cfg.mctxMagneticFields) {
-    //   const auto& store = inputMagFieldParameters.at(idx);
+    if (!m_cfg.mctxMagneticFields) {
+      const auto& store = inputMagFieldParameters.at(idx);
 
-    //   if (store->store.contains(goInst.quad1Id)) {
-    //     m_quad1Grad = store->store.at(goInst.quad1Id)
-    //                       .as<IdealQuadrupoleMagField::Cache>()
-    //                       .m_gradient *
-    //                   Acts::UnitConstants::m / Acts::UnitConstants::T;
-    //   }
-    //   if (store->store.contains(goInst.quad2Id)) {
-    //     m_quad2Grad = store->store.at(goInst.quad2Id)
-    //                       .as<IdealQuadrupoleMagField::Cache>()
-    //                       .m_gradient *
-    //                   Acts::UnitConstants::m / Acts::UnitConstants::T;
-    //   }
-    //   if (store->store.contains(goInst.quad3Id)) {
-    //     m_quad3Grad = store->store.at(goInst.quad3Id)
-    //                       .as<IdealQuadrupoleMagField::Cache>()
-    //                       .m_gradient *
-    //                   Acts::UnitConstants::m / Acts::UnitConstants::T;
-    //   }
-    //   if (store->store.contains(goInst.xCorrectorId)) {
-    //     m_xCorrectorStrength = store->store.at(goInst.xCorrectorId)
-    //                                .as<ConstantMagField::Cache>()
-    //                                .m_field(goInst.xCorrectorDirIdx) /
-    //                            Acts::UnitConstants::T;
-    //   }
-    //   if (store->store.contains(goInst.dipoleId)) {
-    //     m_dipoleStrength = store->store.at(goInst.dipoleId)
-    //                            .as<ConstantMagField::Cache>()
-    //                            .m_field(goInst.dipoleDirIdx) /
-    //                        Acts::UnitConstants::T;
-    //   }
-    // }
+      if (store->store.contains(goInst.quad1Id)) {
+        m_quad1Grad = store->store.at(goInst.quad1Id)
+                          .as<IdealQuadrupoleMagField::Cache>()
+                          .m_gradient *
+                      Acts::UnitConstants::m / Acts::UnitConstants::T;
+      }
+      if (store->store.contains(goInst.quad2Id)) {
+        m_quad2Grad = store->store.at(goInst.quad2Id)
+                          .as<IdealQuadrupoleMagField::Cache>()
+                          .m_gradient *
+                      Acts::UnitConstants::m / Acts::UnitConstants::T;
+      }
+      if (store->store.contains(goInst.quad3Id)) {
+        m_quad3Grad = store->store.at(goInst.quad3Id)
+                          .as<IdealQuadrupoleMagField::Cache>()
+                          .m_gradient *
+                      Acts::UnitConstants::m / Acts::UnitConstants::T;
+      }
+      if (store->store.contains(goInst.xCorrectorId)) {
+        m_xCorrectorStrength = store->store.at(goInst.xCorrectorId)
+                                   .as<ConstantMagField::Cache>()
+                                   .m_field(goInst.xCorrectorDirIdx) /
+                               Acts::UnitConstants::T;
+      }
+      if (store->store.contains(goInst.dipoleId)) {
+        m_dipoleStrength = store->store.at(goInst.dipoleId)
+                               .as<ConstantMagField::Cache>()
+                               .m_field(goInst.dipoleDirIdx) /
+                           Acts::UnitConstants::T;
+      }
+    }
 
     // Get track indices
     const auto& trackIndices = inputTracks.at(idx);
