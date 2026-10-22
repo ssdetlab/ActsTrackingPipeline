@@ -22,8 +22,6 @@ class AlignmentFunction {
 
   /// @brief Alignment result struct
   struct AlignmentResult {
-    /// Change of alignment parameters
-    Acts::ActsDynamicVector deltaAlignmentParameters;
     /// Aligned parameters for detector elements
     std::unordered_map<Acts::DetectorElementBase*, Acts::Transform3>
         alignedParameters;
