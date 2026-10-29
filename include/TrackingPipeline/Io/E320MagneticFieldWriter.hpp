@@ -11,6 +11,7 @@
 
 namespace E320 {
 
+/// @brief Writer for the E320 magnetic field stores
 class E320MagneticFieldWriter : public IWriter {
  public:
   /// @brief The nested configuration struct
@@ -55,6 +56,21 @@ class E320MagneticFieldWriter : public IWriter {
   std::unique_ptr<const Acts::Logger> m_logger;
 
  protected:
+  /// Quadrupole triplet focuing energy
+  double m_quadTripletFocusingEnergy = 0;
+
+  /// Quadrupole triplet object z
+  double m_quadTripletObjectZ = 0;
+
+  /// Quadrupole triplet image z
+  double m_quadTripletImageZ = 0;
+
+  /// Quadrupole triplet M12 transport matrix element
+  double m_quadTripletM12 = 0;
+
+  /// Quadrupole triplet M34 transport matrix element
+  double m_quadTripletM34 = 0;
+
   /// Quad gradients T/m
   double m_quad1Grad = 0;
   double m_quad2Grad = 0;
