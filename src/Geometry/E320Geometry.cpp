@@ -347,7 +347,7 @@ std::shared_ptr<Acts::MagneticFieldProvider> buildMagField(
                    goInst.dipoleCenterShort + goInst.dipoleHalfShort);
 
   Acts::RotationMatrix3 quadRotation =
-      Acts::AngleAxis3(-M_PI_2, Acts::Vector3::UnitY()).toRotationMatrix();
+      Acts::AngleAxis3(M_PI_2, Acts::Vector3::UnitY()).toRotationMatrix();
 
   Acts::Vector3 quad1Center;
   quad1Center[goInst.primaryIdx] = goInst.quad1CenterPrimary;
