@@ -19,4 +19,5 @@ target_sources(
     ClusterSizeBasedDigitizer.cpp
     ConstantMultiplicityGenerator.cpp
     RootHistMultiplicityGenerator.cpp
+    RootVertexDirectionReaderGenerator.cpp
   )
