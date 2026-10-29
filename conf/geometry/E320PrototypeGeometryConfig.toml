@@ -126,6 +126,8 @@ pdcWindowGeometryId = 50
 # Chip dimensions in local coordinates [mm]
 chipHalfX = 14.97088
 chipHalfY = 6.88128
+# chipHalfX = 1000
+# chipHalfY = 1000
 
 # Chip pixel dimensions in local coordinates [um]
 pixelHalfX = 14.62
@@ -216,48 +218,46 @@ quad2Id = 2
 quad3Id = 3
 
 # Dimensions [mm]
+quad0HalfPrimary = 486.664
 quad1HalfPrimary = 486.664
-# quad1HalfLong = 32.33
-# quad1HalfShort = 32.33
-quad1HalfLong = 2000
-quad1HalfShort = 2000
-
 quad2HalfPrimary = 486.664
-# quad2HalfLong = 32.33
-# quad2HalfShort = 32.33
-quad2HalfLong = 2000
-quad2HalfShort = 2000
-
 quad3HalfPrimary = 486.664
-# quad3HalfLong = 32.33
-# quad3HalfShort = 32.33
+
+quad0HalfLong = 2000
+quad1HalfLong = 2000
+quad2HalfLong = 2000
 quad3HalfLong = 2000
+
+quad0HalfShort = 2000
+quad1HalfShort = 2000
+quad2HalfShort = 2000
 quad3HalfShort = 2000
 
 # Placement [mm]
 quad0CenterPrimary = -1900
-quad0CenterLong = 0.056
-# quad0CenterLong = 0
-quad0CenterShort = -1.821
-# quad0CenterShort = 0
-
 quad1CenterPrimary = 4157
-quad1CenterLong = -0.055
-# quad1CenterLong = 0
-quad1CenterShort = -3.5
-# quad1CenterShort = 0
-
 quad2CenterPrimary = 6382
-quad2CenterLong = -0.164
-# quad2CenterLong = 0
-quad2CenterShort = -2.642
-# quad2CenterShort = 0
-
 quad3CenterPrimary = 8606
+
+quad0CenterLong = 0.056
+quad1CenterLong = -0.055
+quad2CenterLong = -0.164
 quad3CenterLong = 0.042
-# quad3CenterLong = 0
+
+quad0CenterShort = -1.821
+quad1CenterShort = -3.5
+quad2CenterShort = -2.642
 quad3CenterShort = -3.546
-# quad3CenterShort = 0
+
+# quad0CenterLong = 0.0
+# quad1CenterLong = 0.0
+# quad2CenterLong = 0.0
+# quad3CenterLong = 0.0
+# 
+# quad0CenterShort = 0.0
+# quad1CenterShort = 0.0
+# quad2CenterShort = 0.0
+# quad3CenterShort = 0.0
 
 # Quad gradients [T/m]
 # quad1Gradient = 0  # Test
@@ -272,6 +272,21 @@ quad2Gradient = 3.565  # 2.0 GeV
 quad3Gradient = -2.406  # 2.0 GeV
 # quad3Gradient = -4.36  # 3.5 GeV
 
+# Quad triplet focusing energy [GeV]
+quadTripletFocusingEnergy = 2.0
+
+# Quad triplet object Z [mm]
+quadTripletObjectZ = 0
+
+# Quad triplet image Z [mm]
+quadTripletImageZ = 16674.4
+
+# Quad triplet M12 transport matrix element
+quadTripletM12 = 0
+
+# Quad triplet M34 transport matrix element
+quadTripletM34 = 0
+
 # --------------------------------------------------------------
 # Parameters of the x-corrector
 
@@ -280,8 +295,6 @@ xCorrectorId = 4
 
 # XCOR dimensions [mm]
 xCorrectorHalfPrimary = 116.84
-# xCorrectorHalfLong = 40
-# xCorrectorHalfShort = 40
 xCorrectorHalfLong = 2000
 xCorrectorHalfShort = 2000
 
@@ -299,9 +312,9 @@ xCorrectorCenterShort = 0
 # xCorrectorFieldStrength = -0.02 # Top
 
 # Global alignment 2.0 GeV
-xCorrectorFieldStrength = -0.01497 # Test
-# xCorrectorFieldStrength = 0.0 # Bottom
-# xCorrectorFieldStrength = -0.02 # Center
+# xCorrectorFieldStrength = -0.01497 # Test
+# xCorrectorFieldStrength = 0.01 # Bottom
+xCorrectorFieldStrength = -0.02 # Center
 # xCorrectorFieldStrength = -0.04 # Top
 
 # Global alignment 3.5 GeV
@@ -319,8 +332,6 @@ dipoleId = 5
 dipoleHalfPrimary = 457.2
 dipoleHalfLong = 2000
 dipoleHalfShort = 2000
-# dipoleHalfLong = 50.927
-# dipoleHalfShort = 22.352
 
 # Placement [mm]
 dipoleCenterPrimary = 13113
@@ -336,12 +347,12 @@ dipoleCenterShort = 0
 
 # Global alignment 2.0 GeV
 # dipoleFieldStrength = -0.1951 # Test
-dipoleFieldStrength = -0.1751 # Test
-# dipoleFieldStrength = -0.19 # Bottom
-# dipoleFieldStrength = -0.2151 # Center
-# dipoleFieldStrength = -0.24 # Top
+# dipoleFieldStrength = -0.1751 # Test
+# dipoleFieldStrength = -0.17 # Bottom
+dipoleFieldStrength = -0.18 # Center
+# dipoleFieldStrength = -0.22 # Top
 
 # Global alignment 3.5 GeV
 # dipoleFieldStrength = -0.33  # Bottom
-# dipoleFieldStrength = -0.375 # Center
+# dipoleFieldStrength = -0.35 # Center
 # dipoleFieldStrength = -0.415 # Top

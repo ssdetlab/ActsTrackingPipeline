@@ -314,6 +314,13 @@ E320::GeometryOptions::GeometryOptions() {
   quad3CenterLong = getEntryDouble("Magnets", "quad3CenterLong") * 1_mm;
   quad3CenterShort = getEntryDouble("Magnets", "quad3CenterShort") * 1_mm;
 
+  quadTripletFocusingEnergy =
+      getEntryDouble("Magnets", "quadTripletFocusingEnergy") * 1_GeV;
+  quadTripletObjectZ = getEntryDouble("Magnets", "quadTripletObjectZ") * 1_mm;
+  quadTripletImageZ = getEntryDouble("Magnets", "quadTripletImageZ") * 1_mm;
+  quadTripletM12 = getEntryDouble("Magnets", "quadTripletM12");
+  quadTripletM34 = getEntryDouble("Magnets", "quadTripletM34");
+
   // --------------------------------------------------------------
   // Parameters of the x-corrector
 

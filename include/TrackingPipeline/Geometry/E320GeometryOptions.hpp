@@ -166,6 +166,12 @@ struct GeometryOptions {
   double quad3CenterLong;
   double quad3CenterShort;
 
+  double quadTripletFocusingEnergy;
+  double quadTripletObjectZ;
+  double quadTripletImageZ;
+  double quadTripletM12;
+  double quadTripletM34;
+ 
   /// --------------------------------------------------------------
   /// Parameters of the x-corrector
 
