@@ -11,11 +11,6 @@
 #include <unordered_map>
 #include <vector>
 
-#include <Eigen/src/Core/Matrix.h>
-#include <TFile.h>
-#include <TTree.h>
-#include <omp.h>
-
 #include "TrackingPipeline/EventData/SimpleSourceLink.hpp"
 #include "TrackingPipeline/Geometry/detail/BinningValueUtils.hpp"
 
