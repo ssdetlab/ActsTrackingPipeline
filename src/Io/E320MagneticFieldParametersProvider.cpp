@@ -7,6 +7,7 @@
 
 #include "TrackingPipeline/Geometry/E320GeometryOptions.hpp"
 #include "TrackingPipeline/MagneticField/ConstantMagField.hpp"
+#include "TrackingPipeline/MagneticField/E320MagneticFieldStore.hpp"
 #include "TrackingPipeline/MagneticField/IdealQuadrupoleMagField.hpp"
 
 namespace E320 {
@@ -44,6 +45,22 @@ E320MagneticFieldParametersProvider::E320MagneticFieldParametersProvider(
   // Dipole strength T
   m_tree->SetBranchAddress("dipoleStrength", &m_dipoleStrength);
 
+  // Quad triplet focusing energy
+  m_tree->SetBranchAddress("quadTripletFocusingEnergy",
+                           &m_quadTripletFocusingEnergy);
+
+  // Quad triplet object Z
+  m_tree->SetBranchAddress("quadTripletObjectZ", &m_quadTripletObjectZ);
+
+  // Quad triplet image Z
+  m_tree->SetBranchAddress("quadTripletImageZ", &m_quadTripletImageZ);
+
+  // Quad triplet M12 transport matrix element
+  m_tree->SetBranchAddress("quadTripletM12", &m_quadTripletM12);
+
+  // Quad triplet M34 transport matrix element
+  m_tree->SetBranchAddress("quadTripletM34", &m_quadTripletM34);
+
   // Event Id
   m_tree->SetBranchAddress("eventId", &m_eventId);
 
@@ -65,7 +82,14 @@ E320MagneticFieldParametersProvider::E320MagneticFieldParametersProvider(
   for (std::size_t i = 0; i < nEntries; i++) {
     m_tree->GetEntry(i);
 
-    auto store = std::make_shared<MagneticFieldStore>();
+    auto store = std::make_shared<E320MagneticFieldStore>();
+
+    store->quadTripletFocusingEnergy = m_quadTripletFocusingEnergy;
+    store->quadTripletObjectZ = m_quadTripletObjectZ;
+    store->quadTripletImageZ = m_quadTripletImageZ;
+    store->quadTripletM12 = m_quadTripletM12;
+    store->quadTripletM34 = m_quadTripletM34;
+
     store->store.reserve(5);
 
     // Quad gradients T/m
@@ -99,7 +123,8 @@ E320MagneticFieldParametersProvider::E320MagneticFieldParametersProvider(
              m_xCorrectorStrength * Acts::UnitConstants::T, longIdx)});
 
     // Store the fields
-    stores.insert({m_eventId, std::move(store)});
+    stores.insert(
+        {m_eventId, std::dynamic_pointer_cast<MagneticFieldStore>(store)});
   }
 
   m_storeCollection = std::make_shared<MagneticFieldStoreCollection>(stores);

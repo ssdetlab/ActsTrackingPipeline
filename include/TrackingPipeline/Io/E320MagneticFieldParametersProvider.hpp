@@ -55,6 +55,21 @@ class E320MagneticFieldParametersProvider {
   /// Dipole strength T
   double m_dipoleStrength = 0;
 
+  /// Quad triplet focusing energy
+  double m_quadTripletFocusingEnergy = 0;
+
+  /// Quad triplet object Z
+  double m_quadTripletObjectZ = 0;
+
+  /// Quad triplet image Z
+  double m_quadTripletImageZ = 0;
+
+  /// Quad triplet M12 transport matrix element
+  double m_quadTripletM12 = 0;
+
+  /// Quad triplet M34 transport matrix element
+  double m_quadTripletM34 = 0;
+
   /// Event id
   ULong64_t m_eventId = 0;
 };
