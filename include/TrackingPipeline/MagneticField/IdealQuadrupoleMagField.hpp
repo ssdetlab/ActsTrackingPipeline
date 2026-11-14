@@ -46,9 +46,13 @@ class IdealQuadrupoleMagField : public Acts::MagneticFieldProvider {
   /// @param gradient default field gradient
   /// @param origin quad center in global coordinates
   /// @param rotation quad rotation in global coordinates
+  /// @param halfX quad half extent in local x
+  /// @param halfY quad half extent in local y
+  /// @param halfZ quad half extent in local z
   IdealQuadrupoleMagField(std::size_t id, double gradient,
                           const Acts::Vector3& origin,
-                          const Acts::RotationMatrix3& rotation);
+                          const Acts::RotationMatrix3& rotation, double halfX,
+                          double halfY, double halfZ);
 
   /// @brief Get field value in a point
   ///
@@ -91,4 +95,13 @@ class IdealQuadrupoleMagField : public Acts::MagneticFieldProvider {
 
   /// Quad rotation in global coordinates
   Acts::RotationMatrix3 m_rotation;
+
+  /// Quad half extent in local x
+  double m_halfX;
+
+  /// Quad half extent in local y
+  double m_halfY;
+
+  /// Quad half extent in local z
+  double m_halfZ;
 };

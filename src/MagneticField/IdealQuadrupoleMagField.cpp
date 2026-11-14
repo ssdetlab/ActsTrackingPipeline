@@ -4,8 +4,15 @@
 
 IdealQuadrupoleMagField::IdealQuadrupoleMagField(
     std::size_t id, double gradient, const Acts::Vector3& origin,
-    const Acts::RotationMatrix3& rotation)
-    : m_id(id), m_gradient(gradient), m_origin(origin), m_rotation(rotation) {};
+    const Acts::RotationMatrix3& rotation, double halfX, double halfY,
+    double halfZ)
+    : m_id(id),
+      m_gradient(gradient),
+      m_origin(origin),
+      m_rotation(rotation),
+      m_halfX(halfX),
+      m_halfY(halfY),
+      m_halfZ(halfZ) {};
 
 Acts::Result<Acts::Vector3> IdealQuadrupoleMagField::getField(
     const Acts::Vector3& position, MagneticFieldProvider::Cache& cache) const {
@@ -15,10 +22,16 @@ Acts::Result<Acts::Vector3> IdealQuadrupoleMagField::getField(
   Acts::Vector3 global(position.x() - m_origin.x(), position.y() - m_origin.y(),
                        position.z() - m_origin.z());
 
-  const Acts::Vector3 local = m_rotation * global;
-  const Acts::Vector3 localB(gradient * local.y(), gradient * local.x(), 0);
-  const Acts::Vector3 globalB = m_rotation.inverse() * localB;
+  Acts::Vector3 local = m_rotation * global;
+  Acts::Vector3 localB(gradient * local.y(), gradient * local.x(), 0);
+  Acts::Vector3 globalB = m_rotation.inverse() * localB;
 
+  bool outOfBounds = (local.x() > m_halfX || local.x() < -m_halfX) ||
+                     (local.y() > m_halfY || local.y() < -m_halfY) ||
+                     (local.z() > m_halfZ || local.z() < -m_halfZ);
+  if (outOfBounds) {
+    globalB *= 1e-16;
+  }
   return Acts::Result<Acts::Vector3>::success(globalB);
 }
 
