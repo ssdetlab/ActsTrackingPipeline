@@ -212,7 +212,7 @@ std::shared_ptr<const Acts::Experimental::Detector> buildDetector(
                       goInst.ipSurfaceParameters.geoId, {ipSurface});
 
   // Quad 1
-  constructMagVolume(goInst.quad1HalfPrimary, goInst.quad1CenterPrimary,
+  constructMagVolume(goInst.quad1ExtentPrimary, goInst.quad1CenterPrimary,
                      "quad1", {});
 
   // BPM 1
@@ -227,7 +227,7 @@ std::shared_ptr<const Acts::Experimental::Detector> buildDetector(
                       goInst.bpm1Parameters.geoId, {bpm1Surface});
 
   // Quad 2
-  constructMagVolume(goInst.quad2HalfPrimary, goInst.quad2CenterPrimary,
+  constructMagVolume(goInst.quad2ExtentPrimary, goInst.quad2CenterPrimary,
                      "quad2", {});
 
   // BPM 2
@@ -242,7 +242,7 @@ std::shared_ptr<const Acts::Experimental::Detector> buildDetector(
                       goInst.bpm2Parameters.geoId, {bpm2Surface});
 
   // Quad 3
-  constructMagVolume(goInst.quad3HalfPrimary, goInst.quad3CenterPrimary,
+  constructMagVolume(goInst.quad3ExtentPrimary, goInst.quad3CenterPrimary,
                      "quad3", {});
 
   // BPM 3
@@ -289,39 +289,102 @@ std::shared_ptr<Acts::MagneticFieldProvider> buildMagField(
     const Acts::GeometryContext& gctx) {
   const auto& goInst = *go::instance();
 
+  Acts::Extent dipoleExtent;
+  dipoleExtent.set(goInst.primaryBinValue,
+                   goInst.dipoleCenterPrimary - goInst.dipoleHalfPrimary,
+                   goInst.dipoleCenterPrimary + goInst.dipoleHalfPrimary);
+  dipoleExtent.set(goInst.longBinValue,
+                   goInst.dipoleCenterLong - goInst.dipoleHalfLong,
+                   goInst.dipoleCenterLong + goInst.dipoleHalfLong);
+  dipoleExtent.set(goInst.shortBinValue,
+                   goInst.dipoleCenterShort - goInst.dipoleHalfShort,
+                   goInst.dipoleCenterShort + goInst.dipoleHalfShort);
+
+  // --------------------------------------------------
+  // Quads
   Acts::Extent quad1Extent;
   quad1Extent.set(goInst.primaryBinValue,
-                  goInst.quad1CenterPrimary - goInst.quad1HalfPrimary,
-                  goInst.quad1CenterPrimary + goInst.quad1HalfPrimary);
+                  goInst.quad1CenterPrimary - goInst.quad1ExtentPrimary,
+                  goInst.quad1CenterPrimary + goInst.quad1ExtentPrimary);
   quad1Extent.set(goInst.longBinValue,
-                  goInst.quad1CenterLong - goInst.quad1HalfLong,
-                  goInst.quad1CenterLong + goInst.quad1HalfLong);
+                  goInst.quad1CenterLong - goInst.quad1ExtentLong,
+                  goInst.quad1CenterLong + goInst.quad1ExtentLong);
   quad1Extent.set(goInst.shortBinValue,
-                  goInst.quad1CenterShort - goInst.quad1HalfShort,
-                  goInst.quad1CenterShort + goInst.quad1HalfShort);
+                  goInst.quad1CenterShort - goInst.quad1ExtentShort,
+                  goInst.quad1CenterShort + goInst.quad1ExtentShort);
 
   Acts::Extent quad2Extent;
   quad2Extent.set(goInst.primaryBinValue,
-                  goInst.quad2CenterPrimary - goInst.quad2HalfPrimary,
-                  goInst.quad2CenterPrimary + goInst.quad2HalfPrimary);
+                  goInst.quad2CenterPrimary - goInst.quad2ExtentPrimary,
+                  goInst.quad2CenterPrimary + goInst.quad2ExtentPrimary);
   quad2Extent.set(goInst.longBinValue,
-                  goInst.quad2CenterLong - goInst.quad2HalfLong,
-                  goInst.quad2CenterLong + goInst.quad2HalfLong);
+                  goInst.quad2CenterLong - goInst.quad2ExtentLong,
+                  goInst.quad2CenterLong + goInst.quad2ExtentLong);
   quad2Extent.set(goInst.shortBinValue,
-                  goInst.quad2CenterShort - goInst.quad2HalfShort,
-                  goInst.quad2CenterShort + goInst.quad2HalfShort);
+                  goInst.quad2CenterShort - goInst.quad2ExtentShort,
+                  goInst.quad2CenterShort + goInst.quad2ExtentShort);
 
   Acts::Extent quad3Extent;
   quad3Extent.set(goInst.primaryBinValue,
-                  goInst.quad3CenterPrimary - goInst.quad3HalfPrimary,
-                  goInst.quad3CenterPrimary + goInst.quad3HalfPrimary);
+                  goInst.quad3CenterPrimary - goInst.quad3ExtentPrimary,
+                  goInst.quad3CenterPrimary + goInst.quad3ExtentPrimary);
   quad3Extent.set(goInst.longBinValue,
-                  goInst.quad3CenterLong - goInst.quad3HalfLong,
-                  goInst.quad3CenterLong + goInst.quad3HalfLong);
+                  goInst.quad3CenterLong - goInst.quad3ExtentLong,
+                  goInst.quad3CenterLong + goInst.quad3ExtentLong);
   quad3Extent.set(goInst.shortBinValue,
-                  goInst.quad3CenterShort - goInst.quad3HalfShort,
-                  goInst.quad3CenterShort + goInst.quad3HalfShort);
+                  goInst.quad3CenterShort - goInst.quad3ExtentShort,
+                  goInst.quad3CenterShort + goInst.quad3ExtentShort);
 
+  Acts::RotationMatrix3 quadRotation =
+      Acts::AngleAxis3(M_PI_2, Acts::Vector3::UnitY()).toRotationMatrix();
+
+  Acts::RotationMatrix3 quad1MisRot =
+      Acts::AngleAxis3(goInst.quad1Pitch, Acts::Vector3::UnitY())
+          .toRotationMatrix() *
+      Acts::AngleAxis3(goInst.quad1Yaw, Acts::Vector3::UnitZ())
+          .toRotationMatrix();
+
+  Acts::RotationMatrix3 quad2MisRot =
+      Acts::AngleAxis3(goInst.quad2Pitch, Acts::Vector3::UnitY())
+          .toRotationMatrix() *
+      Acts::AngleAxis3(goInst.quad2Yaw, Acts::Vector3::UnitZ())
+          .toRotationMatrix();
+
+  Acts::RotationMatrix3 quad3MisRot =
+      Acts::AngleAxis3(goInst.quad3Pitch, Acts::Vector3::UnitY())
+          .toRotationMatrix() *
+      Acts::AngleAxis3(goInst.quad3Yaw, Acts::Vector3::UnitZ())
+          .toRotationMatrix();
+
+  Acts::Vector3 quad1Center;
+  quad1Center[goInst.primaryIdx] = goInst.quad1CenterPrimary;
+  quad1Center[goInst.longIdx] = goInst.quad1CenterLong;
+  quad1Center[goInst.shortIdx] = goInst.quad1CenterShort;
+  auto quad1Field = std::make_shared<IdealQuadrupoleMagField>(
+      goInst.quad1Id, goInst.quad1Gradient, quad1Center,
+      quadRotation * quad1MisRot.transpose(), goInst.quad1HalfShort,
+      goInst.quad1HalfLong, goInst.quad1HalfPrimary);
+
+  Acts::Vector3 quad2Center;
+  quad2Center[goInst.primaryIdx] = goInst.quad2CenterPrimary;
+  quad2Center[goInst.longIdx] = goInst.quad2CenterLong;
+  quad2Center[goInst.shortIdx] = goInst.quad2CenterShort;
+  auto quad2Field = std::make_shared<IdealQuadrupoleMagField>(
+      goInst.quad2Id, goInst.quad2Gradient, quad2Center,
+      quadRotation * quad2MisRot.transpose(), goInst.quad2HalfShort,
+      goInst.quad2HalfLong, goInst.quad2HalfPrimary);
+
+  Acts::Vector3 quad3Center;
+  quad3Center[goInst.primaryIdx] = goInst.quad3CenterPrimary;
+  quad3Center[goInst.longIdx] = goInst.quad3CenterLong;
+  quad3Center[goInst.shortIdx] = goInst.quad3CenterShort;
+  auto quad3Field = std::make_shared<IdealQuadrupoleMagField>(
+      goInst.quad3Id, goInst.quad3Gradient, quad3Center,
+      quadRotation * quad3MisRot.transpose(), goInst.quad3HalfShort,
+      goInst.quad3HalfLong, goInst.quad3HalfPrimary);
+
+  // --------------------------------------------------
+  // X-Corrector
   Acts::Extent xCorrectorExtent;
   xCorrectorExtent.set(
       goInst.primaryBinValue,
@@ -334,41 +397,6 @@ std::shared_ptr<Acts::MagneticFieldProvider> buildMagField(
       goInst.shortBinValue,
       goInst.xCorrectorCenterShort - goInst.xCorrectorHalfShort,
       goInst.xCorrectorCenterShort + goInst.xCorrectorHalfShort);
-
-  Acts::Extent dipoleExtent;
-  dipoleExtent.set(goInst.primaryBinValue,
-                   goInst.dipoleCenterPrimary - goInst.dipoleHalfPrimary,
-                   goInst.dipoleCenterPrimary + goInst.dipoleHalfPrimary);
-  dipoleExtent.set(goInst.longBinValue,
-                   goInst.dipoleCenterLong - goInst.dipoleHalfLong,
-                   goInst.dipoleCenterLong + goInst.dipoleHalfLong);
-  dipoleExtent.set(goInst.shortBinValue,
-                   goInst.dipoleCenterShort - goInst.dipoleHalfShort,
-                   goInst.dipoleCenterShort + goInst.dipoleHalfShort);
-
-  Acts::RotationMatrix3 quadRotation =
-      Acts::AngleAxis3(M_PI_2, Acts::Vector3::UnitY()).toRotationMatrix();
-
-  Acts::Vector3 quad1Center;
-  quad1Center[goInst.primaryIdx] = goInst.quad1CenterPrimary;
-  quad1Center[goInst.longIdx] = goInst.quad1CenterLong;
-  quad1Center[goInst.shortIdx] = goInst.quad1CenterShort;
-  auto quad1Field = std::make_shared<IdealQuadrupoleMagField>(
-      goInst.quad1Id, goInst.quad1Gradient, quad1Center, quadRotation);
-
-  Acts::Vector3 quad2Center;
-  quad2Center[goInst.primaryIdx] = goInst.quad2CenterPrimary;
-  quad2Center[goInst.longIdx] = goInst.quad2CenterLong;
-  quad2Center[goInst.shortIdx] = goInst.quad2CenterShort;
-  auto quad2Field = std::make_shared<IdealQuadrupoleMagField>(
-      goInst.quad2Id, goInst.quad2Gradient, quad2Center, quadRotation);
-
-  Acts::Vector3 quad3Center;
-  quad3Center[goInst.primaryIdx] = goInst.quad3CenterPrimary;
-  quad3Center[goInst.longIdx] = goInst.quad3CenterLong;
-  quad3Center[goInst.shortIdx] = goInst.quad3CenterShort;
-  auto quad3Field = std::make_shared<IdealQuadrupoleMagField>(
-      goInst.quad3Id, goInst.quad3Gradient, quad3Center, quadRotation);
 
   Acts::Vector3 xCorrectorB;
   xCorrectorB[goInst.primaryIdx] = goInst.xCorrectorFieldPrimary;

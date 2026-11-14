@@ -146,32 +146,46 @@ struct GeometryOptions {
   double quad3HalfLong;
   double quad3HalfShort;
 
+  double quad1ExtentPrimary;
+  double quad1ExtentLong;
+  double quad1ExtentShort;
+
+  double quad2ExtentPrimary;
+  double quad2ExtentLong;
+  double quad2ExtentShort;
+
+  double quad3ExtentPrimary;
+  double quad3ExtentLong;
+  double quad3ExtentShort;
+
   double quad1Gradient;
   double quad2Gradient;
   double quad3Gradient;
 
-  double quad0CenterPrimary;
-  double quad0CenterLong;
-  double quad0CenterShort;
-
   double quad1CenterPrimary;
   double quad1CenterLong;
   double quad1CenterShort;
+  double quad1Pitch;
+  double quad1Yaw;
 
   double quad2CenterPrimary;
   double quad2CenterLong;
   double quad2CenterShort;
+  double quad2Pitch;
+  double quad2Yaw;
 
   double quad3CenterPrimary;
   double quad3CenterLong;
   double quad3CenterShort;
+  double quad3Pitch;
+  double quad3Yaw;
 
   double quadTripletFocusingEnergy;
   double quadTripletObjectZ;
   double quadTripletImageZ;
   double quadTripletM12;
   double quadTripletM34;
- 
+
   /// --------------------------------------------------------------
   /// Parameters of the x-corrector
 

@@ -14,4 +14,4 @@ std::shared_ptr<const Acts::Experimental::Detector> buildDetector(
 std::shared_ptr<Acts::MagneticFieldProvider> buildMagField(
     const Acts::GeometryContext& gctx);
 
-}  // namespace E320Geometry
+}  // namespace E320

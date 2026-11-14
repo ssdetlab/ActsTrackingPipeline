@@ -281,38 +281,77 @@ E320::GeometryOptions::GeometryOptions() {
   // Parameters of the quads
 
   quad1Id = getEntrySizeT("Magnets", "quad1Id");
+  quad2Id = getEntrySizeT("Magnets", "quad2Id");
+  quad3Id = getEntrySizeT("Magnets", "quad3Id");
+
   quad1HalfPrimary = getEntryDouble("Magnets", "quad1HalfPrimary") * 1_mm;
   quad1HalfLong = getEntryDouble("Magnets", "quad1HalfLong") * 1_mm;
   quad1HalfShort = getEntryDouble("Magnets", "quad1HalfShort") * 1_mm;
-  quad1Gradient = getEntryDouble("Magnets", "quad1Gradient") * 1_T / 1_m;
 
-  quad2Id = getEntrySizeT("Magnets", "quad2Id");
   quad2HalfPrimary = getEntryDouble("Magnets", "quad2HalfPrimary") * 1_mm;
   quad2HalfLong = getEntryDouble("Magnets", "quad2HalfLong") * 1_mm;
   quad2HalfShort = getEntryDouble("Magnets", "quad2HalfShort") * 1_mm;
-  quad2Gradient = getEntryDouble("Magnets", "quad2Gradient") * 1_T / 1_m;
 
-  quad3Id = getEntrySizeT("Magnets", "quad3Id");
   quad3HalfPrimary = getEntryDouble("Magnets", "quad3HalfPrimary") * 1_mm;
   quad3HalfLong = getEntryDouble("Magnets", "quad3HalfLong") * 1_mm;
   quad3HalfShort = getEntryDouble("Magnets", "quad3HalfShort") * 1_mm;
-  quad3Gradient = getEntryDouble("Magnets", "quad3Gradient") * 1_T / 1_m;
-
-  quad0CenterPrimary = getEntryDouble("Magnets", "quad0CenterPrimary") * 1_mm;
-  quad0CenterLong = getEntryDouble("Magnets", "quad0CenterLong") * 1_mm;
-  quad0CenterShort = getEntryDouble("Magnets", "quad0CenterShort") * 1_mm;
 
   quad1CenterPrimary = getEntryDouble("Magnets", "quad1CenterPrimary") * 1_mm;
   quad1CenterLong = getEntryDouble("Magnets", "quad1CenterLong") * 1_mm;
   quad1CenterShort = getEntryDouble("Magnets", "quad1CenterShort") * 1_mm;
+  quad1Pitch = getEntryDouble("Magnets", "quad1Pitch") * 1_mrad;
+  quad1Yaw = getEntryDouble("Magnets", "quad1Yaw") * 1_mrad;
 
   quad2CenterPrimary = getEntryDouble("Magnets", "quad2CenterPrimary") * 1_mm;
   quad2CenterLong = getEntryDouble("Magnets", "quad2CenterLong") * 1_mm;
   quad2CenterShort = getEntryDouble("Magnets", "quad2CenterShort") * 1_mm;
+  quad2Pitch = getEntryDouble("Magnets", "quad2Pitch") * 1_mrad;
+  quad2Yaw = getEntryDouble("Magnets", "quad2Yaw") * 1_mrad;
 
   quad3CenterPrimary = getEntryDouble("Magnets", "quad3CenterPrimary") * 1_mm;
   quad3CenterLong = getEntryDouble("Magnets", "quad3CenterLong") * 1_mm;
   quad3CenterShort = getEntryDouble("Magnets", "quad3CenterShort") * 1_mm;
+  quad3Pitch = getEntryDouble("Magnets", "quad3Pitch") * 1_mrad;
+  quad3Yaw = getEntryDouble("Magnets", "quad3Yaw") * 1_mrad;
+
+  auto getQuadExtentVec = [&](double halfPrimary, double halfLong,
+                              double halfShort, double pitch,
+                              double yaw) -> Acts::Vector3 {
+    Acts::RotationMatrix3 quadPitchRot =
+        Acts::AngleAxis3(pitch, Acts::Vector3::UnitY()).toRotationMatrix();
+    Acts::RotationMatrix3 quadYawRot =
+        Acts::AngleAxis3(yaw, Acts::Vector3::UnitZ()).toRotationMatrix();
+
+    Acts::Vector3 quadHalfLengths = Acts::Vector3::Zero();
+    quadHalfLengths[primaryIdx] = halfPrimary;
+    quadHalfLengths[longIdx] = halfLong;
+    quadHalfLengths[shortIdx] = halfShort;
+
+    return (quadPitchRot * quadYawRot).cwiseAbs() * quadHalfLengths;
+  };
+
+  Acts::Vector3 quad1ExtentVec = getQuadExtentVec(
+      quad1HalfPrimary, quad1HalfLong, quad1HalfShort, quad1Pitch, quad1Yaw);
+  Acts::Vector3 quad2ExtentVec = getQuadExtentVec(
+      quad2HalfPrimary, quad2HalfLong, quad2HalfShort, quad2Pitch, quad2Yaw);
+  Acts::Vector3 quad3ExtentVec = getQuadExtentVec(
+      quad3HalfPrimary, quad3HalfLong, quad3HalfShort, quad3Pitch, quad3Yaw);
+
+  quad1ExtentPrimary = quad1ExtentVec[primaryIdx];
+  quad1ExtentLong = quad1ExtentVec[longIdx];
+  quad1ExtentShort = quad1ExtentVec[shortIdx];
+
+  quad2ExtentPrimary = quad2ExtentVec[primaryIdx];
+  quad2ExtentLong = quad2ExtentVec[longIdx];
+  quad2ExtentShort = quad2ExtentVec[shortIdx];
+
+  quad3ExtentPrimary = quad3ExtentVec[primaryIdx];
+  quad3ExtentLong = quad3ExtentVec[longIdx];
+  quad3ExtentShort = quad3ExtentVec[shortIdx];
+
+  quad1Gradient = getEntryDouble("Magnets", "quad1Gradient") * 1_T / 1_m;
+  quad2Gradient = getEntryDouble("Magnets", "quad2Gradient") * 1_T / 1_m;
+  quad3Gradient = getEntryDouble("Magnets", "quad3Gradient") * 1_T / 1_m;
 
   quadTripletFocusingEnergy =
       getEntryDouble("Magnets", "quadTripletFocusingEnergy") * 1_GeV;
