@@ -38,7 +38,8 @@ E320::E320RootDataReader::E320RootDataReader(const Config& config,
   m_outputSourceLinks.initialize(m_cfg.outputSourceLinks);
   m_outputClusterMatrices.initialize(m_cfg.outputClusterMatrices);
   m_outputDetSourceLinksIndices.initialize(m_cfg.outputDetSourceLinkIndices);
-  m_outputBpmSourceLinksIndices.initialize(m_cfg.outputBpmSourceLinkIndices);
+  m_outputConstraintSourceLinksIndices.initialize(
+      m_cfg.outputConstraintSourceLinkIndices);
   m_outputEventMetaData.initialize(m_cfg.outputEventMetaData);
 
   // Set eventId branch
@@ -115,7 +116,7 @@ ProcessCode E320::E320RootDataReader::read(const AlgorithmContext& ctx) {
     m_outputSourceLinks(ctx, {});
     m_outputClusterMatrices(ctx, {});
     m_outputDetSourceLinksIndices(ctx, {});
-    m_outputBpmSourceLinksIndices(ctx, {});
+    m_outputConstraintSourceLinksIndices(ctx, {});
     m_outputEventMetaData(ctx, {});
 
     // Return success flag
@@ -135,7 +136,7 @@ ProcessCode E320::E320RootDataReader::read(const AlgorithmContext& ctx) {
   std::vector<Acts::SourceLink> sourceLinks{};
   ClusterMatrixSet clusterMatrices{};
   std::vector<std::size_t> detSourceLinksIndices{};
-  std::vector<std::size_t> bpmSourceLinksIndices{};
+  std::vector<std::size_t> constraintSourceLinksIndices{};
   EventMetaData eventMetaData{};
 
   std::size_t eventId = std::get<0>(*it);
@@ -155,7 +156,7 @@ ProcessCode E320::E320RootDataReader::read(const AlgorithmContext& ctx) {
       m_outputSourceLinks(ctx, {});
       m_outputClusterMatrices(ctx, {});
       m_outputDetSourceLinksIndices(ctx, {});
-      m_outputBpmSourceLinksIndices(ctx, {});
+      m_outputConstraintSourceLinksIndices(ctx, {});
       m_outputEventMetaData(ctx, std::move(eventMetaData));
 
       // Return success flag
@@ -212,69 +213,24 @@ ProcessCode E320::E320RootDataReader::read(const AlgorithmContext& ctx) {
       m_outputSourceLinks(ctx, {});
       m_outputClusterMatrices(ctx, {});
       m_outputDetSourceLinksIndices(ctx, {});
-      m_outputBpmSourceLinksIndices(ctx, {});
+      m_outputConstraintSourceLinksIndices(ctx, {});
       m_outputEventMetaData(ctx, std::move(eventMetaData));
 
       // Return success flag
       return ProcessCode::SUCCESS;
-    }
-
-    for (const auto& bpmEv : m_detEvent->bpmEventBuffer) {
-      int sensitiveId = m_geoIdMap.at(bpmEv.id);
-      if (sensitiveId < m_cfg.minGeoId || sensitiveId > m_cfg.maxGeoId) {
-        continue;
-      }
-      geoId.setSensitive(sensitiveId);
-
-      double quadCenterX = 0;
-      double quadCenterY = 0;
-      switch (bpmEv.id) {
-        case 3156:
-          quadCenterX = goInst.quad0CenterShort;
-          quadCenterY = goInst.quad0CenterLong;
-          break;
-        case 3218:
-          quadCenterX = goInst.quad1CenterShort;
-          quadCenterY = goInst.quad1CenterLong;
-          break;
-        case 3265:
-          quadCenterX = goInst.quad2CenterShort;
-          quadCenterY = goInst.quad2CenterLong;
-          break;
-        case 3315:
-          quadCenterX = goInst.quad3CenterShort;
-          quadCenterY = goInst.quad3CenterLong;
-          break;
-        default:
-          throw std::runtime_error("Unknown BPM ID");
-      }
-
-      Acts::Vector2 hitLoc{bpmEv.meanY + quadCenterY,
-                           bpmEv.meanX - quadCenterX};
-      Acts::Vector3 hitGlob = m_cfg.surfaceMap.at(geoId)->localToGlobal(
-          ctx.geoContext, hitLoc, Acts::Vector3::UnitX());
-
-      // Estimate error
-      Acts::Vector2 stdDev(1_mm, 1_mm);
-      Acts::SquareMatrix2 cov = stdDev.cwiseProduct(stdDev).asDiagonal();
-
-      // Fill the measurement
-      SimpleSourceLink ssl(hitLoc, hitGlob, cov, geoId, eventId,
-                           sourceLinks.size());
-      bpmSourceLinksIndices.push_back(sourceLinks.size());
-      sourceLinks.push_back(Acts::SourceLink(ssl));
     }
   }
 
   ACTS_DEBUG("Sending " << sourceLinks.size() << " source links");
   ACTS_DEBUG("Sending " << detSourceLinksIndices.size()
                         << " det source link indices");
-  ACTS_DEBUG("Sending " << bpmSourceLinksIndices.size()
-                        << " bpm source link indices");
+  ACTS_DEBUG("Sending " << constraintSourceLinksIndices.size()
+                        << " constraint source link indices");
   m_outputSourceLinks(ctx, std::move(sourceLinks));
   m_outputClusterMatrices(ctx, std::move(clusterMatrices));
   m_outputDetSourceLinksIndices(ctx, std::move(detSourceLinksIndices));
-  m_outputBpmSourceLinksIndices(ctx, std::move(bpmSourceLinksIndices));
+  m_outputConstraintSourceLinksIndices(ctx,
+                                       std::move(constraintSourceLinksIndices));
   m_outputEventMetaData(ctx, std::move(eventMetaData));
 
   // Return success flag

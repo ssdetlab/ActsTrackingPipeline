@@ -43,8 +43,8 @@ class E320RootDataReader : public IReader {
     std::string outputClusterMatrices;
     /// Collection with the detector measurement data indices
     std::string outputDetSourceLinkIndices;
-    /// Collection with the BPM measurement data indices
-    std::string outputBpmSourceLinkIndices;
+    /// Collection with the constraint measurement data indices
+    std::string outputConstraintSourceLinkIndices;
     /// Collection with the event meta data
     std::string outputEventMetaData;
     /// The names of the input files
@@ -113,8 +113,8 @@ class E320RootDataReader : public IReader {
   WriteDataHandle<std::vector<std::size_t>> m_outputDetSourceLinksIndices{
       this, "OutputDetSourceLinksIndices"};
 
-  WriteDataHandle<std::vector<std::size_t>> m_outputBpmSourceLinksIndices{
-      this, "OutputBpmSourceLinksIndices"};
+  WriteDataHandle<std::vector<std::size_t>> m_outputConstraintSourceLinksIndices{
+      this, "OutputConstraintSourceLinksIndices"};
 
   WriteDataHandle<EventMetaData> m_outputEventMetaData{this, "OutputMetaData"};
 
