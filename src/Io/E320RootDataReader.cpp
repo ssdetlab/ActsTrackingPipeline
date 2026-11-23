@@ -71,9 +71,48 @@ E320::E320RootDataReader::E320RootDataReader(const Config& config,
     return std::get<0>(a) < std::get<0>(b);
   });
 
-  // Set data branch
+  //------------------------------------------------------------------
+  // Set the rest of the branches
+
+  // Detector event
   m_tree->SetBranchAddress(m_cfg.eventKey.c_str(), &m_detEvent);
 
+  // Estimated orbit position at the reference
+  m_tree->SetBranchAddress("orbitReferencePositionEst",
+                           &m_orbitReferencePositionEst);
+
+  // Estimated orbit momentum at the reference
+  m_tree->SetBranchAddress("orbitReferenceMomentumEst",
+                           &m_orbitReferenceMomentumEst);
+
+  // Estimated orbit fit covariance at the reference
+  m_tree->SetBranchAddress("orbitReferenceCov", &m_orbitReferenceCov);
+
+  // Beam bunch covariance at the reference
+  m_tree->SetBranchAddress("orbitReferenceBeamBunchCov",
+                           &m_orbitReferenceBeamBunchCov);
+
+  // Estimated orbit covariance due to the alignment uncertainty
+  m_tree->SetBranchAddress("orbitReferenceAlignmentCov",
+                           &m_orbitReferenceAlignmentCov);
+
+  // Estimated orbit covariance due to gradient-dependent mismodeling
+  m_tree->SetBranchAddress("orbitReferenceGradientSystematicCov",
+                           &m_orbitReferenceGradientSystematicCov);
+
+  // Estimated orbit shifts for different alignment samples
+  m_tree->SetBranchAddress("orbitReferenceAlignmentSampleShifts",
+                           &m_orbitReferenceAlignmentSampleShifts);
+
+  // Estimated orbit covariance due to the alignment sample uncertainty
+  m_tree->SetBranchAddress("orbitReferenceAlignmentSampleCov",
+                           &m_orbitReferenceAlignmentSampleCov);
+
+  // Orbit fit chi2
+  m_tree->SetBranchAddress("orbitReferenceFitChi2Est",
+                           &m_orbitReferenceFitChi2Est);
+
+  //------------------------------------------------------------------
   // Initialize geometry ids
   const auto& goInst = *E320::GeometryOptions::instance();
   m_geoIdMap = {{0, goInst.tcParameters.at(4).geoId},
@@ -85,6 +124,7 @@ E320::E320RootDataReader::E320RootDataReader(const Config& config,
                 {3218, goInst.bpm1Parameters.geoId},
                 {3265, goInst.bpm2Parameters.geoId},
                 {3315, goInst.bpm3Parameters.geoId}};
+  m_orbitReferenceSurfaceGeoId.setSensitive(goInst.ipSurfaceParameters.geoId);
 
   // Initialize measurement error map
   m_allpixErrors = goInst.allpixErrors;
@@ -136,7 +176,7 @@ ProcessCode E320::E320RootDataReader::read(const AlgorithmContext& ctx) {
   std::vector<Acts::SourceLink> sourceLinks{};
   ClusterMatrixSet clusterMatrices{};
   std::vector<std::size_t> detSourceLinksIndices{};
-  std::vector<std::size_t> constraintSourceLinksIndices{};
+  std::vector<std::size_t> constraintSourceLinkIndices{};
   EventMetaData eventMetaData{};
 
   std::size_t eventId = std::get<0>(*it);
@@ -219,18 +259,64 @@ ProcessCode E320::E320RootDataReader::read(const AlgorithmContext& ctx) {
       // Return success flag
       return ProcessCode::SUCCESS;
     }
+
+    // Include the orbit measurement
+    const auto* orbitRefSurface =
+        m_cfg.surfaceMap.at(m_orbitReferenceSurfaceGeoId);
+
+    Acts::Vector3 orbitHitGlobal(m_orbitReferencePositionEst->X(),
+                                 m_orbitReferencePositionEst->Y(),
+                                 m_orbitReferencePositionEst->Z());
+    orbitHitGlobal(goInst.primaryIdx) =
+        orbitRefSurface->center(ctx.geoContext)(goInst.primaryIdx);
+    Acts::Vector2 orbitHitLoc =
+        orbitRefSurface
+            ->globalToLocal(ctx.geoContext, orbitHitGlobal,
+                            Acts::Vector3::UnitX())
+            .value();
+
+    TVector3 onSurfaceDirection = m_orbitReferenceMomentumEst->Vect();
+    if (m_cfg.backwards) {
+      onSurfaceDirection *= -1;
+    }
+
+    Acts::ActsVector<ExtendedLocalSize> measLoc(
+        orbitHitLoc.x(), orbitHitLoc.y(), onSurfaceDirection.Phi(),
+        onSurfaceDirection.Theta());
+
+    Acts::ActsVector<ExtendedGlobalSize> measGlob(
+        orbitHitGlobal.x(), orbitHitGlobal.y(), orbitHitGlobal.z(),
+        onSurfaceDirection.X(), onSurfaceDirection.Y(), onSurfaceDirection.Z());
+
+    Acts::SquareMatrix4 measCov = Acts::SquareMatrix4::Zero();
+    for (std::size_t n = 0; n < 4; n++) {
+      for (std::size_t m = 0; m < 4; m++) {
+        double fitCovariance = (*m_orbitReferenceCov)(n, m);
+        double beamBunchCov = (*m_orbitReferenceBeamBunchCov)(n, m);
+        double alignmentCovariance = (*m_orbitReferenceAlignmentCov)(n, m);
+        double gradientCov = (*m_orbitReferenceGradientSystematicCov)(n, m);
+        double alignmentSampleCov = (*m_orbitReferenceAlignmentSampleCov)(n, m);
+        measCov(n, m) = fitCovariance + beamBunchCov + alignmentCovariance +
+                        gradientCov + alignmentSampleCov;
+      }
+    }
+    ExtendedSourceLink esl(measLoc, measGlob, measCov,
+                           m_orbitReferenceSurfaceGeoId, eventId,
+                           sourceLinks.size(), m_cfg.backwards);
+    constraintSourceLinkIndices.push_back(sourceLinks.size());
+    sourceLinks.push_back(Acts::SourceLink(esl));
   }
 
   ACTS_DEBUG("Sending " << sourceLinks.size() << " source links");
   ACTS_DEBUG("Sending " << detSourceLinksIndices.size()
                         << " det source link indices");
-  ACTS_DEBUG("Sending " << constraintSourceLinksIndices.size()
+  ACTS_DEBUG("Sending " << constraintSourceLinkIndices.size()
                         << " constraint source link indices");
   m_outputSourceLinks(ctx, std::move(sourceLinks));
   m_outputClusterMatrices(ctx, std::move(clusterMatrices));
   m_outputDetSourceLinksIndices(ctx, std::move(detSourceLinksIndices));
   m_outputConstraintSourceLinksIndices(ctx,
-                                       std::move(constraintSourceLinksIndices));
+                                       std::move(constraintSourceLinkIndices));
   m_outputEventMetaData(ctx, std::move(eventMetaData));
 
   // Return success flag

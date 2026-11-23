@@ -11,10 +11,14 @@
 #include "DetectorEvent.hpp"
 #include "TChain.h"
 #include "TFile.h"
+#include "TLorentzVector.h"
+#include "TMatrixD.h"
 #include "TTree.h"
+#include "TVector3.h"
 #include "TrackingPipeline/EventData/ClusterMatrix.hpp"
 #include "TrackingPipeline/EventData/E320EpicsParity.hpp"
 #include "TrackingPipeline/EventData/E320EventMetaData.hpp"
+#include "TrackingPipeline/EventData/ExtendedSourceLink.hpp"
 #include "TrackingPipeline/Geometry/E320GeometryOptions.hpp"
 #include "TrackingPipeline/Infrastructure/AlgorithmContext.hpp"
 #include "TrackingPipeline/Infrastructure/DataHandle.hpp"
@@ -26,6 +30,12 @@ namespace E320 {
 /// @brief E320-specific data reader
 class E320RootDataReader : public IReader {
  public:
+  /// Exntended sizes shorthands
+  static constexpr const std::size_t ExtendedLocalSize =
+      ExtendedSourceLink::localSubspaceSize;
+  static constexpr const std::size_t ExtendedGlobalSize =
+      ExtendedSourceLink::globalSubspaceSize;
+
   /// Particle hit shorthand
   using Hit = std::pair<std::size_t, std::size_t>;
 
@@ -69,6 +79,8 @@ class E320RootDataReader : public IReader {
     /// Surface map for high-precision local to global conversion
     std::unordered_map<Acts::GeometryIdentifier, const Acts::Surface*>
         surfaceMap;
+    /// Backwards propagation flag
+    bool backwards;
   };
 
   E320RootDataReader(const E320RootDataReader&) = delete;
@@ -113,8 +125,9 @@ class E320RootDataReader : public IReader {
   WriteDataHandle<std::vector<std::size_t>> m_outputDetSourceLinksIndices{
       this, "OutputDetSourceLinksIndices"};
 
-  WriteDataHandle<std::vector<std::size_t>> m_outputConstraintSourceLinksIndices{
-      this, "OutputConstraintSourceLinksIndices"};
+  WriteDataHandle<std::vector<std::size_t>>
+      m_outputConstraintSourceLinksIndices{
+          this, "OutputConstraintSourceLinksIndices"};
 
   WriteDataHandle<EventMetaData> m_outputEventMetaData{this, "OutputMetaData"};
 
@@ -130,6 +143,9 @@ class E320RootDataReader : public IReader {
   /// Geometry ID map between EUDAQ and ACTS
   std::unordered_map<std::uint8_t, std::size_t> m_geoIdMap;
 
+  /// Geometry ID of the orbit reference surface
+  Acts::GeometryIdentifier m_orbitReferenceSurfaceGeoId;
+
   /// Map of measurement cluster size to Allpix2 measurement errors
   std::unordered_map<std::size_t, std::pair<double, double>> m_allpixErrors;
 
@@ -142,8 +158,35 @@ class E320RootDataReader : public IReader {
   E320::GeometryOptions m_gOpt;
 
  protected:
-  /// Detector event handle
+  /// Detector event
   E320Io::DetectorEvent* m_detEvent = nullptr;
+
+  /// Estimated orbit position at the reference
+  TVector3* m_orbitReferencePositionEst = nullptr;
+
+  /// Estimated orbit momentum at the reference
+  TLorentzVector* m_orbitReferenceMomentumEst = nullptr;
+
+  /// Estimated orbit fit covariance at the reference
+  TMatrixD* m_orbitReferenceCov = nullptr;
+
+  /// Beam bunch covariance at the reference
+  TMatrixD* m_orbitReferenceBeamBunchCov = nullptr;
+
+  /// Estimated orbit covariance due to the alignment uncertainty
+  TMatrixD* m_orbitReferenceAlignmentCov = nullptr;
+
+  /// Estimated orbit covariance due to gradient-dependent mismodeling
+  TMatrixD* m_orbitReferenceGradientSystematicCov = nullptr;
+
+  /// Estimated orbit shifts for different alignment samples
+  std::vector<TVectorD>* m_orbitReferenceAlignmentSampleShifts = nullptr;
+
+  /// Estimated orbit covariance due to the alignment sample uncertainty
+  TMatrixD* m_orbitReferenceAlignmentSampleCov = nullptr;
+
+  /// Orbit fit chi2
+  double m_orbitReferenceFitChi2Est = 0;
 
   /// Event number handle
   ULong64_t m_eventId = 0;
