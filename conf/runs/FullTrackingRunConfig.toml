@@ -118,6 +118,10 @@ maxOccupancy = 1000
 # Cut on the maximum cluster size
 maxClusterSize = 4
 
+# Propagation direction for extended source link
+# invertion
+backwards = true
+
 [E320TrackParametersEstimator]
 # Number of GX2 fit iterations
 nIterations = 2

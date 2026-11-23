@@ -276,6 +276,7 @@ ProcessCode E320::E320RootDataReader::read(const AlgorithmContext& ctx) {
             .value();
 
     TVector3 onSurfaceDirection = m_orbitReferenceMomentumEst->Vect();
+    onSurfaceDirection *= 1.0 / onSurfaceDirection.Mag();
     if (m_cfg.backwards) {
       onSurfaceDirection *= -1;
     }
@@ -288,19 +289,40 @@ ProcessCode E320::E320RootDataReader::read(const AlgorithmContext& ctx) {
         orbitHitGlobal.x(), orbitHitGlobal.y(), orbitHitGlobal.z(),
         onSurfaceDirection.X(), onSurfaceDirection.Y(), onSurfaceDirection.Z());
 
-    Acts::SquareMatrix4 measCov = Acts::SquareMatrix4::Zero();
+    Acts::SquareMatrix4 orbitFitCov = Acts::SquareMatrix4::Zero();
+    Acts::SquareMatrix4 orbitBeamBunchCov = Acts::SquareMatrix4::Zero();
+    Acts::SquareMatrix4 orbitAlignmentCov = Acts::SquareMatrix4::Zero();
+    Acts::SquareMatrix4 orbitGradientCov = Acts::SquareMatrix4::Zero();
+    Acts::SquareMatrix4 orbitAlignmentSampleCov = Acts::SquareMatrix4::Zero();
     for (std::size_t n = 0; n < 4; n++) {
       for (std::size_t m = 0; m < 4; m++) {
-        double fitCovariance = (*m_orbitReferenceCov)(n, m);
-        double beamBunchCov = (*m_orbitReferenceBeamBunchCov)(n, m);
-        double alignmentCovariance = (*m_orbitReferenceAlignmentCov)(n, m);
-        double gradientCov = (*m_orbitReferenceGradientSystematicCov)(n, m);
-        double alignmentSampleCov = (*m_orbitReferenceAlignmentSampleCov)(n, m);
-        measCov(n, m) = fitCovariance + beamBunchCov + alignmentCovariance +
-                        gradientCov + alignmentSampleCov;
+        orbitFitCov(n, m) = (*m_orbitReferenceCov)(n, m);
+        orbitBeamBunchCov(n, m) = (*m_orbitReferenceBeamBunchCov)(n, m);
+        orbitAlignmentCov(n, m) = (*m_orbitReferenceAlignmentCov)(n, m);
+        orbitGradientCov(n, m) = (*m_orbitReferenceGradientSystematicCov)(n, m);
+        orbitAlignmentSampleCov(n, m) =
+            (*m_orbitReferenceAlignmentSampleCov)(n, m);
       }
     }
-    ExtendedSourceLink esl(measLoc, measGlob, measCov,
+    if (m_cfg.backwards) {
+      Acts::SquareMatrix4 backwardsJac =
+          Acts::Vector4(1, 1, 1, -1).asDiagonal();
+
+      orbitFitCov = backwardsJac * orbitFitCov * backwardsJac.transpose();
+      orbitBeamBunchCov =
+          backwardsJac * orbitBeamBunchCov * backwardsJac.transpose();
+      orbitAlignmentCov =
+          backwardsJac * orbitAlignmentCov * backwardsJac.transpose();
+      orbitGradientCov =
+          backwardsJac * orbitGradientCov * backwardsJac.transpose();
+      orbitAlignmentSampleCov =
+          backwardsJac * orbitAlignmentSampleCov * backwardsJac.transpose();
+    }
+    Acts::SquareMatrix4 orbitMeasCov = orbitFitCov + orbitBeamBunchCov +
+                                       orbitAlignmentCov + orbitGradientCov +
+                                       orbitAlignmentSampleCov;
+
+    ExtendedSourceLink esl(measLoc, measGlob, orbitMeasCov,
                            m_orbitReferenceSurfaceGeoId, eventId,
                            sourceLinks.size(), m_cfg.backwards);
     constraintSourceLinkIndices.push_back(sourceLinks.size());

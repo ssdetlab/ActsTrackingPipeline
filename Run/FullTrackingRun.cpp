@@ -303,8 +303,8 @@ int main() {
       getEntryStr("E320RootDataReader", "outputClusterMatrices");
   readerCfg.outputDetSourceLinkIndices =
       getEntryStr("E320RootDataReader", "outputDetSourceLinkIndices");
-  readerCfg.outputBpmSourceLinkIndices =
-      getEntryStr("E320RootDataReader", "outputBpmSourceLinkIndices");
+  readerCfg.outputConstraintSourceLinkIndices =
+      getEntryStr("E320RootDataReader", "outputContraintSourceLinkIndices");
   readerCfg.outputEventMetaData =
       getEntryStr("E320RootDataReader", "outputEventMetaData");
   readerCfg.treeName = getEntryStr("E320RootDataReader", "treeName");
@@ -319,6 +319,7 @@ int main() {
   readerCfg.maxOccupancy = getEntrySizeT("E320RootDataReader", "maxOccupancy");
   readerCfg.maxClusterSize =
       getEntrySizeT("E320RootDataReader", "maxClusterSize");
+  readerCfg.backwards = getEntryBool("E320RootDataReader", "backwards");
   readerCfg.minGeoId = goInst.tcParameters.front().geoId;
   readerCfg.maxGeoId = goInst.tcParameters.back().geoId;
   readerCfg.surfaceMap = surfaceMap;
