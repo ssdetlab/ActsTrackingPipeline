@@ -3,81 +3,89 @@
 #include "Acts/Definitions/Algebra.hpp"
 
 #include <algorithm>
-#include <array>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <limits>
+#include <stdexcept>
+#include <string>
 #include <tuple>
 #include <unordered_map>
 #include <vector>
 
 #include "TrackingPipeline/EventData/SimpleSourceLink.hpp"
-#include "TrackingPipeline/Geometry/detail/BinningValueUtils.hpp"
+
+namespace {
+
+/// @brief check the Hough space axis range and binning
+///
+/// @param min lower edge of the axis
+/// @param max upper edge of the axis
+/// @param nCells number of cells along the axis
+/// @param name axis name for the error message
+void checkHoughAxis(double min, double max, std::size_t nCells,
+                    const std::string &name) {
+  if (!(min < max)) {
+    throw std::invalid_argument("Invalid Hough space " + name + " range");
+  }
+  if (nCells == 0 || nCells > std::numeric_limits<std::uint16_t>::max()) {
+    throw std::invalid_argument("Invalid Hough space " + name + " binning");
+  }
+}
+
+/// @brief get the Hough space cell index along an axis
+///
+/// @param value value to bin
+/// @param min lower edge of the axis
+/// @param delta cell size along the axis
+/// @param nCells number of cells along the axis
+///
+/// @return cell index, -1 if the value is outside of [min, min + nCells * delta)
+std::int64_t getCellIdx(double value, double min, double delta,
+                        std::size_t nCells) {
+  double idx = std::floor((value - min) / delta);
+  if (!(idx >= 0) || idx >= static_cast<double>(nCells)) {
+    return -1;
+  }
+  return static_cast<std::int64_t>(idx);
+}
+
+}  // namespace
 
 std::vector<std::size_t> HoughTransformSeeder::findLineSourceLinks(
     const std::vector<Acts::SourceLink> &sourceLinks,
     const std::vector<std::size_t> &sourceLinksIndices,
-    const std::unordered_map<Acts::GeometryIdentifier, double> &geoPosMap,
-    const Acts::Vector3 &pointBL, const Acts::Vector3 &dirBL,
-    const Acts::Vector3 &pointTL, const Acts::Vector3 &dirTL,
-    const Acts::Vector3 &pointBR, const Acts::Vector3 &dirBR,
-    const Acts::Vector3 &pointTR, const Acts::Vector3 &dirTR,
-    const Acts::Vector3 &shift) {
+    const Acts::Vector3 &shift, double minSlopeLong, double maxSlopeLong,
+    double minInterceptLong, double maxInterceptLong, double minSlopeShort,
+    double maxSlopeShort, double minInterceptShort, double maxInterceptShort) {
   std::size_t primaryIdx = m_cfg.primaryIdx;
   std::size_t longIdx = m_cfg.longIdx;
   std::size_t shortIdx = m_cfg.shortIdx;
-
-  Acts::Vector3 normalPrimary = detail::indexToDirection(primaryIdx);
-
-  std::unordered_map<Acts::GeometryIdentifier, std::array<Acts::Vector3, 4>>
-      geoRefPointMap;
-  geoRefPointMap.reserve(geoPosMap.size());
-  for (const auto &[id, x] : geoPosMap) {
-    Acts::Vector3 meas = Acts::Vector3::Zero();
-    meas(primaryIdx) = x;
-    double ddBL =
-        (meas - pointBL).dot(normalPrimary) / dirBL.dot(normalPrimary);
-    double ddTL =
-        (meas - pointTL).dot(normalPrimary) / dirTL.dot(normalPrimary);
-
-    double ddBR =
-        (meas - pointBR).dot(normalPrimary) / dirBR.dot(normalPrimary);
-    double ddTR =
-        (meas - pointTR).dot(normalPrimary) / dirTR.dot(normalPrimary);
-
-    Acts::Vector3 refPointBL = pointBL + dirBL * ddBL;
-    Acts::Vector3 refPointTL = pointTL + dirTL * ddTL;
-
-    Acts::Vector3 refPointBR = pointBR + dirBR * ddBR;
-    Acts::Vector3 refPointTR = pointTR + dirTR * ddTR;
-
-    geoRefPointMap[id] = {refPointBL, refPointTL, refPointTR, refPointBR};
-  }
 
   std::vector<std::size_t> seedSourceLinkIdxs;
   for (std::size_t i = 0; i < sourceLinksIndices.size(); i++) {
     std::size_t idx = sourceLinksIndices.at(i);
     const auto &ssl = sourceLinks.at(idx).get<SimpleSourceLink>();
     Acts::Vector3 meas = ssl.parametersGlob() - shift;
-    const auto &id = ssl.geometryId();
+    double primary = meas(primaryIdx);
 
-    const Acts::Vector3 &point0 = geoRefPointMap.at(id).at(0);
-    const Acts::Vector3 &point1 = geoRefPointMap.at(id).at(1);
-    const Acts::Vector3 &point2 = geoRefPointMap.at(id).at(2);
-    const Acts::Vector3 &point3 = geoRefPointMap.at(id).at(3);
+    // The transverse coordinate of a line, slope * primary + intercept,
+    // is linear in both the slope and the intercept, so its extrema over
+    // the cell are reached at the cell corners
+    double minLong = std::min(minSlopeLong * primary, maxSlopeLong * primary) +
+                     minInterceptLong;
+    double maxLong = std::max(minSlopeLong * primary, maxSlopeLong * primary) +
+                     maxInterceptLong;
 
-    double maxLong = std::max(
-        {point0(longIdx), point1(longIdx), point2(longIdx), point3(longIdx)});
-    double minLong = std::min(
-        {point0(longIdx), point1(longIdx), point2(longIdx), point3(longIdx)});
+    double minShort =
+        std::min(minSlopeShort * primary, maxSlopeShort * primary) +
+        minInterceptShort;
+    double maxShort =
+        std::max(minSlopeShort * primary, maxSlopeShort * primary) +
+        maxInterceptShort;
 
-    double maxShort = std::max({point0(shortIdx), point1(shortIdx),
-                                point2(shortIdx), point3(shortIdx)});
-    double minShort = std::min({point0(shortIdx), point1(shortIdx),
-                                point2(shortIdx), point3(shortIdx)});
-
-    if (meas(longIdx) < maxLong && meas(longIdx) > minLong &&
-        meas(shortIdx) < maxShort && meas(shortIdx) > minShort) {
+    if (meas(longIdx) >= minLong && meas(longIdx) <= maxLong &&
+        meas(shortIdx) >= minShort && meas(shortIdx) <= maxShort) {
       seedSourceLinkIdxs.push_back(idx);
     }
   }
@@ -88,179 +96,84 @@ std::vector<std::size_t> HoughTransformSeeder::findLineSourceLinks(
 HoughTransformSeeder::HoughTransformSeeder(const Config &cfg) : m_cfg(cfg) {}
 
 std::vector<HoughTransformSeeder::HTSeed> HoughTransformSeeder::findSeeds(
-    const Acts::GeometryContext &gctx,
+    const Acts::GeometryContext & /*gctx*/,
     const std::vector<Acts::SourceLink> &sourceLinks,
     const std::vector<std::size_t> &sourceLinksIndices, const Options &opt) {
+  checkHoughAxis(opt.minSlopeLong, opt.maxSlopeLong, opt.nCellsSlopeLong,
+                 "long slope");
+  checkHoughAxis(opt.minInterceptLong, opt.maxInterceptLong,
+                 opt.nCellsInterceptLong, "long intercept");
+  checkHoughAxis(opt.minSlopeShort, opt.maxSlopeShort, opt.nCellsSlopeShort,
+                 "short slope");
+  checkHoughAxis(opt.minInterceptShort, opt.maxInterceptShort,
+                 opt.nCellsInterceptShort, "short intercept");
+
   std::vector<HoughTransformSeeder::HTSeed> seeds;
 
   std::size_t primaryIdx = m_cfg.primaryIdx;
   std::size_t longIdx = m_cfg.longIdx;
   std::size_t shortIdx = m_cfg.shortIdx;
 
-  double maxThetaLong =
-      std::atan(opt.boundBoxHalfLong / opt.boundBoxHalfPrimary);
-  double maxThetaShort =
-      std::atan(opt.boundBoxHalfShort / opt.boundBoxHalfPrimary);
+  double deltaSlopeLong =
+      (opt.maxSlopeLong - opt.minSlopeLong) / opt.nCellsSlopeLong;
+  double deltaInterceptLong =
+      (opt.maxInterceptLong - opt.minInterceptLong) / opt.nCellsInterceptLong;
 
-  double maxRhoLong = 2 * (opt.boundBoxHalfLong * std::sin(maxThetaLong) +
-                           opt.boundBoxHalfPrimary * std::cos(maxThetaLong));
-  double maxRhoShort = 2 * (opt.boundBoxHalfShort * std::sin(maxThetaShort) +
-                            opt.boundBoxHalfPrimary * std::cos(maxThetaShort));
-
-  double deltaThetaLong = M_PI / opt.nCellsThetaLong;
-  double deltaRhoLong = 2 * maxRhoLong / opt.nCellsRhoLong;
-
-  double deltaThetaShort = M_PI / opt.nCellsThetaShort;
-  double deltaRhoShort = 2 * maxRhoShort / opt.nCellsRhoShort;
+  double deltaSlopeShort =
+      (opt.maxSlopeShort - opt.minSlopeShort) / opt.nCellsSlopeShort;
+  double deltaInterceptShort = (opt.maxInterceptShort - opt.minInterceptShort) /
+                               opt.nCellsInterceptShort;
 
   Acts::Vector3 shift;
   shift(primaryIdx) = opt.boundBoxCenterPrimary;
   shift(longIdx) = opt.boundBoxCenterLong;
   shift(shortIdx) = opt.boundBoxCenterShort;
 
-  std::unordered_map<Acts::GeometryIdentifier, double> geoPosMap;
-  for (const auto &[id, surf] : opt.surfaceMap) {
-    geoPosMap.insert({id, (surf->center(gctx) - shift)(primaryIdx)});
-  }
-
   VotingMap votingMap;
   votingMap.reserve(sourceLinksIndices.size());
   fillVotingMap(votingMap, sourceLinks, sourceLinksIndices, opt, shift,
-                deltaThetaShort, deltaRhoShort, deltaThetaLong, deltaRhoLong,
-                maxRhoLong, maxRhoShort);
+                deltaSlopeLong, deltaInterceptLong, deltaSlopeShort,
+                deltaInterceptShort);
 
   for (auto bIt = votingMap.begin(); bIt != votingMap.end(); ++bIt) {
     const auto &[cell, count] = *bIt;
     if (count < opt.minXCount) {
       continue;
     }
-    auto [nThetaLong, nRhoLong, nThetaShort, nRhoShort] = cell;
+    auto [nSlopeLong, nInterceptLong, nSlopeShort, nInterceptShort] = cell;
 
-    // --------------------------------------------------
-    double thetaLongBL = deltaThetaLong * nThetaLong - M_PI_2;
-    double rhoLongBL = deltaRhoLong * nRhoLong - maxRhoLong;
+    // Cell edges
+    double minSlopeLong = opt.minSlopeLong + deltaSlopeLong * nSlopeLong;
+    double maxSlopeLong = minSlopeLong + deltaSlopeLong;
+    double minInterceptLong =
+        opt.minInterceptLong + deltaInterceptLong * nInterceptLong;
+    double maxInterceptLong = minInterceptLong + deltaInterceptLong;
 
-    double thetaShortBL = deltaThetaShort * nThetaShort - M_PI_2;
-    double rhoShortBL = deltaRhoShort * nRhoShort - maxRhoShort;
-
-    double aLongBL = -1.0 / std::tan(thetaLongBL);
-    double bLongBL = rhoLongBL / std::sin(thetaLongBL);
-
-    double aShortBL = -1.0 / std::tan(thetaShortBL);
-    double bShortBL = rhoShortBL / std::sin(thetaShortBL);
-
-    Acts::Vector3 dirBL;
-    dirBL(primaryIdx) = 1;
-    dirBL(longIdx) = aLongBL;
-    dirBL(shortIdx) = aShortBL;
-    dirBL.normalize();
-
-    Acts::Vector3 pointBL;
-    pointBL(primaryIdx) = 0;
-    pointBL(longIdx) = bLongBL;
-    pointBL(shortIdx) = bShortBL;
-
-    // --------------------------------------------------
-    double thetaLongTL = deltaThetaLong * nThetaLong - M_PI_2;
-    double rhoLongTL = deltaRhoLong * (nRhoLong + 1) - maxRhoLong;
-
-    double thetaShortTL = deltaThetaShort * nThetaShort - M_PI_2;
-    double rhoShortTL = deltaRhoShort * (nRhoShort + 1) - maxRhoShort;
-
-    double aLongTL = -1.0 / std::tan(thetaLongTL);
-    double bLongTL = rhoLongTL / std::sin(thetaLongTL);
-
-    double aShortTL = -1.0 / std::tan(thetaShortTL);
-    double bShortTL = rhoShortTL / std::sin(thetaShortTL);
-
-    Acts::Vector3 dirTL;
-    dirTL(primaryIdx) = 1;
-    dirTL(longIdx) = aLongTL;
-    dirTL(shortIdx) = aShortTL;
-    dirTL.normalize();
-
-    Acts::Vector3 pointTL;
-    pointTL(primaryIdx) = 0;
-    pointTL(longIdx) = bLongTL;
-    pointTL(shortIdx) = bShortTL;
-
-    // --------------------------------------------------
-    double thetaLongBR = deltaThetaLong * (nThetaLong + 1) - M_PI_2;
-    double rhoLongBR = deltaRhoLong * nRhoLong - maxRhoLong;
-
-    double thetaShortBR = deltaThetaShort * (nThetaShort + 1) - M_PI_2;
-    double rhoShortBR = deltaRhoShort * nRhoShort - maxRhoShort;
-
-    double aLongBR = -1.0 / std::tan(thetaLongBR);
-    double bLongBR = rhoLongBR / std::sin(thetaLongBR);
-
-    double aShortBR = -1.0 / std::tan(thetaShortBR);
-    double bShortBR = rhoShortBR / std::sin(thetaShortBR);
-
-    Acts::Vector3 dirBR;
-    dirBR(primaryIdx) = 1;
-    dirBR(longIdx) = aLongBR;
-    dirBR(shortIdx) = aShortBR;
-    dirBR.normalize();
-
-    Acts::Vector3 pointBR;
-    pointBR(primaryIdx) = 0;
-    pointBR(longIdx) = bLongBR;
-    pointBR(shortIdx) = bShortBR;
-
-    // --------------------------------------------------
-    double thetaLongTR = deltaThetaLong * (nThetaLong + 1) - M_PI_2;
-    double rhoLongTR = deltaRhoLong * (nRhoLong + 1) - maxRhoLong;
-
-    double thetaShortTR = deltaThetaShort * (nThetaShort + 1) - M_PI_2;
-    double rhoShortTR = deltaRhoShort * (nRhoShort + 1) - maxRhoShort;
-
-    double aLongTR = -1.0 / std::tan(thetaLongTR);
-    double bLongTR = rhoLongTR / std::sin(thetaLongTR);
-
-    double aShortTR = -1.0 / std::tan(thetaShortTR);
-    double bShortTR = rhoShortTR / std::sin(thetaShortTR);
-
-    Acts::Vector3 dirTR;
-    dirTR(primaryIdx) = 1;
-    dirTR(longIdx) = aLongTR;
-    dirTR(shortIdx) = aShortTR;
-    dirTR.normalize();
-
-    Acts::Vector3 pointTR;
-    pointTR(primaryIdx) = 0;
-    pointTR(longIdx) = bLongTR;
-    pointTR(shortIdx) = bShortTR;
+    double minSlopeShort = opt.minSlopeShort + deltaSlopeShort * nSlopeShort;
+    double maxSlopeShort = minSlopeShort + deltaSlopeShort;
+    double minInterceptShort =
+        opt.minInterceptShort + deltaInterceptShort * nInterceptShort;
+    double maxInterceptShort = minInterceptShort + deltaInterceptShort;
 
     std::vector<std::size_t> seedSourceLinksIndices = findLineSourceLinks(
-        sourceLinks, sourceLinksIndices, geoPosMap, pointBL, dirBL, pointTL,
-        dirTL, pointBR, dirBR, pointTR, dirTR, shift);
+        sourceLinks, sourceLinksIndices, shift, minSlopeLong, maxSlopeLong,
+        minInterceptLong, maxInterceptLong, minSlopeShort, maxSlopeShort,
+        minInterceptShort, maxInterceptShort);
     if (seedSourceLinksIndices.empty()) {
       continue;
     }
 
-    double thetaLong = deltaThetaLong * (nThetaLong + 0.5) - M_PI_2;
-    double rhoLong = deltaRhoLong * (nRhoLong + 0.5) - maxRhoLong;
-
-    double thetaShort = deltaThetaShort * (nThetaShort + 0.5) - M_PI_2;
-    double rhoShort = deltaRhoShort * (nRhoShort + 0.5) - maxRhoShort;
-
-    double aLong = -1.0 / std::tan(thetaLong);
-    double bLong = rhoLong / std::sin(thetaLong);
-
-    double aShort = -1.0 / std::tan(thetaShort);
-    double bShort = rhoShort / std::sin(thetaShort);
-
+    // Cell center
     Acts::Vector3 dir;
     dir(primaryIdx) = 1;
-    dir(longIdx) = aLong;
-    dir(shortIdx) = aShort;
+    dir(longIdx) = minSlopeLong + 0.5 * deltaSlopeLong;
+    dir(shortIdx) = minSlopeShort + 0.5 * deltaSlopeShort;
     dir.normalize();
 
     Acts::Vector3 point;
     point(primaryIdx) = 0;
-    point(longIdx) = bLong;
-    point(shortIdx) = bShort;
+    point(longIdx) = minInterceptLong + 0.5 * deltaInterceptLong;
+    point(shortIdx) = minInterceptShort + 0.5 * deltaInterceptShort;
     point += shift;
 
     seeds.emplace_back(std::move(point), std::move(dir),
@@ -272,9 +185,9 @@ std::vector<HoughTransformSeeder::HTSeed> HoughTransformSeeder::findSeeds(
 void HoughTransformSeeder::fillVotingMap(
     VotingMap &votingMap, const std::vector<Acts::SourceLink> &sourceLinks,
     const std::vector<std::size_t> &sourceLinksIndices, const Options &opt,
-    const Acts::Vector3 &shift, double deltaThetaShort, double deltaRhoShort,
-    double deltaThetaLong, double deltaRhoLong, double maxRhoLong,
-    double maxRhoShort) {
+    const Acts::Vector3 &shift, double deltaSlopeLong,
+    double deltaInterceptLong, double deltaSlopeShort,
+    double deltaInterceptShort) {
   std::unordered_map<int, std::vector<std::size_t>> clusters;
   clusters.reserve(sourceLinksIndices.size());
   for (std::size_t i = 0; i < sourceLinksIndices.size(); i++) {
@@ -292,7 +205,7 @@ void HoughTransformSeeder::fillVotingMap(
   std::size_t primaryIdx = m_cfg.primaryIdx;
   std::size_t longIdx = m_cfg.longIdx;
   std::size_t shortIdx = m_cfg.shortIdx;
-  for (std::size_t i = 0; i < geoIds.size() - 1; i++) {
+  for (std::size_t i = 0; i + 1 < geoIds.size(); i++) {
     int fId = geoIds.at(i);
     const auto &fClusters = clusters.at(fId);
     for (std::size_t j = i + 1; j < geoIds.size(); j++) {
@@ -314,27 +227,40 @@ void HoughTransformSeeder::fillVotingMap(
                                   shift;
           double diffPrimary = slPoint(primaryIdx) - flPrimary;
 
-          double thetaLong =
-              std::atan(diffPrimary / (flLong - slPoint(longIdx)));
-          double rhoLong =
-              flLong * std::sin(thetaLong) + flPrimary * std::cos(thetaLong);
+          // The Hough space lines of the measurements at the same
+          // primary position are parallel
+          if (diffPrimary == 0) {
+            continue;
+          }
 
-          double thetaShort =
-              std::atan(diffPrimary / (flShort - slPoint(shortIdx)));
-          double rhoShort =
-              flShort * std::sin(thetaShort) + flPrimary * std::cos(thetaShort);
+          // Intersection of the Hough space lines
+          // intercept = transverse - slope * primary
+          double slopeLong = (slPoint(longIdx) - flLong) / diffPrimary;
+          double interceptLong = flLong - slopeLong * flPrimary;
 
-          std::uint16_t cellThetaLong =
-              std::ceil((thetaLong + M_PI_2) / deltaThetaLong) - 1;
-          std::uint16_t cellRhoLong =
-              std::ceil((rhoLong + maxRhoLong) / deltaRhoLong) - 1;
-          std::uint16_t cellThetaShort =
-              std::ceil((thetaShort + M_PI_2) / deltaThetaShort) - 1;
-          std::uint16_t cellRhoShort =
-              std::ceil((rhoShort + maxRhoShort) / deltaRhoShort) - 1;
+          double slopeShort = (slPoint(shortIdx) - flShort) / diffPrimary;
+          double interceptShort = flShort - slopeShort * flPrimary;
 
-          votingMap[{cellThetaLong, cellRhoLong, cellThetaShort,
-                     cellRhoShort}]++;
+          std::int64_t cellSlopeLong = getCellIdx(
+              slopeLong, opt.minSlopeLong, deltaSlopeLong, opt.nCellsSlopeLong);
+          std::int64_t cellInterceptLong =
+              getCellIdx(interceptLong, opt.minInterceptLong,
+                         deltaInterceptLong, opt.nCellsInterceptLong);
+          std::int64_t cellSlopeShort =
+              getCellIdx(slopeShort, opt.minSlopeShort, deltaSlopeShort,
+                         opt.nCellsSlopeShort);
+          std::int64_t cellInterceptShort =
+              getCellIdx(interceptShort, opt.minInterceptShort,
+                         deltaInterceptShort, opt.nCellsInterceptShort);
+          if (cellSlopeLong < 0 || cellInterceptLong < 0 ||
+              cellSlopeShort < 0 || cellInterceptShort < 0) {
+            continue;
+          }
+
+          votingMap[{static_cast<std::uint16_t>(cellSlopeLong),
+                     static_cast<std::uint16_t>(cellInterceptLong),
+                     static_cast<std::uint16_t>(cellSlopeShort),
+                     static_cast<std::uint16_t>(cellInterceptShort)}]++;
         }
       }
     }

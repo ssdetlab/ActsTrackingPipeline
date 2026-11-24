@@ -136,19 +136,40 @@ maxChi2 = 100000000
 propDirection = 0
 
 [HoughTransformSeeder]
-# Number of HT bins along theta short axis
-nCellsThetaShort = 500
+# The HT space is spanned by the slopes and the intercepts
+# of the real space lines in the primary-long and the
+# primary-short planes. The intercepts are taken at the
+# primary position of the tracking chamber center. The
+# ranges are half-open [min, max) and the pairs of
+# measurements voting outside of them are discarded.
+#
+# Slope ranges cover the lines crossing all the chips
+# (+-tcHalf / tcHalfPrimary); intercept ranges cover all the
+# lines within the slope ranges passing through the tracking
+# chamber (+-(tcHalf + maxSlope * tcHalfPrimary)) [mm]. The
+# bin counts reproduce the cell sizes of the previous
+# (theta, rho) binning with 500 x 500 cells; the odd slope
+# bin counts center the zero slopes in a cell.
 
-# Number of HT bins along rho short axis
-nCellsRhoShort = 500
-# nCellsRhoShort = 2000
+# Range and number of HT bins along the long slope axis
+minSlopeLong = -0.374272
+maxSlopeLong = 0.374272
+nCellsSlopeLong = 119
 
-# Number of HT bins along theta long axis
-nCellsThetaLong = 500
+# Range and number of HT bins along the long intercept axis
+minInterceptLong = -29.94176
+maxInterceptLong = 29.94176
+nCellsInterceptLong = 175
 
-# Number of HT bins along rho long axis
-nCellsRhoLong = 500
-# nCellsRhoLong = 2000
+# Range and number of HT bins along the short slope axis
+minSlopeShort = -0.172032
+maxSlopeShort = 0.172032
+nCellsSlopeShort = 55
+
+# Range and number of HT bins along the short intercept axis
+minInterceptShort = -13.76256
+maxInterceptShort = 13.76256
+nCellsInterceptShort = 85
 
 # Cut on the minimum number of intersections
 # in a HT cell
