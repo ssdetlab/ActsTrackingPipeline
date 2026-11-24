@@ -429,28 +429,12 @@ int main() {
   htSeederCfg.shortIdx = goInst.shortIdx;
 
   HoughTransformSeeder::Options htSeederOpt;
-  htSeederOpt.minSlopeLong =
-      getEntryDouble("HoughTransformSeeder", "minSlopeLong");
-  htSeederOpt.maxSlopeLong =
-      getEntryDouble("HoughTransformSeeder", "maxSlopeLong");
   htSeederOpt.nCellsSlopeLong =
       getEntrySizeT("HoughTransformSeeder", "nCellsSlopeLong");
-  htSeederOpt.minInterceptLong =
-      getEntryDouble("HoughTransformSeeder", "minInterceptLong");
-  htSeederOpt.maxInterceptLong =
-      getEntryDouble("HoughTransformSeeder", "maxInterceptLong");
   htSeederOpt.nCellsInterceptLong =
       getEntrySizeT("HoughTransformSeeder", "nCellsInterceptLong");
-  htSeederOpt.minSlopeShort =
-      getEntryDouble("HoughTransformSeeder", "minSlopeShort");
-  htSeederOpt.maxSlopeShort =
-      getEntryDouble("HoughTransformSeeder", "maxSlopeShort");
   htSeederOpt.nCellsSlopeShort =
       getEntrySizeT("HoughTransformSeeder", "nCellsSlopeShort");
-  htSeederOpt.minInterceptShort =
-      getEntryDouble("HoughTransformSeeder", "minInterceptShort");
-  htSeederOpt.maxInterceptShort =
-      getEntryDouble("HoughTransformSeeder", "maxInterceptShort");
   htSeederOpt.nCellsInterceptShort =
       getEntrySizeT("HoughTransformSeeder", "nCellsInterceptShort");
   htSeederOpt.minXCount = getEntrySizeT("HoughTransformSeeder", "minXCount");
@@ -458,6 +442,10 @@ int main() {
   htSeederOpt.boundBoxCenterPrimary = goInst.tcCenterPrimary;
   htSeederOpt.boundBoxCenterLong = goInst.tcCenterLong;
   htSeederOpt.boundBoxCenterShort = goInst.tcCenterShort;
+
+  htSeederOpt.boundBoxHalfPrimary = goInst.tcHalfPrimary;
+  htSeederOpt.boundBoxHalfLong = goInst.tcHalfLong;
+  htSeederOpt.boundBoxHalfShort = goInst.tcHalfShort;
 
   // Seeding algorithm
   E320::E320SeedingAlgorithm::Config seedingAlgoCfg;
