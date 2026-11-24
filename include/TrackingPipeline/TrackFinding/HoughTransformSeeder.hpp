@@ -21,7 +21,7 @@ class HoughTransformSeeder {
   /// Short hands for the Hough space cell and voting map
   using Cell =
       std::tuple<std::uint16_t, std::uint16_t, std::uint16_t, std::uint16_t>;
-  using VotingMap = std::unordered_map<Cell, std::uint8_t, detail::TupleHash>;
+  using VotingMap = std::unordered_map<Cell, std::size_t, detail::TupleHash>;
 
   /// @brief Configuration struct
   struct Config {
