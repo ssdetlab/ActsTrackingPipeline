@@ -36,9 +36,32 @@ Acts::Result<Acts::Vector3> IdealQuadrupoleMagField::getField(
 }
 
 Acts::Result<Acts::Vector3> IdealQuadrupoleMagField::getFieldGradient(
-    const Acts::Vector3& /*position*/, Acts::ActsMatrix<3, 3>& /*derivative*/,
-    MagneticFieldProvider::Cache& /*cache*/) const {
-  return Acts::Result<Acts::Vector3>::success(Acts::Vector3::Zero());
+    const Acts::Vector3& position, Acts::ActsMatrix<3, 3>& derivative,
+    MagneticFieldProvider::Cache& cache) const {
+  const auto& quadCache = cache.as<Cache>();
+  double gradient = quadCache.m_gradient;
+
+  Acts::Vector3 global(position.x() - m_origin.x(), position.y() - m_origin.y(),
+                       position.z() - m_origin.z());
+
+  Acts::Vector3 local = m_rotation * global;
+  Acts::Vector3 localB(gradient * local.y(), gradient * local.x(), 0);
+  Acts::Vector3 globalB = m_rotation.inverse() * localB;
+
+  // Field jacobian in the local frame, (i, j) = dB_i / dx_j
+  Acts::ActsMatrix<3, 3> localDerivative = Acts::ActsMatrix<3, 3>::Zero();
+  localDerivative(0, 1) = gradient;
+  localDerivative(1, 0) = gradient;
+  derivative = m_rotation.inverse() * localDerivative * m_rotation;
+
+  bool outOfBounds = (local.x() > m_halfX || local.x() < -m_halfX) ||
+                     (local.y() > m_halfY || local.y() < -m_halfY) ||
+                     (local.z() > m_halfZ || local.z() < -m_halfZ);
+  if (outOfBounds) {
+    globalB *= 1e-16;
+    derivative *= 1e-16;
+  }
+  return Acts::Result<Acts::Vector3>::success(globalB);
 }
 
 Acts::MagneticFieldProvider::Cache IdealQuadrupoleMagField::makeCache(
