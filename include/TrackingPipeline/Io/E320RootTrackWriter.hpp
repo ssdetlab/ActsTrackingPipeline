@@ -229,6 +229,7 @@ class E320RootTrackWriter : public IWriter {
   std::vector<TVector2> m_smoothedAngleResiduals;
 
   std::vector<TVector2> m_leaveOneOutHitResiduals;
+  std::vector<TVector2> m_leaveOneOutAngleResiduals;
 
   /// KF pulls with respect to the measurements
   std::vector<TVector2> m_predictedHitPulls;
@@ -240,6 +241,7 @@ class E320RootTrackWriter : public IWriter {
   std::vector<TVector2> m_smoothedAnglePulls;
 
   std::vector<TVector2> m_leaveOneOutHitPulls;
+  std::vector<TVector2> m_leaveOneOutAnglePulls;
 
   /// KF states covariances
   std::vector<TMatrixD> m_predictedTrackStateCovs;
