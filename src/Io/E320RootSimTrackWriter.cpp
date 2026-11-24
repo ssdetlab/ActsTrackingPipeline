@@ -140,6 +140,8 @@ E320::E320RootSimTrackWriter::E320RootSimTrackWriter(const Config& config,
 
   m_tree->Branch("trueLeaveOneOutHitResiduals", &m_trueLeaveOneOutHitResiduals,
                  bufSize, splitLvl);
+  m_tree->Branch("trueLeaveOneOutAngleResiduals",
+                 &m_trueLeaveOneOutAngleResiduals, bufSize, splitLvl);
 
   // KF residuals with respect to the measurements
   m_tree->Branch("predictedHitResiduals", &m_predictedHitResiduals, bufSize,
@@ -158,6 +160,8 @@ E320::E320RootSimTrackWriter::E320RootSimTrackWriter(const Config& config,
 
   m_tree->Branch("leaveOneOutHitResiduals", &m_leaveOneOutHitResiduals, bufSize,
                  splitLvl);
+  m_tree->Branch("leaveOneOutAngleResiduals", &m_leaveOneOutAngleResiduals,
+                 bufSize, splitLvl);
 
   // KF pulls with respect to the true hits
   m_tree->Branch("truePredictedHitPulls", &m_truePredictedHitPulls, bufSize,
@@ -176,6 +180,8 @@ E320::E320RootSimTrackWriter::E320RootSimTrackWriter(const Config& config,
 
   m_tree->Branch("trueLeaveOneOutHitPulls", &m_trueLeaveOneOutHitPulls, bufSize,
                  splitLvl);
+  m_tree->Branch("trueLeaveOneOutAnglePulls", &m_trueLeaveOneOutAnglePulls,
+                 bufSize, splitLvl);
 
   // KF pulls with respect to the measurements
   m_tree->Branch("predictedHitPulls", &m_predictedHitPulls, bufSize, splitLvl);
@@ -190,6 +196,8 @@ E320::E320RootSimTrackWriter::E320RootSimTrackWriter(const Config& config,
                  splitLvl);
 
   m_tree->Branch("leaveOneOutHitPulls", &m_leaveOneOutHitPulls, bufSize,
+                 splitLvl);
+  m_tree->Branch("leaveOneOutAnglePulls", &m_leaveOneOutAnglePulls, bufSize,
                  splitLvl);
 
   // KF states covariances
@@ -336,9 +344,9 @@ ProcessCode E320::E320RootSimTrackWriter::write(const AlgorithmContext& ctx) {
   const auto& goInst = *E320::GeometryOptions::instance();
 
   // Default values for the magnets event-level data
-  m_quadTripletFocusingEnergy = goInst.quadTripletFocusingEnergy * 1_GeV;
-  m_quadTripletObjectZ = goInst.quadTripletObjectZ * 1_mm;
-  m_quadTripletImageZ = goInst.quadTripletImageZ * 1_mm;
+  m_quadTripletFocusingEnergy = goInst.quadTripletFocusingEnergy / 1_GeV;
+  m_quadTripletObjectZ = goInst.quadTripletObjectZ / 1_mm;
+  m_quadTripletImageZ = goInst.quadTripletImageZ / 1_mm;
   m_quadTripletM12 = goInst.quadTripletM12;
   m_quadTripletM34 = goInst.quadTripletM34;
 
@@ -549,6 +557,9 @@ ProcessCode E320::E320RootSimTrackWriter::write(const AlgorithmContext& ctx) {
     m_trueLeaveOneOutHitResiduals.clear();
     m_trueLeaveOneOutHitResiduals.reserve(nStates);
 
+    m_trueLeaveOneOutAngleResiduals.clear();
+    m_trueLeaveOneOutAngleResiduals.reserve(nStates);
+
     // KF residuals with respect to the measurements
     m_predictedHitResiduals.clear();
     m_predictedHitResiduals.reserve(nStates);
@@ -570,6 +581,9 @@ ProcessCode E320::E320RootSimTrackWriter::write(const AlgorithmContext& ctx) {
 
     m_leaveOneOutHitResiduals.clear();
     m_leaveOneOutHitResiduals.reserve(nStates);
+
+    m_leaveOneOutAngleResiduals.clear();
+    m_leaveOneOutAngleResiduals.reserve(nStates);
 
     // KF pulls with respect to the true hits
     m_truePredictedHitPulls.clear();
@@ -593,6 +607,9 @@ ProcessCode E320::E320RootSimTrackWriter::write(const AlgorithmContext& ctx) {
     m_trueLeaveOneOutHitPulls.clear();
     m_trueLeaveOneOutHitPulls.reserve(nStates);
 
+    m_trueLeaveOneOutAnglePulls.clear();
+    m_trueLeaveOneOutAnglePulls.reserve(nStates);
+
     // KF pulls with respect to the measurements
     m_predictedHitPulls.clear();
     m_predictedHitPulls.reserve(nStates);
@@ -614,6 +631,9 @@ ProcessCode E320::E320RootSimTrackWriter::write(const AlgorithmContext& ctx) {
 
     m_leaveOneOutHitPulls.clear();
     m_leaveOneOutHitPulls.reserve(nStates);
+
+    m_leaveOneOutAnglePulls.clear();
+    m_leaveOneOutAnglePulls.reserve(nStates);
 
     // KF states covariances
     m_predictedTrackStateCovs.clear();
@@ -740,8 +760,7 @@ ProcessCode E320::E320RootSimTrackWriter::write(const AlgorithmContext& ctx) {
 
       // Get the source link index and flags
       std::size_t sourceLinkIdx =
-          extended ? SimpleSourceLink(stateSourceLink.get<ExtendedSourceLink>())
-                         .index()
+          extended ? stateSourceLink.get<ExtendedSourceLink>().index()
                    : stateSourceLink.get<SimpleSourceLink>().index();
       bool backwards =
           extended ? stateSourceLink.get<ExtendedSourceLink>().isBackwards()
@@ -860,10 +879,8 @@ ProcessCode E320::E320RootSimTrackWriter::write(const AlgorithmContext& ctx) {
           ctx.geoContext, predictedHit, Acts::Vector3(1, 0, 0));
 
       // Get the predicted angles and momentum
-      Acts::Vector2 predictedAngle = Acts::Vector2::Zero();
-      if (extended) {
-        predictedAngle = predictedMeas.tail(2);
-      }
+      Acts::Vector2 predictedAngle(predictedPars(Acts::eBoundPhi),
+                                   predictedPars(Acts::eBoundTheta));
       double predictedOnSurfaceAbsMom =
           std::abs(1.0 / predictedPars(Acts::eBoundQOverP));
 
@@ -889,7 +906,11 @@ ProcessCode E320::E320RootSimTrackWriter::write(const AlgorithmContext& ctx) {
       Acts::Vector2 predictedHitResidual = measHit - predictedHit;
 
       // Get the residuals between the measurements and the predicted angles
-      Acts::Vector2 predictedAngleResidual = measAngle - predictedAngle;
+      // (no angle measurement for the non-extended source links)
+      Acts::Vector2 predictedAngleResidual = Acts::Vector2::Zero();
+      if (extended) {
+        predictedAngleResidual = measAngle - predictedAngle;
+      }
 
       // Covariance with respect to the true track hits
       Acts::ActsDynamicMatrix predictedMeasCovTruth =
@@ -898,14 +919,18 @@ ProcessCode E320::E320RootSimTrackWriter::write(const AlgorithmContext& ctx) {
 
       Acts::SquareMatrix2 predictedHitCovTruth =
           predictedMeasCovTruth.topLeftCorner(2, 2);
-      Acts::SquareMatrix2 predictedAngleCovTruth = Acts::SquareMatrix2::Zero();
-      if (extended) {
-        predictedAngleCovTruth = predictedMeasCovTruth.bottomRightCorner(2, 2);
-      }
+      // (the true angles exist for all the states)
+      Acts::SquareMatrix2 predictedAngleCovTruth =
+          predictedStateCov.block<2, 2>(Acts::eBoundPhi, Acts::eBoundPhi);
 
       // Covariance with respect to the measurement hits
       Acts::ActsDynamicMatrix predictedMeasCov =
-          measCov - predictedMeasCovTruth;
+          measCov + predictedMeasCovTruth;
+
+      // Decomposition of the predicted residual covariance, also used for
+      // the filtered and smoothed residual covariances below
+      const Eigen::LDLT<Acts::ActsDynamicMatrix> predictedMeasCovLdlt(
+          predictedMeasCov);
 
       Acts::SquareMatrix2 predictedHitCov =
           predictedMeasCov.topLeftCorner(2, 2);
@@ -917,13 +942,10 @@ ProcessCode E320::E320RootSimTrackWriter::write(const AlgorithmContext& ctx) {
       // Extract diagonals
       Acts::Vector2 predictedHitDiagTruth =
           predictedHitCovTruth.cwiseAbs().diagonal().cwiseInverse().cwiseSqrt();
-      Acts::Vector2 predictedAngleDiagTruth = Acts::Vector2::Zero();
-      if (extended) {
-        predictedAngleDiagTruth = predictedAngleCovTruth.cwiseAbs()
-                                      .diagonal()
-                                      .cwiseInverse()
-                                      .cwiseSqrt();
-      }
+      Acts::Vector2 predictedAngleDiagTruth = predictedAngleCovTruth.cwiseAbs()
+                                                  .diagonal()
+                                                  .cwiseInverse()
+                                                  .cwiseSqrt();
 
       Acts::Vector2 predictedHitDiag =
           predictedHitCov.cwiseAbs().diagonal().cwiseInverse().cwiseSqrt();
@@ -944,8 +966,11 @@ ProcessCode E320::E320RootSimTrackWriter::write(const AlgorithmContext& ctx) {
       Acts::Vector2 predictedHitPull =
           predictedHitDiag.cwiseProduct(measHit - predictedHit);
 
-      Acts::Vector2 predictedAnglePull =
-          predictedAngleDiag.cwiseProduct(measAngle - predictedAngle);
+      Acts::Vector2 predictedAnglePull = Acts::Vector2::Zero();
+      if (extended) {
+        predictedAnglePull =
+            predictedAngleDiag.cwiseProduct(predictedAngleResidual);
+      }
 
       // Store the KF predicted local hits
       m_predictedTrackHitsLocal.emplace_back(predictedHit.x(),
@@ -1003,9 +1028,14 @@ ProcessCode E320::E320RootSimTrackWriter::write(const AlgorithmContext& ctx) {
                                  predictedTrackStateCovData.GetArray());
       m_predictedTrackStateCovs.push_back(predictedTrackStateCov);
 
-      // Add to the track chi2
-      m_chi2Predicted += predictedHitPull.dot(predictedHitPull) +
-                         predictedAnglePull.dot(predictedAnglePull);
+      // Add to the track chi2 with the full measurement covariance
+      Acts::ActsDynamicVector predictedMeasResidual(measCov.rows());
+      predictedMeasResidual.head(2) = predictedHitResidual;
+      if (extended) {
+        predictedMeasResidual.tail(2) = predictedAngleResidual;
+      }
+      m_chi2Predicted += predictedMeasResidual.dot(
+          predictedMeasCovLdlt.solve(predictedMeasResidual));
 
       // ---------------------------------------------
       // Filtered state info
@@ -1024,10 +1054,8 @@ ProcessCode E320::E320RootSimTrackWriter::write(const AlgorithmContext& ctx) {
             ctx.geoContext, filteredHit, Acts::Vector3(1, 0, 0));
 
         // Get the filtered angles and momentum
-        Acts::Vector2 filteredAngle = Acts::Vector2::Zero();
-        if (extended) {
-          filteredAngle = filteredMeas.tail(2);
-        }
+        Acts::Vector2 filteredAngle(filteredPars(Acts::eBoundPhi),
+                                    filteredPars(Acts::eBoundTheta));
         double filteredOnSurfaceAbsMom =
             std::abs(1.0 / filteredPars[Acts::eBoundQOverP]);
 
@@ -1042,7 +1070,11 @@ ProcessCode E320::E320RootSimTrackWriter::write(const AlgorithmContext& ctx) {
         Acts::Vector2 filteredHitResidual = measHit - filteredHit;
 
         // Get the residuals between the measurements and the filtered angles
-        Acts::Vector2 filteredAngleResidual = measAngle - filteredAngle;
+        // (no angle measurement for the non-extended source links)
+        Acts::Vector2 filteredAngleResidual = Acts::Vector2::Zero();
+        if (extended) {
+          filteredAngleResidual = measAngle - filteredAngle;
+        }
 
         // Covariance with respect to the true track hits
         Acts::ActsDynamicMatrix filteredMeasCovTruth =
@@ -1051,14 +1083,21 @@ ProcessCode E320::E320RootSimTrackWriter::write(const AlgorithmContext& ctx) {
 
         Acts::SquareMatrix2 filteredHitCovTruth =
             filteredMeasCovTruth.topLeftCorner(2, 2);
-        Acts::SquareMatrix2 filteredAngleCovTruth = Acts::SquareMatrix2::Zero();
-        if (extended) {
-          filteredAngleCovTruth = filteredMeasCovTruth.bottomRightCorner(2, 2);
-        }
+        // (the true angles exist for all the states)
+        Acts::SquareMatrix2 filteredAngleCovTruth =
+            filteredStateCov.block<2, 2>(Acts::eBoundPhi, Acts::eBoundPhi);
 
         // Covariance with respect to the measurement hits
+        //
+        // V - H Pf H^T is evaluated as V S^-1 V, with V the measurement
+        // covariance and S the predicted residual covariance: the two are
+        // equal, but the latter is symmetric and positive definite by
+        // construction and does not cancel when the measurement dominates
+        // the prediction
         Acts::ActsDynamicMatrix filteredMeasCov =
-            measCov - filteredMeasCovTruth;
+            measCov * predictedMeasCovLdlt.solve(measCov);
+        filteredMeasCov =
+            0.5 * (filteredMeasCov + filteredMeasCov.transpose()).eval();
 
         Acts::SquareMatrix2 filteredHitCov =
             filteredMeasCov.topLeftCorner(2, 2);
@@ -1072,13 +1111,10 @@ ProcessCode E320::E320RootSimTrackWriter::write(const AlgorithmContext& ctx) {
                                                  .diagonal()
                                                  .cwiseInverse()
                                                  .cwiseSqrt();
-        Acts::Vector2 filteredAngleDiagTruth = Acts::Vector2::Zero();
-        if (extended) {
-          filteredAngleDiagTruth = filteredAngleCovTruth.cwiseAbs()
-                                       .diagonal()
-                                       .cwiseInverse()
-                                       .cwiseSqrt();
-        }
+        Acts::Vector2 filteredAngleDiagTruth = filteredAngleCovTruth.cwiseAbs()
+                                                   .diagonal()
+                                                   .cwiseInverse()
+                                                   .cwiseSqrt();
 
         Acts::Vector2 filteredHitDiag =
             filteredHitCov.cwiseAbs().diagonal().cwiseInverse().cwiseSqrt();
@@ -1099,8 +1135,11 @@ ProcessCode E320::E320RootSimTrackWriter::write(const AlgorithmContext& ctx) {
         Acts::Vector2 filteredHitPull =
             filteredHitDiag.cwiseProduct(measHit - filteredHit);
 
-        Acts::Vector2 filteredAnglePull =
-            filteredAngleDiag.cwiseProduct(measAngle - filteredAngle);
+        Acts::Vector2 filteredAnglePull = Acts::Vector2::Zero();
+        if (extended) {
+          filteredAnglePull =
+              filteredAngleDiag.cwiseProduct(filteredAngleResidual);
+        }
 
         // Store the KF filtered local hits
         m_filteredTrackHitsLocal.emplace_back(filteredHit.x(), filteredHit.y());
@@ -1157,9 +1196,14 @@ ProcessCode E320::E320RootSimTrackWriter::write(const AlgorithmContext& ctx) {
                                   filteredTrackStateCovData.GetArray());
         m_filteredTrackStateCovs.push_back(filteredTrackStateCov);
 
-        // Add to the track chi2
-        m_chi2Filtered += filteredHitPull.dot(filteredHitPull) +
-                          filteredAnglePull.dot(filteredAnglePull);
+        // Add to the track chi2 with the full measurement covariance
+        Acts::ActsDynamicVector filteredMeasResidual(measCov.rows());
+        filteredMeasResidual.head(2) = filteredHitResidual;
+        if (extended) {
+          filteredMeasResidual.tail(2) = filteredAngleResidual;
+        }
+        m_chi2Filtered += filteredMeasResidual.dot(
+            filteredMeasCov.ldlt().solve(filteredMeasResidual));
       }
 
       // ---------------------------------------------
@@ -1179,10 +1223,8 @@ ProcessCode E320::E320RootSimTrackWriter::write(const AlgorithmContext& ctx) {
             ctx.geoContext, smoothedHit, Acts::Vector3(1, 0, 0));
 
         // Get the smoothed angles and momentum
-        Acts::Vector2 smoothedAngle = Acts::Vector2::Zero();
-        if (extended) {
-          smoothedAngle = smoothedMeas.tail(2);
-        }
+        Acts::Vector2 smoothedAngle(smoothedPars(Acts::eBoundPhi),
+                                    smoothedPars(Acts::eBoundTheta));
         double smoothedOnSurfaceAbsMom =
             std::abs(1.0 / smoothedPars[Acts::eBoundQOverP]);
 
@@ -1197,7 +1239,11 @@ ProcessCode E320::E320RootSimTrackWriter::write(const AlgorithmContext& ctx) {
         Acts::Vector2 smoothedHitResidual = measHit - smoothedHit;
 
         // Get the residuals between the measurements and the smoothed angles
-        Acts::Vector2 smoothedAngleResidual = measAngle - smoothedAngle;
+        // (no angle measurement for the non-extended source links)
+        Acts::Vector2 smoothedAngleResidual = Acts::Vector2::Zero();
+        if (extended) {
+          smoothedAngleResidual = measAngle - smoothedAngle;
+        }
 
         // Covariance with respect to the true track hits
         Acts::ActsDynamicMatrix smoothedMeasCovTruth =
@@ -1206,14 +1252,24 @@ ProcessCode E320::E320RootSimTrackWriter::write(const AlgorithmContext& ctx) {
 
         Acts::SquareMatrix2 smoothedHitCovTruth =
             smoothedMeasCovTruth.topLeftCorner(2, 2);
-        Acts::SquareMatrix2 smoothedAngleCovTruth = Acts::SquareMatrix2::Zero();
-        if (extended) {
-          smoothedAngleCovTruth = smoothedMeasCovTruth.bottomRightCorner(2, 2);
-        }
+        // (the true angles exist for all the states)
+        Acts::SquareMatrix2 smoothedAngleCovTruth =
+            smoothedStateCov.block<2, 2>(Acts::eBoundPhi, Acts::eBoundPhi);
 
         // Covariance with respect to the measurement hits
+        //
+        // V - H Ps H^T is evaluated as V S^-1 V + H (Pf - Ps) H^T: the first
+        // term is the filtered residual covariance, the second one the
+        // information from the measurements after this state, positive
+        // semidefinite and exactly zero for the last measurement, where the
+        // smoothed state is the filtered one
         Acts::ActsDynamicMatrix smoothedMeasCov =
-            measCov - smoothedMeasCovTruth;
+            measCov * predictedMeasCovLdlt.solve(measCov) +
+            effectiveProjector *
+                (state.filteredCovariance() - smoothedStateCov) *
+                effectiveProjector.transpose();
+        smoothedMeasCov =
+            0.5 * (smoothedMeasCov + smoothedMeasCov.transpose()).eval();
 
         Acts::SquareMatrix2 smoothedHitCov =
             smoothedMeasCov.topLeftCorner(2, 2);
@@ -1227,13 +1283,10 @@ ProcessCode E320::E320RootSimTrackWriter::write(const AlgorithmContext& ctx) {
                                                  .diagonal()
                                                  .cwiseInverse()
                                                  .cwiseSqrt();
-        Acts::Vector2 smoothedAngleDiagTruth = Acts::Vector2::Zero();
-        if (extended) {
-          smoothedAngleDiagTruth = smoothedAngleCovTruth.cwiseAbs()
-                                       .diagonal()
-                                       .cwiseInverse()
-                                       .cwiseSqrt();
-        }
+        Acts::Vector2 smoothedAngleDiagTruth = smoothedAngleCovTruth.cwiseAbs()
+                                                   .diagonal()
+                                                   .cwiseInverse()
+                                                   .cwiseSqrt();
 
         Acts::Vector2 smoothedHitDiag =
             smoothedHitCov.cwiseAbs().diagonal().cwiseInverse().cwiseSqrt();
@@ -1254,8 +1307,11 @@ ProcessCode E320::E320RootSimTrackWriter::write(const AlgorithmContext& ctx) {
         Acts::Vector2 smoothedHitPull =
             smoothedHitDiag.cwiseProduct(measHit - smoothedHit);
 
-        Acts::Vector2 smoothedAnglePull =
-            smoothedAngleDiag.cwiseProduct(measAngle - smoothedAngle);
+        Acts::Vector2 smoothedAnglePull = Acts::Vector2::Zero();
+        if (extended) {
+          smoothedAnglePull =
+              smoothedAngleDiag.cwiseProduct(smoothedAngleResidual);
+        }
 
         // Store the KF smoothed local hits
         m_smoothedTrackHitsLocal.emplace_back(smoothedHit.x(), smoothedHit.y());
@@ -1312,68 +1368,128 @@ ProcessCode E320::E320RootSimTrackWriter::write(const AlgorithmContext& ctx) {
                                   smoothedTrackStateCovData.GetArray());
         m_smoothedTrackStateCovs.push_back(smoothedTrackStateCov);
 
-        // Get leave-one-out track state covariance
-        const Eigen::LDLT<Acts::SquareMatrix2>& measHitCovLdlt =
-            measHitCov.ldlt();
-        const Eigen::LDLT<Acts::BoundMatrix>& smoothedStateCovLdlt =
-            smoothedStateCov.ldlt();
+        // Get residual with respect to the measurement
+        Acts::ActsDynamicVector smoothedMeasResidual(measCov.rows());
+        smoothedMeasResidual.head(2) = smoothedHitResidual;
+        if (extended) {
+          smoothedMeasResidual.tail(2) = smoothedAngleResidual;
+        }
 
-        Acts::BoundMatrix measHitCovProjInv =
-            effectiveProjector.transpose() *
-            measHitCovLdlt.solve(effectiveProjector);
+        // Remove the measurement from the smoothed state (gain form):
+        // x_u = x_s - Ps H^T R^-1 r and Pu = Ps + Ps H^T R^-1 H Ps,
+        // with r the smoothed residual and R its covariance
+        const Eigen::LDLT<Acts::ActsDynamicMatrix> smoothedMeasCovLdlt(
+            smoothedMeasCov);
+        Acts::ActsDynamicMatrix smoothedProjStateCov =
+            effectiveProjector * smoothedStateCov;
+        Acts::ActsDynamicMatrix leaveOneOutGainTransposed =
+            smoothedMeasCovLdlt.solve(smoothedProjStateCov);
+
+        // Get leave-one-out track state covariance
         Acts::BoundMatrix leaveOneOutStateCov =
-            (smoothedStateCovLdlt.solve(Acts::BoundMatrix::Identity()) -
-             measHitCovProjInv)
-                .ldlt()
-                .solve(Acts::BoundMatrix::Identity());
+            smoothedStateCov +
+            smoothedProjStateCov.transpose() * leaveOneOutGainTransposed;
+        leaveOneOutStateCov =
+            0.5 *
+            (leaveOneOutStateCov + leaveOneOutStateCov.transpose()).eval();
 
         // Get leave-one-out track state
         Acts::BoundVector leaveOneOutStateEst =
-            leaveOneOutStateCov *
-            (smoothedStateCovLdlt.solve(Acts::BoundMatrix::Identity()) *
-                 smoothedPars -
-             effectiveProjector.transpose() *
-                 measHitCovLdlt.solve(Acts::SquareMatrix2::Identity()) *
-                 measHit);
+            smoothedPars -
+            leaveOneOutGainTransposed.transpose() * smoothedMeasResidual;
 
         // Get leave-one-out local hit
-        Acts::Vector2 leaveOneOutHit = effectiveProjector * leaveOneOutStateEst;
+        Acts::ActsDynamicVector leaveOneOutMeas =
+            effectiveProjector * leaveOneOutStateEst;
+        Acts::Vector2 leaveOneOutHit = leaveOneOutMeas.head(2);
 
         // Get leave-one-out global hit
         Acts::Vector3 leaveOneOutHitGlobal = referenceSurface.localToGlobal(
             ctx.geoContext, leaveOneOutHit, Acts::Vector3(1, 0, 0));
 
+        // Get leave-one-out angles
+        Acts::Vector2 leaveOneOutAngle(leaveOneOutStateEst(Acts::eBoundPhi),
+                                       leaveOneOutStateEst(Acts::eBoundTheta));
+
         // Get leave-one-out residuals with repspect to the true hit
-        Acts::Vector2 trueLeaveOneOutResidual = trueTrackHit - leaveOneOutHit;
+        Acts::Vector2 trueLeaveOneOutHitResidual =
+            trueTrackHit - leaveOneOutHit;
+
+        // Get leave-one-out angle residuals with repspect to the true angles
+        Acts::Vector2 trueLeaveOneOutAngleResidual =
+            trueTrackAngle - leaveOneOutAngle;
 
         // Get leave-one-out residuals with repspect to the measurement
-        Acts::Vector2 leaveOneOutResidual = measHit - leaveOneOutHit;
+        Acts::Vector2 leaveOneOutHitResidual = measHit - leaveOneOutHit;
+
+        // Get leave-one-out angle residuals with repspect to the measurement
+        // (no angle measurement for the non-extended source links)
+        Acts::Vector2 leaveOneOutAngleResidual = Acts::Vector2::Zero();
+        if (extended) {
+          leaveOneOutAngleResidual = measAngle - leaveOneOutAngle;
+        }
 
         // Leave-one-out covariance with respect to the true track hits
-        Acts::ActsDynamicMatrix leaveOneOutHitCovTruth =
+        Acts::ActsDynamicMatrix leaveOneOutMeasCovTruth =
             effectiveProjector * leaveOneOutStateCov *
             effectiveProjector.transpose();
 
+        Acts::SquareMatrix2 leaveOneOutHitCovTruth =
+            leaveOneOutMeasCovTruth.topLeftCorner(2, 2);
+        // (the true angles exist for all the states)
+        Acts::SquareMatrix2 leaveOneOutAngleCovTruth =
+            leaveOneOutStateCov.block<2, 2>(Acts::eBoundPhi, Acts::eBoundPhi);
+
+        // Leave-one-out covariance with respect to the measurement
+        Acts::ActsDynamicMatrix leaveOneOutMeasCov =
+            measCov + leaveOneOutMeasCovTruth;
+
+        Acts::SquareMatrix2 leaveOneOutHitCov =
+            leaveOneOutMeasCov.topLeftCorner(2, 2);
+        Acts::SquareMatrix2 leaveOneOutAngleCov = Acts::SquareMatrix2::Zero();
+        if (extended) {
+          leaveOneOutAngleCov = leaveOneOutMeasCov.bottomRightCorner(2, 2);
+        }
+
+        // Extract diagonals
         Acts::Vector2 leaveOneOutHitDiagTruth =
             leaveOneOutHitCovTruth.cwiseAbs()
                 .diagonal()
                 .cwiseInverse()
                 .cwiseSqrt();
-
-        // Leave-one-out covariance with respect to the measurement
-        Acts::ActsDynamicMatrix leaveOneOutHitCov =
-            measHitCov + leaveOneOutHitCovTruth;
+        Acts::Vector2 leaveOneOutAngleDiagTruth =
+            leaveOneOutAngleCovTruth.cwiseAbs()
+                .diagonal()
+                .cwiseInverse()
+                .cwiseSqrt();
 
         Acts::Vector2 leaveOneOutHitDiag =
             leaveOneOutHitCov.cwiseAbs().diagonal().cwiseInverse().cwiseSqrt();
+        Acts::Vector2 leaveOneOutAngleDiag = Acts::Vector2::Zero();
+        if (extended) {
+          leaveOneOutAngleDiag = leaveOneOutAngleCov.cwiseAbs()
+                                     .diagonal()
+                                     .cwiseInverse()
+                                     .cwiseSqrt();
+        }
 
-        // Get leave-one-out pull with repspect to the true hit
-        Acts::Vector2 trueLeaveOneOutPull =
-            leaveOneOutHitDiagTruth.cwiseProduct(trueTrackHit - leaveOneOutHit);
+        // Get leave-one-out pulls with repspect to the true hit
+        Acts::Vector2 trueLeaveOneOutHitPull =
+            leaveOneOutHitDiagTruth.cwiseProduct(trueLeaveOneOutHitResidual);
 
-        // Get leave-one-out pull with repspect to the measurement
-        Acts::Vector2 leaveOneOutPull =
-            leaveOneOutHitDiag.cwiseProduct(measHit - leaveOneOutHit);
+        Acts::Vector2 trueLeaveOneOutAnglePull =
+            leaveOneOutAngleDiagTruth.cwiseProduct(
+                trueLeaveOneOutAngleResidual);
+
+        // Get leave-one-out pulls with repspect to the measurement
+        Acts::Vector2 leaveOneOutHitPull =
+            leaveOneOutHitDiag.cwiseProduct(leaveOneOutHitResidual);
+
+        Acts::Vector2 leaveOneOutAnglePull = Acts::Vector2::Zero();
+        if (extended) {
+          leaveOneOutAnglePull =
+              leaveOneOutAngleDiag.cwiseProduct(leaveOneOutAngleResidual);
+        }
 
         // Store leave-one-out local hit
         m_leaveOneOutTrackHitsLocal.emplace_back(leaveOneOutHit.x(),
@@ -1384,21 +1500,33 @@ ProcessCode E320::E320RootSimTrackWriter::write(const AlgorithmContext& ctx) {
                                                   leaveOneOutHitGlobal.y(),
                                                   leaveOneOutHitGlobal.z());
 
-        // Store leave-one-out residual with respect to the true hit
-        m_trueLeaveOneOutHitResiduals.emplace_back(trueLeaveOneOutResidual.x(),
-                                                   trueLeaveOneOutResidual.y());
+        // Store leave-one-out residuals with respect to the true hit
+        m_trueLeaveOneOutHitResiduals.emplace_back(
+            trueLeaveOneOutHitResidual.x(), trueLeaveOneOutHitResidual.y());
 
-        // Store leave-one-out residual with respect to the measurement
-        m_leaveOneOutHitResiduals.emplace_back(leaveOneOutResidual.x(),
-                                               leaveOneOutResidual.y());
+        m_trueLeaveOneOutAngleResiduals.emplace_back(
+            trueLeaveOneOutAngleResidual(0), trueLeaveOneOutAngleResidual(1));
 
-        // Store leave-one-out pull with respect to the true hit
-        m_trueLeaveOneOutHitPulls.emplace_back(trueLeaveOneOutPull.x(),
-                                               trueLeaveOneOutPull.y());
+        // Store leave-one-out residuals with respect to the measurement
+        m_leaveOneOutHitResiduals.emplace_back(leaveOneOutHitResidual.x(),
+                                               leaveOneOutHitResidual.y());
 
-        // Store leave-one-out pull with respect to the measurement
-        m_leaveOneOutHitPulls.emplace_back(leaveOneOutPull.x(),
-                                           leaveOneOutPull.y());
+        m_leaveOneOutAngleResiduals.emplace_back(leaveOneOutAngleResidual(0),
+                                                 leaveOneOutAngleResidual(1));
+
+        // Store leave-one-out pulls with respect to the true hit
+        m_trueLeaveOneOutHitPulls.emplace_back(trueLeaveOneOutHitPull.x(),
+                                               trueLeaveOneOutHitPull.y());
+
+        m_trueLeaveOneOutAnglePulls.emplace_back(trueLeaveOneOutAnglePull(0),
+                                                 trueLeaveOneOutAnglePull(1));
+
+        // Store leave-one-out pulls with respect to the measurement
+        m_leaveOneOutHitPulls.emplace_back(leaveOneOutHitPull.x(),
+                                           leaveOneOutHitPull.y());
+
+        m_leaveOneOutAnglePulls.emplace_back(leaveOneOutAnglePull(0),
+                                             leaveOneOutAnglePull(1));
 
         // Store leave-one-out track state covariance
         TMatrixD leaveOneOutTrackStateCov(Acts::eBoundSize, Acts::eBoundSize);
@@ -1411,9 +1539,9 @@ ProcessCode E320::E320RootSimTrackWriter::write(const AlgorithmContext& ctx) {
                                      leaveOneOutTrackStateCovData.GetArray());
         m_leaveOneOutTrackStateCovs.push_back(leaveOneOutTrackStateCov);
 
-        // Add to the track chi2
-        m_chi2Smoothed += smoothedHitPull.dot(smoothedHitPull) +
-                          smoothedAnglePull.dot(smoothedAnglePull);
+        // Add to the track chi2 with the full measurement covariance
+        m_chi2Smoothed += smoothedMeasResidual.dot(
+            smoothedMeasCovLdlt.solve(smoothedMeasResidual));
       }
 
       // Store the true local hits
