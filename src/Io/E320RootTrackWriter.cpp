@@ -882,9 +882,14 @@ ProcessCode E320::E320RootTrackWriter::write(const AlgorithmContext& ctx) {
 
       m_predictedTrackStateCovs.push_back(predictedTrackStateCov);
 
-      // Add to the track chi2
-      m_chi2Predicted += predictedHitPull.dot(predictedHitPull) +
-                         predictedAnglePull.dot(predictedAnglePull);
+      // Add to the track chi2 with the full measurement covariance
+      Acts::ActsDynamicVector predictedMeasResidual(measCov.rows());
+      predictedMeasResidual.head(2) = predictedHitResidual;
+      if (extended) {
+        predictedMeasResidual.tail(2) = predictedAngleResidual;
+      }
+      m_chi2Predicted += predictedMeasResidual.dot(
+          predictedMeasCov.ldlt().solve(predictedMeasResidual));
 
       // ---------------------------------------------
       // Filtered state info
@@ -1001,9 +1006,14 @@ ProcessCode E320::E320RootTrackWriter::write(const AlgorithmContext& ctx) {
                                   filteredTrackStateCovData.GetArray());
         m_filteredTrackStateCovs.push_back(filteredTrackStateCov);
 
-        // Add to the track chi2
-        m_chi2Filtered += filteredHitPull.dot(filteredHitPull) +
-                          filteredAnglePull.dot(filteredAnglePull);
+        // Add to the track chi2 with the full measurement covariance
+        Acts::ActsDynamicVector filteredMeasResidual(measCov.rows());
+        filteredMeasResidual.head(2) = filteredHitResidual;
+        if (extended) {
+          filteredMeasResidual.tail(2) = filteredAngleResidual;
+        }
+        m_chi2Filtered += filteredMeasResidual.dot(
+            filteredMeasCov.ldlt().solve(filteredMeasResidual));
       }
 
       // ---------------------------------------------
@@ -1237,9 +1247,14 @@ ProcessCode E320::E320RootTrackWriter::write(const AlgorithmContext& ctx) {
                                      leaveOneOutTrackStateCovData.GetArray());
         m_leaveOneOutTrackStateCovs.push_back(leaveOneOutTrackStateCov);
 
-        // Add to the track chi2
-        m_chi2Smoothed += smoothedHitPull.dot(smoothedHitPull) +
-                          smoothedAnglePull.dot(smoothedAnglePull);
+        // Add to the track chi2 with the full measurement covariance
+        Acts::ActsDynamicVector smoothedMeasResidual(measCov.rows());
+        smoothedMeasResidual.head(2) = smoothedHitResidual;
+        if (extended) {
+          smoothedMeasResidual.tail(2) = smoothedAngleResidual;
+        }
+        m_chi2Smoothed += smoothedMeasResidual.dot(
+            smoothedMeasCov.ldlt().solve(smoothedMeasResidual));
       }
     }
 
