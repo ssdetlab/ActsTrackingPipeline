@@ -85,8 +85,8 @@ ProcessCode E320::E320KFTrackFittingAlgorithm::execute(
                                 trackContainer);
     if (res.ok()) {
       tracks.emplace_back(trackContainer.size() - 1,
-                          candidate.originParametersIndex, candidate.trackId,
-                          candidate.htXCount);
+                          candidate.originParametersIndex, idx,
+                          candidate.trackId, candidate.htXCount);
     }
   }
   tracks.shrink_to_fit();

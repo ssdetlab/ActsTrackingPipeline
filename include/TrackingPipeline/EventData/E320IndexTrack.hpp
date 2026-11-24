@@ -11,6 +11,8 @@ struct E320IndexTrack {
   std::size_t trackIndex;
   /// Index inside the guess origin parameters container
   std::size_t originParametersGuessIndex;
+  /// Index inside the magnetic field parameters container
+  std::size_t magneticFieldParametersIndex;
   /// Track ID
   int trackId;
   /// Number of HT cell intersection counts

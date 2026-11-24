@@ -397,9 +397,13 @@ ProcessCode E320::E320RootSimTrackWriter::write(const AlgorithmContext& ctx) {
 
   // Iterate over the fitted tracks
   for (std::size_t idx = 0; idx < inputTracks.size(); idx++) {
+    // Get track indices
+    const auto& trackIndices = inputTracks.at(idx);
+
     if (!m_cfg.mctxMagneticFields) {
       const auto& store = std::dynamic_pointer_cast<E320MagneticFieldStore>(
-          inputMagFieldParameters.at(idx));
+          inputMagFieldParameters.at(
+              trackIndices.magneticFieldParametersIndex));
 
       m_quadTripletFocusingEnergy = store->quadTripletFocusingEnergy;
       m_quadTripletObjectZ = store->quadTripletObjectZ;
@@ -438,9 +442,6 @@ ProcessCode E320::E320RootSimTrackWriter::write(const AlgorithmContext& ctx) {
                            1_T;
       }
     }
-
-    // Get track indices
-    const auto& trackIndices = inputTracks.at(idx);
 
     // Get the track object and the track id
     const auto& track = inputTrackContainer.getTrack(trackIndices.trackIndex);
