@@ -336,8 +336,12 @@ ProcessCode E320::E320RootTrackWriter::write(const AlgorithmContext& ctx) {
 
   // Iterate over the fitted tracks
   for (std::size_t idx = 0; idx < inputTracks.size(); idx++) {
+    // Get track indices
+    const auto& trackIndices = inputTracks.at(idx);
+
     if (!m_cfg.mctxMagneticFields) {
-      const auto& store = inputMagFieldParameters.at(idx);
+      const auto& store =
+          inputMagFieldParameters.at(trackIndices.magneticFieldParametersIndex);
 
       if (store->store.contains(goInst.quad1Id)) {
         m_quad1Grad = store->store.at(goInst.quad1Id)
@@ -370,9 +374,6 @@ ProcessCode E320::E320RootTrackWriter::write(const AlgorithmContext& ctx) {
                            Acts::UnitConstants::T;
       }
     }
-
-    // Get track indices
-    const auto& trackIndices = inputTracks.at(idx);
 
     // Get the track object and the track id
     const auto& track = inputTrackContainer.getTrack(trackIndices.trackIndex);
