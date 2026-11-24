@@ -726,25 +726,35 @@ ProcessCode E320::E320RootTrackWriter::write(const AlgorithmContext& ctx) {
       m_trackAngleCovs.push_back(trackAngleCov);
 
       // Store measurement cluster matrix info
-      const auto& clusterMatrix = inputClusterMatrices.at(sourceLinkIdx);
-      std::size_t clusterMatrixDim = clusterMatrix.matrixDim();
-      const Eigen::MatrixXi& pixelMatrix = clusterMatrix.matrix().transpose();
+      if (extended) {
+        // The extended source links carry no cluster
+        m_trackHitClusterMatrices.push_back(m_defaultClusterMatrix);
+        m_trackHitClusterMatrixLengthsX.push_back(0);
+        m_trackHitClusterMatrixLengthsY.push_back(0);
+        m_trackHitClusterMatrixSizes.push_back(0);
+        m_trackHitClusterMatrixShapeIds.push_back(0);
+        m_trackHitClusterMatrixPixels.emplace_back();
+      } else {
+        const auto& clusterMatrix = inputClusterMatrices.at(sourceLinkIdx);
+        std::size_t clusterMatrixDim = clusterMatrix.matrixDim();
+        const Eigen::MatrixXi& pixelMatrix = clusterMatrix.matrix().transpose();
 
-      // NOTE: ROOT and EIGEN have different indexing conventions,
-      // in case of the non-symmetric matrices need to transpose
-      TMatrixD trackHitClusterMatrix(clusterMatrixDim, clusterMatrixDim);
-      TArrayD trackHitClusterMatrixData(clusterMatrixDim * clusterMatrixDim);
-      for (std::size_t i = 0; i < clusterMatrixDim * clusterMatrixDim; i++) {
-        trackHitClusterMatrixData[i] = pixelMatrix(i);
+        // NOTE: ROOT and EIGEN have different indexing conventions,
+        // in case of the non-symmetric matrices need to transpose
+        TMatrixD trackHitClusterMatrix(clusterMatrixDim, clusterMatrixDim);
+        TArrayD trackHitClusterMatrixData(clusterMatrixDim * clusterMatrixDim);
+        for (std::size_t i = 0; i < clusterMatrixDim * clusterMatrixDim; i++) {
+          trackHitClusterMatrixData[i] = pixelMatrix(i);
+        }
+        trackHitClusterMatrix.Use(clusterMatrixDim, clusterMatrixDim,
+                                  trackHitClusterMatrixData.GetArray());
+        m_trackHitClusterMatrices.push_back(trackHitClusterMatrix);
+        m_trackHitClusterMatrixLengthsX.push_back(clusterMatrix.lengthX());
+        m_trackHitClusterMatrixLengthsY.push_back(clusterMatrix.lengthY());
+        m_trackHitClusterMatrixSizes.push_back(clusterMatrix.size());
+        m_trackHitClusterMatrixShapeIds.push_back(clusterMatrix.shapeId());
+        m_trackHitClusterMatrixPixels.push_back(clusterMatrix.pixels());
       }
-      trackHitClusterMatrix.Use(clusterMatrixDim, clusterMatrixDim,
-                                trackHitClusterMatrixData.GetArray());
-      m_trackHitClusterMatrices.push_back(trackHitClusterMatrix);
-      m_trackHitClusterMatrixLengthsX.push_back(clusterMatrix.lengthX());
-      m_trackHitClusterMatrixLengthsY.push_back(clusterMatrix.lengthY());
-      m_trackHitClusterMatrixSizes.push_back(clusterMatrix.size());
-      m_trackHitClusterMatrixShapeIds.push_back(clusterMatrix.shapeId());
-      m_trackHitClusterMatrixPixels.push_back(clusterMatrix.pixels());
 
       // ---------------------------------------------
       // Predicted state info
