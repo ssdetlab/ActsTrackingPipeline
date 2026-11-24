@@ -38,7 +38,7 @@ class E320RootSimClusterReader : public IReader {
     std::string outputSimClusters;
     /// Output detector source link indices
     std::string outputDetSourceLinkIndices;
-    /// Output BPM source link indices
+    /// Output constraint source link indices
     std::string outputConstraintSourceLinkIndices;
     /// The names of the input files
     std::vector<std::string> filePaths;

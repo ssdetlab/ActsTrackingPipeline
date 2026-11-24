@@ -316,7 +316,7 @@ ProcessCode E320RootSimClusterReader::read(const AlgorithmContext& ctx) {
   ACTS_DEBUG("Read " << detSourceLinkIndices.size()
                      << " detector source link indices");
   ACTS_DEBUG("Read " << constraintSourceLinkIndices.size()
-                     << " BPM source link indices");
+                     << " constraint source link indices");
 
   m_outputSourceLinks(ctx, std::move(sourceLinks));
   m_outputSimClusters(ctx, std::move(simClusters));
