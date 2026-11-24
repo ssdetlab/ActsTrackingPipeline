@@ -514,8 +514,11 @@ ProcessCode E320::E320RootTrackWriter::write(const AlgorithmContext& ctx) {
     m_predictedAngleResiduals.clear();
     m_predictedAngleResiduals.reserve(nStates);
 
-    m_leaveOneOutHitResiduals.clear();
-    m_leaveOneOutHitResiduals.reserve(nStates);
+    m_filteredAngleResiduals.clear();
+    m_filteredAngleResiduals.reserve(nStates);
+
+    m_smoothedAngleResiduals.clear();
+    m_smoothedAngleResiduals.reserve(nStates);
 
     m_leaveOneOutHitResiduals.clear();
     m_leaveOneOutHitResiduals.reserve(nStates);
