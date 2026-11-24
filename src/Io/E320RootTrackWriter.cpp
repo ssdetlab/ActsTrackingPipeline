@@ -170,6 +170,8 @@ E320::E320RootTrackWriter::E320RootTrackWriter(const Config& config,
 
   m_tree->Branch("leaveOneOutHitResiduals", &m_leaveOneOutHitResiduals, bufSize,
                  splitLvl);
+  m_tree->Branch("leaveOneOutAngleResiduals", &m_leaveOneOutAngleResiduals,
+                 bufSize, splitLvl);
 
   // KF pulls with respect to the measurements
   m_tree->Branch("predictedHitPulls", &m_predictedHitPulls, bufSize, splitLvl);
@@ -184,6 +186,8 @@ E320::E320RootTrackWriter::E320RootTrackWriter(const Config& config,
                  splitLvl);
 
   m_tree->Branch("leaveOneOutHitPulls", &m_leaveOneOutHitPulls, bufSize,
+                 splitLvl);
+  m_tree->Branch("leaveOneOutAnglePulls", &m_leaveOneOutAnglePulls, bufSize,
                  splitLvl);
 
   // KF states covariances
@@ -523,6 +527,9 @@ ProcessCode E320::E320RootTrackWriter::write(const AlgorithmContext& ctx) {
     m_leaveOneOutHitResiduals.clear();
     m_leaveOneOutHitResiduals.reserve(nStates);
 
+    m_leaveOneOutAngleResiduals.clear();
+    m_leaveOneOutAngleResiduals.reserve(nStates);
+
     // KF pulls with respect to the measurements
     m_predictedHitPulls.clear();
     m_predictedHitPulls.reserve(nStates);
@@ -544,6 +551,9 @@ ProcessCode E320::E320RootTrackWriter::write(const AlgorithmContext& ctx) {
 
     m_leaveOneOutHitPulls.clear();
     m_leaveOneOutHitPulls.reserve(nStates);
+
+    m_leaveOneOutAnglePulls.clear();
+    m_leaveOneOutAnglePulls.reserve(nStates);
 
     // KF states covariances
     m_predictedTrackStateCovs.clear();
@@ -1112,54 +1122,86 @@ ProcessCode E320::E320RootTrackWriter::write(const AlgorithmContext& ctx) {
         m_smoothedTrackStateCovs.push_back(smoothedTrackStateCov);
 
         // Get leave-one-out track state covariance
-        const Eigen::LDLT<Acts::SquareMatrix2>& measHitCovLdlt =
-            measHitCov.ldlt();
+        const Eigen::LDLT<Acts::ActsDynamicMatrix>& measCovLdlt =
+            measCov.ldlt();
         const Eigen::LDLT<Acts::BoundMatrix>& smoothedStateCovLdlt =
             smoothedStateCov.ldlt();
 
-        Acts::BoundMatrix measHitCovProjInv =
+        Acts::BoundMatrix smoothedStateCovInv =
+            smoothedStateCovLdlt.solve(Acts::BoundMatrix::Identity());
+        Acts::BoundMatrix measCovProjInv =
             effectiveProjector.transpose() *
-            measHitCovLdlt.solve(effectiveProjector);
+            measCovLdlt.solve(effectiveProjector);
         Acts::BoundMatrix leaveOneOutStateCov =
-            (smoothedStateCovLdlt.solve(Acts::BoundMatrix::Identity()) -
-             measHitCovProjInv)
+            (smoothedStateCovInv - measCovProjInv)
                 .ldlt()
                 .solve(Acts::BoundMatrix::Identity());
 
         // Get leave-one-out track state
         Acts::BoundVector leaveOneOutStateEst =
-            leaveOneOutStateCov *
-            (smoothedStateCovLdlt.solve(Acts::BoundMatrix::Identity()) *
-                 smoothedPars -
-             effectiveProjector.transpose() *
-                 measHitCovLdlt.solve(Acts::SquareMatrix2::Identity()) *
-                 measHit);
+            leaveOneOutStateCov * (smoothedStateCovInv * smoothedPars -
+                                   effectiveProjector.transpose() *
+                                       measCovLdlt.solve(calibratedPars));
 
         // Get leave-one-out local hit
-        Acts::Vector2 leaveOneOutHit = effectiveProjector * leaveOneOutStateEst;
+        Acts::ActsDynamicVector leaveOneOutMeas =
+            effectiveProjector * leaveOneOutStateEst;
+        Acts::Vector2 leaveOneOutHit = leaveOneOutMeas.head(2);
 
         // Get leave-one-out global hit
         Acts::Vector3 leaveOneOutHitGlobal = referenceSurface.localToGlobal(
             ctx.geoContext, leaveOneOutHit, Acts::Vector3(1, 0, 0));
 
+        // Get leave-one-out angles
+        Acts::Vector2 leaveOneOutAngle(leaveOneOutStateEst(Acts::eBoundPhi),
+                                       leaveOneOutStateEst(Acts::eBoundTheta));
+
         // Get leave-one-out residuals with repspect to the measurement
-        Acts::Vector2 leaveOneOutResidual = measHit - leaveOneOutHit;
+        Acts::Vector2 leaveOneOutHitResidual = measHit - leaveOneOutHit;
+
+        // Get leave-one-out angle residuals with repspect to the measurement
+        // (no angle measurement for the non-extended source links)
+        Acts::Vector2 leaveOneOutAngleResidual = Acts::Vector2::Zero();
+        if (extended) {
+          leaveOneOutAngleResidual = measAngle - leaveOneOutAngle;
+        }
 
         // Leave-one-out covariance with respect to the true track hits
-        Acts::ActsDynamicMatrix leaveOneOutHitCovTruth =
+        Acts::ActsDynamicMatrix leaveOneOutMeasCovTruth =
             effectiveProjector * leaveOneOutStateCov *
             effectiveProjector.transpose();
 
         // Leave-one-out covariance with respect to the measurement
-        Acts::ActsDynamicMatrix leaveOneOutHitCov =
-            measHitCov + leaveOneOutHitCovTruth;
+        Acts::ActsDynamicMatrix leaveOneOutMeasCov =
+            measCov + leaveOneOutMeasCovTruth;
 
+        Acts::SquareMatrix2 leaveOneOutHitCov =
+            leaveOneOutMeasCov.topLeftCorner(2, 2);
+        Acts::SquareMatrix2 leaveOneOutAngleCov = Acts::SquareMatrix2::Zero();
+        if (extended) {
+          leaveOneOutAngleCov = leaveOneOutMeasCov.bottomRightCorner(2, 2);
+        }
+
+        // Extract diagonals
         Acts::Vector2 leaveOneOutHitDiag =
             leaveOneOutHitCov.cwiseAbs().diagonal().cwiseInverse().cwiseSqrt();
+        Acts::Vector2 leaveOneOutAngleDiag = Acts::Vector2::Zero();
+        if (extended) {
+          leaveOneOutAngleDiag = leaveOneOutAngleCov.cwiseAbs()
+                                     .diagonal()
+                                     .cwiseInverse()
+                                     .cwiseSqrt();
+        }
 
-        // Get leave-one-out pull with repspect to the measurement
-        Acts::Vector2 leaveOneOutPull =
-            leaveOneOutHitDiag.cwiseProduct(measHit - leaveOneOutHit);
+        // Get leave-one-out pulls with repspect to the measurement
+        Acts::Vector2 leaveOneOutHitPull =
+            leaveOneOutHitDiag.cwiseProduct(leaveOneOutHitResidual);
+
+        Acts::Vector2 leaveOneOutAnglePull = Acts::Vector2::Zero();
+        if (extended) {
+          leaveOneOutAnglePull =
+              leaveOneOutAngleDiag.cwiseProduct(leaveOneOutAngleResidual);
+        }
 
         // Store leave-one-out local hit
         m_leaveOneOutTrackHitsLocal.emplace_back(leaveOneOutHit.x(),
@@ -1170,12 +1212,19 @@ ProcessCode E320::E320RootTrackWriter::write(const AlgorithmContext& ctx) {
                                                   leaveOneOutHitGlobal.y(),
                                                   leaveOneOutHitGlobal.z());
 
-        // Store leave-one-out residual with respect to the measurement
-        m_leaveOneOutHitResiduals.emplace_back(leaveOneOutResidual.x(),
-                                               leaveOneOutResidual.y());
-        // Store leave-one-out pull with respect to the measurement
-        m_leaveOneOutHitPulls.emplace_back(leaveOneOutPull.x(),
-                                           leaveOneOutPull.y());
+        // Store leave-one-out residuals with respect to the measurement
+        m_leaveOneOutHitResiduals.emplace_back(leaveOneOutHitResidual.x(),
+                                               leaveOneOutHitResidual.y());
+
+        m_leaveOneOutAngleResiduals.emplace_back(leaveOneOutAngleResidual(0),
+                                                 leaveOneOutAngleResidual(1));
+
+        // Store leave-one-out pulls with respect to the measurement
+        m_leaveOneOutHitPulls.emplace_back(leaveOneOutHitPull.x(),
+                                           leaveOneOutHitPull.y());
+
+        m_leaveOneOutAnglePulls.emplace_back(leaveOneOutAnglePull(0),
+                                             leaveOneOutAnglePull(1));
 
         // Store leave-one-out track state covariance
         TMatrixD leaveOneOutTrackStateCov(Acts::eBoundSize, Acts::eBoundSize);
