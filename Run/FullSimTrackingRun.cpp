@@ -287,11 +287,11 @@ int main() {
   trackingRefSurfTransform.translation() =
       // Acts::Vector3(-0.1_mm, 0, 0);
       Acts::Vector3(goInst.ipSurfaceCenterPrimary - 5_mm, 0, 0);
-      // Acts::Vector3(goInst.ipSurfaceCenterPrimary - 0.1_mm, 0, 0);
-      // Acts::Vector3(goInst.ipTcDistance - 0.1_mm, 0, 0);
-      // Acts::Vector3(
-      //     goInst.dipoleCenterPrimary + goInst.dipoleHalfPrimary + 0.01_mm, 0,
-      //     0);
+  // Acts::Vector3(goInst.ipSurfaceCenterPrimary - 0.1_mm, 0, 0);
+  // Acts::Vector3(goInst.ipTcDistance - 0.1_mm, 0, 0);
+  // Acts::Vector3(
+  //     goInst.dipoleCenterPrimary + goInst.dipoleHalfPrimary + 0.01_mm, 0,
+  //     0);
   trackingRefSurfTransform.rotate(refSurfToWorldRotationX);
   trackingRefSurfTransform.rotate(refSurfToWorldRotationY);
   trackingRefSurfTransform.rotate(refSurfToWorldRotationZ);
@@ -455,8 +455,8 @@ int main() {
       getEntryStr("E320SeedingAlgorithm", "inputSourceLinks");
   seedingAlgoCfg.inputDetSourceLinkIndices =
       getEntryStr("E320SeedingAlgorithm", "inputDetSourceLinkIndices");
-  seedingAlgoCfg.inputBpmSourceLinkIndices =
-      getEntryStr("E320SeedingAlgorithm", "inputBpmSourceLinkIndices");
+  seedingAlgoCfg.inputConstraintSourceLinkIndices =
+      getEntryStr("E320SeedingAlgorithm", "inputConstraintSourceLinkIndices");
   seedingAlgoCfg.outputSeeds =
       getEntryStr("E320SeedingAlgorithm", "outputSeeds");
   seedingAlgoCfg.outputTrackParameters =
