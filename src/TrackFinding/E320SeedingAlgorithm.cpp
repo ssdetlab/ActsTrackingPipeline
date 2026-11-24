@@ -30,14 +30,14 @@ ProcessCode E320SeedingAlgorithm::execute(const AlgorithmContext& ctx) const {
 
   const auto& inputSourceLinks = m_inputSourceLinks(ctx);
   const auto& inputDetSourceLinkIndices = m_inputDetSourceLinkIndices(ctx);
-  const auto& inputBpmSourceLinkIndices =
+  const auto& inputConstraintSourceLinkIndices =
       m_inputConstraintSourceLinkIndices(ctx);
 
   ACTS_DEBUG("Received " << inputSourceLinks.size() << " source links");
   ACTS_DEBUG("Received " << inputDetSourceLinkIndices.size()
                          << " detector source link indices");
-  ACTS_DEBUG("Received " << inputBpmSourceLinkIndices.size()
-                         << " bpm source link indices");
+  ACTS_DEBUG("Received " << inputConstraintSourceLinkIndices.size()
+                         << " constraint source link indices");
 
   if (inputDetSourceLinkIndices.empty()) {
     ACTS_DEBUG("Input is empty. Skipping");
@@ -105,8 +105,8 @@ ProcessCode E320SeedingAlgorithm::execute(const AlgorithmContext& ctx) const {
 
         std::vector<std::size_t> sourceLinksIdxs = seedIdxs;
         sourceLinksIdxs.insert(sourceLinksIdxs.end(),
-                               inputBpmSourceLinkIndices.begin(),
-                               inputBpmSourceLinkIndices.end());
+                               inputConstraintSourceLinkIndices.begin(),
+                               inputConstraintSourceLinkIndices.end());
 
         outSeeds.emplace_back(std::move(sourceLinksIdxs),
                               outTrackParameters.size(), outSeeds.size(),
