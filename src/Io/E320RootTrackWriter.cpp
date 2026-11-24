@@ -772,10 +772,8 @@ ProcessCode E320::E320RootTrackWriter::write(const AlgorithmContext& ctx) {
           ctx.geoContext, predictedHit, Acts::Vector3(1, 0, 0));
 
       // Get the predicted angles and momentum
-      Acts::Vector2 predictedAngle = Acts::Vector2::Zero();
-      if (extended) {
-        predictedAngle = predictedMeas.tail(2);
-      }
+      Acts::Vector2 predictedAngle(predictedPars(Acts::eBoundPhi),
+                                   predictedPars(Acts::eBoundTheta));
       double predictedOnSurfaceAbsMom =
           std::abs(1.0 / predictedPars(Acts::eBoundQOverP));
 
@@ -783,7 +781,11 @@ ProcessCode E320::E320RootTrackWriter::write(const AlgorithmContext& ctx) {
       Acts::Vector2 predictedHitResidual = measHit - predictedHit;
 
       // Get the residuals between the measurements and the predicted angles
-      Acts::Vector2 predictedAngleResidual = measAngle - predictedAngle;
+      // (no angle measurement for the non-extended source links)
+      Acts::Vector2 predictedAngleResidual = Acts::Vector2::Zero();
+      if (extended) {
+        predictedAngleResidual = measAngle - predictedAngle;
+      }
 
       // Covariance with respect to the true track hits
       Acts::ActsDynamicMatrix predictedMeasCovTruth =
@@ -821,8 +823,11 @@ ProcessCode E320::E320RootTrackWriter::write(const AlgorithmContext& ctx) {
       Acts::Vector2 predictedHitPull =
           predictedHitDiag.cwiseProduct(measHit - predictedHit);
 
-      Acts::Vector2 predictedAnglePull =
-          predictedAngleDiag.cwiseProduct(measAngle - predictedAngle);
+      Acts::Vector2 predictedAnglePull = Acts::Vector2::Zero();
+      if (extended) {
+        predictedAnglePull =
+            predictedAngleDiag.cwiseProduct(predictedAngleResidual);
+      }
 
       // Store the KF predicted local hits
       m_predictedTrackHitsLocal.emplace_back(predictedHit.x(),
@@ -888,10 +893,8 @@ ProcessCode E320::E320RootTrackWriter::write(const AlgorithmContext& ctx) {
             ctx.geoContext, filteredHit, Acts::Vector3(1, 0, 0));
 
         // Get the filtered angles and momentum
-        Acts::Vector2 filteredAngle = Acts::Vector2::Zero();
-        if (extended) {
-          filteredAngle = filteredMeas.tail(2);
-        }
+        Acts::Vector2 filteredAngle(filteredPars(Acts::eBoundPhi),
+                                    filteredPars(Acts::eBoundTheta));
         double filteredOnSurfaceAbsMom =
             std::abs(1.0 / filteredPars[Acts::eBoundQOverP]);
 
@@ -899,7 +902,11 @@ ProcessCode E320::E320RootTrackWriter::write(const AlgorithmContext& ctx) {
         Acts::Vector2 filteredHitResidual = measHit - filteredHit;
 
         // Get the residuals between the measurements and the filtered angles
-        Acts::Vector2 filteredAngleResidual = measAngle - filteredAngle;
+        // (no angle measurement for the non-extended source links)
+        Acts::Vector2 filteredAngleResidual = Acts::Vector2::Zero();
+        if (extended) {
+          filteredAngleResidual = measAngle - filteredAngle;
+        }
 
         // Covariance with respect to the true track hits
         Acts::ActsDynamicMatrix filteredMeasCovTruth =
@@ -937,8 +944,11 @@ ProcessCode E320::E320RootTrackWriter::write(const AlgorithmContext& ctx) {
         Acts::Vector2 filteredHitPull =
             filteredHitDiag.cwiseProduct(measHit - filteredHit);
 
-        Acts::Vector2 filteredAnglePull =
-            filteredAngleDiag.cwiseProduct(measAngle - filteredAngle);
+        Acts::Vector2 filteredAnglePull = Acts::Vector2::Zero();
+        if (extended) {
+          filteredAnglePull =
+              filteredAngleDiag.cwiseProduct(filteredAngleResidual);
+        }
 
         // Store the KF filtered local hits
         m_filteredTrackHitsLocal.emplace_back(filteredHit.x(), filteredHit.y());
@@ -1003,10 +1013,8 @@ ProcessCode E320::E320RootTrackWriter::write(const AlgorithmContext& ctx) {
             ctx.geoContext, smoothedHit, Acts::Vector3(1, 0, 0));
 
         // Get the smoothed angles and momentum
-        Acts::Vector2 smoothedAngle = Acts::Vector2::Zero();
-        if (extended) {
-          smoothedAngle = smoothedMeas.tail(2);
-        }
+        Acts::Vector2 smoothedAngle(smoothedPars(Acts::eBoundPhi),
+                                    smoothedPars(Acts::eBoundTheta));
         double smoothedOnSurfaceAbsMom =
             std::abs(1.0 / smoothedPars[Acts::eBoundQOverP]);
 
@@ -1014,7 +1022,11 @@ ProcessCode E320::E320RootTrackWriter::write(const AlgorithmContext& ctx) {
         Acts::Vector2 smoothedHitResidual = measHit - smoothedHit;
 
         // Get the residuals between the measurements and the smoothed angles
-        Acts::Vector2 smoothedAngleResidual = measAngle - smoothedAngle;
+        // (no angle measurement for the non-extended source links)
+        Acts::Vector2 smoothedAngleResidual = Acts::Vector2::Zero();
+        if (extended) {
+          smoothedAngleResidual = measAngle - smoothedAngle;
+        }
 
         // Covariance with respect to the true track hits
         Acts::ActsDynamicMatrix smoothedMeasCovTruth =
@@ -1052,8 +1064,11 @@ ProcessCode E320::E320RootTrackWriter::write(const AlgorithmContext& ctx) {
         Acts::Vector2 smoothedHitPull =
             smoothedHitDiag.cwiseProduct(measHit - smoothedHit);
 
-        Acts::Vector2 smoothedAnglePull =
-            smoothedAngleDiag.cwiseProduct(measAngle - smoothedAngle);
+        Acts::Vector2 smoothedAnglePull = Acts::Vector2::Zero();
+        if (extended) {
+          smoothedAnglePull =
+              smoothedAngleDiag.cwiseProduct(smoothedAngleResidual);
+        }
 
         // Store the KF smoothed local hits
         m_smoothedTrackHitsLocal.emplace_back(smoothedHit.x(), smoothedHit.y());
