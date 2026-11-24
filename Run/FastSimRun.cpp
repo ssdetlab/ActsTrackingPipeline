@@ -4,7 +4,6 @@
 #include "Acts/Navigation/DetectorNavigator.hpp"
 #include "Acts/Plugins/Json/JsonMaterialDecorator.hpp"
 #include "Acts/Plugins/Json/MaterialMapJsonConverter.hpp"
-#include "Acts/Propagator/EigenStepper.hpp"
 #include "Acts/Utilities/Logger.hpp"
 #include <Acts/Definitions/Algebra.hpp>
 #include <Acts/Definitions/PdgParticle.hpp>
@@ -31,6 +30,7 @@
 #include "TrackingPipeline/Io/DummyReader.hpp"
 #include "TrackingPipeline/Io/E320MagneticFieldWriter.hpp"
 #include "TrackingPipeline/Io/E320RootSimClusterWriter.hpp"
+#include "TrackingPipeline/Propagation/FieldGradientEigenStepper.hpp"
 #include "TrackingPipeline/Simulation/ClusterSizeBasedDigitizer.hpp"
 #include "TrackingPipeline/Simulation/ConstantMultiplicityGenerator.hpp"
 #include "TrackingPipeline/Simulation/ConvergingBeamGenerator.hpp"
@@ -293,7 +293,7 @@ int main() {
 
   Acts::Experimental::DetectorNavigator measCreatorNavigator(
       cptNavCfg, Acts::getDefaultLogger("DetectorNavigator", logLevel));
-  Acts::EigenStepper<> measCreatorStepper(field);
+  FieldGradientEigenStepper measCreatorStepper(field);
 
   Propagator measCreatorPropagator(std::move(measCreatorStepper),
                                    std::move(measCreatorNavigator));

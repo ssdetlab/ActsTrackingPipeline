@@ -3,7 +3,6 @@
 #include "Acts/Navigation/DetectorNavigator.hpp"
 #include "Acts/Propagator/AbortList.hpp"
 #include "Acts/Propagator/ActionList.hpp"
-#include "Acts/Propagator/EigenStepper.hpp"
 #include "Acts/Propagator/Propagator.hpp"
 #include "Acts/Propagator/StandardAborters.hpp"
 #include "Acts/TrackFitting/GainMatrixSmoother.hpp"
@@ -11,11 +10,13 @@
 #include "Acts/TrackFitting/KalmanFitter.hpp"
 #include "ActsAlignment/Kernel/Alignment.hpp"
 
+#include "TrackingPipeline/Propagation/FieldGradientEigenStepper.hpp"
+
 /// -----------------------------------------------
 /// Propagator definitions
 
 using Navigator = Acts::Experimental::DetectorNavigator;
-using Stepper = Acts::EigenStepper<>;
+using Stepper = FieldGradientEigenStepper;
 using Propagator = Acts::Propagator<Stepper, Navigator>;
 
 /// -----------------------------------------------
@@ -28,7 +29,7 @@ using KFFitterActionList = Acts::ActionList<>;
 using KFFitterAbortList = Acts::AbortList<Acts::EndOfWorldReached>;
 
 using KFFitterPropagator =
-    Acts::Propagator<Acts::EigenStepper<>,
+    Acts::Propagator<FieldGradientEigenStepper,
                      Acts::Experimental::DetectorNavigator>;
 
 using KFFitterTrackContainerBackend = Acts::VectorTrackContainer;

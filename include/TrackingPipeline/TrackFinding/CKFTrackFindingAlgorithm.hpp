@@ -3,7 +3,6 @@
 #include "Acts/EventData/TrackContainer.hpp"
 #include "Acts/EventData/VectorTrackContainer.hpp"
 #include "Acts/Navigation/DetectorNavigator.hpp"
-#include "Acts/Propagator/EigenStepper.hpp"
 #include "Acts/TrackFinding/CombinatorialKalmanFilter.hpp"
 
 #include <cstddef>
@@ -13,6 +12,7 @@
 #include "TrackingPipeline/EventData/SimpleSourceLink.hpp"
 #include "TrackingPipeline/Infrastructure/DataHandle.hpp"
 #include "TrackingPipeline/Infrastructure/IAlgorithm.hpp"
+#include "TrackingPipeline/Propagation/FieldGradientEigenStepper.hpp"
 
 /// The map(-like) container accessor
 template <typename container_t>
@@ -68,7 +68,7 @@ class CKFTrackFindingAlgorithm : public IAlgorithm {
   using ActionList = Acts::ActionList<>;
   using AbortList = Acts::AbortList<Acts::EndOfWorldReached>;
 
-  using Propagator = Acts::Propagator<Acts::EigenStepper<>,
+  using Propagator = Acts::Propagator<FieldGradientEigenStepper,
                                       Acts::Experimental::DetectorNavigator>;
   /// Track containers
   using TrackContainer =
