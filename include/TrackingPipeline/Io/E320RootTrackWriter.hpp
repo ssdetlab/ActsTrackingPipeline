@@ -177,6 +177,10 @@ class E320RootTrackWriter : public IWriter {
   /// Measurements cluster matrices
   std::vector<TMatrixD> m_trackHitClusterMatrices;
 
+  /// Cluster matrix of the measurements without clusters,
+  /// e.g. the extended source links: 1x1 zero matrix
+  const TMatrixD m_defaultClusterMatrix{1, 1};
+
   /// Measurements cluster matrices extents in local X
   std::vector<std::size_t> m_trackHitClusterMatrixLengthsX;
 
