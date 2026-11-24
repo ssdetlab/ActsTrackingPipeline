@@ -53,7 +53,7 @@ class E320RootTrackWriter : public IWriter {
     std::string treeName;
     /// Output file path
     std::string filePath;
-    /// Flag to extract the magnetic fields from the 
+    /// Flag to extract the magnetic fields from the
     /// event magnetic field context
     bool mctxMagneticFields;
   };
@@ -136,6 +136,21 @@ class E320RootTrackWriter : public IWriter {
 
   /// Event EPICS DAQ number
   std::size_t m_epicsDAQNumber = 0;
+
+  /// Quadrupole triplet focuing energy
+  double m_quadTripletFocusingEnergy = 0;
+
+  /// Quadrupole triplet object z
+  double m_quadTripletObjectZ = 0;
+
+  /// Quadrupole triplet image z
+  double m_quadTripletImageZ = 0;
+
+  /// Quadrupole triplet M12 transport matrix element
+  double m_quadTripletM12 = 0;
+
+  /// Quadrupole triplet M34 transport matrix element
+  double m_quadTripletM34 = 0;
 
   /// Magnet configuration as seen by track
   double m_quad1Grad = 0;

@@ -13,8 +13,8 @@
 #include "TrackingPipeline/EventData/SimpleSourceLink.hpp"
 #include "TrackingPipeline/Geometry/E320GeometryOptions.hpp"
 #include "TrackingPipeline/MagneticField/ConstantMagField.hpp"
+#include "TrackingPipeline/MagneticField/E320MagneticFieldStore.hpp"
 #include "TrackingPipeline/MagneticField/IdealQuadrupoleMagField.hpp"
-#include "TrackingPipeline/MagneticField/MagneticFieldStore.hpp"
 
 E320::E320RootTrackWriter::E320RootTrackWriter(const Config& config,
                                                Acts::Logging::Level level)
@@ -54,6 +54,23 @@ E320::E320RootTrackWriter::E320RootTrackWriter(const Config& config,
 
   // Event EPICS DAQ number
   m_tree->Branch("epicsDAQNumber", &m_epicsDAQNumber, bufSize, splitLvl);
+
+  // Quadrupole triplet focuing energy
+  m_tree->Branch("quadTripletFocusingEnergy", &m_quadTripletFocusingEnergy,
+                 bufSize, splitLvl);
+
+  // Quadrupole triplet object z
+  m_tree->Branch("quadTripletObjectZ", &m_quadTripletObjectZ, bufSize,
+                 splitLvl);
+
+  // Quadrupole triplet image z
+  m_tree->Branch("quadTripletImageZ", &m_quadTripletImageZ, bufSize, splitLvl);
+
+  // Quadrupole triplet M12 transport matrix element
+  m_tree->Branch("quadTripletM12", &m_quadTripletM12, bufSize, splitLvl);
+
+  // Quadrupole triplet M34 transport matrix element
+  m_tree->Branch("quadTripletM34", &m_quadTripletM34, bufSize, splitLvl);
 
   // Magnet configuration as seen by track
   m_tree->Branch("quad1Grad", &m_quad1Grad, bufSize, splitLvl);
@@ -284,53 +301,63 @@ ProcessCode E320::E320RootTrackWriter::write(const AlgorithmContext& ctx) {
   const auto& mctx = ctx.magFieldContext;
   const auto& goInst = *E320::GeometryOptions::instance();
 
+  // Default values for the magnets event-level data
+  m_quadTripletFocusingEnergy = goInst.quadTripletFocusingEnergy * 1_GeV;
+  m_quadTripletObjectZ = goInst.quadTripletObjectZ * 1_mm;
+  m_quadTripletImageZ = goInst.quadTripletImageZ * 1_mm;
+  m_quadTripletM12 = goInst.quadTripletM12;
+  m_quadTripletM34 = goInst.quadTripletM34;
+
   // Quad gradients
-  m_quad1Grad =
-      goInst.quad1Gradient * Acts::UnitConstants::m / Acts::UnitConstants::T;
-  m_quad2Grad =
-      goInst.quad2Gradient * Acts::UnitConstants::m / Acts::UnitConstants::T;
-  m_quad3Grad =
-      goInst.quad3Gradient * Acts::UnitConstants::m / Acts::UnitConstants::T;
+  m_quad1Grad = goInst.quad1Gradient * 1_m / 1_T;
+  m_quad2Grad = goInst.quad2Gradient * 1_m / 1_T;
+  m_quad3Grad = goInst.quad3Gradient * 1_m / 1_T;
 
   // XCOR strength T
-  m_xCorrectorStrength =
-      goInst.xCorrectorFieldStrength / Acts::UnitConstants::T;
+  m_xCorrectorStrength = goInst.xCorrectorFieldStrength / 1_T;
 
   // Dipole strength T
-  m_dipoleStrength = goInst.dipoleFieldStrength / Acts::UnitConstants::T;
+  m_dipoleStrength = goInst.dipoleFieldStrength / 1_T;
 
   if (m_cfg.mctxMagneticFields && mctx.hasValue()) {
-    const auto& store = mctx.get<std::shared_ptr<MagneticFieldStore>&>();
+    const auto& store = std::dynamic_pointer_cast<E320MagneticFieldStore>(
+        mctx.get<std::shared_ptr<MagneticFieldStore>&>());
+
+    m_quadTripletFocusingEnergy = store->quadTripletFocusingEnergy;
+    m_quadTripletObjectZ = store->quadTripletObjectZ;
+    m_quadTripletImageZ = store->quadTripletImageZ;
+    m_quadTripletM12 = store->quadTripletM12;
+    m_quadTripletM34 = store->quadTripletM34;
 
     if (store->store.contains(goInst.quad1Id)) {
       m_quad1Grad = store->store.at(goInst.quad1Id)
                         .as<IdealQuadrupoleMagField::Cache>()
                         .m_gradient *
-                    Acts::UnitConstants::m / Acts::UnitConstants::T;
+                    1_m / 1_T;
     }
     if (store->store.contains(goInst.quad2Id)) {
       m_quad2Grad = store->store.at(goInst.quad2Id)
                         .as<IdealQuadrupoleMagField::Cache>()
                         .m_gradient *
-                    Acts::UnitConstants::m / Acts::UnitConstants::T;
+                    1_m / 1_T;
     }
     if (store->store.contains(goInst.quad3Id)) {
       m_quad3Grad = store->store.at(goInst.quad3Id)
                         .as<IdealQuadrupoleMagField::Cache>()
                         .m_gradient *
-                    Acts::UnitConstants::m / Acts::UnitConstants::T;
+                    1_m / 1_T;
     }
     if (store->store.contains(goInst.xCorrectorId)) {
       m_xCorrectorStrength = store->store.at(goInst.xCorrectorId)
                                  .as<ConstantMagField::Cache>()
                                  .m_field(goInst.xCorrectorDirIdx) /
-                             Acts::UnitConstants::T;
+                             1_T;
     }
     if (store->store.contains(goInst.dipoleId)) {
       m_dipoleStrength = store->store.at(goInst.dipoleId)
                              .as<ConstantMagField::Cache>()
                              .m_field(goInst.dipoleDirIdx) /
-                         Acts::UnitConstants::T;
+                         1_T;
     }
   }
 
@@ -340,38 +367,45 @@ ProcessCode E320::E320RootTrackWriter::write(const AlgorithmContext& ctx) {
     const auto& trackIndices = inputTracks.at(idx);
 
     if (!m_cfg.mctxMagneticFields) {
-      const auto& store =
-          inputMagFieldParameters.at(trackIndices.magneticFieldParametersIndex);
+      const auto& store = std::dynamic_pointer_cast<E320MagneticFieldStore>(
+          inputMagFieldParameters.at(
+              trackIndices.magneticFieldParametersIndex));
+
+      m_quadTripletFocusingEnergy = store->quadTripletFocusingEnergy;
+      m_quadTripletObjectZ = store->quadTripletObjectZ;
+      m_quadTripletImageZ = store->quadTripletImageZ;
+      m_quadTripletM12 = store->quadTripletM12;
+      m_quadTripletM34 = store->quadTripletM34;
 
       if (store->store.contains(goInst.quad1Id)) {
         m_quad1Grad = store->store.at(goInst.quad1Id)
                           .as<IdealQuadrupoleMagField::Cache>()
                           .m_gradient *
-                      Acts::UnitConstants::m / Acts::UnitConstants::T;
+                      1_m / 1_T;
       }
       if (store->store.contains(goInst.quad2Id)) {
         m_quad2Grad = store->store.at(goInst.quad2Id)
                           .as<IdealQuadrupoleMagField::Cache>()
                           .m_gradient *
-                      Acts::UnitConstants::m / Acts::UnitConstants::T;
+                      1_m / 1_T;
       }
       if (store->store.contains(goInst.quad3Id)) {
         m_quad3Grad = store->store.at(goInst.quad3Id)
                           .as<IdealQuadrupoleMagField::Cache>()
                           .m_gradient *
-                      Acts::UnitConstants::m / Acts::UnitConstants::T;
+                      1_m / 1_T;
       }
       if (store->store.contains(goInst.xCorrectorId)) {
         m_xCorrectorStrength = store->store.at(goInst.xCorrectorId)
                                    .as<ConstantMagField::Cache>()
                                    .m_field(goInst.xCorrectorDirIdx) /
-                               Acts::UnitConstants::T;
+                               1_T;
       }
       if (store->store.contains(goInst.dipoleId)) {
         m_dipoleStrength = store->store.at(goInst.dipoleId)
                                .as<ConstantMagField::Cache>()
                                .m_field(goInst.dipoleDirIdx) /
-                           Acts::UnitConstants::T;
+                           1_T;
       }
     }
 
@@ -758,7 +792,7 @@ ProcessCode E320::E320RootTrackWriter::write(const AlgorithmContext& ctx) {
 
       // Covariance with respect to the measurement hits
       Acts::ActsDynamicMatrix predictedMeasCov =
-          measCov - predictedMeasCovTruth;
+          measCov + predictedMeasCovTruth;
 
       Acts::SquareMatrix2 predictedHitCov =
           predictedMeasCov.topLeftCorner(2, 2);
