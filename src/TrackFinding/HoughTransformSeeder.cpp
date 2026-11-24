@@ -33,7 +33,8 @@ std::vector<std::size_t> HoughTransformSeeder::findLineSourceLinks(
       geoRefPointMap;
   geoRefPointMap.reserve(geoPosMap.size());
   for (const auto &[id, x] : geoPosMap) {
-    Acts::Vector3 meas(x, 0, 0);
+    Acts::Vector3 meas = Acts::Vector3::Zero();
+    meas(primaryIdx) = x;
     double ddBL =
         (meas - pointBL).dot(normalPrimary) / dirBL.dot(normalPrimary);
     double ddTL =
