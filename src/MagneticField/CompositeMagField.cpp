@@ -33,7 +33,22 @@ Acts::Result<Acts::Vector3> CompositeMagField::getField(
 }
 
 Acts::Result<Acts::Vector3> CompositeMagField::getFieldGradient(
-    const Acts::Vector3& /*position*/, Acts::ActsMatrix<3, 3>& /*derivative*/,
-    MagneticFieldProvider::Cache& /*cache*/) const {
-  return Acts::Result<Acts::Vector3>::success(Acts::Vector3::Zero());
+    const Acts::Vector3& position, Acts::ActsMatrix<3, 3>& derivative,
+    MagneticFieldProvider::Cache& cache) const {
+  auto& componentCaches = cache.as<Cache>().m_componentCaches;
+  auto& componentExtents = cache.as<Cache>().m_componentExtents;
+
+  Acts::Vector3 fieldValue = Acts::Vector3::Zero();
+  derivative = Acts::ActsMatrix<3, 3>::Zero();
+  for (auto& [id, extent] : componentExtents) {
+    if (extent.contains(position)) {
+      fieldValue =
+          m_fieldComponents.at(id)
+              .fieldProvider
+              ->getFieldGradient(position, derivative, componentCaches.at(id))
+              .value();
+      break;
+    }
+  }
+  return Acts::Result<Acts::Vector3>::success(fieldValue);
 }

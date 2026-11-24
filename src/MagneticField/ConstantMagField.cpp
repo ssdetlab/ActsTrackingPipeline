@@ -12,9 +12,11 @@ Acts::Result<Acts::Vector3> ConstantMagField::getField(
 }
 
 Acts::Result<Acts::Vector3> ConstantMagField::getFieldGradient(
-    const Acts::Vector3& /*position*/, Acts::ActsMatrix<3, 3>& /*derivative*/,
-    MagneticFieldProvider::Cache& /*cache*/) const {
-  return Acts::Result<Acts::Vector3>::success(Acts::Vector3::Zero());
+    const Acts::Vector3& /*position*/, Acts::ActsMatrix<3, 3>& derivative,
+    MagneticFieldProvider::Cache& cache) const {
+  const auto& fieldCache = cache.as<Cache>();
+  derivative = Acts::ActsMatrix<3, 3>::Zero();
+  return Acts::Result<Acts::Vector3>::success(fieldCache.m_field);
 }
 
 Acts::MagneticFieldProvider::Cache ConstantMagField::makeCache(

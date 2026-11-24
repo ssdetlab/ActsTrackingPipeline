@@ -63,10 +63,11 @@ class ConstantMagField : public Acts::MagneticFieldProvider {
   /// @brief Get field gradient in a point
   ///
   /// @param position position of the field inquiry
-  /// @param derivative field jacobian in global coordinates
+  /// @param derivative field jacobian in global coordinates,
+  /// (i, j) = dB_i / dx_j
   /// @param cache current field cache
   ///
-  /// @return field gradient in the result wrapper
+  /// @return field value in the result wrapper
   Acts::Result<Acts::Vector3> getFieldGradient(
       const Acts::Vector3& position, Acts::ActsMatrix<3, 3>& derivative,
       MagneticFieldProvider::Cache& cache) const override;
