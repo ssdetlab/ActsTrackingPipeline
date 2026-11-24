@@ -30,8 +30,8 @@ class E320SeedingAlgorithm : public IAlgorithm {
     std::string inputSourceLinks;
     /// Input detector source links indices
     std::string inputDetSourceLinkIndices;
-    /// Input BPM source links indices
-    std::string inputBpmSourceLinkIndices;
+    /// Input constraint source links indices
+    std::string inputConstraintSourceLinkIndices;
     /// Output seeds
     std::string outputSeeds;
     /// Output track parameters
@@ -67,8 +67,8 @@ class E320SeedingAlgorithm : public IAlgorithm {
   ReadDataHandle<std::vector<std::size_t>> m_inputDetSourceLinkIndices{
       this, "InputDetSourceLinkIndices"};
 
-  ReadDataHandle<std::vector<std::size_t>> m_inputBpmSourceLinkIndices{
-      this, "InputBpmSourceLinkIndices"};
+  ReadDataHandle<std::vector<std::size_t>> m_inputConstraintSourceLinkIndices{
+      this, "InputConstraintSourceLinkIndices"};
 
   /// Write data handles
   WriteDataHandle<E320IndexSeeds> m_outputSeeds{this, "OutputSeeds"};

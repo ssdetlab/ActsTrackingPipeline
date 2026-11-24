@@ -304,7 +304,7 @@ int main() {
   readerCfg.outputDetSourceLinkIndices =
       getEntryStr("E320RootDataReader", "outputDetSourceLinkIndices");
   readerCfg.outputConstraintSourceLinkIndices =
-      getEntryStr("E320RootDataReader", "outputContraintSourceLinkIndices");
+      getEntryStr("E320RootDataReader", "outputConstraintSourceLinkIndices");
   readerCfg.outputEventMetaData =
       getEntryStr("E320RootDataReader", "outputEventMetaData");
   readerCfg.treeName = getEntryStr("E320RootDataReader", "treeName");
@@ -417,8 +417,8 @@ int main() {
       getEntryStr("E320SeedingAlgorithm", "inputSourceLinks");
   seedingAlgoCfg.inputDetSourceLinkIndices =
       getEntryStr("E320SeedingAlgorithm", "inputDetSourceLinkIndices");
-  seedingAlgoCfg.inputBpmSourceLinkIndices =
-      getEntryStr("E320SeedingAlgorithm", "inputBpmSourceLinkIndices");
+  seedingAlgoCfg.inputConstraintSourceLinkIndices =
+      getEntryStr("E320SeedingAlgorithm", "inputConstraintSourceLinkIndices");
   seedingAlgoCfg.outputSeeds =
       getEntryStr("E320SeedingAlgorithm", "outputSeeds");
   seedingAlgoCfg.outputTrackParameters =

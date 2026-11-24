@@ -88,7 +88,7 @@ outputClusterMatrices = "ClusterMatrices"
 outputDetSourceLinkIndices = "DetSourceLinkIndices"
 
 # WhiteBoard name of the output constraint source link indices
-outputBpmSourceLinkIndices = "BpmSourceLinkIndices"
+outputConstraintSourceLinkIndices = "ConstraintSourceLinkIndices"
 
 # WhiteBoard name of the output event meta data
 outputEventMetaData = "EventMetaData"
@@ -162,7 +162,7 @@ inputSourceLinks = "SourceLinks"
 inputDetSourceLinkIndices = "DetSourceLinkIndices"
 
 # WhiteBoard name of the input BPM source link indices
-inputBpmSourceLinkIndices = "BpmSourceLinkIndices"
+inputConstraintSourceLinkIndices = "ConstraintSourceLinkIndices"
 
 # WhiteBoard name of the output seeds
 outputSeeds = "Seeds"

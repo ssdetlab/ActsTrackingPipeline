@@ -18,7 +18,8 @@ E320SeedingAlgorithm::E320SeedingAlgorithm(const Config& config,
     : IAlgorithm("E320SeedingAlgorithm", level), m_cfg(config) {
   m_inputSourceLinks.initialize(m_cfg.inputSourceLinks);
   m_inputDetSourceLinkIndices.initialize(m_cfg.inputDetSourceLinkIndices);
-  m_inputBpmSourceLinkIndices.initialize(m_cfg.inputBpmSourceLinkIndices);
+  m_inputConstraintSourceLinkIndices.initialize(
+      m_cfg.inputConstraintSourceLinkIndices);
 
   m_outputSeeds.initialize(m_cfg.outputSeeds);
   m_outputTrackParameters.initialize(m_cfg.outputTrackParameters);
@@ -29,7 +30,8 @@ ProcessCode E320SeedingAlgorithm::execute(const AlgorithmContext& ctx) const {
 
   const auto& inputSourceLinks = m_inputSourceLinks(ctx);
   const auto& inputDetSourceLinkIndices = m_inputDetSourceLinkIndices(ctx);
-  const auto& inputBpmSourceLinkIndices = m_inputBpmSourceLinkIndices(ctx);
+  const auto& inputBpmSourceLinkIndices =
+      m_inputConstraintSourceLinkIndices(ctx);
 
   ACTS_DEBUG("Received " << inputSourceLinks.size() << " source links");
   ACTS_DEBUG("Received " << inputDetSourceLinkIndices.size()
