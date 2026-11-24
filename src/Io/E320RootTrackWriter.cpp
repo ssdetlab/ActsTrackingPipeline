@@ -302,9 +302,9 @@ ProcessCode E320::E320RootTrackWriter::write(const AlgorithmContext& ctx) {
   const auto& goInst = *E320::GeometryOptions::instance();
 
   // Default values for the magnets event-level data
-  m_quadTripletFocusingEnergy = goInst.quadTripletFocusingEnergy * 1_GeV;
-  m_quadTripletObjectZ = goInst.quadTripletObjectZ * 1_mm;
-  m_quadTripletImageZ = goInst.quadTripletImageZ * 1_mm;
+  m_quadTripletFocusingEnergy = goInst.quadTripletFocusingEnergy / 1_GeV;
+  m_quadTripletObjectZ = goInst.quadTripletObjectZ / 1_mm;
+  m_quadTripletImageZ = goInst.quadTripletImageZ / 1_mm;
   m_quadTripletM12 = goInst.quadTripletM12;
   m_quadTripletM34 = goInst.quadTripletM34;
 
@@ -513,12 +513,6 @@ ProcessCode E320::E320RootTrackWriter::write(const AlgorithmContext& ctx) {
 
     m_predictedAngleResiduals.clear();
     m_predictedAngleResiduals.reserve(nStates);
-
-    m_filteredAngleResiduals.clear();
-    m_filteredAngleResiduals.reserve(nStates);
-
-    m_smoothedAngleResiduals.clear();
-    m_smoothedAngleResiduals.reserve(nStates);
 
     m_leaveOneOutHitResiduals.clear();
     m_leaveOneOutHitResiduals.reserve(nStates);
@@ -802,16 +796,6 @@ ProcessCode E320::E320RootTrackWriter::write(const AlgorithmContext& ctx) {
       }
 
       // Extract diagonals
-      Acts::Vector2 predictedHitDiagTruth =
-          predictedHitCovTruth.cwiseAbs().diagonal().cwiseInverse().cwiseSqrt();
-      Acts::Vector2 predictedAngleDiagTruth = Acts::Vector2::Zero();
-      if (extended) {
-        predictedAngleDiagTruth = predictedAngleCovTruth.cwiseAbs()
-                                      .diagonal()
-                                      .cwiseInverse()
-                                      .cwiseSqrt();
-      }
-
       Acts::Vector2 predictedHitDiag =
           predictedHitCov.cwiseAbs().diagonal().cwiseInverse().cwiseSqrt();
       Acts::Vector2 predictedAngleDiag = Acts::Vector2::Zero();
@@ -928,18 +912,6 @@ ProcessCode E320::E320RootTrackWriter::write(const AlgorithmContext& ctx) {
         }
 
         // Extract diagonals
-        Acts::Vector2 filteredHitDiagTruth = filteredHitCovTruth.cwiseAbs()
-                                                 .diagonal()
-                                                 .cwiseInverse()
-                                                 .cwiseSqrt();
-        Acts::Vector2 filteredAngleDiagTruth = Acts::Vector2::Zero();
-        if (extended) {
-          filteredAngleDiagTruth = filteredAngleCovTruth.cwiseAbs()
-                                       .diagonal()
-                                       .cwiseInverse()
-                                       .cwiseSqrt();
-        }
-
         Acts::Vector2 filteredHitDiag =
             filteredHitCov.cwiseAbs().diagonal().cwiseInverse().cwiseSqrt();
         Acts::Vector2 filteredAngleDiag = Acts::Vector2::Zero();
@@ -1055,18 +1027,6 @@ ProcessCode E320::E320RootTrackWriter::write(const AlgorithmContext& ctx) {
         }
 
         // Extract diagonals
-        Acts::Vector2 smoothedHitDiagTruth = smoothedHitCovTruth.cwiseAbs()
-                                                 .diagonal()
-                                                 .cwiseInverse()
-                                                 .cwiseSqrt();
-        Acts::Vector2 smoothedAngleDiagTruth = Acts::Vector2::Zero();
-        if (extended) {
-          smoothedAngleDiagTruth = smoothedAngleCovTruth.cwiseAbs()
-                                       .diagonal()
-                                       .cwiseInverse()
-                                       .cwiseSqrt();
-        }
-
         Acts::Vector2 smoothedHitDiag =
             smoothedHitCov.cwiseAbs().diagonal().cwiseInverse().cwiseSqrt();
         Acts::Vector2 smoothedAngleDiag = Acts::Vector2::Zero();
