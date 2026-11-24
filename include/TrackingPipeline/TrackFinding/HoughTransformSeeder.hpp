@@ -41,29 +41,28 @@ class HoughTransformSeeder {
 
   /// @brief Options struct
   ///
-  /// The Hough space ranges are half-open intervals [min, max), the pairs
-  /// voting outside of the ranges are discarded.
+  /// The Hough space ranges are derived from the real space bounding box with
+  /// the half-sizes P (primary) and T (long or short): the slopes cover the
+  /// lines crossing the box along its full primary extent, [-T / P, T / P),
+  /// and the intercepts cover all the lines within the slope range passing
+  /// through the box, [-(T + T / P * P), T + T / P * P) = [-2 * T, 2 * T).
+  /// The pairs voting outside of the ranges are discarded. An odd number of
+  /// slope cells centers the zero slopes in a cell.
   struct Options {
     /// Position of the real space bounding box, the slopes and intercepts are
     /// defined relative to it
     double boundBoxCenterPrimary;
     double boundBoxCenterLong;
     double boundBoxCenterShort;
-    /// Hough space slope range and binning in the long coordinate
-    double minSlopeLong;
-    double maxSlopeLong;
+    /// Dimensions of the real space bounding box
+    double boundBoxHalfPrimary;
+    double boundBoxHalfLong;
+    double boundBoxHalfShort;
+    /// Hough space binning in the long coordinate
     std::size_t nCellsSlopeLong;
-    /// Hough space intercept range and binning in the long coordinate
-    double minInterceptLong;
-    double maxInterceptLong;
     std::size_t nCellsInterceptLong;
-    /// Hough space slope range and binning in the short coordinate
-    double minSlopeShort;
-    double maxSlopeShort;
+    /// Hough space binning in the short coordinate
     std::size_t nCellsSlopeShort;
-    /// Hough space intercept range and binning in the short coordinate
-    double minInterceptShort;
-    double maxInterceptShort;
     std::size_t nCellsInterceptShort;
     /// Minimum number of Hough space intersections cut
     std::size_t minXCount;
@@ -107,6 +106,10 @@ class HoughTransformSeeder {
   /// @param sourceLinksIndices source links indices collection
   /// @param opt seed finding options
   /// @param shift real space bounding box center
+  /// @param minSlopeLong long axis slope lower edge
+  /// @param minInterceptLong long axis intercept lower edge
+  /// @param minSlopeShort short axis slope lower edge
+  /// @param minInterceptShort short axis intercept lower edge
   /// @param deltaSlopeLong long axis slope bin size
   /// @param deltaInterceptLong long axis intercept bin size
   /// @param deltaSlopeShort short axis slope bin size
@@ -115,6 +118,8 @@ class HoughTransformSeeder {
                      const std::vector<Acts::SourceLink> &sourceLinks,
                      const std::vector<std::size_t> &sourceLinksIndices,
                      const Options &opt, const Acts::Vector3 &shift,
+                     double minSlopeLong, double minInterceptLong,
+                     double minSlopeShort, double minInterceptShort,
                      double deltaSlopeLong, double deltaInterceptLong,
                      double deltaSlopeShort, double deltaInterceptShort);
 

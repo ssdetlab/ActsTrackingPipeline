@@ -17,17 +17,11 @@
 
 namespace {
 
-/// @brief check the Hough space axis range and binning
+/// @brief check the Hough space axis binning
 ///
-/// @param min lower edge of the axis
-/// @param max upper edge of the axis
 /// @param nCells number of cells along the axis
 /// @param name axis name for the error message
-void checkHoughAxis(double min, double max, std::size_t nCells,
-                    const std::string &name) {
-  if (!(min < max)) {
-    throw std::invalid_argument("Invalid Hough space " + name + " range");
-  }
+void checkHoughAxis(std::size_t nCells, const std::string &name) {
   if (nCells == 0 || nCells > std::numeric_limits<std::uint16_t>::max()) {
     throw std::invalid_argument("Invalid Hough space " + name + " binning");
   }
@@ -99,14 +93,14 @@ std::vector<HoughTransformSeeder::HTSeed> HoughTransformSeeder::findSeeds(
     const Acts::GeometryContext & /*gctx*/,
     const std::vector<Acts::SourceLink> &sourceLinks,
     const std::vector<std::size_t> &sourceLinksIndices, const Options &opt) {
-  checkHoughAxis(opt.minSlopeLong, opt.maxSlopeLong, opt.nCellsSlopeLong,
-                 "long slope");
-  checkHoughAxis(opt.minInterceptLong, opt.maxInterceptLong,
-                 opt.nCellsInterceptLong, "long intercept");
-  checkHoughAxis(opt.minSlopeShort, opt.maxSlopeShort, opt.nCellsSlopeShort,
-                 "short slope");
-  checkHoughAxis(opt.minInterceptShort, opt.maxInterceptShort,
-                 opt.nCellsInterceptShort, "short intercept");
+  if (!(opt.boundBoxHalfPrimary > 0) || !(opt.boundBoxHalfLong > 0) ||
+      !(opt.boundBoxHalfShort > 0)) {
+    throw std::invalid_argument("Invalid real space bounding box dimensions");
+  }
+  checkHoughAxis(opt.nCellsSlopeLong, "long slope");
+  checkHoughAxis(opt.nCellsInterceptLong, "long intercept");
+  checkHoughAxis(opt.nCellsSlopeShort, "short slope");
+  checkHoughAxis(opt.nCellsInterceptShort, "short intercept");
 
   std::vector<HoughTransformSeeder::HTSeed> seeds;
 
@@ -114,15 +108,26 @@ std::vector<HoughTransformSeeder::HTSeed> HoughTransformSeeder::findSeeds(
   std::size_t longIdx = m_cfg.longIdx;
   std::size_t shortIdx = m_cfg.shortIdx;
 
-  double deltaSlopeLong =
-      (opt.maxSlopeLong - opt.minSlopeLong) / opt.nCellsSlopeLong;
-  double deltaInterceptLong =
-      (opt.maxInterceptLong - opt.minInterceptLong) / opt.nCellsInterceptLong;
+  // Lines crossing the box along its full primary extent
+  double maxSlopeLong = opt.boundBoxHalfLong / opt.boundBoxHalfPrimary;
+  double maxSlopeShort = opt.boundBoxHalfShort / opt.boundBoxHalfPrimary;
 
-  double deltaSlopeShort =
-      (opt.maxSlopeShort - opt.minSlopeShort) / opt.nCellsSlopeShort;
-  double deltaInterceptShort = (opt.maxInterceptShort - opt.minInterceptShort) /
-                               opt.nCellsInterceptShort;
+  // Lines within the slope range passing through the box
+  double maxInterceptLong =
+      opt.boundBoxHalfLong + maxSlopeLong * opt.boundBoxHalfPrimary;
+  double maxInterceptShort =
+      opt.boundBoxHalfShort + maxSlopeShort * opt.boundBoxHalfPrimary;
+
+  double minSlopeLong = -maxSlopeLong;
+  double minInterceptLong = -maxInterceptLong;
+  double minSlopeShort = -maxSlopeShort;
+  double minInterceptShort = -maxInterceptShort;
+
+  double deltaSlopeLong = 2 * maxSlopeLong / opt.nCellsSlopeLong;
+  double deltaInterceptLong = 2 * maxInterceptLong / opt.nCellsInterceptLong;
+
+  double deltaSlopeShort = 2 * maxSlopeShort / opt.nCellsSlopeShort;
+  double deltaInterceptShort = 2 * maxInterceptShort / opt.nCellsInterceptShort;
 
   Acts::Vector3 shift;
   shift(primaryIdx) = opt.boundBoxCenterPrimary;
@@ -132,8 +137,9 @@ std::vector<HoughTransformSeeder::HTSeed> HoughTransformSeeder::findSeeds(
   VotingMap votingMap;
   votingMap.reserve(sourceLinksIndices.size());
   fillVotingMap(votingMap, sourceLinks, sourceLinksIndices, opt, shift,
-                deltaSlopeLong, deltaInterceptLong, deltaSlopeShort,
-                deltaInterceptShort);
+                minSlopeLong, minInterceptLong, minSlopeShort,
+                minInterceptShort, deltaSlopeLong, deltaInterceptLong,
+                deltaSlopeShort, deltaInterceptShort);
 
   for (auto bIt = votingMap.begin(); bIt != votingMap.end(); ++bIt) {
     const auto &[cell, count] = *bIt;
@@ -143,22 +149,23 @@ std::vector<HoughTransformSeeder::HTSeed> HoughTransformSeeder::findSeeds(
     auto [nSlopeLong, nInterceptLong, nSlopeShort, nInterceptShort] = cell;
 
     // Cell edges
-    double minSlopeLong = opt.minSlopeLong + deltaSlopeLong * nSlopeLong;
-    double maxSlopeLong = minSlopeLong + deltaSlopeLong;
-    double minInterceptLong =
-        opt.minInterceptLong + deltaInterceptLong * nInterceptLong;
-    double maxInterceptLong = minInterceptLong + deltaInterceptLong;
+    double cellMinSlopeLong = minSlopeLong + deltaSlopeLong * nSlopeLong;
+    double cellMaxSlopeLong = cellMinSlopeLong + deltaSlopeLong;
+    double cellMinInterceptLong =
+        minInterceptLong + deltaInterceptLong * nInterceptLong;
+    double cellMaxInterceptLong = cellMinInterceptLong + deltaInterceptLong;
 
-    double minSlopeShort = opt.minSlopeShort + deltaSlopeShort * nSlopeShort;
-    double maxSlopeShort = minSlopeShort + deltaSlopeShort;
-    double minInterceptShort =
-        opt.minInterceptShort + deltaInterceptShort * nInterceptShort;
-    double maxInterceptShort = minInterceptShort + deltaInterceptShort;
+    double cellMinSlopeShort = minSlopeShort + deltaSlopeShort * nSlopeShort;
+    double cellMaxSlopeShort = cellMinSlopeShort + deltaSlopeShort;
+    double cellMinInterceptShort =
+        minInterceptShort + deltaInterceptShort * nInterceptShort;
+    double cellMaxInterceptShort = cellMinInterceptShort + deltaInterceptShort;
 
     std::vector<std::size_t> seedSourceLinksIndices = findLineSourceLinks(
-        sourceLinks, sourceLinksIndices, shift, minSlopeLong, maxSlopeLong,
-        minInterceptLong, maxInterceptLong, minSlopeShort, maxSlopeShort,
-        minInterceptShort, maxInterceptShort);
+        sourceLinks, sourceLinksIndices, shift, cellMinSlopeLong,
+        cellMaxSlopeLong, cellMinInterceptLong, cellMaxInterceptLong,
+        cellMinSlopeShort, cellMaxSlopeShort, cellMinInterceptShort,
+        cellMaxInterceptShort);
     if (seedSourceLinksIndices.empty()) {
       continue;
     }
@@ -166,14 +173,14 @@ std::vector<HoughTransformSeeder::HTSeed> HoughTransformSeeder::findSeeds(
     // Cell center
     Acts::Vector3 dir;
     dir(primaryIdx) = 1;
-    dir(longIdx) = minSlopeLong + 0.5 * deltaSlopeLong;
-    dir(shortIdx) = minSlopeShort + 0.5 * deltaSlopeShort;
+    dir(longIdx) = cellMinSlopeLong + 0.5 * deltaSlopeLong;
+    dir(shortIdx) = cellMinSlopeShort + 0.5 * deltaSlopeShort;
     dir.normalize();
 
     Acts::Vector3 point;
     point(primaryIdx) = 0;
-    point(longIdx) = minInterceptLong + 0.5 * deltaInterceptLong;
-    point(shortIdx) = minInterceptShort + 0.5 * deltaInterceptShort;
+    point(longIdx) = cellMinInterceptLong + 0.5 * deltaInterceptLong;
+    point(shortIdx) = cellMinInterceptShort + 0.5 * deltaInterceptShort;
     point += shift;
 
     seeds.emplace_back(std::move(point), std::move(dir),
@@ -185,7 +192,8 @@ std::vector<HoughTransformSeeder::HTSeed> HoughTransformSeeder::findSeeds(
 void HoughTransformSeeder::fillVotingMap(
     VotingMap &votingMap, const std::vector<Acts::SourceLink> &sourceLinks,
     const std::vector<std::size_t> &sourceLinksIndices, const Options &opt,
-    const Acts::Vector3 &shift, double deltaSlopeLong,
+    const Acts::Vector3 &shift, double minSlopeLong, double minInterceptLong,
+    double minSlopeShort, double minInterceptShort, double deltaSlopeLong,
     double deltaInterceptLong, double deltaSlopeShort,
     double deltaInterceptShort) {
   std::unordered_map<int, std::vector<std::size_t>> clusters;
@@ -242,16 +250,15 @@ void HoughTransformSeeder::fillVotingMap(
           double interceptShort = flShort - slopeShort * flPrimary;
 
           std::int64_t cellSlopeLong = getCellIdx(
-              slopeLong, opt.minSlopeLong, deltaSlopeLong, opt.nCellsSlopeLong);
+              slopeLong, minSlopeLong, deltaSlopeLong, opt.nCellsSlopeLong);
           std::int64_t cellInterceptLong =
-              getCellIdx(interceptLong, opt.minInterceptLong,
-                         deltaInterceptLong, opt.nCellsInterceptLong);
-          std::int64_t cellSlopeShort =
-              getCellIdx(slopeShort, opt.minSlopeShort, deltaSlopeShort,
-                         opt.nCellsSlopeShort);
+              getCellIdx(interceptLong, minInterceptLong, deltaInterceptLong,
+                         opt.nCellsInterceptLong);
+          std::int64_t cellSlopeShort = getCellIdx(
+              slopeShort, minSlopeShort, deltaSlopeShort, opt.nCellsSlopeShort);
           std::int64_t cellInterceptShort =
-              getCellIdx(interceptShort, opt.minInterceptShort,
-                         deltaInterceptShort, opt.nCellsInterceptShort);
+              getCellIdx(interceptShort, minInterceptShort, deltaInterceptShort,
+                         opt.nCellsInterceptShort);
           if (cellSlopeLong < 0 || cellInterceptLong < 0 ||
               cellSlopeShort < 0 || cellInterceptShort < 0) {
             continue;
