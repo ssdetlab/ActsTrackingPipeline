@@ -194,6 +194,7 @@ class E320RootSimTrackWriter : public IWriter {
   std::vector<TVector2> m_trueSmoothedAngleResiduals;
 
   std::vector<TVector2> m_trueLeaveOneOutHitResiduals;
+  std::vector<TVector2> m_trueLeaveOneOutAngleResiduals;
 
   /// KF residuals with respect to the measurements
   std::vector<TVector2> m_predictedHitResiduals;
@@ -205,6 +206,7 @@ class E320RootSimTrackWriter : public IWriter {
   std::vector<TVector2> m_smoothedAngleResiduals;
 
   std::vector<TVector2> m_leaveOneOutHitResiduals;
+  std::vector<TVector2> m_leaveOneOutAngleResiduals;
 
   /// KF pulls with respect to the true hits
   std::vector<TVector2> m_truePredictedHitPulls;
@@ -216,6 +218,7 @@ class E320RootSimTrackWriter : public IWriter {
   std::vector<TVector2> m_trueSmoothedAnglePulls;
 
   std::vector<TVector2> m_trueLeaveOneOutHitPulls;
+  std::vector<TVector2> m_trueLeaveOneOutAnglePulls;
 
   /// KF pulls with respect to the measurements
   std::vector<TVector2> m_predictedHitPulls;
@@ -227,6 +230,7 @@ class E320RootSimTrackWriter : public IWriter {
   std::vector<TVector2> m_smoothedAnglePulls;
 
   std::vector<TVector2> m_leaveOneOutHitPulls;
+  std::vector<TVector2> m_leaveOneOutAnglePulls;
 
   /// KF states covariances
   std::vector<TMatrixD> m_predictedTrackStateCovs;
