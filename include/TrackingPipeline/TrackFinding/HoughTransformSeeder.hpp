@@ -88,16 +88,16 @@ class HoughTransformSeeder {
   /// @brief fill the voting map with Hough Space intersections
   ///
   /// @param votingMap voting map to be filled
-  /// @sourceLinks source links collection
-  /// @sourceLinksIndices source links indices collection
-  /// @opt seed finding options
-  /// @shift real space bounding box center
-  /// @deltaThetaShort short axis theta bin size
-  /// @deltaRhoShort short axis rho bin size
-  /// @deltaThetaLong long axis theta bin size
-  /// @deltaRhoLong long axis rho bin size
-  /// @maxRhoShort short axis rho cap
-  /// @maxRhoLong long axis rho cap
+  /// @param sourceLinks source links collection
+  /// @param sourceLinksIndices source links indices collection
+  /// @param opt seed finding options
+  /// @param shift real space bounding box center
+  /// @param deltaThetaShort short axis theta bin size
+  /// @param deltaRhoShort short axis rho bin size
+  /// @param deltaThetaLong long axis theta bin size
+  /// @param deltaRhoLong long axis rho bin size
+  /// @param maxRhoShort short axis rho cap
+  /// @param maxRhoLong long axis rho cap
   void fillVotingMap(VotingMap &votingMap,
                      const std::vector<Acts::SourceLink> &sourceLinks,
                      const std::vector<std::size_t> &sourceLinksIndices,
@@ -108,22 +108,24 @@ class HoughTransformSeeder {
 
   /// @brief find source links falling within the real space tunnel
   ///
-  /// @sourceLinks source links collection
-  /// @sourceLinksIndices source links indices collection
-  /// @pointBL real space bottom left tunnel line point
-  /// @dirBL real space bottom left tunnel line direction
-  /// @pointTL real space top left tunnel line point
-  /// @dirTL real space top left tunnel line direction
-  /// @pointBR real space bottom right tunnel line point
-  /// @dirBR real space bottom right tunnel line direction
-  /// @pointTR real space top right tunnel line point
-  /// @dirTR real space top right tunnel line direction
-  /// @shift real space bounding box center
+  /// @param sourceLinks source links collection
+  /// @param sourceLinksIndices source links indices collection
+  /// @param geoPosMap primary axis surfaces positions in the real space bounding box
+  /// @param pointBL real space bottom left tunnel line point
+  /// @param dirBL real space bottom left tunnel line direction
+  /// @param pointTL real space top left tunnel line point
+  /// @param dirTL real space top left tunnel line direction
+  /// @param pointBR real space bottom right tunnel line point
+  /// @param dirBR real space bottom right tunnel line direction
+  /// @param pointTR real space top right tunnel line point
+  /// @param dirTR real space top right tunnel line direction
+  /// @param shift real space bounding box center
   ///
   /// @return indices of the source links within the real space tunnel
   std::vector<std::size_t> findLineSourceLinks(
       const std::vector<Acts::SourceLink> &sourceLinks,
       const std::vector<std::size_t> &sourceLinksIndices,
+      const std::unordered_map<Acts::GeometryIdentifier, double> &geoPosMap,
       const Acts::Vector3 &pointBL, const Acts::Vector3 &dirBL,
       const Acts::Vector3 &pointTL, const Acts::Vector3 &dirTL,
       const Acts::Vector3 &pointBR, const Acts::Vector3 &dirBR,
@@ -132,7 +134,4 @@ class HoughTransformSeeder {
 
   /// Configuration
   Config m_cfg;
-
-  /// Map of primary axis surfaces positions in the real space bounding box
-  std::unordered_map<Acts::GeometryIdentifier, double> m_geoPosMap;
 };

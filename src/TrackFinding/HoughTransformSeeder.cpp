@@ -17,6 +17,7 @@
 std::vector<std::size_t> HoughTransformSeeder::findLineSourceLinks(
     const std::vector<Acts::SourceLink> &sourceLinks,
     const std::vector<std::size_t> &sourceLinksIndices,
+    const std::unordered_map<Acts::GeometryIdentifier, double> &geoPosMap,
     const Acts::Vector3 &pointBL, const Acts::Vector3 &dirBL,
     const Acts::Vector3 &pointTL, const Acts::Vector3 &dirTL,
     const Acts::Vector3 &pointBR, const Acts::Vector3 &dirBR,
@@ -30,8 +31,8 @@ std::vector<std::size_t> HoughTransformSeeder::findLineSourceLinks(
 
   std::unordered_map<Acts::GeometryIdentifier, std::array<Acts::Vector3, 4>>
       geoRefPointMap;
-  geoRefPointMap.reserve(m_geoPosMap.size());
-  for (const auto &[id, x] : m_geoPosMap) {
+  geoRefPointMap.reserve(geoPosMap.size());
+  for (const auto &[id, x] : geoPosMap) {
     Acts::Vector3 meas(x, 0, 0);
     double ddBL =
         (meas - pointBL).dot(normalPrimary) / dirBL.dot(normalPrimary);
@@ -116,8 +117,9 @@ std::vector<HoughTransformSeeder::HTSeed> HoughTransformSeeder::findSeeds(
   shift(longIdx) = opt.boundBoxCenterLong;
   shift(shortIdx) = opt.boundBoxCenterShort;
 
+  std::unordered_map<Acts::GeometryIdentifier, double> geoPosMap;
   for (const auto &[id, surf] : opt.surfaceMap) {
-    m_geoPosMap.insert({id, (surf->center(gctx) - shift)(primaryIdx)});
+    geoPosMap.insert({id, (surf->center(gctx) - shift)(primaryIdx)});
   }
 
   VotingMap votingMap;
@@ -230,8 +232,8 @@ std::vector<HoughTransformSeeder::HTSeed> HoughTransformSeeder::findSeeds(
     pointTR(shortIdx) = bShortTR;
 
     std::vector<std::size_t> seedSourceLinksIndices = findLineSourceLinks(
-        sourceLinks, sourceLinksIndices, pointBL, dirBL, pointTL, dirTL,
-        pointBR, dirBR, pointTR, dirTR, shift);
+        sourceLinks, sourceLinksIndices, geoPosMap, pointBL, dirBL, pointTL,
+        dirTL, pointBR, dirBR, pointTR, dirTR, shift);
     if (seedSourceLinksIndices.empty()) {
       continue;
     }
