@@ -14,6 +14,7 @@
 #include "TrackingPipeline/MagneticField/DipoleMagField.hpp"
 #include "TrackingPipeline/MagneticField/IdealQuadrupoleMagField.hpp"
 #include "TrackingPipeline/MagneticField/QuadrupoleMagField.hpp"
+#include "TrackingPipeline/Propagation/FieldGradientEigenStepper.hpp"
 #include "TrackingPipeline/Simulation/BremsstrahlungMomentumGenerator.hpp"
 #include "TrackingPipeline/Simulation/GaussianVertexGenerator.hpp"
 #include "TrackingPipeline/Simulation/MeasurementsCreator.hpp"
@@ -24,7 +25,7 @@
 
 using namespace Acts::UnitLiterals;
 
-using Propagator = Acts::Propagator<Acts::EigenStepper<>,
+using Propagator = Acts::Propagator<FieldGradientEigenStepper,
                                     Acts::Experimental::DetectorNavigator>;
 using TrackParameters = Acts::CurvilinearTrackParameters;
 
@@ -279,7 +280,7 @@ int main() {
 
   Acts::Experimental::DetectorNavigator measCreatorNavigator(
       cptNavCfg, Acts::getDefaultLogger("DetectorNavigator", logLevel));
-  Acts::EigenStepper<> measCreatorStepper(field);
+  FieldGradientEigenStepper measCreatorStepper(field);
 
   Propagator measCreatorPropagator(std::move(measCreatorStepper),
                                    std::move(measCreatorNavigator));

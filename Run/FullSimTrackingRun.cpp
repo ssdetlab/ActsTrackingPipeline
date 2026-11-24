@@ -5,7 +5,6 @@
 #include "Acts/Navigation/DetectorNavigator.hpp"
 #include "Acts/Plugins/Json/JsonMaterialDecorator.hpp"
 #include "Acts/Plugins/Json/MaterialMapJsonConverter.hpp"
-#include "Acts/Propagator/EigenStepper.hpp"
 #include "Acts/Surfaces/PlaneSurface.hpp"
 #include "Acts/Surfaces/RectangleBounds.hpp"
 #include "Acts/TrackFitting/GainMatrixUpdater.hpp"
@@ -39,6 +38,7 @@
 #include "TrackingPipeline/Io/E320RootSimClusterReader.hpp"
 #include "TrackingPipeline/Io/E320RootSimTrackWriter.hpp"
 #include "TrackingPipeline/MagneticField/MagneticFieldContextDecorator.hpp"
+#include "TrackingPipeline/Propagation/FieldGradientEigenStepper.hpp"
 #include "TrackingPipeline/TrackFinding/E320SeedingAlgorithm.hpp"
 #include "TrackingPipeline/TrackFinding/E320TrackParametersEstimator.hpp"
 #include "TrackingPipeline/TrackFinding/HoughTransformSeeder.hpp"
@@ -500,7 +500,7 @@ int main() {
   Navigator kfNavigator(cfg,
                         Acts::getDefaultLogger("DetectorNavigator", logLevel));
 
-  Acts::EigenStepper<> kfStepper(std::move(field));
+  FieldGradientEigenStepper kfStepper(std::move(field));
   auto kfPropagator =
       Propagator(std::move(kfStepper), std::move(kfNavigator),
                  Acts::getDefaultLogger("Propagator", logLevel));

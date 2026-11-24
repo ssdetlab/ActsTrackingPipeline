@@ -5,13 +5,13 @@
 #include "Acts/EventData/SourceLink.hpp"
 #include "Acts/Geometry/GeometryIdentifier.hpp"
 #include "Acts/Navigation/DetectorNavigator.hpp"
-#include "Acts/Propagator/EigenStepper.hpp"
 
 #include <cstddef>
 #include <memory>
 #include <unordered_map>
 #include <vector>
 
+#include "TrackingPipeline/Propagation/FieldGradientEigenStepper.hpp"
 #include "TrackingPipeline/Simulation/IMeasurementGenerator.hpp"
 #include "TrackingPipeline/Simulation/IMomentumGenerator.hpp"
 #include "TrackingPipeline/Simulation/IVertexGenerator.hpp"
@@ -23,7 +23,7 @@ using namespace Acts::UnitLiterals;
 class MeasurementsCreator : public IMeasurementGenerator {
  public:
   /// Propagator and track parameters shorthands
-  using Propagator = Acts::Propagator<Acts::EigenStepper<>,
+  using Propagator = Acts::Propagator<FieldGradientEigenStepper,
                                       Acts::Experimental::DetectorNavigator>;
   using TrackParameters = Acts::CurvilinearTrackParameters;
 
