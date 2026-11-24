@@ -813,6 +813,11 @@ ProcessCode E320::E320RootTrackWriter::write(const AlgorithmContext& ctx) {
       Acts::ActsDynamicMatrix predictedMeasCov =
           measCov + predictedMeasCovTruth;
 
+      // Decomposition of the predicted residual covariance, also used for
+      // the filtered and smoothed residual covariances below
+      const Eigen::LDLT<Acts::ActsDynamicMatrix> predictedMeasCovLdlt(
+          predictedMeasCov);
+
       Acts::SquareMatrix2 predictedHitCov =
           predictedMeasCov.topLeftCorner(2, 2);
       Acts::SquareMatrix2 predictedAngleCov = Acts::SquareMatrix2::Zero();
@@ -889,7 +894,7 @@ ProcessCode E320::E320RootTrackWriter::write(const AlgorithmContext& ctx) {
         predictedMeasResidual.tail(2) = predictedAngleResidual;
       }
       m_chi2Predicted += predictedMeasResidual.dot(
-          predictedMeasCov.ldlt().solve(predictedMeasResidual));
+          predictedMeasCovLdlt.solve(predictedMeasResidual));
 
       // ---------------------------------------------
       // Filtered state info
@@ -936,8 +941,16 @@ ProcessCode E320::E320RootTrackWriter::write(const AlgorithmContext& ctx) {
         }
 
         // Covariance with respect to the measurement hits
+        //
+        // V - H Pf H^T is evaluated as V S^-1 V, with V the measurement
+        // covariance and S the predicted residual covariance: the two are
+        // equal, but the latter is symmetric and positive definite by
+        // construction and does not cancel when the measurement dominates
+        // the prediction
         Acts::ActsDynamicMatrix filteredMeasCov =
-            measCov - filteredMeasCovTruth;
+            measCov * predictedMeasCovLdlt.solve(measCov);
+        filteredMeasCov =
+            0.5 * (filteredMeasCov + filteredMeasCov.transpose()).eval();
 
         Acts::SquareMatrix2 filteredHitCov =
             filteredMeasCov.topLeftCorner(2, 2);
@@ -1061,8 +1074,19 @@ ProcessCode E320::E320RootTrackWriter::write(const AlgorithmContext& ctx) {
         }
 
         // Covariance with respect to the measurement hits
+        //
+        // V - H Ps H^T is evaluated as V S^-1 V + H (Pf - Ps) H^T: the first
+        // term is the filtered residual covariance, the second one the
+        // information from the measurements after this state, positive
+        // semidefinite and exactly zero for the last measurement, where the
+        // smoothed state is the filtered one
         Acts::ActsDynamicMatrix smoothedMeasCov =
-            measCov - smoothedMeasCovTruth;
+            measCov * predictedMeasCovLdlt.solve(measCov) +
+            effectiveProjector *
+                (state.filteredCovariance() - smoothedStateCov) *
+                effectiveProjector.transpose();
+        smoothedMeasCov =
+            0.5 * (smoothedMeasCov + smoothedMeasCov.transpose()).eval();
 
         Acts::SquareMatrix2 smoothedHitCov =
             smoothedMeasCov.topLeftCorner(2, 2);
@@ -1131,27 +1155,35 @@ ProcessCode E320::E320RootTrackWriter::write(const AlgorithmContext& ctx) {
                                   smoothedTrackStateCovData.GetArray());
         m_smoothedTrackStateCovs.push_back(smoothedTrackStateCov);
 
-        // Get leave-one-out track state covariance
-        const Eigen::LDLT<Acts::ActsDynamicMatrix>& measCovLdlt =
-            measCov.ldlt();
-        const Eigen::LDLT<Acts::BoundMatrix>& smoothedStateCovLdlt =
-            smoothedStateCov.ldlt();
+        // Get residual with respect to the measurement
+        Acts::ActsDynamicVector smoothedMeasResidual(measCov.rows());
+        smoothedMeasResidual.head(2) = smoothedHitResidual;
+        if (extended) {
+          smoothedMeasResidual.tail(2) = smoothedAngleResidual;
+        }
 
-        Acts::BoundMatrix smoothedStateCovInv =
-            smoothedStateCovLdlt.solve(Acts::BoundMatrix::Identity());
-        Acts::BoundMatrix measCovProjInv =
-            effectiveProjector.transpose() *
-            measCovLdlt.solve(effectiveProjector);
+        // Remove the measurement from the smoothed state (gain form):
+        // x_u = x_s - Ps H^T R^-1 r and Pu = Ps + Ps H^T R^-1 H Ps,
+        // with r the smoothed residual and R its covariance
+        const Eigen::LDLT<Acts::ActsDynamicMatrix> smoothedMeasCovLdlt(
+            smoothedMeasCov);
+        Acts::ActsDynamicMatrix smoothedProjStateCov =
+            effectiveProjector * smoothedStateCov;
+        Acts::ActsDynamicMatrix leaveOneOutGainTransposed =
+            smoothedMeasCovLdlt.solve(smoothedProjStateCov);
+
+        // Get leave-one-out track state covariance
         Acts::BoundMatrix leaveOneOutStateCov =
-            (smoothedStateCovInv - measCovProjInv)
-                .ldlt()
-                .solve(Acts::BoundMatrix::Identity());
+            smoothedStateCov +
+            smoothedProjStateCov.transpose() * leaveOneOutGainTransposed;
+        leaveOneOutStateCov =
+            0.5 *
+            (leaveOneOutStateCov + leaveOneOutStateCov.transpose()).eval();
 
         // Get leave-one-out track state
         Acts::BoundVector leaveOneOutStateEst =
-            leaveOneOutStateCov * (smoothedStateCovInv * smoothedPars -
-                                   effectiveProjector.transpose() *
-                                       measCovLdlt.solve(calibratedPars));
+            smoothedPars -
+            leaveOneOutGainTransposed.transpose() * smoothedMeasResidual;
 
         // Get leave-one-out local hit
         Acts::ActsDynamicVector leaveOneOutMeas =
@@ -1248,13 +1280,8 @@ ProcessCode E320::E320RootTrackWriter::write(const AlgorithmContext& ctx) {
         m_leaveOneOutTrackStateCovs.push_back(leaveOneOutTrackStateCov);
 
         // Add to the track chi2 with the full measurement covariance
-        Acts::ActsDynamicVector smoothedMeasResidual(measCov.rows());
-        smoothedMeasResidual.head(2) = smoothedHitResidual;
-        if (extended) {
-          smoothedMeasResidual.tail(2) = smoothedAngleResidual;
-        }
         m_chi2Smoothed += smoothedMeasResidual.dot(
-            smoothedMeasCov.ldlt().solve(smoothedMeasResidual));
+            smoothedMeasCovLdlt.solve(smoothedMeasResidual));
       }
     }
 
