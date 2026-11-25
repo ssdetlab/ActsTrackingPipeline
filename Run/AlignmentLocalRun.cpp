@@ -400,7 +400,7 @@ int main() {
 
   // Initialize track fitter extension
   KFFitterGainUpdater alignmentKFUpdater;
-  KFFitterGainSmoother alignmentKFSmoother;
+  KFFitterMbfSmoother alignmentKFSmoother;
 
   Acts::KalmanFitterExtensions<KFFitterTrajectory> alignmentExtensions;
   // Add calibrator
@@ -413,7 +413,7 @@ int main() {
           &alignmentKFUpdater);
   // Add the smoother
   alignmentExtensions.smoother
-      .connect<&KFFitterGainSmoother::operator()<KFFitterTrajectory>>(
+      .connect<&KFFitterMbfSmoother::operator()<KFFitterTrajectory>>(
           &alignmentKFSmoother);
   // Add the surface accessor
   alignmentExtensions.surfaceAccessor
@@ -607,7 +607,7 @@ int main() {
   // --------------------------------------------------------------
   // Track fitting
   KFFitterGainUpdater kfUpdater;
-  KFFitterGainSmoother kfSmoother;
+  KFFitterMbfSmoother kfSmoother;
 
   // Initialize track fitter extensions
   Acts::KalmanFitterExtensions<KFFitterTrajectory> kfExtensions;
@@ -621,7 +621,7 @@ int main() {
           &kfUpdater);
   // Add the smoother
   kfExtensions.smoother
-      .connect<&KFFitterGainSmoother::operator()<KFFitterTrajectory>>(
+      .connect<&KFFitterMbfSmoother::operator()<KFFitterTrajectory>>(
           &kfSmoother);
   // Add the surface accessor
   kfExtensions.surfaceAccessor

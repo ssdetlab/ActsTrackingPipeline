@@ -1,6 +1,8 @@
 #include "Acts/Definitions/Algebra.hpp"
+#include "Acts/Definitions/TrackParametrization.hpp"
 #include "Acts/EventData/VectorMultiTrajectory.hpp"
 #include "Acts/EventData/VectorTrackContainer.hpp"
+#include "Acts/Geometry/GeometryContext.hpp"
 #include "Acts/Geometry/GeometryIdentifier.hpp"
 #include "Acts/Navigation/DetectorNavigator.hpp"
 #include "Acts/Plugins/Json/JsonMaterialDecorator.hpp"
@@ -10,8 +12,6 @@
 #include "Acts/TrackFitting/GainMatrixUpdater.hpp"
 #include "Acts/TrackFitting/KalmanFitter.hpp"
 #include "Acts/Utilities/Logger.hpp"
-#include <Acts/Definitions/TrackParametrization.hpp>
-#include <Acts/Geometry/GeometryContext.hpp>
 
 #include <cmath>
 #include <filesystem>
@@ -428,7 +428,7 @@ int main() {
   htSeederCfg.longIdx = goInst.longIdx;
   htSeederCfg.shortIdx = goInst.shortIdx;
 
-  HoughTransformSeeder::Options htSeederOpt;
+  HoughTransformSeeder::Options htSeederOpt{};
   htSeederOpt.nCellsSlopeLong =
       getEntrySizeT("HoughTransformSeeder", "nCellsSlopeLong");
   htSeederOpt.nCellsInterceptLong =
@@ -471,7 +471,7 @@ int main() {
   // --------------------------------------------------------------
   // Track fitting
   KFFitterGainUpdater kfUpdater;
-  KFFitterGainSmoother kfSmoother;
+  KFFitterMbfSmoother kfSmoother;
 
   // Initialize track fitter extensions
   Acts::KalmanFitterExtensions<KFFitterTrajectory> kfExtensions;
@@ -485,7 +485,7 @@ int main() {
           &kfUpdater);
   // Add the smoother
   kfExtensions.smoother
-      .connect<&KFFitterGainSmoother::operator()<KFFitterTrajectory>>(
+      .connect<&KFFitterMbfSmoother::operator()<KFFitterTrajectory>>(
           &kfSmoother);
   // Add the surface accessor
   kfExtensions.surfaceAccessor

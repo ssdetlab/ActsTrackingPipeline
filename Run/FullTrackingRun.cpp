@@ -433,7 +433,7 @@ int main() {
   // --------------------------------------------------------------
   // Track fitting
   KFFitterGainUpdater kfUpdater;
-  KFFitterGainSmoother kfSmoother;
+  KFFitterMbfSmoother kfSmoother;
 
   // Initialize track fitter extensions
   Acts::KalmanFitterExtensions<KFFitterTrajectory> kfExtensions;
@@ -447,7 +447,7 @@ int main() {
           &kfUpdater);
   // Add the smoother
   kfExtensions.smoother
-      .connect<&KFFitterGainSmoother::operator()<KFFitterTrajectory>>(
+      .connect<&KFFitterMbfSmoother::operator()<KFFitterTrajectory>>(
           &kfSmoother);
   // Add the surface accessor
   kfExtensions.surfaceAccessor

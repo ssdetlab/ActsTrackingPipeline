@@ -8,6 +8,7 @@
 #include "Acts/TrackFitting/GainMatrixSmoother.hpp"
 #include "Acts/TrackFitting/GainMatrixUpdater.hpp"
 #include "Acts/TrackFitting/KalmanFitter.hpp"
+#include "Acts/TrackFitting/MbfSmoother.hpp"
 #include "ActsAlignment/Kernel/Alignment.hpp"
 
 #include "TrackingPipeline/Propagation/FieldGradientEigenStepper.hpp"
@@ -24,6 +25,7 @@ using Propagator = Acts::Propagator<Stepper, Navigator>;
 
 using KFFitterGainUpdater = Acts::GainMatrixUpdater;
 using KFFitterGainSmoother = Acts::GainMatrixSmoother;
+using KFFitterMbfSmoother = Acts::MbfSmoother;
 
 using KFFitterActionList = Acts::ActionList<>;
 using KFFitterAbortList = Acts::AbortList<Acts::EndOfWorldReached>;
