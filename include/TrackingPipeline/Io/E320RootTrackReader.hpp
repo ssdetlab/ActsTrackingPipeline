@@ -169,6 +169,21 @@ class E320RootTrackReader : public IReader {
   std::unordered_set<std::size_t> m_constraintSurfacesGeoIds;
 
  protected:
+  /// Quadrupole triplet focuing energy
+  double m_quadTripletFocusingEnergy = 0;
+
+  /// Quadrupole triplet object z
+  double m_quadTripletObjectZ = 0;
+
+  /// Quadrupole triplet image z
+  double m_quadTripletImageZ = 0;
+
+  /// Quadrupole triplet M12 transport matrix element
+  double m_quadTripletM12 = 0;
+
+  /// Quadrupole triplet M34 transport matrix element
+  double m_quadTripletM34 = 0;
+
   /// EUDAQ trigger ID
   std::size_t m_eudaqTrgN = 0;
 
@@ -263,6 +278,7 @@ class E320RootTrackReader : public IReader {
   std::vector<TVector2>* m_smoothedAngleResiduals = nullptr;
 
   std::vector<TVector2>* m_leaveOneOutHitResiduals = nullptr;
+  std::vector<TVector2>* m_leaveOneOutAngleResiduals = nullptr;
 
   /// KF pulls with respect to the measurements
   std::vector<TVector2>* m_predictedHitPulls = nullptr;
@@ -274,6 +290,7 @@ class E320RootTrackReader : public IReader {
   std::vector<TVector2>* m_smoothedAnglePulls = nullptr;
 
   std::vector<TVector2>* m_leaveOneOutHitPulls = nullptr;
+  std::vector<TVector2>* m_leaveOneOutAnglePulls = nullptr;
 
   /// KF states covariances
   std::vector<TMatrixD>* m_predictedTrackStateCovs = nullptr;
