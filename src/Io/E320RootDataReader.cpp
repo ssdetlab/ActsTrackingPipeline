@@ -146,7 +146,7 @@ ProcessCode E320::E320RootDataReader::read(const AlgorithmContext& ctx) {
   if (it == m_eventMap.end()) {
     // Explicitly warn if it happens for the first or last event as that might
     // indicate a human error
-    if ((ctx.eventNumber == availableEvents().first) &&
+    if ((ctx.eventNumber == availableEvents().first) ||
         (ctx.eventNumber == availableEvents().second - 1)) {
       ACTS_WARNING("Reading empty event: " << ctx.eventNumber);
     } else {
