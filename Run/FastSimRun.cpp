@@ -39,6 +39,7 @@
 #include "TrackingPipeline/Simulation/MeasurementsCreator.hpp"
 #include "TrackingPipeline/Simulation/MeasurementsEmbeddingAlgorithm.hpp"
 #include "TrackingPipeline/Simulation/RootHistMultiplicityGenerator.hpp"
+#include "TrackingPipeline/Simulation/RootVertexDirectionReaderGenerator.hpp"
 #include "TrackingPipeline/Simulation/SimpleDigitizer.hpp"
 #include "TrackingPipeline/Simulation/SimpleSourceLinkCreator.hpp"
 #include "TrackingPipeline/Simulation/SphericalMomentumGenerator.hpp"
@@ -163,6 +164,18 @@ int main() {
       {18,
        Acts::Vector3(0_mm, getEntryDouble("Geometry", "localShiftY18") * 1_um,
                      getEntryDouble("Geometry", "localShiftZ18") * 1_um)}};
+  // {30,
+  //  Acts::Vector3(0_mm, getEntryDouble("Geometry", "localShiftYBPM0") * 1_um,
+  //                getEntryDouble("Geometry", "localShiftZBPM0") * 1_um)},
+  // {31,
+  //  Acts::Vector3(0_mm, getEntryDouble("Geometry", "localShiftYBPM1") * 1_um,
+  //                getEntryDouble("Geometry", "localShiftZBPM1") * 1_um)},
+  // {32,
+  //  Acts::Vector3(0_mm, getEntryDouble("Geometry", "localShiftYBPM2") * 1_um,
+  //                getEntryDouble("Geometry", "localShiftZBPM2") * 1_um)},
+  // {33,
+  //  Acts::Vector3(0_mm, getEntryDouble("Geometry", "localShiftYBPM3") * 1_um,
+  //                getEntryDouble("Geometry", "localShiftZBPM3") * 1_um)}};
   Acts::Vector3 globalAngles(
       0_rad, 0_rad, getEntryDouble("Geometry", "globalAngleZ") * 1_mrad);
   std::unordered_map<int, Acts::Vector3> localAngles{
@@ -177,6 +190,18 @@ int main() {
       {18,
        Acts::Vector3(0_rad, 0_rad,
                      getEntryDouble("Geometry", "localAngleZ18") * 1_mrad)}};
+  // {30,
+  //  Acts::Vector3(0_rad, 0_rad,
+  //                getEntryDouble("Geometry", "localAngleZBPM0") * 1_mrad)},
+  // {31,
+  //  Acts::Vector3(0_rad, 0_rad,
+  //                getEntryDouble("Geometry", "localAngleZBPM1") * 1_mrad)},
+  // {32,
+  //  Acts::Vector3(0_rad, 0_rad,
+  //                getEntryDouble("Geometry", "localAngleZBPM2") * 1_mrad)},
+  // {33,
+  //  Acts::Vector3(0_rad, 0_rad,
+  //                getEntryDouble("Geometry", "localAngleZBPM3") * 1_mrad)}};
 
   auto aStore =
       detail::makeAlignmentStore(gctx, detector.get(), globalShifts,
@@ -393,34 +418,52 @@ int main() {
   // beamGenCfg.longIdx = goInst.longIdx;
   // beamGenCfg.shortIdx = goInst.shortIdx;
   // beamGenCfg.referencePositionPrimary = goInst.bpm0CenterPrimary - 5_mm;
-  // beamGenCfg.waistPosition =
-  //     Acts::Vector3(goInst.ipSurfaceCenterPrimary - 0.1_mm, 0, 0_mm);
-  // beamGenCfg.waistSigmaLong = 30_um;
-  // beamGenCfg.waistSigmaShort = 30_um;
-  // beamGenCfg.waistMeanThetaLong = 0_rad;
-  // beamGenCfg.waistMeanThetaShort = 0_rad;
-  // beamGenCfg.waistSigmaThetaLong = 1e-3_rad;
-  // beamGenCfg.waistSigmaThetaShort = 1e-3_rad;
-  // // beamGenCfg.beamEnergyMin = 3.0_GeV;
-  // // beamGenCfg.beamEnergyMax = 4.0_GeV;
-  // beamGenCfg.beamEnergyMin = 1.5_GeV;
-  // beamGenCfg.beamEnergyMax = 2.5_GeV;
+  // beamGenCfg.waistPosition = Acts::Vector3(
+  //     goInst.ipSurfaceCenterPrimary,
+  //     getEntryDouble("ConvergingBeamGenerator", "waistMeanLong") * 1_mm,
+  //     getEntryDouble("ConvergingBeamGenerator", "waistMeanShort") * 1_mm);
+  // beamGenCfg.waistSigmaLong =
+  //     getEntryDouble("ConvergingBeamGenerator", "waistSigmaLong") * 1_um;
+  // beamGenCfg.waistSigmaShort =
+  //     getEntryDouble("ConvergingBeamGenerator", "waistSigmaShort") * 1_um;
+  // beamGenCfg.waistMeanThetaLong =
+  //     getEntryDouble("ConvergingBeamGenerator", "waistMeanThetaLong") *
+  //     1_mrad;
+  // beamGenCfg.waistMeanThetaShort =
+  //     getEntryDouble("ConvergingBeamGenerator", "waistMeanThetaShort") *
+  //     1_mrad;
+  // beamGenCfg.waistSigmaThetaLong =
+  //     getEntryDouble("ConvergingBeamGenerator", "waistSigmaThetaLong") *
+  //     1_mrad;
+  // beamGenCfg.waistSigmaThetaShort =
+  //     getEntryDouble("ConvergingBeamGenerator", "waistSigmaThetaShort") *
+  //     1_mrad;
+  // beamGenCfg.beamEnergyMin =
+  //     getEntryDouble("ConvergingBeamGenerator", "beamEnergyMin") * 1_GeV;
+  // beamGenCfg.beamEnergyMax =
+  //     getEntryDouble("ConvergingBeamGenerator", "beamEnergyMax") * 1_GeV;
   // auto beamGen = std::make_shared<ConvergingBeamGenerator>(beamGenCfg);
 
   // // Beam positrons generator
-  // RootVertexMomentumReaderGenerator::Config beamGenCfg;
+  // RootVertexDirectionReaderGenerator::Config beamGenCfg;
   // beamGenCfg.filePaths = {
-  //     "/home/romanurmanov/work/E320/E320Prototype/"
-  //     "E320Prototype_dataInRootFormat/sim/alignment/global/"
-  //     "ip_data_aligned_beamline/fitted-beam-sim-test.root"};
-  // beamGenCfg.treeName = "fitted-beam";
-  // beamGenCfg.vertexBranch = "originPositionTruth";
-  // beamGenCfg.directionBranch = "originMomentumTruth";
-  // beamGenCfg.absMomentumMin = 3.0_GeV;
-  // beamGenCfg.absMomentumMax = 4.0_GeV;
-  // beamGenCfg.startIdx = 5 * 2.5e4;
+  //     getEntryStr("RootVertexDirectionReaderGenerator", "filePath")};
+  // beamGenCfg.treeName =
+  //     getEntryStr("RootVertexDirectionReaderGenerator", "treeName");
+  // beamGenCfg.vertexBranch =
+  //     getEntryStr("RootVertexDirectionReaderGenerator", "vertexBranch");
+  // beamGenCfg.directionBranch =
+  //     getEntryStr("RootVertexDirectionReaderGenerator", "directionBranch");
+  // beamGenCfg.absMomentumMin =
+  //     getEntryDouble("RootVertexDirectionReaderGenerator", "absMomentumMin")
+  //     * 1_GeV;
+  // beamGenCfg.absMomentumMax =
+  //     getEntryDouble("RootVertexDirectionReaderGenerator", "absMomentumMax")
+  //     * 1_GeV;
+  // beamGenCfg.skip =
+  //     getEntrySizeT("RootVertexDirectionReaderGenerator", "skip");
   // auto beamGen =
-  //     std::make_shared<RootVertexMomentumReaderGenerator>(beamGenCfg);
+  //     std::make_shared<RootVertexDirectionReaderGenerator>(beamGenCfg);
 
   // Source link creators
   SimpleSourceLinkCreator::Config simpleSourceLinkCreatorCfg;
@@ -438,10 +481,11 @@ int main() {
       .vertexGenerator = vertexGen,
       .momentumGenerator = momGen,
       .referenceSurface = refSurface.get(),
-      .maxSteps = 1000,
-      .isSignal = true,
+      .maxSteps = getEntrySizeT("MeasurementsCreator", "maxSteps"),
+      .stepTolerance = getEntryDouble("MeasurementsCreator", "stepTolerance"),
+      .isSignal = getEntryBool("MeasurementsCreator", "isSignal"),
       .hypothesis = Acts::ParticleHypothesis::electron(),
-      .charge = 1_e};
+      .charge = getEntryDouble("MeasurementsCreator", "charge") * 1_e};
 
   for (const auto& pars : constraintSurfaceParameters) {
     if (pars.geoId != goInst.ipSurfaceParameters.geoId) {

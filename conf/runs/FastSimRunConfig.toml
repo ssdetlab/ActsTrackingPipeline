@@ -34,63 +34,93 @@ Uniform_DirectZ_Tracker_PDCWindow_256x128_1e6/material.json\
 # # Global alignment angles [mrad]
 # globalAngleZ = 0
 
-# # Local alignment shifts [um]
-# localShiftY10 = 0
-# localShiftY12 = 0
-# localShiftY14 = 0
-# localShiftY16 = 0
-# localShiftY18 = 0
-# 
-# localShiftZ10 = 0
-# localShiftZ12 = 0
-# localShiftZ14 = 0
-# localShiftZ16 = 0
-# localShiftZ18 = 0
-# 
-# # Local alignment angles [mrad]
-# localAngleZ10 = 0
-# localAngleZ12 = 0
-# localAngleZ14 = 0
-# localAngleZ16 = 0
-# localAngleZ18 = 0
+# Local alignment shifts [um]
+localShiftY10 = 0.0
+localShiftY12 = 0.0
+localShiftY14 = 0.0
+localShiftY16 = 0.0
+localShiftY18 = 0.0
+
+localShiftZ10 = 0.0
+localShiftZ12 = 0.0
+localShiftZ14 = 0.0
+localShiftZ16 = 0.0
+localShiftZ18 = 0.0
+
+localShiftYBPM0 = 0.0
+localShiftYBPM1 = 0.0
+localShiftYBPM2 = 0.0
+localShiftYBPM3 = 0.0
+
+localShiftZBPM0 = 0.0
+localShiftZBPM1 = 0.0
+localShiftZBPM2 = 0.0
+localShiftZBPM3 = 0.0
+
+# Local alignment angles [mrad]
+localAngleZ10 = 0.0
+localAngleZ12 = 0.0
+localAngleZ14 = 0.0
+localAngleZ16 = 0.0
+localAngleZ18 = 0.0
+
+localAngleZBPM0 = 0.0
+localAngleZBPM1 = 0.0
+localAngleZBPM2 = 0.0
+localAngleZBPM3 = 0.0
 
 # Global alignment shifts [mm]
 globalShiftY = 3
-globalShiftZ = -5
+globalShiftZ = -14.4
 
 # Global alignment angles [mrad]
-globalAngleZ = -2
+globalAngleZ = 0
 
-# Local alignment shifts [um]
-localShiftY10 = -30
-localShiftY12 = 30
-localShiftY14 = -40
-localShiftY16 = 40
-localShiftY18 = 50
-
-localShiftZ10 = 20
-localShiftZ12 = 30
-localShiftZ14 = -40
-localShiftZ16 = -50
-localShiftZ18 = 50
-
-# Local alignment angles [mrad]
-localAngleZ10 = 1.5
-localAngleZ12 = -2
-localAngleZ14 = -1
-localAngleZ16 = 2
-localAngleZ18 = 1
+# # Local alignment shifts [um]
+# localShiftY10 = -30
+# localShiftY12 = 30
+# localShiftY14 = -40
+# localShiftY16 = 40
+# localShiftY18 = 50
+# 
+# localShiftZ10 = 20
+# localShiftZ12 = 30
+# localShiftZ14 = -40
+# localShiftZ16 = -50
+# localShiftZ18 = 50
+# 
+# localShiftYBPM0 = 0.0
+# localShiftYBPM1 = 0.0
+# localShiftYBPM2 = -194
+# localShiftYBPM3 = 142
+# 
+# localShiftZBPM0 = 0.0
+# localShiftZBPM1 = 0.0
+# localShiftZBPM2 = -2942
+# localShiftZBPM3 = -3246
+# 
+# # Local alignment angles [mrad]
+# localAngleZ10 = 1.5
+# localAngleZ12 = -2
+# localAngleZ14 = -1
+# localAngleZ16 = 2
+# localAngleZ18 = 1
+# 
+# localAngleZBPM0 = 0
+# localAngleZBPM1 = 0
+# localAngleZBPM2 = 0
+# localAngleZBPM3 = 0
 
 # Use material decorator for the 
 # material description
-materialDecorator = true
+materialDecorator = false
 
 [Sequencer]
 # Event skip
 skip = 0
 
 # Number of events
-events = 20000
+events = 10000
 
 # Number of threads
 numThreads = 1
@@ -113,15 +143,15 @@ nEvents = 1000000
 
 [GaussianVertexGenerator]
 # Vertex resolution [um]
-vertexResolution = 30
+vertexResolution = 0
 
 [SphericalMomentumGenerator]
 # Absolute momentum range [GeV]
 # minAbsoluteMomentum = 3.0
 # maxAbsoluteMomentum = 4.0
 
-minAbsoluteMomentum = 1.5
-maxAbsoluteMomentum = 2.5
+minAbsoluteMomentum = 2.0
+maxAbsoluteMomentum = 2.0
 
 # Phi angle range [mrad]
 minPhi = -1
@@ -130,6 +160,51 @@ maxPhi = 1
 # Theta angle range with respect to M_PI_2 [mrad]
 minTheta = -1
 maxTheta = 1
+
+[ConvergingBeamGenerator]
+# Waist position mean [mm]
+waistMeanLong = 3.0
+waistMeanShort = -5.0
+
+# Waist position uncertainty [um]
+waistSigmaLong = 30
+waistSigmaShort = 30
+
+# Waist momentum angle mean [mrad]
+waistMeanThetaLong = 0.3
+waistMeanThetaShort = -0.2
+
+# Waist momentum angle uncertainty [mrad]
+waistSigmaThetaLong = 0.1 
+waistSigmaThetaShort = 0.1
+
+# Beam energy range [GeV]
+beamEnergyMin = 10
+beamEnergyMax = 10
+
+[RootVertexDirectionReaderGenerator]
+# Path to the file with vertex/momentum direction data
+filePath = """
+/home/romanurmanov/work/E320/E320Prototype/\
+E320Prototype_bpm_analysis/out_data/sim/\
+test/alignment/orbit_est/fitted-beam-sim.root\
+"""
+
+# Input tree name
+treeName = "fitted-beam"
+
+# Name of the vertex position branch
+vertexBranch = "originPositionTruth"
+
+# Name of the momentum direction branch
+directionBranch = "originMomentumTruth"
+
+# Absolute momentum range [GeV]
+absMomentumMin = 1.5
+absMomentumMax = 2.5
+
+# Tree entry from which to start reading
+skip = 0
 
 [TrackHitDigitizer]
 # Gaussian hit smearing resolution
@@ -214,6 +289,19 @@ multiplicity-hist.root\
 
 # Hist name
 histName = "multiplicity-hist"
+
+[MeasurementsCreator]
+# Maximum number of navigation steps
+maxSteps = 1000
+
+# Step tolerance
+stepTolerance = 1e-6
+
+# Flag to mark created measurements as signal/background
+isSignal = true
+
+# Generated particle charge [e]
+charge = 1
 
 [SigMeasurementsEmbeddingAlgorithm]
 # WhiteBoard name of the input sim measurements

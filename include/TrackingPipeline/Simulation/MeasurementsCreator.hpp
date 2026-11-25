@@ -56,6 +56,9 @@ class MeasurementsCreator : public IMeasurementGenerator {
     /// Maximum number of steps
     /// to propagate
     std::size_t maxSteps;
+    /// Step tolerance
+    double stepTolerance;
+    /// Is signal flag
     /// Is signal flag
     bool isSignal;
     /// Particle hypothesis

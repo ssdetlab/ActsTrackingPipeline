@@ -45,6 +45,7 @@ std::size_t MeasurementsCreator::gen(
 
   auto& creator = options.actionList.template get<MeasurementsCreatorAction>();
   options.maxSteps = m_cfg.maxSteps;
+  options.stepping.stepTolerance = m_cfg.stepTolerance;
   creator.sourceId = id;
 
   Acts::Vector3 spatial = m_cfg.vertexGenerator->genVertex(rng);
