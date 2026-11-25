@@ -164,18 +164,13 @@ E320TrackParametersEstimator::estimateParameters(
   }
   absMom = std::abs(dipoleFieldStrength * m_dipoleLength / thetaY);
 
-  // Estimate the abs momentum variance
-  Acts::BoundMatrix cov = m_cfg.originCov;
-  cov(Acts::eBoundQOverP, Acts::eBoundQOverP) = transportCovToReference(
-      gctx, vertex3, newPoint, newDir, newCov, dipoleFieldStrength)(
-      Acts::eBoundQOverP, Acts::eBoundQOverP);
   if (m_cfg.propDirection == PropagationDirection::forward) {
     return Acts::CurvilinearTrackParameters(
-        vertex, newDir, m_particleCharge / absMom, cov,
+        vertex, newDir, m_particleCharge / absMom, m_cfg.originCov,
         Acts::ParticleHypothesis::electron());
   } else {
     return Acts::CurvilinearTrackParameters(
-        vertex, -newDir, m_particleCharge / absMom, cov,
+        vertex, -newDir, m_particleCharge / absMom, m_cfg.originCov,
         Acts::ParticleHypothesis::electron());
   }
 }
