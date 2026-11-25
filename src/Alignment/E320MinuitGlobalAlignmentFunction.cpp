@@ -64,6 +64,7 @@ operator()(const std::vector<double>& pars) const {
   // Initialize KF options
   auto propOptions = KFFitterPropagatorOptions(m_opt.gctx, m_opt.mctx);
   propOptions.maxSteps = m_opt.functionCfg.maxKFSteps;
+  propOptions.stepping.stepTolerance = m_opt.functionCfg.kfStepTolerance;
 
   auto kfOptions = Acts::KalmanFitterOptions(
       m_opt.gctx, m_opt.mctx, m_opt.cctx, m_opt.functionCfg.kfExtensions,
