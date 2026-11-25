@@ -33,31 +33,22 @@ bpm1CenterPrimary = 4944   # 3218
 bpm2CenterPrimary = 7168   # 3265
 bpm3CenterPrimary = 9393   # 3315
 
-# bpm0CenterPrimary = 12515.8  # 3156
-# bpm1CenterPrimary = 12545.8  # 3218
-# bpm2CenterPrimary = 12575.8  # 3265
-# bpm3CenterPrimary = 12605.8  # 3315
+bpm0CenterLong = 0.0
+bpm1CenterLong = 0.0
+bpm2CenterLong = 0.0
+bpm3CenterLong = 0.0
 
-bpm0CenterLong = 0.056 
-bpm1CenterLong = -0.055
-bpm2CenterLong = -0.164
-bpm3CenterLong = 0.042
+bpm0CenterShort = 0.0
+bpm1CenterShort = 0.0
+bpm2CenterShort = 0.0
+bpm3CenterShort = 0.0
 
-bpm0CenterShort = -1.821
-bpm1CenterShort = -3.5
-bpm2CenterShort = -2.642
-bpm3CenterShort = -3.546
+# Surface rotation [mrad]
+bpm0Roll = 0
+bpm1Roll = 0
+bpm2Roll = 0
+bpm3Roll = 0
 
-# bpm0CenterLong = 0
-# bpm1CenterLong = 0
-# bpm2CenterLong = 0
-# bpm3CenterLong = 0
-# 
-# bpm0CenterShort = 0
-# bpm1CenterShort = 0
-# bpm2CenterShort = 0
-# bpm3CenterShort = 0
- 
 # Surface geometry identifier
 bpm0GeometryId = 30
 bpm1GeometryId = 31
@@ -223,15 +214,15 @@ quad1HalfPrimary = 486.664
 quad2HalfPrimary = 486.664
 quad3HalfPrimary = 486.664
 
-quad0HalfLong = 2000
-quad1HalfLong = 2000
-quad2HalfLong = 2000
-quad3HalfLong = 2000
+quad0HalfLong = 500
+quad1HalfLong = 500
+quad2HalfLong = 500
+quad3HalfLong = 500
 
-quad0HalfShort = 2000
-quad1HalfShort = 2000
-quad2HalfShort = 2000
-quad3HalfShort = 2000
+quad0HalfShort = 500
+quad1HalfShort = 500
+quad2HalfShort = 500
+quad3HalfShort = 500
 
 # Placement [mm]
 quad0CenterPrimary = -1900
@@ -249,15 +240,16 @@ quad1CenterShort = -3.5
 quad2CenterShort = -2.642
 quad3CenterShort = -3.546
 
-# quad0CenterLong = 0.0
-# quad1CenterLong = 0.0
-# quad2CenterLong = 0.0
-# quad3CenterLong = 0.0
-# 
-# quad0CenterShort = 0.0
-# quad1CenterShort = 0.0
-# quad2CenterShort = 0.0
-# quad3CenterShort = 0.0
+# Rotation [mrad]
+quad0Pitch = 0
+quad1Pitch = 0
+quad2Pitch = 0
+quad3Pitch = 0
+
+quad0Yaw = 0
+quad1Yaw = 0
+quad2Yaw = 0
+quad3Yaw = 0
 
 # Quad gradients [T/m]
 # quad1Gradient = 0  # Test
@@ -271,6 +263,34 @@ quad2Gradient = 3.565  # 2.0 GeV
 # quad3Gradient = 0  # Test
 quad3Gradient = -2.406  # 2.0 GeV
 # quad3Gradient = -4.36  # 3.5 GeV
+
+# quad1Gradient = -4.63
+# quad2Gradient = 7.22
+# quad3Gradient = -4.63
+
+# quad1Gradient = -6.94
+# quad2Gradient = 10.84
+# quad3Gradient = -6.94
+
+# quad1Gradient = -9.26
+# quad2Gradient = 14.45
+# quad3Gradient = -9.26
+
+# quad1Gradient = -11.58
+# quad2Gradient = 18.06
+# quad3Gradient = -11.58
+
+# quad1Gradient = -13.89
+# quad2Gradient = 21.68
+# quad3Gradient = -13.89
+
+# quad1Gradient = -16.21
+# quad2Gradient = 25.29
+# quad3Gradient = -16.21
+
+# quad1Gradient = -18.53
+# quad2Gradient = 28.91
+# quad3Gradient = -18.53
 
 # Quad triplet focusing energy [GeV]
 quadTripletFocusingEnergy = 2.0
