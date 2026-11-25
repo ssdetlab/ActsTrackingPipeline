@@ -287,11 +287,6 @@ E320::E320MinuitGlobalAlignmentFunction::operator()(
     const SourceLinkContainer& initialTrackStateFitSourceLinks,
     const TrackParametersContainer& initialParameters,
     const MagneticFieldParametersContainer& magFieldParameters) const {
-  // Store nominal alignment parameters
-  auto nominalAlignmentStore = *m_cfg.alignmentStore;
-  Acts::GeometryContext nominalGctx(AlignmentContext(
-      std::make_shared<AlignmentStore>(nominalAlignmentStore)));
-
   // Set alignment options
   MinuitAlignmentFunctionImpl::Options alignmentFunctionCfg{
       .gctx = gctx,
@@ -362,7 +357,6 @@ E320::E320MinuitGlobalAlignmentFunction::operator()(
 
   // Fill out alignment results struct
   double finalChi2 = min.Fval();
-  std::size_t ndf = 0;
 
   AlignmentResult alignmentResult;
   alignmentResult.alignedParameters = alignedParameters;
