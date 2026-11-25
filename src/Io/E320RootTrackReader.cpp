@@ -14,6 +14,7 @@
 #include "TrackingPipeline/EventData/SimpleSourceLink.hpp"
 #include "TrackingPipeline/Geometry/E320GeometryOptions.hpp"
 #include "TrackingPipeline/MagneticField/ConstantMagField.hpp"
+#include "TrackingPipeline/MagneticField/E320MagneticFieldStore.hpp"
 #include "TrackingPipeline/MagneticField/IdealQuadrupoleMagField.hpp"
 
 using namespace Acts::UnitLiterals;
@@ -78,6 +79,22 @@ E320::E320RootTrackReader::E320RootTrackReader(const Config& config,
 
   //------------------------------------------------------------------
   // Set the rest of the branches
+
+  // Quadrupole triplet focuing energy
+  m_tree->SetBranchAddress("quadTripletFocusingEnergy",
+                           &m_quadTripletFocusingEnergy);
+
+  // Quadrupole triplet object z
+  m_tree->SetBranchAddress("quadTripletObjectZ", &m_quadTripletObjectZ);
+
+  // Quadrupole triplet image z
+  m_tree->SetBranchAddress("quadTripletImageZ", &m_quadTripletImageZ);
+
+  // Quadrupole triplet M12 transport matrix element
+  m_tree->SetBranchAddress("quadTripletM12", &m_quadTripletM12);
+
+  // Quadrupole triplet M34 transport matrix element
+  m_tree->SetBranchAddress("quadTripletM34", &m_quadTripletM34);
 
   // EUDAQ trigger ID
   m_tree->SetBranchAddress("eudaqTrgN", &m_eudaqTrgN);
@@ -190,6 +207,8 @@ E320::E320RootTrackReader::E320RootTrackReader(const Config& config,
 
   m_tree->SetBranchAddress("leaveOneOutHitResiduals",
                            &m_leaveOneOutHitResiduals);
+  m_tree->SetBranchAddress("leaveOneOutAngleResiduals",
+                           &m_leaveOneOutAngleResiduals);
 
   // KF pulls with respect to the measurements
   m_tree->SetBranchAddress("predictedHitPulls", &m_predictedHitPulls);
@@ -201,6 +220,7 @@ E320::E320RootTrackReader::E320RootTrackReader(const Config& config,
   m_tree->SetBranchAddress("smoothedAnglePulls", &m_smoothedAnglePulls);
 
   m_tree->SetBranchAddress("leaveOneOutHitPulls", &m_leaveOneOutHitPulls);
+  m_tree->SetBranchAddress("leaveOneOutAnglePulls", &m_leaveOneOutAnglePulls);
 
   // KF states covariances
   m_tree->SetBranchAddress("predictedTrackStateCovs",
@@ -400,7 +420,14 @@ ProcessCode E320::E320RootTrackReader::read(const AlgorithmContext& ctx) {
                                   .epicsDAQNumber = m_epicsDAQNumber};
 
     // Magnetic fields
-    auto mStore = std::make_shared<MagneticFieldStore>();
+    auto mStore = std::make_shared<E320MagneticFieldStore>();
+
+    mStore->quadTripletFocusingEnergy = m_quadTripletFocusingEnergy;
+    mStore->quadTripletObjectZ = m_quadTripletObjectZ;
+    mStore->quadTripletImageZ = m_quadTripletImageZ;
+    mStore->quadTripletM12 = m_quadTripletM12;
+    mStore->quadTripletM34 = m_quadTripletM34;
+
     mStore->store.reserve(5);
 
     // Quad gradients T/m
