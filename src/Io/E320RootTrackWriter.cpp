@@ -416,6 +416,13 @@ ProcessCode E320::E320RootTrackWriter::write(const AlgorithmContext& ctx) {
     // Get the track object and the track id
     const auto& track = inputTrackContainer.getTrack(trackIndices.trackIndex);
 
+    // Skip the tracks that have not reached the reference surface
+    if (!track.hasReferenceSurface()) {
+      ACTS_DEBUG("Track " << trackIndices.trackId
+                          << " has not reached the reference surface. Skip");
+      continue;
+    }
+
     std::size_t nStates = track.nTrackStates();
 
     // HT cell intersections count
@@ -596,7 +603,7 @@ ProcessCode E320::E320RootTrackWriter::write(const AlgorithmContext& ctx) {
     for (std::size_t i = 0; i < Acts::eBoundSize; i++) {
       boundTrackParsGuessData[i] = boundTrackParametersGuess(i);
     }
-    m_boundTrackParametersGuess.Use(0, Acts::eBoundSize,
+    m_boundTrackParametersGuess.Use(Acts::eBoundSize,
                                     boundTrackParsGuessData.GetArray());
 
     // Guessed bound errors
@@ -630,7 +637,7 @@ ProcessCode E320::E320RootTrackWriter::write(const AlgorithmContext& ctx) {
     for (std::size_t i = 0; i < Acts::eBoundSize; i++) {
       boundTrackParsEstData[i] = boundTrackParametersEst(i);
     }
-    m_boundTrackParametersEst.Use(0, Acts::eBoundSize,
+    m_boundTrackParametersEst.Use(Acts::eBoundSize,
                                   boundTrackParsEstData.GetArray());
 
     // KF predicted bound errors
