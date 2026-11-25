@@ -485,6 +485,8 @@ int main() {
       .outputTracks = getEntryStr("KFTrackFittingAlgorithm", "outputTracks"),
       .fitter = fitter,
       .maxSteps = getEntrySizeT("KFTrackFittingAlgorithm", "maxSteps"),
+      .stepTolerance =
+          getEntryDouble("KFTrackFittingAlgorithm", "stepTolerance"),
       .kfExtensions = kfExtensions,
       .referenceSurface = trackingRefSurface.get(),
       .mctxMagneticFields =

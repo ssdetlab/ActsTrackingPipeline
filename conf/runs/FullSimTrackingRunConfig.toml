@@ -6,7 +6,7 @@
 # WARNING = 3
 # ERROR = 4
 # FATAL = 5
-logLevel = 1
+logLevel = 2
 
 [MaterialMapJsonConverter]
 # Material mapping options
@@ -37,39 +37,54 @@ alignment/test/global/aligned/alignment-parameters.root\
 """
 
 [Geometry]
+# # Global alignment shifts [mm]
+# globalShiftY = 0
+# globalShiftZ = 0
+# 
+# # Global alignment angles [mrad]
+# globalAngleZ = 0
+
+# Local alignment shifts [um]
+localShiftY10 = 0.0
+localShiftY12 = 0.0
+localShiftY14 = 0.0
+localShiftY16 = 0.0
+localShiftY18 = 0.0
+
+localShiftZ10 = 0.0
+localShiftZ12 = 0.0
+localShiftZ14 = 0.0
+localShiftZ16 = 0.0
+localShiftZ18 = 0.0
+
+localShiftYBPM0 = 0.0
+localShiftYBPM1 = 0.0
+localShiftYBPM2 = 0.0
+localShiftYBPM3 = 0.0
+
+localShiftZBPM0 = 0.0
+localShiftZBPM1 = 0.0
+localShiftZBPM2 = 0.0
+localShiftZBPM3 = 0.0
+
+# Local alignment angles [mrad]
+localAngleZ10 = 0.0
+localAngleZ12 = 0.0
+localAngleZ14 = 0.0
+localAngleZ16 = 0.0
+localAngleZ18 = 0.0
+
+localAngleZBPM0 = 0.0
+localAngleZBPM1 = 0.0
+localAngleZBPM2 = 0.0
+localAngleZBPM3 = 0.0
+
 # Global alignment shifts [mm]
-globalShiftY = 0
-globalShiftZ = 0
+globalShiftY = 3
+globalShiftZ = -14.4
 
 # Global alignment angles [mrad]
 globalAngleZ = 0
-
-# Local alignment shifts [um]
-localShiftY10 = 0
-localShiftY12 = 0
-localShiftY14 = 0
-localShiftY16 = 0
-localShiftY18 = 0
-
-localShiftZ10 = 0
-localShiftZ12 = 0
-localShiftZ14 = 0
-localShiftZ16 = 0
-localShiftZ18 = 0
-
-# Local alignment angles [mrad]
-localAngleZ10 = 0
-localAngleZ12 = 0
-localAngleZ14 = 0
-localAngleZ16 = 0
-localAngleZ18 = 0
-
-# # Global alignment shifts [mm]
-# globalShiftY = -2.5
-# globalShiftZ = -4.5
-# 
-# # Global alignment angles [mrad]
-# globalAngleZ = -2
 
 # # Local alignment shifts [um]
 # localShiftY10 = -30
@@ -84,20 +99,35 @@ localAngleZ18 = 0
 # localShiftZ16 = -50
 # localShiftZ18 = 50
 # 
+# localShiftYBPM0 = 0.0
+# localShiftYBPM1 = 0.0
+# localShiftYBPM2 = -194
+# localShiftYBPM3 = 142
+# 
+# localShiftZBPM0 = 0.0
+# localShiftZBPM1 = 0.0
+# localShiftZBPM2 = -2942
+# localShiftZBPM3 = -3246
+# 
 # # Local alignment angles [mrad]
 # localAngleZ10 = 1.5
 # localAngleZ12 = -2
 # localAngleZ14 = -1
 # localAngleZ16 = 2
 # localAngleZ18 = 1
+# 
+# localAngleZBPM0 = 0
+# localAngleZBPM1 = 0
+# localAngleZBPM2 = 0
+# localAngleZBPM3 = 0
 
 # Use material decorator for the 
 # material description
-materialDecorator = true
+materialDecorator = false
 
 # Use alignment provider for the 
 # transform initialization
-alignmentProvider = true
+alignmentProvider = false
 
 [Sequencer]
 # Event skip
@@ -115,8 +145,8 @@ trackFpes = false
 [E320MagneticFieldParametersProvider]
 inDirMagnets = """
 /home/romanurmanov/work/E320/E320Prototype/\
-E320Prototype_dataInRootFormat/sim/alignment/test/\
-global/test/magnets\
+E320Prototype_dataInRootFormat/sim/test/\
+test/magnets\
 """
 
 treeName = "magnets"
@@ -124,8 +154,8 @@ treeName = "magnets"
 [E320RootSimClusterReader]
 inDirClusters = """
 /home/romanurmanov/work/E320/E320Prototype/\
-E320Prototype_dataInRootFormat/sim/alignment/test/\
-global/test/clusters\
+E320Prototype_dataInRootFormat/sim/test/\
+test/clusters\
 """
 
 # WhiteBoard name of the output source links
@@ -138,7 +168,7 @@ outputSimClusters = "SimClusters"
 outputDetSourceLinkIndices = "DetSourceLinkIndices"
 
 # WhiteBoard name of the output constraint source link indices
-outputConstraintSourceLinkIndices = "BpmSourceLinkIndices"
+outputConstraintSourceLinkIndices = "ConstraintSourceLinkIndices"
 
 # Input tree name
 treeName = "clusters"
@@ -207,8 +237,8 @@ inputSourceLinks = "SourceLinks"
 # WhiteBoard name of the input detector source link indices
 inputDetSourceLinkIndices = "DetSourceLinkIndices"
 
-# WhiteBoard name of the input BPM source link indices
-inputBpmSourceLinkIndices = "BpmSourceLinkIndices"
+# WhiteBoard name of the input constraint source link indices
+inputConstraintSourceLinkIndices = "ConstraintSourceLinkIndices"
 
 # WhiteBoard name of the output seeds
 outputSeeds = "Seeds"
@@ -245,6 +275,9 @@ outputTracks = "Tracks"
 
 # Cut on the maximum number of KF steps
 maxSteps = 100000
+
+# Step tolerance
+stepTolerance = 1e-6
 
 # Flag to read the magnetic field data from the
 # magnetic field context

@@ -116,8 +116,7 @@ minAbsMomentumEst = 0
 maxAbsMomentumEst = 10
 
 inDirTracks = """
-/home/romanurmanov/work/E320/E320Prototype/E320Prototype_analysis/sim/\
-alignment/test/local/filtered\
+/home/romanurmanov/work/E320/E320Prototype/E320Prototype_analysis/sim/test/local/filtered\
 """
 
 treeName = "fitted-tracks"
@@ -226,6 +225,9 @@ outputTracks = "Tracks"
 
 # Cut on the maximum number of KF steps
 maxSteps = 100000
+
+# Step tolerance
+stepTolerance = 1e-6
 
 # Flag to read the magnetic field data from the
 # magnetic field context

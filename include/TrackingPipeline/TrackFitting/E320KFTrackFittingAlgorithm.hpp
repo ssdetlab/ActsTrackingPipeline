@@ -31,6 +31,8 @@ class E320KFTrackFittingAlgorithm : public IAlgorithm {
     const KFFitter& fitter;
     /// Maximum number of steps
     std::size_t maxSteps;
+    /// Step tolerance
+    double stepTolerance;
     /// KF extensions
     KFFitterExtensions kfExtensions;
     /// Reference surface

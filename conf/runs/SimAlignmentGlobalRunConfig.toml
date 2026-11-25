@@ -33,7 +33,7 @@ treeName = "alignment-parameters"
 # Input file path
 filePath = """
 /home/romanurmanov/work/E320/E320Prototype/E320Prototype_analysis/sim/\
-alignment/test/local/aligned/alignment-parameters.root\
+test/local/it2/aligned/alignment-parameters.root\
 """
 
 [Geometry]
@@ -117,8 +117,8 @@ minAbsMomentumEst = 0
 maxAbsMomentumEst = 10
 
 inDirTracks = """
-/home/romanurmanov/work/E320/E320Prototype/E320Prototype_analysis/sim/\
-alignment/test/global/filtered\
+/home/romanurmanov/work/E320/E320Prototype/E320Prototype_analysis/\
+sim/test/global/filtered\
 """
 
 treeName = "fitted-tracks"
@@ -151,18 +151,18 @@ initialAlignmentParsY = 0
 # Initial Y parameter step size [mm]
 initialAlignmentParStepsY = 5
 # Low Y parameter boundary [mm]
-alignmentParLowBoundsY = -10
+alignmentParLowBoundsY = -20
 # High Y parameter boundary [mm]
-alignmentParHighBoundsY = 10
+alignmentParHighBoundsY = 20
 
 # Initial Z parameter value [mm]
 initialAlignmentParsZ = 0
 # Initial Z parameter step size [mm]
 initialAlignmentParStepsZ = 5
 # Low Z parameter boundary [mm]
-alignmentParLowBoundsZ = -10
+alignmentParLowBoundsZ = -20
 # High Z parameter boundary [mm]
-alignmentParHighBoundsZ = 10
+alignmentParHighBoundsZ = 20
 
 # Initial Theta parameter value [mrad]
 initialAlignmentParsTheta = 0
@@ -219,6 +219,9 @@ outputTracks = "Tracks"
 
 # Cut on the maximum number of KF steps
 maxSteps = 100000
+
+# Step tolerance
+stepTolerance = 1e-6
 
 # Flag to read the magnetic field data from the
 # magnetic field context

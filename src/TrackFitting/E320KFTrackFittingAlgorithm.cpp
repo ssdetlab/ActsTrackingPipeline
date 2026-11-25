@@ -43,6 +43,7 @@ ProcessCode E320::E320KFTrackFittingAlgorithm::execute(
   auto propOptions =
       KFFitterPropagatorOptions(ctx.geoContext, ctx.magFieldContext);
   propOptions.maxSteps = m_cfg.maxSteps;
+  propOptions.stepping.stepTolerance = m_cfg.stepTolerance;
 
   auto kfOptions = Acts::KalmanFitterOptions(
       ctx.geoContext, ctx.magFieldContext, ctx.calibContext, m_cfg.kfExtensions,

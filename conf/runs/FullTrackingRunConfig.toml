@@ -211,6 +211,9 @@ outputTracks = "Tracks"
 # Cut on the maximum number of KF steps
 maxSteps = 100000
 
+# Step tolerance
+stepTolerance = 1e-6
+
 # Flag to read the magnetic field data from the
 # magnetic field context
 mctxMagneticFields = true

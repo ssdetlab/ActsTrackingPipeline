@@ -580,6 +580,8 @@ int main() {
           getEntryStr("E320KFTrackFittingAlgorithm", "outputTracks"),
       .fitter = fitter,
       .maxSteps = getEntrySizeT("E320KFTrackFittingAlgorithm", "maxSteps"),
+      .stepTolerance =
+          getEntryDouble("E320KFTrackFittingAlgorithm", "stepTolerance"),
       .kfExtensions = kfExtensions,
       .referenceSurface = trackingRefSurface.get(),
       .mctxMagneticFields =
