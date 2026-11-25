@@ -44,7 +44,7 @@ materialDecorator = true
 
 # Use alignment provider for the 
 # transform initialization
-alignmentProvider = true
+alignmentProvider = false
 
 [Sequencer]
 # Event skip
@@ -120,7 +120,7 @@ maxClusterSize = 4
 
 # Propagation direction for extended source link
 # invertion
-backwards = true
+backwards = false
 
 [E320TrackParametersEstimator]
 # Number of GX2 fit iterations
