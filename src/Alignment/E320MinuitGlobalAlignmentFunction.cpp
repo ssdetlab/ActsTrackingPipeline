@@ -14,6 +14,7 @@
 #include "Minuit2/MnUserParameters.h"
 #include "TrackingPipeline/Alignment/AlignmentContext.hpp"
 #include "TrackingPipeline/Geometry/E320GeometryOptions.hpp"
+#include "TrackingPipeline/MagneticField/E320MagneticFieldStore.hpp"
 
 E320::E320MinuitGlobalAlignmentFunction::MinuitAlignmentFunctionImpl::
     MinuitAlignmentFunctionImpl(const Options& opt, Acts::Logging::Level level)
@@ -150,6 +151,10 @@ operator()(const std::vector<double>& pars) const {
   Acts::TrackContainer tracks{Acts::VectorTrackContainer{},
                               Acts::VectorMultiTrajectory{}};
   tracks.container().reserve(nTracks);
+
+  std::unordered_map<std::size_t, double> meanAbsMoms;
+  std::unordered_map<std::size_t, double> mean2AbsMoms;
+  std::unordered_map<std::size_t, std::size_t> fEnergyCount;
   for (std::size_t iTraj = 0; iTraj < nTracks; iTraj++) {
     const auto& sls = m_opt.alignmentFitSourceLinkContainer.at(iTraj);
     const auto& sParameters = trackParameters.at(iTraj);
@@ -206,6 +211,17 @@ operator()(const std::vector<double>& pars) const {
 
       measurementDim += state.calibratedSize();
     }
+
+    double focusingEnergy =
+        std::dynamic_pointer_cast<E320MagneticFieldStore>(mParameters)
+            ->quadTripletFocusingEnergy;
+    std::size_t fEnergyKey =
+        static_cast<std::size_t>(std::round(focusingEnergy * 1e6));
+
+    meanAbsMoms[fEnergyKey] += track.absoluteMomentum();
+    mean2AbsMoms[fEnergyKey] +=
+        track.absoluteMomentum() * track.absoluteMomentum();
+    fEnergyCount[fEnergyKey]++;
   }
   matEXY /= nTracks;
   vecEX /= nTracks;
@@ -215,7 +231,25 @@ operator()(const std::vector<double>& pars) const {
   for (const Acts::Vector4& res : ipRes) {
     chi2Smoothed += res.transpose() * ensembleCovInv * res;
   }
-  ACTS_INFO("Chi2 per track:" << chi2Smoothed / nTracks);
+
+  for (auto [fEnergyKey, meanAbsMom] : meanAbsMoms) {
+    double mean2AbsMom = mean2AbsMoms[fEnergyKey];
+    double focusingEnergy = fEnergyKey * 1e-6;
+    std::size_t count = fEnergyCount[fEnergyKey];
+
+    meanAbsMom /= count;
+    mean2AbsMom /= count;
+    double absMomEstVar = mean2AbsMom - meanAbsMom * meanAbsMom;
+    double absMomMeanEstVar = absMomEstVar / count;
+
+    std::cout << "FOCUSING ENERGY: " << focusingEnergy << "\n";
+    std::cout << "MEAN ENERGY: " << meanAbsMom << "\n";
+    std::cout << "ENERGY STD DEV: " << std::sqrt(absMomEstVar) << "\n";
+    std::cout << "ENERGY MEAN STD DEV: " << std::sqrt(absMomMeanEstVar) << "\n";
+    chi2Smoothed += (meanAbsMom - focusingEnergy) *
+                    (meanAbsMom - focusingEnergy) / absMomMeanEstVar;
+  }
+  ACTS_INFO("Chi2 per track: " << chi2Smoothed / nTracks);
 
   // Update the function state
   m_state->chi2 = chi2Smoothed;
@@ -331,9 +365,6 @@ E320::E320MinuitGlobalAlignmentFunction::operator()(
   std::size_t ndf = 0;
 
   AlignmentResult alignmentResult;
-  alignmentResult.deltaAlignmentParameters = Acts::Vector3(
-      min.UserParameters().Value(0), min.UserParameters().Value(1),
-      min.UserParameters().Value(2));
   alignmentResult.alignedParameters = alignedParameters;
   alignmentResult.averageChi2ONdf = finalChi2 / measurementDim;
   alignmentResult.deltaChi2 = initialChi2 - finalChi2;

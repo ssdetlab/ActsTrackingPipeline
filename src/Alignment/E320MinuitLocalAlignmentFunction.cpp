@@ -5,6 +5,7 @@
 
 #include <cstddef>
 #include <memory>
+#include <string>
 
 #include <Eigen/Core>
 
@@ -253,49 +254,38 @@ E320::E320MinuitLocalAlignmentFunction::operator()(
   MinuitAlignmentFunctionImpl alignmentFunction(alignmentFunctionCfg, m_level);
 
   // Evaluate the FCN to get the initial state
-  alignmentFunction(
-      {m_cfg.initialPars(0), m_cfg.initialPars(1), m_cfg.initialPars(2),
-       m_cfg.initialPars(3), m_cfg.initialPars(4), m_cfg.initialPars(5),
-       m_cfg.initialPars(6), m_cfg.initialPars(7), m_cfg.initialPars(8),
-       m_cfg.initialPars(9), m_cfg.initialPars(10), m_cfg.initialPars(11)});
+  std::vector<double> initialPars;
+  initialPars.reserve(m_cfg.initialPars.size());
+  for (std::size_t i = 0; i < m_cfg.initialPars.size(); i++) {
+    initialPars.push_back(m_cfg.initialPars(i));
+  }
+
+  alignmentFunction(initialPars);
   const auto& state = alignmentFunction.state();
   double initialChi2 = state.chi2;
   std::size_t measurementDim = state.measurementDim;
 
   // Create Minuit parameters with names
   ROOT::Minuit2::MnUserParameters userPars;
-  userPars.Add("dy0", m_cfg.initialPars(0), m_cfg.initialParSteps(0),
-               m_cfg.parLowBounds(0), m_cfg.parHighBounds(0));
-  userPars.Add("dz0", m_cfg.initialPars(1), m_cfg.initialParSteps(1),
-               m_cfg.parLowBounds(1), m_cfg.parHighBounds(1));
-  userPars.Add("dTheta0", m_cfg.initialPars(2), m_cfg.initialParSteps(2),
-               m_cfg.parLowBounds(2), m_cfg.parHighBounds(2));
-
-  userPars.Add("dy1", m_cfg.initialPars(3), m_cfg.initialParSteps(3),
-               m_cfg.parLowBounds(3), m_cfg.parHighBounds(3));
-  userPars.Add("dz1", m_cfg.initialPars(4), m_cfg.initialParSteps(4),
-               m_cfg.parLowBounds(4), m_cfg.parHighBounds(4));
-  userPars.Add("dTheta1", m_cfg.initialPars(5), m_cfg.initialParSteps(5),
-               m_cfg.parLowBounds(5), m_cfg.parHighBounds(5));
-
-  userPars.Add("dy2", m_cfg.initialPars(6), m_cfg.initialParSteps(6),
-               m_cfg.parLowBounds(6), m_cfg.parHighBounds(6));
-  userPars.Add("dz2", m_cfg.initialPars(7), m_cfg.initialParSteps(7),
-               m_cfg.parLowBounds(7), m_cfg.parHighBounds(7));
-  userPars.Add("dTheta2", m_cfg.initialPars(8), m_cfg.initialParSteps(8),
-               m_cfg.parLowBounds(8), m_cfg.parHighBounds(8));
-
-  userPars.Add("dy3", m_cfg.initialPars(9), m_cfg.initialParSteps(9),
-               m_cfg.parLowBounds(9), m_cfg.parHighBounds(9));
-  userPars.Add("dz3", m_cfg.initialPars(10), m_cfg.initialParSteps(10),
-               m_cfg.parLowBounds(10), m_cfg.parHighBounds(10));
-  userPars.Add("dTheta3", m_cfg.initialPars(11), m_cfg.initialParSteps(11),
-               m_cfg.parLowBounds(11), m_cfg.parHighBounds(11));
+  for (std::size_t i = 0; i < m_cfg.alignedDetElements.size(); i++) {
+    std::string nameDy = "dy" + std::to_string(i);
+    userPars.Add(nameDy, m_cfg.initialPars(i * 3 + 0),
+                 m_cfg.initialParSteps(i * 3 + 0),
+                 m_cfg.parLowBounds(i * 3 + 0), m_cfg.parHighBounds(i * 3 + 0));
+    std::string nameDz = "dz" + std::to_string(i);
+    userPars.Add(nameDz, m_cfg.initialPars(i * 3 + 1),
+                 m_cfg.initialParSteps(i * 3 + 1),
+                 m_cfg.parLowBounds(i * 3 + 1), m_cfg.parHighBounds(i * 3 + 1));
+    std::string nameDTheta = "dTheta" + std::to_string(i);
+    userPars.Add(nameDTheta, m_cfg.initialPars(i * 3 + 2),
+                 m_cfg.initialParSteps(i * 3 + 2),
+                 m_cfg.parLowBounds(i * 3 + 2), m_cfg.parHighBounds(i * 3 + 2));
+  }
 
   // Create MIGRAD minimizer
   ROOT::Minuit2::MnMigrad migrad(alignmentFunction, userPars);
   // Minimize
-  ROOT::Minuit2::FunctionMinimum min = migrad();
+  ROOT::Minuit2::FunctionMinimum min = migrad(200);
 
   // Create HESSE estimator
   ROOT::Minuit2::MnHesse hesse;
@@ -335,9 +325,6 @@ E320::E320MinuitLocalAlignmentFunction::operator()(
 
   // TODO: Finish the alignment result
   AlignmentResult alignmentResult;
-  alignmentResult.deltaAlignmentParameters = Acts::Vector3(
-      min.UserParameters().Value(0), min.UserParameters().Value(1),
-      min.UserParameters().Value(2));
   alignmentResult.alignedParameters = alignedParameters;
   alignmentResult.averageChi2ONdf = finalChi2 / measurementDim;
   alignmentResult.deltaChi2 = initialChi2 - finalChi2;
