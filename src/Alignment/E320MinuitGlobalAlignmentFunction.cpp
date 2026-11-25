@@ -336,6 +336,10 @@ E320::E320MinuitGlobalAlignmentFunction::operator()(
   ACTS_INFO("Finished MIGRAD minimization with chi2: " << min.Fval());
   ACTS_INFO("HESSE min: " << min);
 
+  // Evaluate the FCN at the minimum, HESSE leaves the alignment store
+  // at its last evaluation point
+  alignmentFunction(min.UserState().Params());
+
   // Estimate the track parameters
   std::vector<Acts::GenericCurvilinearTrackParameters<Acts::ParticleHypothesis>>
       trackParameters;
