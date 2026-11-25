@@ -454,6 +454,13 @@ ProcessCode E320::E320RootSimTrackWriter::write(const AlgorithmContext& ctx) {
     // Get the track object and the track id
     const auto& track = inputTrackContainer.getTrack(trackIndices.trackIndex);
 
+    // Skip the tracks that have not reached the reference surface
+    if (!track.hasReferenceSurface()) {
+      ACTS_DEBUG("Track " << trackIndices.trackId
+                          << " has not reached the reference surface. Skip");
+      continue;
+    }
+
     std::size_t nStates = track.nTrackStates();
 
     // HT cell intersections count
@@ -686,7 +693,7 @@ ProcessCode E320::E320RootSimTrackWriter::write(const AlgorithmContext& ctx) {
     for (std::size_t i = 0; i < Acts::eBoundSize; i++) {
       boundTrackParsGuessData[i] = boundTrackParametersGuess(i);
     }
-    m_boundTrackParametersGuess.Use(0, Acts::eBoundSize,
+    m_boundTrackParametersGuess.Use(Acts::eBoundSize,
                                     boundTrackParsGuessData.GetArray());
 
     // Guessed bound errors
@@ -720,7 +727,7 @@ ProcessCode E320::E320RootSimTrackWriter::write(const AlgorithmContext& ctx) {
     for (std::size_t i = 0; i < Acts::eBoundSize; i++) {
       boundTrackParsEstData[i] = boundTrackParametersEst(i);
     }
-    m_boundTrackParametersEst.Use(0, Acts::eBoundSize,
+    m_boundTrackParametersEst.Use(Acts::eBoundSize,
                                   boundTrackParsEstData.GetArray());
 
     // KF predicted bound errors
@@ -1584,12 +1591,15 @@ ProcessCode E320::E320RootSimTrackWriter::write(const AlgorithmContext& ctx) {
             return pairA.second.size() < pairB.second.size();
           }
         });
+
+    // Truth buffers are used by the branches without copying,
+    // so they have to stay alive until the tree is filled
+    TArrayD boundTrackParsTruthData(Acts::eBoundSize);
+    TArrayD boundTrackCovTruthData(Acts::eBoundSize * Acts::eBoundSize);
     if (std::get<0>(refTrackId->first) == -1) {
-      TArrayD boundTrackParsTruthData(Acts::eBoundSize);
       for (std::size_t i = 0; i < Acts::eBoundSize; i++) {
         boundTrackParsTruthData[i] = 0;
       }
-      TArrayD boundTrackCovTruthData(Acts::eBoundSize * Acts::eBoundSize);
       for (std::size_t i = 0; i < Acts::eBoundSize * Acts::eBoundSize; i++) {
         boundTrackCovTruthData[i] = 0;
       }
@@ -1597,7 +1607,7 @@ ProcessCode E320::E320RootSimTrackWriter::write(const AlgorithmContext& ctx) {
       m_originMomentumTruth.SetPxPyPzE(0, 0, 0, 0);
       m_vertexTruth.SetXYZ(0, 0, 0);
 
-      m_boundTrackParametersTruth.Use(0, Acts::eBoundSize,
+      m_boundTrackParametersTruth.Use(Acts::eBoundSize,
                                       boundTrackParsTruthData.GetArray());
       m_boundTrackCovTruth.Use(Acts::eBoundSize, Acts::eBoundSize,
                                boundTrackCovTruthData.GetArray());
@@ -1638,17 +1648,15 @@ ProcessCode E320::E320RootSimTrackWriter::write(const AlgorithmContext& ctx) {
       Acts::BoundVector boundTrackParametersTruth =
           originParametersTruth.parameters();
 
-      TArrayD boundTrackParsTruthData(Acts::eBoundSize);
       for (std::size_t i = 0; i < Acts::eBoundSize; i++) {
         boundTrackParsTruthData[i] = boundTrackParametersTruth(i);
       }
-      m_boundTrackParametersTruth.Use(0, Acts::eBoundSize,
+      m_boundTrackParametersTruth.Use(Acts::eBoundSize,
                                       boundTrackParsTruthData.GetArray());
 
       // Truth bound errors
       Acts::BoundMatrix boundTrackCovTruth =
           originParametersTruth.covariance().value();
-      TArrayD boundTrackCovTruthData(Acts::eBoundSize * Acts::eBoundSize);
       for (std::size_t i = 0; i < Acts::eBoundSize * Acts::eBoundSize; i++) {
         boundTrackCovTruthData[i] = boundTrackCovTruth(i);
       }
