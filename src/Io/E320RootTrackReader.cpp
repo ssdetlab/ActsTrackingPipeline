@@ -515,6 +515,10 @@ ProcessCode E320::E320RootTrackReader::read(const AlgorithmContext& ctx) {
         ClusterMatrix pixelMatrix(m_trackHitClusterMatrixPixels->at(i),
                                   constraints.maxClusterSize);
         std::size_t matrixShapeId = pixelMatrix.shapeId();
+
+        // Index the source link by its cluster matrix, the constraint
+        // source links carry none
+        std::size_t clusterMatrixIdx = clusterMatrixSet.size();
         clusterMatrixSet.push_back(pixelMatrix);
 
         Acts::Vector2 trackHitLocal(m_trackHitsLocal->at(i).X(),
@@ -529,7 +533,7 @@ ProcessCode E320::E320RootTrackReader::read(const AlgorithmContext& ctx) {
         Acts::GeometryIdentifier geoId;
         geoId.setSensitive(m_geometryIds->at(i));
         SimpleSourceLink ssl(trackHitLocal, trackHitGlobal, trackHitCov, geoId,
-                             eventId, sourceLinks.size());
+                             eventId, clusterMatrixIdx);
         trackSourceLinkIndices.push_back(sourceLinks.size());
         Acts::SourceLink sl(ssl);
         sourceLinks.push_back(sl);
