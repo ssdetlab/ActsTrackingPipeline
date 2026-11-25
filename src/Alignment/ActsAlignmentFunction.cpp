@@ -61,13 +61,12 @@ AlignmentFunction::AlignmentResult ActsAlignmentFunction::operator()(
       const auto& originParameters = trackParameters.at(j);
       Acts::MagneticFieldContext mctxCurrent(magFieldParameters.at(j));
 
-      trackParameters.insert(
-          trackParameters.begin() + j,
+      trackParameters.at(j) =
           m_cfg.trackParametersEstimator
               ->estimateParameters(gctx, mctxCurrent, candidateSourceLinks,
                                    originParameters.direction(),
                                    originParameters.position(gctx))
-              .value());
+              .value();
     }
   }
 

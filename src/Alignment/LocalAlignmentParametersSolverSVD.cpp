@@ -41,7 +41,7 @@ void LocalAlignmentParametersSolverSVD::calculateAlignmentParameters(
   double maxSv = singularValues.maxCoeff();
   Acts::ActsDynamicVector invSingularValues(singularValues.size());
 
-  std::size_t cutoffIdx = 1;
+  std::size_t cutoffIdx = singularValues.size();
   for (std::size_t i = 1; i < singularValues.size(); i++) {
     if (singularValues(i) < maxSv * m_cfg.maxSingularValueTol &&
         singularValues(i) / singularValues(i - 1) < m_cfg.singularValueGapTol) {
