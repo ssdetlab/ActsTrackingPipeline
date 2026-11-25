@@ -176,6 +176,9 @@ alignmentParHighBoundsTheta = 5
 # Maximum number of KF steps
 maxKFSteps = 100000
 
+# KF propagation step tolerance
+kfStepTolerance = 1e-6
+
 # MINUIT UP level
 upLevel = 1
 

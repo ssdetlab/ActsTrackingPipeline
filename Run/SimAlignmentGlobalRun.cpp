@@ -480,6 +480,8 @@ int main() {
   alignmentFunctionCfg.kfReferenceSurface = trackingRefSurface.get();
   alignmentFunctionCfg.maxKFSteps =
       getEntrySizeT("E320MinuitGlobalAlignmentFunction", "maxKFSteps");
+  alignmentFunctionCfg.kfStepTolerance =
+      getEntryDouble("E320MinuitGlobalAlignmentFunction", "kfStepTolerance");
   alignmentFunctionCfg.trackParametersEstimator = trackParametersEstimator;
   alignmentFunctionCfg.initialPars = initialAlignmentPars;
   alignmentFunctionCfg.initialParSteps = initialAlignmentParSteps;
