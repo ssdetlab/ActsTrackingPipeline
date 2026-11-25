@@ -13,7 +13,6 @@
 #include "Minuit2/MnMinos.h"
 #include "Minuit2/MnUserParameters.h"
 #include "TrackingPipeline/Alignment/AlignmentContext.hpp"
-#include "TrackingPipeline/Geometry/E320GeometryOptions.hpp"
 #include "TrackingPipeline/MagneticField/E320MagneticFieldStore.hpp"
 
 E320::E320MinuitGlobalAlignmentFunction::MinuitAlignmentFunctionImpl::
@@ -40,10 +39,6 @@ E320::E320MinuitGlobalAlignmentFunction::MinuitAlignmentFunctionImpl::
   auto nominalAlignmentStore = *m_opt.functionCfg.alignmentStore;
   m_nominalGctx = Acts::GeometryContext(AlignmentContext(
       std::make_shared<AlignmentStore>(nominalAlignmentStore)));
-
-  // Initialize constraint surfaces geometry ids
-  const auto& goInst = *GeometryOptions::instance();
-  m_ensembleCovSurfaceGeoId = goInst.ipSurfaceParameters.geoId;
 }
 
 const E320::E320MinuitGlobalAlignmentFunction::MinuitAlignmentFunctionImpl::
@@ -140,14 +135,8 @@ operator()(const std::vector<double>& pars) const {
   // Run the KF fit
   std::size_t nTracks = m_opt.alignmentFitSourceLinkContainer.size();
 
-  double chi2Smoothed = 0;
+  double chi2Filtered = 0;
   std::size_t measurementDim = 0;
-
-  Acts::SquareMatrix4 matEXY = Acts::SquareMatrix4::Zero();
-  Acts::Vector4 vecEX = Acts::Vector4::Zero();
-
-  std::vector<Acts::Vector4> ipRes;
-  ipRes.reserve(nTracks);
 
   Acts::TrackContainer tracks{Acts::VectorTrackContainer{},
                               Acts::VectorMultiTrajectory{}};
@@ -180,34 +169,31 @@ operator()(const std::vector<double>& pars) const {
       if (!state.hasProjector()) {
         continue;
       }
-      if (state.referenceSurface().geometryId().sensitive() ==
-          m_ensembleCovSurfaceGeoId) {
-        Acts::Vector4 meas = state.effectiveCalibrated();
-        Acts::Vector4 smoothedState =
-            state.effectiveProjector() * state.smoothed();
-        Acts::Vector4 res = meas - smoothedState;
-        ipRes.push_back(res);
-
-        vecEX += res;
-        matEXY += res * res.transpose();
-      } else {
+      if (state.hasFiltered()) {
         Acts::ActsDynamicVector meas = state.effectiveCalibrated();
-        Acts::ActsDynamicMatrix measurementCov =
-            state.effectiveCalibratedCovariance();
+        Acts::ActsDynamicMatrix measCov = state.effectiveCalibratedCovariance();
+        Acts::ActsDynamicMatrix effectiveProjector = state.effectiveProjector();
 
-        Acts::ActsDynamicMatrix smoothedState =
-            state.effectiveProjector() * state.smoothed();
-        Acts::ActsDynamicMatrix smoothedCov =
-            measurementCov - state.effectiveProjector() *
-                                 state.smoothedCovariance() *
-                                 state.effectiveProjector().transpose();
-        Acts::ActsDynamicVector smoothedDiag =
-            smoothedCov.cwiseAbs().diagonal().cwiseInverse().cwiseSqrt();
+        // Residual between the measurement and the filtered state
+        Acts::ActsDynamicVector filteredMeasResidual =
+            meas - effectiveProjector * state.filtered();
 
-        Acts::ActsDynamicVector smoothedPull =
-            smoothedDiag.cwiseProduct(meas - smoothedState);
+        // Covariance of the predicted residual
+        Acts::ActsDynamicMatrix predictedMeasCov =
+            measCov + effectiveProjector * state.predictedCovariance() *
+                          effectiveProjector.transpose();
 
-        chi2Smoothed += smoothedPull.dot(smoothedPull);
+        // Covariance of the filtered residual, V - H Pf H^T evaluated as
+        // V S^-1 V, as in the track writer
+        Acts::ActsDynamicMatrix filteredMeasCov =
+            measCov * predictedMeasCov.ldlt().solve(measCov);
+        filteredMeasCov =
+            0.5 * (filteredMeasCov + filteredMeasCov.transpose()).eval();
+
+        // Add to the track chi2 with the full measurement covariance, as in
+        // the track writer
+        chi2Filtered += filteredMeasResidual.dot(
+            filteredMeasCov.ldlt().solve(filteredMeasResidual));
       }
 
       measurementDim += state.calibratedSize();
@@ -224,15 +210,6 @@ operator()(const std::vector<double>& pars) const {
         track.absoluteMomentum() * track.absoluteMomentum();
     fEnergyCount[fEnergyKey]++;
   }
-  matEXY /= nTracks;
-  vecEX /= nTracks;
-  Acts::SquareMatrix4 ensembleCov = matEXY - vecEX * vecEX.transpose();
-  ACTS_INFO("Ensemble covariance:\n" << ensembleCov);
-  Acts::SquareMatrix4 ensembleCovInv = ensembleCov.inverse();
-  for (const Acts::Vector4& res : ipRes) {
-    chi2Smoothed += res.transpose() * ensembleCovInv * res;
-  }
-
   for (auto [fEnergyKey, meanAbsMom] : meanAbsMoms) {
     double mean2AbsMom = mean2AbsMoms[fEnergyKey];
     double focusingEnergy = fEnergyKey * 1e-6;
@@ -247,16 +224,16 @@ operator()(const std::vector<double>& pars) const {
     std::cout << "MEAN ENERGY: " << meanAbsMom << "\n";
     std::cout << "ENERGY STD DEV: " << std::sqrt(absMomEstVar) << "\n";
     std::cout << "ENERGY MEAN STD DEV: " << std::sqrt(absMomMeanEstVar) << "\n";
-    chi2Smoothed += (meanAbsMom - focusingEnergy) *
+    chi2Filtered += (meanAbsMom - focusingEnergy) *
                     (meanAbsMom - focusingEnergy) / absMomMeanEstVar;
   }
-  ACTS_INFO("Chi2 per track: " << chi2Smoothed / nTracks);
+  ACTS_INFO("Chi2 per track: " << chi2Filtered / nTracks);
 
   // Update the function state
-  m_state->chi2 = chi2Smoothed;
+  m_state->chi2 = chi2Filtered;
   m_state->measurementDim = measurementDim;
 
-  return chi2Smoothed;
+  return chi2Filtered;
 }
 
 E320::E320MinuitGlobalAlignmentFunction::E320MinuitGlobalAlignmentFunction(

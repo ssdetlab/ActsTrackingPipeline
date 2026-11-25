@@ -15,8 +15,8 @@ namespace E320 {
 ///
 /// Function passed to the alignment algorithm performing transverse shift
 /// and rotation about the COM horizontal axis alignment search using
-/// MINUIT chi2 minimization. The covariance of the track residuals at the IP
-/// plane is estimated directly from the sample to avoid numerical issues
+/// MINUIT chi2 minimization. The chi2 is the sum of the KF filtered chi2 of
+/// the tracks and the focusing energy constraint
 class E320MinuitGlobalAlignmentFunction : public AlignmentFunction {
  public:
   /// @brief nested configuration struct
@@ -125,9 +125,6 @@ class E320MinuitGlobalAlignmentFunction : public AlignmentFunction {
 
     /// Nominal geometry context
     Acts::GeometryContext m_nominalGctx;
-
-    /// Geometry ID of the ensemble covariance surfaces
-    std::size_t m_ensembleCovSurfaceGeoId;
   };
 
   /// @brief Constructor
