@@ -229,6 +229,11 @@ maxSteps = 100000
 # Step tolerance
 stepTolerance = 1e-6
 
+# Number of KF iterations. Each iteration after the first one
+# starts from the input track parameters with the q/p of the
+# previous fit
+nKFIterations = 1
+
 # Flag to read the magnetic field data from the
 # magnetic field context
 mctxMagneticFields = false

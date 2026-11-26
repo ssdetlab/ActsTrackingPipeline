@@ -487,6 +487,8 @@ int main() {
       .maxSteps = getEntrySizeT("KFTrackFittingAlgorithm", "maxSteps"),
       .stepTolerance =
           getEntryDouble("KFTrackFittingAlgorithm", "stepTolerance"),
+      .nKFIterations =
+          getEntrySizeT("KFTrackFittingAlgorithm", "nKFIterations"),
       .kfExtensions = kfExtensions,
       .referenceSurface = trackingRefSurface.get(),
       .mctxMagneticFields =

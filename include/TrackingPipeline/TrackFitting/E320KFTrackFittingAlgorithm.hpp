@@ -33,6 +33,9 @@ class E320KFTrackFittingAlgorithm : public IAlgorithm {
     std::size_t maxSteps;
     /// Step tolerance
     double stepTolerance;
+    /// Number of KF iterations. Each iteration after the first one starts
+    /// from the input track parameters with the q/p of the previous fit
+    std::size_t nKFIterations;
     /// KF extensions
     KFFitterExtensions kfExtensions;
     /// Reference surface

@@ -3,6 +3,7 @@
 #include "Acts/Utilities/Logger.hpp"
 
 #include <cstddef>
+#include <optional>
 #include <vector>
 
 #include "TrackingPipeline/Utilities/NonOwningProjectionIterator.hpp"
@@ -82,8 +83,49 @@ ProcessCode E320::E320KFTrackFittingAlgorithm::execute(
               candidateMctx);
     }
 
-    auto res = m_cfg.fitter.fit(begin, end, startParameters, kfOptions,
-                                trackContainer);
+    // Iterate the fit to linearize the propagation around the fitted q/p.
+    // Only the q/p is updated, the position, direction and the prior
+    // covariance are kept from the input track parameters
+    Acts::CurvilinearTrackParameters iterParameters = startParameters;
+    bool iterationsOk = true;
+    for (std::size_t it = 1; it < m_cfg.nKFIterations; it++) {
+      auto iterTrackContainerBackend =
+          std::make_shared<KFFitterTrackContainerBackend>();
+      auto iterTrackStateContainer = std::make_shared<KFFitterTrajectory>();
+      Acts::TrackContainer iterTrackContainer(iterTrackContainerBackend,
+                                              iterTrackStateContainer);
+
+      auto iterRes = m_cfg.fitter.fit(begin, end, iterParameters, kfOptions,
+                                      iterTrackContainer);
+      if (!iterRes.ok()) {
+        iterationsOk = false;
+        break;
+      }
+
+      // Take the q/p of the smoothed state closest to the start of the fit
+      std::optional<double> qOverP;
+      for (const auto& state : iterRes.value().trackStatesReversed()) {
+        if (state.hasSmoothed()) {
+          qOverP = state.smoothed()[Acts::eBoundQOverP];
+        }
+      }
+      if (!qOverP.has_value()) {
+        iterationsOk = false;
+        break;
+      }
+      ACTS_VERBOSE("Track " << candidate.trackId << " iteration " << it
+                            << ": q/p " << iterParameters.qOverP() << " -> "
+                            << qOverP.value());
+      iterParameters.parameters()[Acts::eBoundQOverP] = qOverP.value();
+    }
+    if (!iterationsOk) {
+      ACTS_DEBUG("Track " << candidate.trackId
+                          << " failed in a KF iteration. Skip");
+      continue;
+    }
+
+    auto res =
+        m_cfg.fitter.fit(begin, end, iterParameters, kfOptions, trackContainer);
     if (res.ok()) {
       tracks.emplace_back(trackContainer.size() - 1,
                           candidate.originParametersIndex, idx,
