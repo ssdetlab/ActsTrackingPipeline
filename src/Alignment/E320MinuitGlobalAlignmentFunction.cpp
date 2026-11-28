@@ -5,6 +5,7 @@
 
 #include <cstddef>
 #include <memory>
+#include <optional>
 
 #include <Eigen/Core>
 
@@ -154,8 +155,40 @@ operator()(const std::vector<double>& pars) const {
     kfOptions.magFieldContext =
         std::reference_wrapper<const Acts::MagneticFieldContext>(trajMctx);
 
+    // Iterate the fit to linearize the propagation around the fitted q/p.
+    // Only the q/p is updated, the position, direction and the prior
+    // covariance are kept from the estimated track parameters
+    auto iterParameters = sParameters;
+    bool iterationsOk = true;
+    for (std::size_t it = 1; it < m_opt.functionCfg.nKFIterations; it++) {
+      Acts::TrackContainer iterTracks{Acts::VectorTrackContainer{},
+                                      Acts::VectorMultiTrajectory{}};
+      auto iterRes = m_opt.fitter->fit(sls.begin(), sls.end(), iterParameters,
+                                       kfOptions, iterTracks);
+      if (!iterRes.ok()) {
+        iterationsOk = false;
+        break;
+      }
+      // Take the q/p of the smoothed state closest to the start of the fit
+      std::optional<double> qOverP;
+      for (const auto& state : iterRes.value().trackStatesReversed()) {
+        if (state.hasSmoothed()) {
+          qOverP = state.smoothed()[Acts::eBoundQOverP];
+        }
+      }
+      if (!qOverP.has_value()) {
+        iterationsOk = false;
+        break;
+      }
+      iterParameters.parameters()[Acts::eBoundQOverP] = qOverP.value();
+    }
+    if (!iterationsOk) {
+      std::cout << "Fit failure\n";
+      continue;
+    }
+
     // Perform the track fit
-    auto fitRes = m_opt.fitter->fit(sls.begin(), sls.end(), sParameters,
+    auto fitRes = m_opt.fitter->fit(sls.begin(), sls.end(), iterParameters,
                                     kfOptions, tracks);
     if (!fitRes.ok()) {
       std::cout << "Fit failure\n";
