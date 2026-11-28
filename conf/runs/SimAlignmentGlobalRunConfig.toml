@@ -179,6 +179,11 @@ maxKFSteps = 100000
 # KF propagation step tolerance
 kfStepTolerance = 1e-6
 
+# Number of KF iterations. Each iteration after the first one
+# starts from the estimated track parameters with the q/p of the
+# previous fit
+nKFIterations = 1
+
 # MINUIT UP level
 upLevel = 1
 

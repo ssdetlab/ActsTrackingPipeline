@@ -482,6 +482,8 @@ int main() {
       getEntrySizeT("E320MinuitGlobalAlignmentFunction", "maxKFSteps");
   alignmentFunctionCfg.kfStepTolerance =
       getEntryDouble("E320MinuitGlobalAlignmentFunction", "kfStepTolerance");
+  alignmentFunctionCfg.nKFIterations =
+      getEntrySizeT("E320MinuitGlobalAlignmentFunction", "nKFIterations");
   alignmentFunctionCfg.trackParametersEstimator = trackParametersEstimator;
   alignmentFunctionCfg.initialPars = initialAlignmentPars;
   alignmentFunctionCfg.initialParSteps = initialAlignmentParSteps;

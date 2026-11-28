@@ -37,6 +37,9 @@ class E320MinuitGlobalAlignmentFunction : public AlignmentFunction {
     std::size_t maxKFSteps;
     /// Fitter propagation step tolerance
     double kfStepTolerance;
+    /// Number of KF iterations. Each iteration after the first one starts
+    /// from the estimated track parameters with the q/p of the previous fit
+    std::size_t nKFIterations;
     /// Track parameters estimator
     std::shared_ptr<ITrackParametersEstimator> trackParametersEstimator;
     /// Initial parameters in global coordinates [dy, dz, dtheta]
